@@ -109,6 +109,10 @@ class AgentsMixin:
                 s = self.hub.series(sym, tf)
                 if len(s):
                     agent.last_bar[sym] = int(s["ts"].iloc[-1])
+                if sym in self.settings["general"]["watchlist"]:
+                    feat = self._features_for(sym, tf)
+                    if feat is not None:
+                        agent.record_scan(sym, feat)
             self.agents[name] = agent
             now = time.time()
             self.db.execute(

@@ -129,6 +129,17 @@ export default {
             <div class="stat"><span class="label">Résultat moyen</span><span class="value" :class="cls(stats?.ai?.mean_r)">{{ rr(stats?.ai?.mean_r) }}</span></div>
           </div>
           <p class="faint small">Mode : {{ training?.model ? 'modèle validé ' + training.model : 'exploration (aucun modèle validé : signaux de base, taille réduite de moitié)' }}.</p>
+          <template v-if="training?.running && training.scan && Object.keys(training.scan).length">
+            <h3 style="margin-top:12px">Ce que l'IA voit (dernière bougie {{ training.timeframe }})</h3>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Crypto</th><th>Climat</th><th class="num">RSI</th><th class="num">Tendance 200 j</th><th>Signal</th><th>Analyse</th></tr></thead>
+              <tbody><tr v-for="(v, sym) in training.scan" :key="sym">
+                <td><b>{{ sym.split('/')[0] }}</b></td><td>{{ v.regime }}</td><td class="num">{{ v.rsi !== null ? v.rsi.toFixed(0) : '—' }}</td>
+                <td class="num" :class="cls(v.trend_200d)">{{ v.trend_200d !== null ? pct(v.trend_200d) : '—' }}</td>
+                <td>{{ v.signals.length ? v.signals.join(', ') : 'aucun' }}</td><td class="nowrap small muted">{{ dtMs(v.ts) }}</td></tr></tbody>
+            </table></div>
+            <p class="faint small">Climat du marché (BTC) : {{ Object.values(training.scan)[0]?.btc_regime }}. En climat baissier, l'IA reste volontairement à l'écart (en USDC).</p>
+          </template>
         </div>
         <div class="card">
           <div class="card-head"><h2>Les refus de l'IA étaient-ils justes ?</h2></div>

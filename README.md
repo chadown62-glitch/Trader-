@@ -57,7 +57,7 @@ Les résultats, y compris les mauvais, sont dans **[docs/RESULTATS.md](docs/RESU
 ```bash
 python -m venv .venv && . .venv/bin/activate
 pip install -r requirements-dev.txt
-python -m pytest            # 74 tests : brokers, IA, risque, API, flux temps réel, Telegram, actualités
+python -m pytest            # 77 tests : brokers, IA, risque, API, flux temps réel, Telegram, actualités
 python -m sentinelle --demo # panel sur un marché simulé
 node tests/e2e/ui_check.js  # vérification du panel dans un navigateur (Playwright)
 ```

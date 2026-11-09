@@ -71,8 +71,12 @@ class MarketHub:
             return ts is not None and now - ts <= max_age
         return bool(self.price_ts) and all(now - t <= max_age for t in self.price_ts.values())
 
-    def poll(self) -> None:
-        """Un relevé complet (appelé périodiquement par le moteur)."""
+    def poll(self, between: Callable[[], None] | None = None) -> None:
+        """Un relevé complet (appelé périodiquement par le moteur).
+
+        `between` est appelé entre deux paires : le moteur en profite pour traiter
+        les commandes en attente (ordres manuels) sans attendre la fin du relevé.
+        """
         ok_any = False
         for symbol in sorted(self.watch):
             try:
@@ -80,6 +84,8 @@ class MarketHub:
                 ok_any = True
             except Exception as exc:  # réseau, exchange en maintenance...
                 self._error(f"{symbol} : {exc}")
+            if between is not None:
+                between()
         if ok_any:
             self.status.update(ok=True, last_ok=time.time())
         self._check_closes()

@@ -83,6 +83,7 @@ class TradingAgent:
         self.record = record
         self.running = False
         self.last_bar: dict[str, int] = {}
+        self.last_scan: dict[str, dict] = {}
         self.stats = {"decisions": 0, "entries": 0, "refused": 0}
 
     @property
@@ -114,8 +115,34 @@ class TradingAgent:
         if sig_at is None:
             sig_at = {n: bool(STRATEGIES[n].signal(feat).iloc[i]) for n in enabled}
         names = [n for n in enabled if sig_at.get(n)]
+        if self.mode != "backtest":
+            self.record_scan(symbol, feat, i, names)
         if names and np.isfinite(row["atr"]) and row["atr"] > 0:
             self._consider(symbol, row, names, bar_ts)
+
+    def record_scan(self, symbol: str, feat: pd.DataFrame, i: int | None = None, names: list[str] | None = None) -> None:
+        """Mémorise ce que l'IA « voit » sur une crypto (affiché dans le panel, même sans trade)."""
+        if len(feat) == 0:
+            return
+        i = len(feat) - 1 if i is None else i
+        row = feat.iloc[i]
+        if names is None:
+            enabled = [n for n, on in self.settings_fn()["ai"]["strategies"].items() if on and n in STRATEGIES]
+            names = [n for n in enabled if bool(STRATEGIES[n].signal(feat).iloc[i])]
+
+        def num(key):
+            v = row.get(key)
+            return float(v) if v is not None and np.isfinite(v) else None
+
+        self.last_scan[symbol] = {
+            "ts": int(row["ts"]) + self.tf_ms,
+            "close": num("close"),
+            "regime": REGIME_LABELS.get(row["regime"], row["regime"]),
+            "btc_regime": REGIME_LABELS.get(row.get("btc_regime", "unknown"), "inconnu"),
+            "rsi": num("rsi14"),
+            "trend_200d": num("trend_200d"),
+            "signals": [STRATEGIES[n].label for n in names],
+        }
 
     # -- gestion des positions ouvertes ------------------------------------------------
     def _manage_positions(self, symbol: str, feat: pd.DataFrame, i: int, bar_close_ms: int) -> None:
@@ -338,4 +365,5 @@ class TradingAgent:
             "timeframe": self.timeframe,
             "stats": dict(self.stats),
             "last_bar": dict(self.last_bar),
+            "scan": dict(self.last_scan),
         }

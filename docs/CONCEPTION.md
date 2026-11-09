@@ -30,7 +30,7 @@
 | Telegram (notifications + commandes + confirmation) | ✅ | Lecture de canaux de signaux (A) : **pas encore** (prévue plus tard, en observation) |
 | Actualités + IA | ✅ | IA **locale** (Ollama, gratuite) au lieu de l'API Claude |
 | Hébergement | ✅ | Sur **votre PC** Windows (choix « zéro frais d'IA ») |
-| Tests | ✅ 74 tests automatiques + vérification dans un navigateur | — |
+| Tests | ✅ 77 tests automatiques + vérification dans un navigateur | — |
 
 Résultat honnête à ce jour : l'IA est **non validée** sur les données récentes, donc le mode réel reste verrouillé.
 Le système protège le capital (−2,5 % sur un an quand le marché faisait −45,6 %), mais il n'a pas encore prouvé qu'il gagne de l'argent.

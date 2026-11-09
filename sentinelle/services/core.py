@@ -107,7 +107,7 @@ class Engine(threading.Thread):
                     nxt["markets"] = now + (30 if not app.hub.markets else 3600)
                 if now >= nxt["poll"]:
                     if app.hub.markets:
-                        app.hub.poll()
+                        app.hub.poll(between=lambda: self.drain(0.0))
                         app._poll_live()
                     nxt["poll"] = time.time() + app.settings["market"]["poll_seconds"]
                 if now >= nxt["equity"]:

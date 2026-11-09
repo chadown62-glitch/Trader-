@@ -52,6 +52,9 @@ def test_agent_trades_end_to_end(flow):
     assert "ia_entrainement" in app.agents, app.agent_state
     agent = app.agents["ia_entrainement"]
     acc_id = agent.account_id
+    # ce que l'IA « voit » est disponible dès le démarrage (même sans signal)
+    assert set(agent.last_scan) == {"BTC/USDC", "ETH/USDC"}
+    assert agent.last_scan["BTC/USDC"]["regime"] in ("haussier", "neutre", "baissier")
     opened = closed = 0
     # on fait avancer le temps : relevés toutes les 10 minutes simulées pendant 6 jours
     for _ in range(6 * 24 * 6):

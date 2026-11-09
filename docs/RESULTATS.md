@@ -24,7 +24,7 @@
 | Caractéristiques sans fuite d'information | Ajouter des bougies futures ne change aucune valeur passée | Identique à 10⁻⁹ près ✅ |
 | Fenêtre en direct = historique complet | Les calculs en direct sont identiques à ceux de l'apprentissage | Identique ✅ |
 
-Ces vérifications, et 70 autres, tournent avec `pytest` (voir `tests/`).
+Ces vérifications, et plus de 70 autres, tournent avec `pytest` (voir `tests/`).
 
 ## 3. Étude des stratégies sur données réelles
 

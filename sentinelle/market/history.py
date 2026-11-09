@@ -130,12 +130,17 @@ class HistoryStore:
         start -= start % step
         df = self.load(symbol, timeframe)
         new_rows: list[list[float]] = []
+        earliest = self._earliest(symbol, timeframe)
         if df.empty:
             new_rows += self._fetch_range(symbol, timeframe, start, now, progress)
+            if new_rows:
+                self._set_earliest(symbol, timeframe, start, int(new_rows[0][0]))
         else:
             first, last = int(df["ts"].iloc[0]), int(df["ts"].iloc[-1])
-            if first > start + step:
-                new_rows += self._fetch_range(symbol, timeframe, start, first, None)
+            if first > start + step and not (earliest and earliest["first"] <= first and earliest["asked"] <= start):
+                older = self._fetch_range(symbol, timeframe, start, first, None)
+                new_rows += older
+                self._set_earliest(symbol, timeframe, start, int(older[0][0]) if older else first)
             new_rows += self._fetch_range(symbol, timeframe, last + step, now, progress)
         if new_rows:
             df = pd.concat([df, to_frame(new_rows)], ignore_index=True)
@@ -148,6 +153,32 @@ class HistoryStore:
             log.info("Historique %s %s nettoyé : %s", symbol, timeframe, report)
         cut = df[df["ts"] >= start].reset_index(drop=True)
         return cut
+
+    # -- mémoire de la première cotation disponible ------------------------------
+    def _meta_path(self) -> Path:
+        return self.root / self.source.name / "premieres-cotations.json"
+
+    def _earliest(self, symbol: str, timeframe: str) -> dict | None:
+        import json
+
+        p = self._meta_path()
+        try:
+            return json.loads(p.read_text(encoding="utf-8")).get(f"{symbol}|{timeframe}") if p.exists() else None
+        except (OSError, ValueError):
+            return None
+
+    def _set_earliest(self, symbol: str, timeframe: str, asked: int, first: int) -> None:
+        import json
+
+        p = self._meta_path()
+        try:
+            data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+        except (OSError, ValueError):
+            data = {}
+        prev = data.get(f"{symbol}|{timeframe}") or {}
+        data[f"{symbol}|{timeframe}"] = {"asked": min(asked, prev.get("asked", asked)), "first": first}
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(data), encoding="utf-8")
 
     def info(self, symbol: str, timeframe: str) -> dict:
         df = self.load(symbol, timeframe)
