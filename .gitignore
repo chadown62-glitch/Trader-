@@ -1,0 +1,15 @@
+# Environnement Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Données locales (base, historique, modèles, secrets) : ne JAMAIS publier
+data/
+*.env
+secrets*.json
+
+# Divers
+.DS_Store
+Thumbs.db
+test-results/
