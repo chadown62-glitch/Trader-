@@ -8,6 +8,7 @@ import History from './views/history.js';
 import News from './views/news.js';
 import Settings from './views/settings.js';
 import Logs from './views/logs.js';
+import Signals from './views/signals.js';
 
 const { createApp, ref, computed, onMounted, onBeforeUnmount, watch } = Vue;
 
@@ -17,10 +18,11 @@ const NAV = [
   { id: 'ai', label: 'IA', ico: '✦' },
   { id: 'history', label: 'Historique', ico: '☰' },
   { id: 'news', label: 'Actualités', ico: '✉' },
+  { id: 'signals', label: 'Signaux', ico: '⌁' },
   { id: 'settings', label: 'Réglages', ico: '⚙' },
   { id: 'logs', label: 'Journal', ico: '≡' },
 ];
-const VIEWS = { dashboard: Dashboard, trade: Trade, ai: AI, history: History, news: News, settings: Settings, logs: Logs };
+const VIEWS = { dashboard: Dashboard, trade: Trade, ai: AI, history: History, news: News, signals: Signals, settings: Settings, logs: Logs };
 const LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#3b82f6" d="M32 4 8 14v16c0 15 10 26 24 30 14-4 24-15 24-30V14z"/><path fill="#fff" d="m20 36 8-10 7 7 9-12 4 3-13 16-7-7-5 6z"/></svg>`;
 
 const Login = {
@@ -173,7 +175,15 @@ const App = {
     on('tick', (d) => { store.markets.prices[d.symbol] = d.price; });
     on('decision', (d) => { store.decisions.unshift({ ...d, ts: Date.now() / 1000 }); store.decisions.splice(60); });
     on('job', (d) => { store.jobs[d.id] = d; });
-    on('alert', (d) => toast(d.message, d.level === 'critical' ? 'error' : 'warn', 12000));
+    const notify = (title, body) => {
+      try {
+        if (document.hidden && 'Notification' in window && Notification.permission === 'granted' && localStorage.getItem('stn-notif') === '1') {
+          new Notification(title, { body, icon: 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Cpath fill=%27%233b82f6%27 d=%27M32 4 8 14v16c0 15 10 26 24 30 14-4 24-15 24-30V14z%27/%3E%3C/svg%3E' });
+        }
+      } catch { /* notifications indisponibles */ }
+    };
+    on('alert', (d) => { toast(d.message, d.level === 'critical' ? 'error' : 'warn', 12000); notify('Sentinelle : alerte', d.message); });
+    on('trade_closed', (d) => notify(`Sentinelle : vente ${d.symbol}`, `${(d.realized_pnl || 0) >= 0 ? '+' : ''}${(d.realized_pnl || 0).toFixed(2)} (${d.reason_close || ''})`));
     on('trade_closed', (d) => { const p = d.realized_pnl || 0; toast(`${d.origin === 'ai' ? 'IA' : 'Manuel'} — vente ${d.symbol} : ${p >= 0 ? '+' : ''}${p.toFixed(2)} (${d.reason_close || ''})`, p >= 0 ? 'success' : 'warn'); refresh(); });
     on('position_opened', (d) => { if (d.origin === 'ai') toast(`IA — achat ${d.symbol}`, 'info'); refresh(); });
     on('training_done', (d) => toast(`Entraînement terminé : modèle ${d.verdict}`, d.verdict === 'validé' ? 'success' : 'warn', 10000));
@@ -182,10 +192,15 @@ const App = {
     onMounted(() => { window.addEventListener('hashchange', onHash); checkAuth(); });
     onBeforeUnmount(() => window.removeEventListener('hashchange', onHash));
 
+    const theme = ref((() => { try { return localStorage.getItem('stn-theme') || 'dark'; } catch { return 'dark'; } })());
+    const applyTheme = () => { document.documentElement.dataset.theme = theme.value; };
+    applyTheme();
+    const toggleTheme = () => { theme.value = theme.value === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('stn-theme', theme.value); } catch { /* ignoré */ } applyTheme(); };
     const logout = async () => { await safe(api.post('/api/auth/logout')); store.auth.authenticated = false; };
     const liveConnected = computed(() => store.overview?.live?.connected);
     const marketOk = computed(() => store.overview?.market?.status?.ok);
-    return { store, route, view, NAV, logout, LOGO, liveConnected, marketOk };
+    const more = ref(false);
+    return { store, route, view, NAV, logout, LOGO, liveConnected, marketOk, theme, toggleTheme, more };
   },
   template: `
   <div v-if="!store.auth.checked" class="boot">Connexion…</div>
@@ -198,6 +213,7 @@ const App = {
       <span v-if="liveConnected" class="badge live hide-mobile">Réel connecté{{ store.overview.live.testnet ? ' (testnet)' : '' }}</span>
       <span class="spacer"></span>
       <button class="urgence" @click="store.emergencyOpen = true" title="Arrêt d'urgence">🛑 <span class="hide-mobile">Urgence</span></button>
+      <button class="ghost small" @click="toggleTheme" :title="theme==='dark' ? 'Thème clair' : 'Thème sombre'">{{ theme==='dark' ? '☀' : '☾' }}</button>
       <button class="ghost small" @click="logout" title="Se déconnecter">⎋</button>
     </header>
     <nav class="nav">
@@ -206,9 +222,12 @@ const App = {
     </nav>
     <main class="main"><component :is="view" :key="route" /></main>
     <nav class="bottom-nav">
-      <a v-for="n in NAV.slice(0,5)" :key="n.id" :href="'#/' + n.id" :class="{active: route===n.id}"><span class="ico">{{ n.ico }}</span>{{ n.label.split(' ')[0] }}</a>
-      <a href="#/settings" :class="{active: route==='settings'}"><span class="ico">⚙</span>Plus</a>
+      <a v-for="n in NAV.slice(0,4)" :key="n.id" :href="'#/' + n.id" :class="{active: route===n.id}" @click="more=false"><span class="ico">{{ n.ico }}</span>{{ n.label.split(' ')[0] }}</a>
+      <a href="javascript:void 0" :class="{active: more || NAV.slice(4).some(n => n.id === route)}" @click="more = !more"><span class="ico">⋯</span>Plus</a>
     </nav>
+    <div v-if="more" class="more-sheet" @click.self="more=false">
+      <div class="card"><a v-for="n in NAV.slice(4)" :key="n.id" :href="'#/' + n.id" @click="more=false"><span class="ico">{{ n.ico }}</span> {{ n.label }}</a></div>
+    </div>
   </div>
   <EmergencyModal v-if="store.emergencyOpen" />
   <ConfirmModal v-if="store.confirm" />

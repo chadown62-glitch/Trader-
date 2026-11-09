@@ -164,6 +164,27 @@ Le module joue le rôle de **garde du corps** : une actualité très négative b
 
 ---
 
+## 8 bis. Canaux de signaux Telegram (observation)
+
+Page **Signaux**.
+1. Sur <https://my.telegram.org>, ouvrez « API development tools » et créez une application. Notez **api_id** et **api_hash**.
+2. Saisissez-les avec votre numéro, puis cliquez sur « Recevoir le code » et validez le code reçu dans Telegram.
+3. Ajoutez les canaux (`@nom` ou lien `t.me/...`) et cochez « Lire les canaux ».
+
+Les 300 derniers messages de chaque canal sont analysés tout de suite. Chaque signal reconnu est évalué sur les vrais prix, frais compris, et vous voyez le **vrai** taux de réussite et le résultat moyen de chaque canal.
+Rien n'est jamais tradé automatiquement. La connexion de votre compte reste sur votre PC (`data/telegram_utilisateur.session`) : ne partagez jamais ce fichier.
+
+## 8 ter. Protections supplémentaires
+
+- **Calendrier macro** (Réglages → Calendrier macro) : aucune nouvelle position une heure avant et après les annonces listées. Ajoutez les dates de la Fed (federalreserve.gov) et de l'inflation US (bls.gov), en heure UTC.
+- **Vérification des prix** (Réglages → Données) : le prix est comparé à celui de Kraken avant chaque entrée de l'IA.
+- **Surveillance externe** (Réglages → Surveillance) :
+  1. créez un contrôle gratuit sur <https://healthchecks.io> (période 5 minutes) et collez son adresse ;
+  2. si Sentinelle ou le PC s'arrête, vous êtes prévenu (e-mail, Telegram…).
+- **Sauvegardes** : une copie de la base est faite chaque jour dans `data/backups` (14 jours conservés).
+- **Double authentification** (Réglages → Sécurité) : scannez le QR code avec Google Authenticator ou Authy.
+- **Notifications du navigateur** (Réglages → Sécurité) et **thème clair** (bouton ☀ en haut).
+
 ## 9. Laisser tourner 24 h/24
 
 - **Windows → Paramètres → Système → Alimentation** : mise en veille sur « Jamais ».
@@ -189,7 +210,7 @@ Ne rendez **jamais** le panel accessible directement depuis internet.
 ## 11. Sauvegardes et mises à jour
 
 - Toutes vos données sont dans le dossier **`data/`** : base, historique des prix, modèles, secrets. Sauvegardez-le de temps en temps, avec Sentinelle arrêté.
-- Pour mettre à jour : remplacez les fichiers du programme en **gardant `data/`**, puis relancez `lancer.bat`. Les composants se mettent à jour tout seuls.
+- Pour mettre à jour : double-cliquez sur **`mettre_a_jour.bat`** si vous avez installé avec Git. Sinon, remplacez les fichiers du programme en **gardant `data/`**. Relancez ensuite `lancer.bat` : les composants se mettent à jour tout seuls.
 
 ---
 
@@ -211,4 +232,4 @@ Ne rendez **jamais** le panel accessible directement depuis internet.
 ## 13. Fiscalité (France)
 
 Les plus-values crypto sont imposables. Les comptes ouverts sur des plateformes étrangères se déclarent chaque année (formulaire 3916-bis).
-Exportez votre historique (page **Historique → Export CSV**) et faites valider votre situation par un expert-comptable. *Ceci n'est pas un conseil fiscal.*
+Exportez toutes vos opérations (page **Historique → Déclaration fiscale**) et faites valider votre situation par un expert-comptable. *Ceci n'est pas un conseil fiscal.*

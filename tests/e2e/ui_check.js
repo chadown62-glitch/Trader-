@@ -35,7 +35,7 @@ const PWD = 'demo-mot-de-passe-123';
   await page.waitForTimeout(2500);
   await page.screenshot({ path: `${OUT}/04-after-buy.png`, fullPage: true });
 
-  for (const [name, hash] of [['05-ai', 'ai'], ['06-history', 'history'], ['07-news', 'news'], ['08-settings', 'settings'], ['09-logs', 'logs']]) {
+  for (const [name, hash] of [['05-ai', 'ai'], ['06-history', 'history'], ['07-news', 'news'], ['08-settings', 'settings'], ['09-logs', 'logs'], ['13-signals', 'signals']]) {
     await page.goto(`${BASE}/#/${hash}`);
     await page.waitForTimeout(1500);
     await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true });
@@ -46,6 +46,11 @@ const PWD = 'demo-mot-de-passe-123';
   await page.waitForTimeout(8000);
   await page.screenshot({ path: `${OUT}/10-ai-started.png`, fullPage: true });
 
+  await page.goto(BASE + '/#/dashboard');
+  await page.click('button[title="Thème clair"]');
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: `${OUT}/14-light-dashboard.png`, fullPage: true });
+  await page.click('button[title="Thème sombre"]');
   const mob = await browser.newContext({ ...devices['iPhone 13'] });
   const mp = await mob.newPage();
   mp.on('pageerror', e => errors.push(`[mobile pageerror] ${e.message}`));

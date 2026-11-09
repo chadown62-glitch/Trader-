@@ -12,7 +12,7 @@ export default {
     const models = ref([]);
     const report = ref(null);
     const reportVersion = ref(null);
-    const trainDays = ref(730);
+    const trainDays = ref(2920);
     const btDays = ref(90);
     const btUseModel = ref(false);
     const btResult = ref(null);
@@ -203,7 +203,7 @@ export default {
         <div class="card">
           <h2>Entraîner l'IA sur l'historique</h2>
           <p class="muted small">Télécharge l'historique des prix, crée les situations d'apprentissage, valide sur une période jamais vue, puis simule le portefeuille. Durée : une à quelques minutes.</p>
-          <div class="field"><label>Historique utilisé</label><select v-model.number="trainDays"><option :value="365">1 an</option><option :value="730">2 ans</option><option :value="1095">3 ans</option><option :value="1460">4 ans</option></select></div>
+          <div class="field"><label>Historique utilisé</label><select v-model.number="trainDays"><option :value="365">1 an</option><option :value="730">2 ans</option><option :value="1095">3 ans</option><option :value="1460">4 ans</option><option :value="2190">6 ans</option><option :value="2920">8 ans (historique étendu)</option></select></div>
           <button class="primary" :disabled="trainJob && trainJob.status==='running'" @click="train">🧠 Lancer l'entraînement</button>
           <div v-if="trainJob" style="margin-top:12px">
             <div class="small muted">{{ trainJob.label }} — {{ trainJob.status==='running' ? trainJob.message : trainJob.status==='done' ? 'terminé' : 'échec : ' + trainJob.error }}</div>
@@ -233,7 +233,7 @@ export default {
         <div class="card-head"><h2>Rapport d'entraînement</h2><span class="mono small muted">{{ reportVersion }}</span><span class="spacer"></span><span class="muted small">{{ report.symbols?.join(', ') }} · {{ report.timeframe }} · {{ report.n_resolved }} situations</span></div>
         <div class="note verdict" :class="report.verdict==='validé' ? 'ok' : 'warn'" style="margin-bottom:14px">
           <span class="big-ico">{{ report.verdict==='validé' ? '✅' : '⚠️' }}</span>
-          <div><b>Modèle {{ report.verdict }}</b><div v-for="r in report.reasons" :key="r" class="small">{{ r }}</div>
+          <div><b>Modèle {{ report.verdict }}{{ report.summary?.mode === 'règles seules' ? ' (règles seules : le filtre IA est désactivé)' : '' }}</b><div v-for="r in report.reasons" :key="r" class="small">{{ r }}</div>
             <div v-if="report.verdict!=='validé'" class="small" style="margin-top:4px">Conséquence : l'IA reste en exploration (argent fictif) et ne peut pas trader en réel. C'est une protection, pas un bug.</div></div>
         </div>
         <div class="grid cols-2" style="margin-bottom:14px" v-if="report.holdout">

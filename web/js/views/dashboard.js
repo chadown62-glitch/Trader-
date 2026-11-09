@@ -1,12 +1,13 @@
 // Tableau de bord : comptes, IA, capital, décisions en direct, voyants
 import { api, safe } from '../api.js';
 import { LineChart } from '../charts.js';
+import { ContextCard } from './context.js';
 import { store, money, signed, cls, pct, dt, ago, ROLE_LABELS, REASON_ICONS } from '../store.js';
 
 const { ref, computed, onMounted, watch } = Vue;
 
 export default {
-  components: { LineChart },
+  components: { LineChart, ContextCard },
   setup() {
     const selected = ref(null);
     const equity = ref([]);
@@ -107,6 +108,8 @@ export default {
         </div>
       </div>
 
+      <div class="grid cols-2">
+      <ContextCard />
       <div class="card">
         <div class="card-head"><h2>Décisions de l'IA (journal « pourquoi »)</h2><span class="spacer"></span><a href="#/ai" class="small">Tout voir →</a></div>
         <div v-if="!feed.length" class="empty">Aucune décision pour le moment. Démarrez l'IA d'entraînement : elle analysera le marché à chaque clôture de bougie.</div>
@@ -116,6 +119,7 @@ export default {
             <div>{{ d.message }}</div>
           </div>
         </div>
+      </div>
       </div>
     </template>
   </div>`,

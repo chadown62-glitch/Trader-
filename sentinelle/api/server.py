@@ -492,6 +492,42 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         return Response(buf.getvalue(), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": "attachment; filename=sentinelle-trades.csv"})
 
+    @api.get("/api/fiscal.csv")
+    async def fiscal_csv(account_id: int, year: int | None = None):
+        """Toutes les exécutions (achats et ventes) d'un compte : base des déclarations."""
+        sql = "SELECT f.*, o.origin, o.purpose FROM fills f LEFT JOIN orders o ON o.id = f.order_id WHERE f.account_id = ?"
+        params: list[Any] = [account_id]
+        if year:
+            start = time.mktime((year, 1, 1, 0, 0, 0, 0, 0, -1))
+            end = time.mktime((year + 1, 1, 1, 0, 0, 0, 0, 0, -1))
+            sql += " AND f.ts >= ? AND f.ts < ?"
+            params += [start, end]
+        rows = app.db.query(sql + " ORDER BY f.ts", params)
+        buf = io.StringIO()
+        w = csv.writer(buf, delimiter=";")
+        w.writerow(["date", "opération", "paire", "quantité", "prix", "montant", "frais", "devise des frais", "origine"])
+        for r in rows:
+            w.writerow([time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(r["ts"])), "achat" if r["side"] == "buy" else "vente",
+                        r["symbol"], f"{r['amount']:.8f}".replace(".", ","), f"{r['price']:.8f}".replace(".", ","),
+                        f"{r['amount'] * r['price']:.2f}".replace(".", ","), f"{r['fee']:.8f}".replace(".", ","),
+                        r["fee_asset"] or "", "IA" if r["origin"] == "ai" else "manuel"])
+        name = f"sentinelle-operations-{account_id}{'-' + str(year) if year else ''}.csv"
+        return Response("\ufeff" + buf.getvalue(), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": f"attachment; filename={name}"})
+
+    @api.get("/api/fiscal/summary")
+    async def fiscal_summary(account_id: int):
+        rows = app.db.query("SELECT exit_ts, realized_pnl, fees FROM positions WHERE account_id = ? AND status = 'closed' AND exit_ts IS NOT NULL",
+                            (account_id,))
+        years: dict[int, dict] = {}
+        for r in rows:
+            y = time.localtime(r["exit_ts"]).tm_year
+            d = years.setdefault(y, {"year": y, "trades": 0, "pnl": 0.0, "fees": 0.0})
+            d["trades"] += 1
+            d["pnl"] += r["realized_pnl"]
+            d["fees"] += r["fees"]
+        return sorted(years.values(), key=lambda d: -d["year"])
+
     @api.get("/api/stats")
     async def stats(account_id: int):
         from ..ai.metrics import trade_metrics

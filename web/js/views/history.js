@@ -22,8 +22,14 @@ export default {
     watch([accountId, origin], load);
     watch(accounts, () => { if (accountId.value === null) load(); });
     const csvUrl = computed(() => `/api/trades.csv?account_id=${accountId.value ?? ''}`);
+    const fiscalYear = ref('');
+    const fiscalUrl = computed(() => `/api/fiscal.csv?account_id=${accountId.value ?? ''}${fiscalYear.value ? '&year=' + fiscalYear.value : ''}`);
+    const fiscal = ref([]);
+    const loadFiscal = async () => { if (accountId.value !== null) fiscal.value = (await safe(api.get(`/api/fiscal/summary?account_id=${accountId.value}`))) || []; };
+    watch(accountId, loadFiscal);
+    onMounted(loadFiscal);
     const s = computed(() => (origin.value === 'ai' ? stats.value?.ai : origin.value === 'manual' ? stats.value?.manual : stats.value?.all) || {});
-    return { accounts, accountId, origin, trades, stats, s, open, csvUrl, money, signed, price, qty, plainPct, rr, cls, dt, duration, STRATEGY_LABELS };
+    return { accounts, accountId, origin, trades, stats, s, open, csvUrl, fiscalYear, fiscalUrl, fiscal, money, signed, price, qty, plainPct, rr, cls, dt, duration, STRATEGY_LABELS };
   },
   template: `
   <div>
@@ -43,6 +49,15 @@ export default {
         <div class="stat"><span class="label">Frais payés</span><span class="value">{{ money(stats?.fees) }}</span></div>
       </div>
       <p class="faint small" style="margin-bottom:0">Le taux de réussite seul ne veut rien dire : c'est le résultat moyen (en R, frais compris) qui doit être positif sur un grand nombre de trades.</p>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head"><h2>Déclaration fiscale</h2><span class="spacer"></span>
+        <select v-model="fiscalYear" style="width:auto"><option value="">Toutes les années</option><option v-for="y in fiscal" :key="y.year" :value="y.year">{{ y.year }}</option></select>
+        <a class="btn" :href="fiscalUrl">⤓ Toutes les opérations (CSV)</a></div>
+      <div class="table-wrap"><table><thead><tr><th>Année</th><th class="num">Trades clôturés</th><th class="num">Résultat réalisé</th><th class="num">Frais</th></tr></thead>
+        <tbody><tr v-for="y in fiscal" :key="y.year"><td>{{ y.year }}</td><td class="num">{{ y.trades }}</td><td class="num" :class="cls(y.pnl)">{{ signed(y.pnl) }}</td><td class="num">{{ money(y.fees) }}</td></tr>
+          <tr v-if="!fiscal.length"><td colspan="4" class="empty">Aucune opération clôturée.</td></tr></tbody></table></div>
+      <p class="faint small" style="margin-bottom:0">Le fichier liste chaque achat et chaque vente (date, quantité, prix, frais), à transmettre à votre expert-comptable. Les règles françaises (calcul global du portefeuille, formulaire 2086, comptes 3916-bis) ne sont pas appliquées automatiquement. Ceci n'est pas un conseil fiscal.</p>
     </div>
     <div class="card">
       <div class="table-wrap"><table>

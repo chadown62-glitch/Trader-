@@ -19,7 +19,7 @@ const SECTIONS = {
     { key: 'cooldown_minutes_after_loss', label: 'Délai après une perte sur une crypto (minutes)', kind: 'int', help: 'Pas de rachat « pour se refaire ».' },
   ] },
   ai: { title: 'Intelligence artificielle', fields: [
-    { key: 'timeframe', label: 'Unité de temps de l’IA', kind: 'select', options: [['15m', '15 minutes'], ['1h', '1 heure'], ['4h', '4 heures']], help: 'Plus l’unité est longue, moins les frais pèsent. Changer d’unité demande un nouvel entraînement.' },
+    { key: 'timeframe', label: 'Unité de temps de l\u2019IA', kind: 'select', options: [['15m', '15 minutes'], ['1h', '1 heure'], ['4h', '4 heures (recommandé)'], ['1d', '1 jour (peu de trades)']], help: 'Plus l’unité est longue, moins les frais pèsent. Changer d’unité demande un nouvel entraînement.' },
     { key: 'exploration', label: 'Exploration en entraînement', kind: 'bool', help: 'Sans modèle validé, l’IA d’entraînement prend les signaux de base (taille réduite) pour apprendre. Jamais en réel.' },
     { key: 'exploration_risk_factor', label: 'Taille en exploration', kind: 'pct', step: 10, help: 'Fraction du risque normal utilisée en exploration.' },
     { key: 'learning', label: 'Apprentissage continu', kind: 'bool', help: 'Ré-entraîne régulièrement l’IA avec les données récentes (le nouveau modèle n’est activé que s’il est validé).' },
@@ -27,6 +27,23 @@ const SECTIONS = {
     { key: 'min_new_samples', label: 'Nouvelles situations minimum avant ré-entraînement', kind: 'int' },
     { key: 'regime_filter', label: 'Rester à l’abri en marché baissier', kind: 'bool', help: 'Aucun achat quand le BTC est sous ses moyennes de fond (recommandé en spot).' },
     { key: 'use_news', label: 'Veto des actualités', kind: 'bool', help: 'Bloque les achats si une actualité très négative et confirmée concerne la crypto.' },
+    { key: 'extended_history', label: 'Historique étendu pour l\u2019apprentissage', kind: 'bool', help: 'Ajoute l\u2019historique plus ancien des paires USDT (mêmes cryptos) : plusieurs années de plus pour apprendre.' },
+    { key: 'rules_fallback', label: 'Validation « règles seules »', kind: 'bool', help: 'Si le filtre IA n\u2019apporte rien mais que les règles des stratégies sont prouvées sur des données jamais vues, elles sont validées telles quelles.' },
+  ] },
+  market: { title: 'Données et sécurité des prix', fields: [
+    { key: 'cross_check', label: 'Vérifier le prix sur une seconde plateforme', kind: 'bool', help: 'Avant chaque entrée de l\u2019IA, le prix est comparé à celui de Kraken : un écart anormal bloque le trade.' },
+    { key: 'cross_check_max_pct', label: 'Écart maximal toléré (%)', kind: 'num', step: 0.1 },
+    { key: 'context', label: 'Contexte de marché (Fear & Greed, indices, financement)', kind: 'bool' },
+    { key: 'poll_seconds', label: 'Relevé des prix toutes les (secondes)', kind: 'int' },
+    { key: 'history_days', label: 'Historique chargé (jours)', kind: 'int' },
+  ] },
+  macro: { title: 'Calendrier macro', fields: [
+    { key: 'enabled', label: 'Pas de nouvelle position autour des annonces', kind: 'bool' },
+    { key: 'blackout_minutes', label: 'Fenêtre avant et après l\u2019annonce (minutes)', kind: 'int' },
+  ] },
+  monitoring: { title: 'Surveillance et sauvegardes', fields: [
+    { key: 'heartbeat_url', label: 'Adresse de surveillance externe (facultatif)', kind: 'text', help: 'Créez un contrôle gratuit sur healthchecks.io (période 5 min) et collez son adresse « ping » : vous serez prévenu si Sentinelle ou le PC s\u2019arrête.' },
+    { key: 'backup_keep_days', label: 'Sauvegardes conservées (jours)', kind: 'int', help: 'Une copie de la base est faite chaque jour dans data/backups.' },
   ] },
   paper: { title: 'Simulation (argent fictif)', fields: [
     { key: 'fee_rate', label: 'Frais par ordre', kind: 'pct', step: 0.01, help: 'Hypothèse prudente : 0,1 %.' },
@@ -66,6 +83,16 @@ export default {
     const secretInputs = reactive({ exchange_api_key: '', exchange_secret: '', exchange_password: '', telegram_token: '' });
     const addPair = ref('');
     const feedsText = ref('');
+    const eventsText = ref('');
+    const notifState = ref((() => { try { return ('Notification' in window ? Notification.permission : 'indisponible') + (localStorage.getItem('stn-notif') === '1' ? '' : '-off'); } catch { return 'indisponible'; } })());
+    const enableNotif = async () => {
+      if (!('Notification' in window)) { toast('Notifications non prises en charge par ce navigateur', 'warn'); return; }
+      const perm = await Notification.requestPermission();
+      try { localStorage.setItem('stn-notif', perm === 'granted' ? '1' : '0'); } catch { /* ignoré */ }
+      notifState.value = perm + (perm === 'granted' ? '' : '-off');
+      toast(perm === 'granted' ? 'Notifications activées (quand le panel est en arrière-plan)' : 'Notifications refusées par le navigateur', perm === 'granted' ? 'success' : 'warn');
+    };
+    const disableNotif = () => { try { localStorage.setItem('stn-notif', '0'); } catch { /* ignoré */ } notifState.value = 'granted-off'; };
     const newAcc = reactive({ name: 'Mon deuxième compte', initial_balance: 1000 });
     const pwd = reactive({ current: '', new: '', new2: '' });
     const newsStatus = ref(null);
@@ -86,6 +113,7 @@ export default {
       if (!store.settings) return;
       Object.assign(form, JSON.parse(JSON.stringify(store.settings)));
       feedsText.value = (form.news?.feeds || []).join('\n');
+      eventsText.value = (form.macro?.events || []).join('\n');
     };
     watch(() => store.settings, load, { immediate: true });
     const loadSecrets = async () => { secrets.value = await safe(api.get('/api/secrets')); };
@@ -105,6 +133,7 @@ export default {
     const save = async (section) => {
       const patch = { [section]: JSON.parse(JSON.stringify(form[section])) };
       if (section === 'news') patch.news.feeds = feedsText.value.split('\n').map(s => s.trim()).filter(Boolean);
+      if (section === 'macro') patch.macro.events = eventsText.value.split('\n').map(s => s.trim()).filter(Boolean);
       const r = await safe(api.put('/api/settings', patch), 'Réglages enregistrés');
       if (r) { store.settings = r; }
     };
@@ -141,9 +170,9 @@ export default {
       if (pwd.new !== pwd.new2) { toast('Les deux nouveaux mots de passe ne correspondent pas', 'error'); return; }
       if (await safe(api.post('/api/auth/password', { current: pwd.current, new: pwd.new }), 'Mot de passe modifié')) { pwd.current = pwd.new = pwd.new2 = ''; }
     };
-    const TABS = [['general', 'Général'], ['risk', 'Risque'], ['ai', 'IA'], ['paper', 'Simulation'], ['live', 'Exchange réel'], ['telegram', 'Telegram'], ['news', 'Actualités'], ['accounts', 'Comptes'], ['security', 'Sécurité'], ['about', 'À propos']];
+    const TABS = [['general', 'Général'], ['risk', 'Risque'], ['ai', 'IA'], ['market', 'Données'], ['macro', 'Calendrier macro'], ['paper', 'Simulation'], ['live', 'Exchange réel'], ['telegram', 'Telegram'], ['news', 'Actualités'], ['monitoring', 'Surveillance'], ['accounts', 'Comptes'], ['security', 'Sécurité'], ['about', 'À propos']];
     const STRATS = { trend_follow: 'Suivi de tendance (recommandé)', trend_breakout: 'Cassure de tendance (recommandé)', pullback: 'Repli en tendance', mean_reversion: 'Retour à la moyenne', momentum: 'Élan haussier' };
-    return { store, tab, form, secrets, secretInputs, addPair, feedsText, newAcc, pwd, accounts, live, newsStatus, SECTIONS, TABS, STRATS,
+    return { store, tab, form, secrets, secretInputs, addPair, feedsText, eventsText, notifState, enableNotif, disableNotif, newAcc, pwd, accounts, live, newsStatus, SECTIONS, TABS, STRATS,
       display, setValue, save, saveGeneral, addSymbol, removeSymbol, saveSecrets, clearSecret, connect, testTelegram, createAccount,
       resetAccount, resumeAccount, changePassword, totp, startTotp, enableTotp, disableTotp, money, dt };
   },
@@ -157,7 +186,7 @@ export default {
         <h2>Cryptos suivies</h2>
         <p class="muted small">Cotées en {{ form.general.quote }}. Restez sur des cryptos très liquides (moins de manipulation, moins de glissement).</p>
         <div class="chips" style="margin-bottom:10px"><span v-for="s in form.general.watchlist" :key="s" class="chip">{{ s }}<button @click="removeSymbol(s)" title="Retirer">✕</button></span></div>
-        <div class="row"><input v-model="addPair" list="pairs" placeholder="ex. XRP/USDC"><button @click="addSymbol" style="flex:0">Ajouter</button></div>
+        <div class="row"><input v-model="addPair" list="pairs" placeholder="ex. XRP/USDC"><button @click="addSymbol">Ajouter</button></div>
         <datalist id="pairs"><option v-for="p in store.markets.available" :key="p" :value="p"></option></datalist>
         <h3 style="margin-top:16px">Stratégies de l'IA</h3>
         <label v-for="(label, k) in STRATS" :key="k" class="check"><input type="checkbox" v-model="form.ai.strategies[k]"> {{ label }}</label>
@@ -187,6 +216,8 @@ export default {
             <div v-if="f.help" class="hint">{{ f.help }}</div>
           </div>
           <div v-if="key==='news'" class="field"><label>Flux RSS (un par ligne)</label><textarea rows="6" v-model="feedsText"></textarea></div>
+          <div v-if="key==='macro'" class="field"><label>Annonces (une par ligne : AAAA-MM-JJ HH:MM description, heure UTC)</label><textarea rows="8" v-model="eventsText"></textarea>
+            <div class="hint">À vérifier et compléter : réunions de la Fed (federalreserve.gov), inflation américaine CPI (bls.gov), emploi (NFP). Heure UTC (Paris = UTC+1 en hiver, UTC+2 en été).</div></div>
           <button class="primary" @click="save(key)">Enregistrer</button>
         </div>
         <div v-if="key==='live'" class="card">
@@ -195,7 +226,7 @@ export default {
           <div v-for="k in ['exchange_api_key','exchange_secret','exchange_password']" :key="k" class="field">
             <label>{{ secrets?.[k]?.label }} <span v-if="secrets?.[k]?.set" class="badge ok">définie {{ secrets[k].hint || '' }}</span></label>
             <div class="row"><input type="password" v-model="secretInputs[k]" autocomplete="off" :placeholder="secrets?.[k]?.set ? 'laisser vide pour conserver' : ''">
-              <button v-if="secrets?.[k]?.set" class="small ghost" style="flex:0" @click="clearSecret(k)">Effacer</button></div>
+              <button v-if="secrets?.[k]?.set" class="small ghost" @click="clearSecret(k)">Effacer</button></div>
           </div>
           <div class="btn-row"><button class="primary" @click="saveSecrets(['exchange_api_key','exchange_secret','exchange_password'])">Enregistrer les clés</button><button @click="connect">Se connecter / tester</button></div>
           <div class="note small" :class="live.connected ? 'ok' : live.error ? 'danger' : ''" style="margin-top:12px">
@@ -246,6 +277,10 @@ export default {
       <div class="field"><label>Nouveau mot de passe (10 caractères minimum)</label><input type="password" v-model="pwd.new" autocomplete="new-password"></div>
       <div class="field"><label>Confirmer</label><input type="password" v-model="pwd.new2" autocomplete="new-password"></div>
       <button class="primary" @click="changePassword">Modifier</button>
+      <h2 style="margin-top:20px">Notifications du navigateur</h2>
+      <p class="small muted">Recevoir une notification (alertes, ventes) quand le panel est ouvert en arrière-plan.</p>
+      <div class="btn-row"><button v-if="notifState !== 'granted'" @click="enableNotif">Activer les notifications</button>
+        <button v-else class="small" @click="disableNotif">Désactiver</button><span class="small muted">État : {{ notifState === 'granted' ? 'activées' : notifState.startsWith('denied') ? 'refusées par le navigateur' : 'désactivées' }}</span></div>
       <h2 style="margin-top:20px">Double authentification</h2>
       <p class="small muted">Un code à 6 chiffres, donné par une application (Google Authenticator, Authy, Microsoft Authenticator…), est demandé en plus du mot de passe. Fortement conseillé si vous accédez au panel depuis le téléphone.</p>
       <div v-if="totp.enabled" class="note ok small" style="margin-bottom:10px">Activée.</div>

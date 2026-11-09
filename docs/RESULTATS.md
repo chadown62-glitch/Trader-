@@ -75,9 +75,49 @@ Entraînement depuis le panel sur 4 ans, en 4 heures, avec 8 cryptos. La périod
 Simulation accélérée sur un an (« tous les signaux ») : **−2,5 %**, baisse max 4,7 %, 42 trades. Sur la même période, acheter et garder les 8 cryptos donnait **−45,6 %**.
 Le filtre de climat de marché a tenu le système à l'écart pendant les mois de baisse.
 
-## 6. Ce qui pourrait améliorer les résultats (pistes, non prouvées)
+## 6. Test indépendant sur 2018-2022 (historique USDT jamais utilisé)
 
-1. **Plus de données d'apprentissage** : historique plus long, via les paires USDT qui ont plusieurs années de plus. Davantage de situations rend l'IA plus fiable.
+Les stratégies ont été choisies sur 2023-2026. Les années 2018-2022 (paires USDT, mêmes cryptos) n'avaient jamais été regardées.
+C'est donc un test indépendant :
+
+| Stratégie (2018-2022) | 4 heures | 1 jour |
+|-----------------------|----------|--------|
+| Suivi de tendance | **+0,33 R** (275 trades, IC95 +0,15 à +0,53) | **+0,77 R** (79, IC95 +0,33 à +1,33) |
+| Cassure de tendance | **+0,16 R** (781, IC95 +0,07 à +0,25) | **+0,41 R** (180, IC95 +0,21 à +0,61) |
+| Élan haussier | +0,15 R (266) | +0,48 R (36) |
+| Retour à la moyenne | −0,13 R (340) | +0,25 R (41) |
+
+Par année, en 4 heures, pour les stratégies de tendance : **2019 +0,14 R · 2020 +0,26 R · 2021 +0,14 R · 2022 −0,25 R**.
+
+**Lecture.** L'avantage du suivi de tendance existe bien hors de la période qui a servi à le choisir, ce qui est encourageant.
+Mais il dépend du climat : il gagne en marché haussier et perd un peu en marché baissier (2022). Le filtre de climat limite ces pertes en réduisant le nombre de trades.
+Attention au biais du survivant : ces 8 cryptos sont celles qui existent encore aujourd'hui.
+
+### Entraînement complet avec historique étendu (2017-2026)
+
+La période de contrôle couvre les 18 derniers mois (mai 2025 à novembre 2026), une période baissière :
+
+| Unité de temps | Résultat moyen | Portefeuille | Acheter et garder | Verdict |
+|----------------|----------------|--------------|-------------------|---------|
+| 4 heures | +0,03 R (234 trades) | −0,1 % à −1,2 % | −31,1 % | non validé (trop incertain) |
+| 1 jour | +0,00 R (54 trades) | +0,9 % à +1,7 % | −28,6 % | non validé (trop incertain) |
+
+Le système est resté à l'équilibre pendant que le marché perdait près de 30 %. Mais aucun avantage n'est **prouvé** sur cette période : la validation reste refusée.
+
+## 7. Allocation par tendance (étudiée, non retenue)
+
+Principe : être investi sur une crypto quand son climat est haussier, en USDC sinon (journalier, 8 cryptos, 2018-2026, frais compris).
+
+| | Total | Par an | Baisse maximale |
+|--|-------|--------|-----------------|
+| Allocation par tendance | +1 678 % | +45,5 % | **54 %** |
+| Acheter et garder | +6 045 % | +71,0 % | 80 % |
+
+L'allocation réduit la baisse maximale, mais **54 % reste incompatible avec « jouer la sécurité »**, et elle a fait pire qu'acheter et garder en 2025 (−35 % contre −25 %). Non retenue.
+
+## 8. Ce qui pourrait améliorer les résultats (pistes, non prouvées)
+
+1. ✅ *Fait* : historique étendu via les paires USDT (voir §6).
 2. **Unité de temps journalière** : l'avantage paraît plus net, mais il y a trop peu de trades pour le prouver.
 3. **Allocation de portefeuille par tendance** : être investi quand la tendance de fond est haussière et en USDC sinon, sans signaux d'entrée fins.
 4. **Laisser tourner l'entraînement en direct** : c'est la seule preuve qui compte vraiment, car ce sont des données que personne n'a pu « optimiser ».

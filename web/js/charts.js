@@ -14,7 +14,12 @@ const theme = {
 export const toChartTime = (ms) => Math.floor(ms / 1000) + TZ;
 
 function makeChart(el, extra = {}) {
-  const chart = LightweightCharts.createChart(el, { ...theme, ...extra, width: el.clientWidth, height: el.clientHeight });
+  const light = document.documentElement.dataset.theme === 'light';
+  const colors = light
+    ? { layout: { ...theme.layout, textColor: '#4b5870' }, grid: { vertLines: { color: '#e6ebf3' }, horzLines: { color: '#e6ebf3' } },
+        rightPriceScale: { borderColor: '#dfe5ef' }, timeScale: { ...theme.timeScale, borderColor: '#dfe5ef' } }
+    : {};
+  const chart = LightweightCharts.createChart(el, { ...theme, ...colors, ...extra, width: el.clientWidth, height: el.clientHeight });
   const ro = new ResizeObserver(() => chart.applyOptions({ width: el.clientWidth, height: el.clientHeight }));
   ro.observe(el);
   return { chart, ro };

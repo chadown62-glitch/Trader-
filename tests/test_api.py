@@ -157,3 +157,30 @@ def test_websocket_requires_session(client):
     _login(client)
     with client.websocket_connect("/api/ws") as ws:
         assert ws.receive_json()["topic"] == "hello"
+
+
+def test_fiscal_exports(client):
+    _login(client)
+    acc = _manual_account(client)
+    r = client.get("/api/fiscal.csv", params={"account_id": acc["id"]})
+    assert r.status_code == 200 and "opération" in r.text and "achat" in r.text
+    summary = client.get("/api/fiscal/summary", params={"account_id": acc["id"]}).json()
+    assert summary and summary[0]["trades"] >= 1
+
+
+def test_two_factor_login(client, app):
+    from sentinelle.api.auth import totp
+
+    _login(client)
+    setup = client.post("/api/auth/2fa/setup", headers=H).json()
+    assert client.post("/api/auth/2fa/enable", json={"code": "000000"}, headers=H).status_code == 400
+    assert client.post("/api/auth/2fa/enable", json={"code": totp(setup["secret"])}, headers=H).status_code == 200
+    client.post("/api/auth/logout", headers=H)
+    r = client.post("/api/auth/login", json={"password": PASSWORD}, headers=H)
+    assert r.status_code == 401 and r.json()["need_code"] is True
+    app.db.set_meta("totp_last_step", "0")
+    r = client.post("/api/auth/login", json={"password": PASSWORD, "code": totp(setup["secret"])}, headers=H)
+    assert r.status_code == 200
+    # on désactive pour ne pas gêner les autres tests
+    app.db.set_meta("totp_last_step", "0")
+    assert client.post("/api/auth/2fa/disable", json={"password": PASSWORD, "code": totp(setup["secret"])}, headers=H).status_code == 200

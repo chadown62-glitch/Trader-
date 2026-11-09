@@ -25,6 +25,33 @@
   --nav-w: 220px;
 }
 
+:root[data-theme="light"] {
+  --bg: #f4f6fb;
+  --bg-2: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #eef2f8;
+  --border: #dfe5ef;
+  --border-2: #c9d2e1;
+  --text: #121826;
+  --muted: #4b5870;
+  --faint: #7a869c;
+  --accent-2: #2563eb;
+  --up: #15803d;
+  --down: #dc2626;
+  --shadow: 0 8px 24px rgba(16, 24, 40, .12);
+}
+:root[data-theme="light"] .badge.paper { color: #1d4ed8; background: rgba(59, 130, 246, .1); }
+:root[data-theme="light"] .badge.live { color: #b91c1c; background: rgba(239, 68, 68, .08); }
+:root[data-theme="light"] .badge.ok { color: #15803d; }
+:root[data-theme="light"] .badge.warn { color: #b45309; }
+:root[data-theme="light"] .badge.err { color: #b91c1c; }
+:root[data-theme="light"] .note.info { color: #1e3a8a; }
+:root[data-theme="light"] .note.warn { color: #78350f; }
+:root[data-theme="light"] .note.danger { color: #7f1d1d; }
+:root[data-theme="light"] .note.ok { color: #14532d; }
+:root[data-theme="light"] .urgence, :root[data-theme="light"] button.danger { color: #b91c1c; }
+:root[data-theme="light"] .login { background: radial-gradient(ellipse at top, #dbe7ff 0%, var(--bg) 60%); }
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.45; }
 body { min-height: 100vh; -webkit-font-smoothing: antialiased; }
@@ -137,6 +164,7 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .field .hint { font-size: .78rem; color: var(--faint); margin-top: 3px; }
 .row { display: flex; gap: 10px; }
 .row > * { flex: 1; min-width: 0; }
+.row > button, .row > .btn { flex: 0 0 auto; }
 .inline { display: flex; align-items: center; gap: 8px; }
 .check { display: flex; align-items: flex-start; gap: 9px; padding: 6px 0; cursor: pointer; color: var(--text); font-size: .92rem; }
 .check input { margin-top: 3px; }
@@ -228,7 +256,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .ticket .preview .line { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
 .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .pill-row button { padding: 3px 9px; font-size: .78rem; }
-.bottom-nav { display: none; }
+.bottom-nav, .more-sheet { display: none; }
 
 /* ---- téléphone et tablette ---- */
 .trade-layout > .col { min-width: 0; }
@@ -256,6 +284,10 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .bottom-nav a:hover { text-decoration: none; }
   .bottom-nav .ico { font-size: 1.1rem; }
   .hide-mobile { display: none !important; }
+  .more-sheet { display: block; position: fixed; inset: 0; z-index: 29; background: rgba(3, 6, 12, .5); }
+  .more-sheet .card { position: absolute; left: 10px; right: 10px; bottom: 74px; display: flex; flex-direction: column; gap: 4px; }
+  .more-sheet a { padding: 12px; border-radius: 8px; color: var(--text); font-weight: 600; }
+  .more-sheet a:hover { background: var(--panel-2); text-decoration: none; }
   .toasts { bottom: 76px; }
   .big { font-size: 1.35rem; }
 }
