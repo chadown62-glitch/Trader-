@@ -125,6 +125,8 @@ class TradingAgent:
             if bar_close_ms <= pos["entry_ts"] * 1000 + 1:
                 continue  # bougie antérieure à l'entrée
             st = STRATEGIES.get(pos["strategy"] or "")
+            # nombre de bougies écoulées depuis l'entrée (robuste si le PC a été en veille)
+            elapsed = int((bar_close_ms - pos["entry_ts"] * 1000) // self.tf_ms)
             state = ExitState(
                 entry=pos["entry_price"],
                 stop=pos["stop_price"] or 0.0,
@@ -134,7 +136,7 @@ class TradingAgent:
                 breakeven_r=st.breakeven_r if st else None,
                 fee_rate=self.fee_rate,
                 slip=self.slip,
-                bars=pos["bars_held"],
+                bars=max(pos["bars_held"], elapsed - 1),
                 breakeven_done=bool(pos["breakeven_done"]),
             )
             moved, timed_out = end_of_bar(state, float(row["high"]), float(row["close"]))

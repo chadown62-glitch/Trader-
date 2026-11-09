@@ -65,7 +65,7 @@ class MarketHub:
         return self.prices.get(symbol)
 
     def is_fresh(self, symbol: str | None = None, max_age: float = STALE_SECONDS) -> bool:
-        now = time.time()
+        now = self.source.now_ms() / 1000
         if symbol is not None:
             ts = self.price_ts.get(symbol)
             return ts is not None and now - ts <= max_age
