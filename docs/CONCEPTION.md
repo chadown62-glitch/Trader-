@@ -1,6 +1,6 @@
 # Sentinelle : dossier de conception
 
-> **Nom provisoire.** Version 0.1, 9 novembre 2026.
+> **Nom provisoire.** Version 0.2, 9 novembre 2026.
 > Bot de trading crypto qui tourne 24 h/24, se pilote depuis Telegram et depuis un logiciel de gestion dédié, et analyse les actualités avec une IA.
 
 ---
@@ -14,6 +14,7 @@
 - **Gestionnaire de risque** : un module de règles fixes qui a le dernier mot sur toutes les décisions, y compris celles de l'IA.
 - **Telegram** : notifications, commandes et lecture de canaux de signaux (A + B + C).
 - **Logiciel de gestion** : une application web qui marche sur PC comme sur téléphone. Elle regroupe le tableau de bord, les réglages, l'historique et le bouton d'arrêt d'urgence.
+- **Rien à faire tourner chez vous** : le bot est hébergé en ligne et l'IA tourne sur les serveurs d'Anthropic. Tout se gère depuis le téléphone.
 - **Argent fictif d'abord** : le mode réel reste verrouillé tant que le bot n'a pas fait ses preuves en simulation.
 
 ---
@@ -58,7 +59,7 @@ L'IA sert donc d'abord de **garde du corps** (éviter les catastrophes). Elle de
 
 ### 1.4 Qui pilote ?
 
-Ce dossier et le code sont rédigés avec l'assistance de Claude, une IA. Mais une fois installé, le bot tourne **chez vous et sur votre compte**. Ni Claude ni personne d'autre ne le surveille à votre place. Vous gardez la main à tout moment (pause, arrêt d'urgence, réglages), et c'est vous qui décidez si de l'argent réel y est engagé.
+Ce dossier et le code sont rédigés avec l'assistance de Claude, une IA. Mais une fois en ligne, le bot tourne **sur votre hébergement et votre compte**, à votre nom. Ni Claude ni personne d'autre ne le surveille à votre place. Vous gardez la main à tout moment (pause, arrêt d'urgence, réglages), et c'est vous qui décidez si de l'argent réel y est engagé.
 
 **Règle d'or : n'y mettez qu'une somme dont la perte totale ne changerait rien à votre vie.**
 
@@ -82,9 +83,9 @@ Concrètement, le bot surveille le marché 24 h/24 mais ne trade que quand les c
 | Plateforme (exchange) | Le bot fonctionne avec toutes les plateformes. Le choix final se fait en phase 6, parmi les plateformes agréées MiCA | Changer de plateforme reviendra à changer un réglage |
 | Données pendant la simulation | Prix publics en direct, sans compte | On commence sans ouvrir aucun compte |
 | Telegram | A + B + C | Votre demande, avec des garde-fous (voir §4.7) |
-| IA | API Claude (Anthropic) | Analyse de texte fiable, réponses dans un format strict et contrôlable |
+| IA | API Claude (Anthropic), qui tourne sur les serveurs d'Anthropic | Rien à installer ni à faire tourner chez vous. Analyse de texte fiable, réponses dans un format strict et contrôlable |
 | Logiciel de gestion | Application web | Une seule application pour PC et téléphone, rien à installer côté navigateur |
-| Hébergement | Votre PC pendant les premières phases, puis un serveur loué en Europe (VPS) pour le 24 h/24 | En simulation une coupure ne coûte rien. En réel, il faut un serveur toujours allumé |
+| Hébergement | En ligne dès le départ, chez un hébergeur qui se gère depuis le navigateur, sans ligne de commande. Pour le réel, de préférence un serveur dédié (VPS) avec adresse IP fixe | Rien ne tourne sur votre PC et le bot fonctionne 24 h/24, même téléphone éteint. Une IP fixe permet de verrouiller les clés API de l'exchange (§6) |
 | Mode par défaut | Simulation (argent fictif) | Le réel est verrouillé (voir §5) |
 
 ### 2.1 Choix techniques
@@ -98,7 +99,7 @@ Concrètement, le bot surveille le marché 24 h/24 mais ne trade que quand les c
 | Base de données | SQLite | Un seul fichier, aucune maintenance, sauvegarde facile |
 | Telegram | python-telegram-bot (notifications, commandes) + Telethon (lecture de canaux) | Bibliothèques de référence |
 | IA | SDK officiel d'Anthropic (API Claude) | Réponses structurées et vérifiables |
-| Déploiement | Docker | Le bot fonctionne pareil sur votre PC et sur un serveur |
+| Déploiement | Docker, chez un hébergeur comme Railway ou Render (choix final à la mise en ligne) | Mise en ligne et mises à jour depuis le navigateur, directement à partir de GitHub |
 | Qualité | Tests automatiques (pytest), journal détaillé | Moins de bugs et une traçabilité complète |
 
 ### 2.2 Organisation du code (prévue)
@@ -183,6 +184,8 @@ Principe : **plus de sources ne veut pas dire plus de gains.** Chaque source est
 
 ### 4.3 Le cerveau IA (actualités)
 
+**L'IA ne tourne pas sur votre machine.** Le bot envoie le texte des actualités à l'API Claude, sur les serveurs d'Anthropic, et reçoit l'analyse en retour en quelques secondes. Aucun ordinateur puissant n'est nécessaire. L'API se paie à l'usage, via un compte Anthropic **distinct de l'abonnement à l'application Claude**.
+
 Le circuit d'une actualité :
 1. **Collecte** en continu depuis toutes les sources.
 2. **Dédoublonnage** : la même info reprise par dix sites compte une fois. Les vieilles nouvelles republiées sont ignorées grâce à leur date de publication.
@@ -259,7 +262,7 @@ Ainsi les résultats simulés restent aussi proches que possible du réel.
 
 **Réel (verrouillé)** :
 - **Ordres à cours limité** de préférence : frais réduits et pas de mauvaise surprise sur le prix. Un ordre qui n'est pas exécuté à temps est annulé.
-- **Stop-loss envoyé chez l'exchange juste après l'achat** : la position reste protégée même si le bot, le PC ou internet tombe en panne.
+- **Stop-loss envoyé chez l'exchange juste après l'achat** : la position reste protégée même si le bot, le serveur ou la connexion tombe en panne.
 - **Réconciliation** au démarrage puis toutes les minutes : le bot compare ce qu'il croit détenir à ce que dit l'exchange. En cas de désaccord, c'est l'exchange qui fait foi et vous êtes alerté.
 - **Identifiant unique pour chaque ordre** : pas de double achat si une coupure réseau survient pendant l'envoi.
 - Respect des limites de requêtes de l'exchange et horloge synchronisée.
@@ -315,7 +318,7 @@ Une application web, protégée par mot de passe, utilisable sur PC et sur tél�
 | Journal | Événements et erreurs du système |
 | Mode réel | La liste des conditions de déverrouillage (voir §5) |
 
-Le logiciel n'est **jamais exposé directement sur internet**. Pour y accéder à distance, on passe par un réseau privé sécurisé (VPN, par exemple Tailscale).
+**Accès** : une adresse web sécurisée (HTTPS) protégée par mot de passe **et** par double authentification (un code à 6 chiffres donné par une appli comme Google Authenticator). L'accès est bloqué après plusieurs essais ratés. Les clés (Telegram, IA, exchange) se saisissent depuis le navigateur, sans aucun fichier à modifier.
 
 ### 4.9 Le journal « pourquoi »
 
@@ -352,11 +355,11 @@ Le réel démarre ensuite avec un **petit budget**. Il n'augmente que progressiv
 
 - **Clés API de l'exchange** :
   - droits « lecture + trading » uniquement, **retrait désactivé**, pour que le bot ne puisse jamais sortir l'argent du compte ;
-  - restreintes à l'adresse IP du serveur ;
-  - rangées dans un fichier de secrets local, jamais dans le code, jamais sur GitHub, jamais dans Telegram.
+  - restreintes à l'adresse IP du serveur (d'où l'intérêt d'une IP fixe pour le réel) ;
+  - rangées dans l'espace secret de l'hébergeur, jamais dans le code, jamais sur GitHub, jamais dans Telegram.
 - **Dépôt GitHub** : ce dépôt est actuellement **public**. Il est conseillé de le passer en **privé** avant d'y ajouter vos réglages. De toute façon, les secrets n'y seront jamais envoyés : le fichier `.env` est exclu.
 - **Double authentification (2FA)** sur l'exchange, sur Telegram et sur votre e-mail.
-- **Logiciel de gestion** protégé par mot de passe et non exposé sur internet.
+- **Logiciel de gestion** protégé par mot de passe et double authentification, accessible uniquement en HTTPS, avec blocage après plusieurs essais ratés.
 - **Sauvegarde automatique** quotidienne de la base de données.
 - **Arnaques** : personne de sérieux ne vous demandera une clé API avec droit de retrait, vos codes 2FA, ni de l'argent « pour débloquer vos gains ». Les canaux Telegram regorgent de faux « bots à 100 % » et de faux gestionnaires de compte.
 
@@ -366,7 +369,7 @@ Le réel démarre ensuite avec un **petit budget**. Il n'augmente que progressiv
 
 | Situation | Réaction prévue |
 |-----------|-----------------|
-| Coupure internet, PC éteint, bot planté | Les stop-loss sont déjà posés chez l'exchange, donc les positions restent protégées. Au redémarrage, réconciliation puis reprise. Un service de surveillance externe vous alerte si le bot ne donne plus signe de vie |
+| Coupure réseau, panne de l'hébergeur, bot planté | Les stop-loss sont déjà posés chez l'exchange, donc les positions restent protégées. Au redémarrage, réconciliation puis reprise. Un service de surveillance externe vous alerte si le bot ne donne plus signe de vie |
 | Exchange en panne ou en maintenance | Pause automatique, alerte, reprise au retour à la normale |
 | Krach éclair | Les stops jouent, la limite de perte journalière s'applique, pas de rachat « pour se refaire » |
 | Piratage d'un exchange détecté dans les actualités | Alerte critique, arrêt des achats et proposition de tout passer en USDC. C'est vous qui décidez de retirer vos fonds |
@@ -388,7 +391,7 @@ Le réel démarre ensuite avec un **petit budget**. Il n'augmente que progressiv
 | Poste | Estimation mensuelle |
 |-------|----------------------|
 | Données de marché et actualités RSS | Gratuit |
-| Serveur VPS en Europe (phases 5 et suivantes) | Environ 5 à 10 € |
+| Hébergement en ligne (dès la phase 1) | Environ 5 à 10 € |
 | Frais de trading | Environ 0,1 à 0,5 % par ordre selon l'exchange : c'est **le principal coût caché**, d'où la sélectivité du bot |
 | Sources premium (optionnel, plus tard) | De 0 à plusieurs dizaines d'euros |
 | IA (API Claude) | Selon l'option ci-dessous, avec un plafond journalier réglable |
@@ -421,19 +424,19 @@ Le réel démarre ensuite avec un **petit budget**. Il n'augmente que progressiv
 
 | Phase | Contenu | Ce qu'il vous faudra | Argent réel |
 |-------|---------|----------------------|-------------|
-| **1. Le moteur** | Données de marché en direct, climat de marché, 2 stratégies, gestionnaire de risque, simulateur, backtests, base de données | Rien : données publiques, aucun compte. Seulement installer le logiciel, avec un guide pas à pas | Non |
+| **1. Le moteur** | Données de marché en direct, climat de marché, 2 stratégies, gestionnaire de risque, simulateur, backtests, base de données, mise en ligne | Un compte chez l'hébergeur, créé avec un guide pas à pas, depuis le téléphone si besoin. Aucun compte de trading, aucun argent investi | Non |
 | **2. Telegram** | Notifications (B), commandes (C), lecture des canaux en observation (A) | Créer un bot via @BotFather (5 min, guidé) ; pour A, des identifiants sur my.telegram.org | Non |
 | **3. Logiciel de gestion** | Tableau de bord, réglages, historique, statistiques, backtests en un clic | Rien | Non |
 | **4. IA et sources** | Actualités en direct et analyse IA, indices, macro, sentiment, dérivés | Un compte API Claude avec un crédit prépayé du montant de votre choix | Non (seulement le coût de l'IA) |
-| **5. Rodage** | Simulation 24/7 pendant au moins 30 jours, bilan chiffré, ajustements | Idéalement un VPS (5 à 10 €/mois) | Non |
-| **6. Réel prudent** | Connexion à un exchange agréé, petit budget, verrou | Compte exchange vérifié (KYC), clés API sans retrait, 2FA | Oui, petit budget |
+| **5. Rodage** | Simulation 24/7 pendant au moins 30 jours, bilan chiffré, ajustements | Rien de plus : le bot tourne déjà en ligne | Non |
+| **6. Réel prudent** | Connexion à un exchange agréé, petit budget, verrou, passage sur un serveur à IP fixe si nécessaire | Compte exchange vérifié (KYC), clés API sans retrait, 2FA | Oui, petit budget |
 | **7. Amélioration continue** | Nouvelles sources et stratégies, toujours testées en simulation d'abord | — | — |
 
 ---
 
 ## 11. Questions ouvertes
 
-1. Votre ordinateur : Windows, Mac ou Linux ? (pour le guide d'installation)
+1. Avez-vous un ordinateur, ou seulement un téléphone ? Tout est prévu pour fonctionner sans ordinateur : la réponse sert seulement à adapter le guide de mise en ligne.
 2. Le budget envisagé pour la phase réelle, même approximatif : est-ce une somme dont la perte ne vous mettrait pas en difficulté ?
 3. L'option IA : Éco, Équilibrée ou Max ? (voir §8)
 4. Suivez-vous déjà des canaux Telegram de signaux ? Lesquels ?
@@ -451,6 +454,7 @@ Le réel démarre ensuite avec un **petit budget**. Il n'augmente que progressiv
 | **Drawdown** | Baisse du capital depuis son plus haut |
 | **Espérance** | Gain moyen par trade, pertes comprises : c'est elle qui doit être positive |
 | **Exchange** | Plateforme d'échange de cryptomonnaies |
+| **Hébergeur** | Service qui fait tourner un logiciel sur ses serveurs, 24 h/24 |
 | **KYC** | Vérification d'identité imposée par les plateformes |
 | **Levier** | Emprunt qui multiplie la mise, et donc aussi les pertes : il peut tout faire perdre très vite |
 | **MiCA** | Règlement européen qui encadre les cryptomonnaies et les plateformes |
