@@ -12,6 +12,7 @@ from typing import Callable
 
 from ..market.markets import MarketInfo
 from ..storage.db import Database, dumps, loads
+from .macro import blackout
 
 DAY = 86_400
 
@@ -156,6 +157,10 @@ class RiskManager:
         if st["week_pnl_pct"] <= -cfg["weekly_loss_limit"]:
             return dec.refuse("perte_semaine", f"Limite de perte sur 7 jours atteinte ({st['week_pnl_pct']*100:.1f} %).")
         dec.ok("pertes", "limites journalière et hebdomadaire respectées")
+
+        mb = blackout(self.settings_fn(), now)
+        if mb:
+            return dec.refuse("macro", f"Annonce macro « {mb[1]} » : pas de nouvelle position autour de l'annonce.")
 
         n_losses, last_exit = self.consecutive_losses(agent)
         if n_losses >= cfg["max_consecutive_losses"] and last_exit:

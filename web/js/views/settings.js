@@ -69,6 +69,16 @@ export default {
     const newAcc = reactive({ name: 'Mon deuxième compte', initial_balance: 1000 });
     const pwd = reactive({ current: '', new: '', new2: '' });
     const newsStatus = ref(null);
+    const totp = reactive({ enabled: false, setup: null, code: '', qr: '', disablePwd: '', disableCode: '' });
+    const loadTotp = async () => { const r = await safe(api.get('/api/auth/2fa')); if (r) totp.enabled = r.enabled; };
+    const startTotp = async () => {
+      const r = await safe(api.post('/api/auth/2fa/setup'));
+      if (!r) return;
+      totp.setup = r;
+      try { const q = qrcode(0, 'M'); q.addData(r.uri); q.make(); totp.qr = q.createDataURL(5, 8); } catch { totp.qr = ''; }
+    };
+    const enableTotp = async () => { if (await safe(api.post('/api/auth/2fa/enable', { code: totp.code }), 'Double authentification activée')) { totp.enabled = true; totp.setup = null; totp.code = ''; } };
+    const disableTotp = async () => { if (await safe(api.post('/api/auth/2fa/disable', { password: totp.disablePwd, code: totp.disableCode }), 'Double authentification désactivée')) { totp.enabled = false; totp.disablePwd = totp.disableCode = ''; } };
     const accounts = computed(() => store.overview?.accounts || []);
     const live = computed(() => store.overview?.live || {});
 
@@ -79,7 +89,7 @@ export default {
     };
     watch(() => store.settings, load, { immediate: true });
     const loadSecrets = async () => { secrets.value = await safe(api.get('/api/secrets')); };
-    onMounted(async () => { loadSecrets(); newsStatus.value = await safe(api.get('/api/news/status')); });
+    onMounted(async () => { loadSecrets(); loadTotp(); newsStatus.value = await safe(api.get('/api/news/status')); });
 
     const display = (section, f) => {
       const v = form[section]?.[f.key];
@@ -135,7 +145,7 @@ export default {
     const STRATS = { trend_follow: 'Suivi de tendance (recommandé)', trend_breakout: 'Cassure de tendance (recommandé)', pullback: 'Repli en tendance', mean_reversion: 'Retour à la moyenne', momentum: 'Élan haussier' };
     return { store, tab, form, secrets, secretInputs, addPair, feedsText, newAcc, pwd, accounts, live, newsStatus, SECTIONS, TABS, STRATS,
       display, setValue, save, saveGeneral, addSymbol, removeSymbol, saveSecrets, clearSecret, connect, testTelegram, createAccount,
-      resetAccount, resumeAccount, changePassword, money, dt };
+      resetAccount, resumeAccount, changePassword, totp, startTotp, enableTotp, disableTotp, money, dt };
   },
   template: `
   <div v-if="form.general">
@@ -236,6 +246,24 @@ export default {
       <div class="field"><label>Nouveau mot de passe (10 caractères minimum)</label><input type="password" v-model="pwd.new" autocomplete="new-password"></div>
       <div class="field"><label>Confirmer</label><input type="password" v-model="pwd.new2" autocomplete="new-password"></div>
       <button class="primary" @click="changePassword">Modifier</button>
+      <h2 style="margin-top:20px">Double authentification</h2>
+      <p class="small muted">Un code à 6 chiffres, donné par une application (Google Authenticator, Authy, Microsoft Authenticator…), est demandé en plus du mot de passe. Fortement conseillé si vous accédez au panel depuis le téléphone.</p>
+      <div v-if="totp.enabled" class="note ok small" style="margin-bottom:10px">Activée.</div>
+      <template v-if="!totp.enabled">
+        <button v-if="!totp.setup" class="primary" @click="startTotp">Activer la double authentification</button>
+        <div v-else>
+          <p class="small">1. Scannez ce code avec votre application (ou saisissez la clé à la main) :</p>
+          <img v-if="totp.qr" :src="totp.qr" alt="QR code" style="background:#fff;padding:6px;border-radius:8px">
+          <p class="mono small" style="word-break:break-all">{{ totp.setup.secret }}</p>
+          <div class="field"><label>2. Tapez le code affiché par l'application</label><input v-model="totp.code" inputmode="numeric" maxlength="6"></div>
+          <button class="primary" @click="enableTotp">Valider</button>
+        </div>
+      </template>
+      <template v-else>
+        <div class="row"><div class="field"><label>Mot de passe</label><input type="password" v-model="totp.disablePwd"></div>
+          <div class="field"><label>Code actuel</label><input v-model="totp.disableCode" inputmode="numeric" maxlength="6"></div></div>
+        <button class="danger small" @click="disableTotp">Désactiver</button>
+      </template>
       <p class="faint small" style="margin-top:12px">Accès depuis le téléphone : lancez Sentinelle avec l'option distante et passez par un réseau privé (Tailscale). Ne publiez jamais le panel directement sur internet.</p>
     </div>
 

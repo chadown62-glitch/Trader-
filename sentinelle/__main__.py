@@ -56,7 +56,9 @@ def main(argv: list[str] | None = None) -> int:
     import uvicorn
 
     from .api.server import create_api
+    from .market.context import ContextService
     from .news.service import NewsService
+    from .news.signals import SignalWatcher
     from .notify.telegram import TelegramService
     from .services.core import App
 
@@ -64,6 +66,8 @@ def main(argv: list[str] | None = None) -> int:
     app = App(data_dir, settings_override=override)
     app.extensions.append(NewsService(app))
     app.extensions.append(TelegramService(app))
+    app.extensions.append(ContextService(app))
+    app.extensions.append(SignalWatcher(app))
     for ext in app.extensions:
         ext.start()
     api = create_api(app, remote_access=args.remote)

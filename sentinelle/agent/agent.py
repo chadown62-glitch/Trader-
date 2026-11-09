@@ -60,6 +60,7 @@ class TradingAgent:
         news_fn: Callable[[str], dict | None] | None = None,
         fresh_fn: Callable[[str], bool] | None = None,
         budget_fn: Callable[[], float | None] | None = None,
+        price_check_fn: Callable[[str, float], str | None] | None = None,
         bus=None,
         clock: Callable[[], float] = time.time,
         record: bool = True,
@@ -78,6 +79,7 @@ class TradingAgent:
         self.news_fn = news_fn
         self.fresh_fn = fresh_fn
         self.budget_fn = budget_fn
+        self.price_check_fn = price_check_fn
         self.bus = bus
         self.clock = clock
         self.record = record
@@ -265,6 +267,12 @@ class TradingAgent:
             block = "Climat baissier sur le marché (BTC sous ses moyennes de fond) : l'IA reste à l'abri"
         if block is None and self.fresh_fn is not None and not self.fresh_fn(symbol):
             block = "Données de marché périmées : aucune nouvelle position par prudence"
+        if block is None and self.price_check_fn is not None and any(
+            (c["er"] is None or thr is None or c["er"] >= thr) for c in cands
+        ):
+            problem = self.price_check_fn(symbol, close)
+            if problem:
+                block = f"Sécurité : {problem}"
         news = None
         if block is None and ai.get("use_news", True) and self.news_fn is not None:
             news = self.news_fn(symbol)

@@ -17,6 +17,9 @@ ALLOWED = {
     "exchange_secret": "Secret API de l'exchange",
     "exchange_password": "Mot de passe API (certains exchanges)",
     "telegram_token": "Jeton du bot Telegram",
+    "telegram_api_id": "api_id (my.telegram.org)",
+    "telegram_api_hash": "api_hash (my.telegram.org)",
+    "telegram_phone": "Numéro de téléphone Telegram (format +33…)",
 }
 
 

@@ -204,6 +204,24 @@ CREATE TABLE IF NOT EXISTS decisions(
     data TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_decisions_ts ON decisions(ts);
+CREATE TABLE IF NOT EXISTS signals(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel TEXT NOT NULL,
+    msg_id INTEGER NOT NULL,
+    ts REAL NOT NULL,
+    text TEXT,
+    parsed INTEGER NOT NULL DEFAULT 0,
+    symbol TEXT,
+    side TEXT,
+    entry REAL,
+    stop REAL,
+    targets TEXT,
+    outcome TEXT,
+    outcome_r REAL,
+    exit_ts REAL,
+    resolved_at REAL,
+    UNIQUE (channel, msg_id)
+);
 CREATE TABLE IF NOT EXISTS sessions(
     token_hash TEXT PRIMARY KEY,
     created_at REAL,
@@ -310,6 +328,15 @@ class Database:
                 self._depth -= 1
                 if self._depth == 0:
                     self.conn.execute("COMMIT")
+
+    def backup(self, dest: str | Path) -> None:
+        """Copie cohérente de la base (même pendant son utilisation)."""
+        with self._lock:
+            target = sqlite3.connect(str(dest))
+            try:
+                self.conn.backup(target)
+            finally:
+                target.close()
 
     def close(self) -> None:
         with self._lock:

@@ -47,6 +47,11 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "binance_public_mirror": True,
         "poll_seconds": 5,
         "history_days": 1460,
+        # Vérification du prix sur une seconde source (Kraken) avant chaque entrée de l'IA.
+        "cross_check": True,
+        "cross_check_max_pct": 2.0,
+        # Indice Fear & Greed, indices boursiers, taux de financement (affichage et contexte).
+        "context": True,
     },
     "paper": {
         "fee_rate": 0.001,  # 0,1 % par ordre (hypothèse prudente)
@@ -73,6 +78,10 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "regime_filter": True,
         # Utiliser le score des actualités comme veto (si le module est actif).
         "use_news": True,
+        # Apprentissage sur un historique plus long (paires USDT de mêmes cryptos, cotées plus tôt).
+        "extended_history": True,
+        # Si le filtre IA n'apporte rien mais que les règles seules sont prouvées, valider « règles seules ».
+        "rules_fallback": True,
     },
     "risk": {
         "risk_per_trade": 0.005,  # 0,5 % du capital perdu si le stop est touché
@@ -120,6 +129,26 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "chat_id": "",
         "notify_level": "important",  # 'all' | 'important' | 'critical'
         "daily_summary_hour": 20,
+    },
+    # Canaux Telegram de signaux, lus en OBSERVATION uniquement (fiabilité mesurée, jamais tradés).
+    "signals": {
+        "enabled": False,
+        "channels": [],
+        "horizon_hours": 72,
+    },
+    # Annonces macroéconomiques : pas de nouvelle position autour de ces heures (UTC).
+    "macro": {
+        "enabled": True,
+        "blackout_minutes": 60,
+        "events": [
+            "2026-12-09 19:00 Fed : décision de taux (FOMC)",
+        ],
+    },
+    "monitoring": {
+        # Adresse de « ping » d'un service de surveillance externe (ex. healthchecks.io) :
+        # si Sentinelle ou le PC s'arrête, ce service vous prévient.
+        "heartbeat_url": "",
+        "backup_keep_days": 14,
     },
 }
 
@@ -179,6 +208,19 @@ BOUNDS: dict[str, tuple] = {
     "telegram.chat_id": ("str", None),
     "telegram.notify_level": ("str", ["all", "important", "critical"]),
     "telegram.daily_summary_hour": ("int", 0, 23),
+    "market.cross_check": ("bool",),
+    "market.cross_check_max_pct": ("float", 0.2, 10.0),
+    "market.context": ("bool",),
+    "ai.extended_history": ("bool",),
+    "ai.rules_fallback": ("bool",),
+    "signals.enabled": ("bool",),
+    "signals.channels": ("list_str",),
+    "signals.horizon_hours": ("int", 4, 24 * 14),
+    "macro.enabled": ("bool",),
+    "macro.blackout_minutes": ("int", 0, 24 * 60),
+    "macro.events": ("list_str",),
+    "monitoring.heartbeat_url": ("str", None),
+    "monitoring.backup_keep_days": ("int", 1, 365),
 }
 
 
@@ -265,6 +307,14 @@ def validate_settings(settings: dict) -> dict:
     for sym in wl:
         if "/" not in sym or sym.split("/")[1] != quote:
             raise SettingsError(f"{sym} : chaque paire doit être cotée en {quote} (ex. BTC/{quote})")
+    from .risk.macro import parse_event  # import local : évite un cycle
+
+    for ev in clean["macro"]["events"]:
+        if parse_event(ev) is None:
+            raise SettingsError(f"Événement macro invalide : « {ev} » (format : AAAA-MM-JJ HH:MM description, heure UTC)")
+    url = clean["monitoring"]["heartbeat_url"]
+    if url and not url.startswith("https://"):
+        raise SettingsError("L'adresse de surveillance doit commencer par https://")
     if clean["risk"]["weekly_loss_limit"] < clean["risk"]["daily_loss_limit"]:
         raise SettingsError("La limite de perte hebdomadaire doit être ≥ à la limite journalière")
     if clean["risk"]["max_exposure_per_asset"] > clean["risk"]["max_exposure"]:

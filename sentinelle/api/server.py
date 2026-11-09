@@ -37,6 +37,16 @@ PUBLIC = {"/api/health", "/api/auth/status", "/api/auth/login", "/api/auth/setup
 # ---------------------------------------------------------------------------
 class PasswordBody(BaseModel):
     password: str = Field(min_length=1, max_length=200)
+    code: str | None = Field(default=None, max_length=10)
+
+
+class CodeBody(BaseModel):
+    code: str = Field(min_length=6, max_length=10)
+
+
+class DisableTotpBody(BaseModel):
+    password: str
+    code: str
 
 
 class ChangePasswordBody(BaseModel):
@@ -218,7 +228,40 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         if not ok:
             app.db.log("warning", "sécurité", f"Échec de connexion au panel depuis {ip}")
             raise HTTPException(401, "Mot de passe incorrect")
+        if auth.totp_enabled:
+            if not body.code:
+                return JSONResponse({"detail": "Code de double authentification requis", "need_code": True}, status_code=401)
+            if not auth.totp_check(body.code):
+                auth._fails.setdefault(ip, []).append(time.time())
+                app.db.log("warning", "sécurité", f"Code de double authentification invalide depuis {ip}")
+                return JSONResponse({"detail": "Code de double authentification invalide", "need_code": True}, status_code=401)
         return _login_response({"ok": True})
+
+    @api.get("/api/auth/2fa")
+    async def totp_status():
+        return {"enabled": auth.totp_enabled}
+
+    @api.post("/api/auth/2fa/setup")
+    async def totp_setup():
+        if auth.totp_enabled:
+            raise HTTPException(409, "La double authentification est déjà active")
+        return auth.totp_setup()
+
+    @api.post("/api/auth/2fa/enable")
+    async def totp_enable(body: CodeBody):
+        if not auth.totp_enable(body.code):
+            raise HTTPException(400, "Code invalide : vérifiez l'heure de votre téléphone et réessayez")
+        app.db.log("info", "sécurité", "Double authentification activée")
+        return {"enabled": True}
+
+    @api.post("/api/auth/2fa/disable")
+    async def totp_disable(body: DisableTotpBody, request: Request):
+        ip = request.client.host if request.client else "?"
+        if not await asyncio.to_thread(auth.check, body.password, ip) or not auth.totp_check(body.code):
+            raise HTTPException(401, "Mot de passe ou code incorrect")
+        auth.totp_disable()
+        app.db.log("warning", "sécurité", "Double authentification désactivée")
+        return {"enabled": False}
 
     @api.post("/api/auth/logout")
     async def auth_logout(request: Request):

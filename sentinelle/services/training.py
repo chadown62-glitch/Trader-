@@ -8,6 +8,7 @@ from typing import Any
 
 from ..ai.trainer import build_dataset, train_walk_forward
 from ..backtest.engine import run_backtest
+from ..market.history import splice
 from ..storage.db import dumps
 from .common import UserError
 
@@ -32,12 +33,13 @@ class TrainingMixin:
         except RuntimeError as exc:
             raise UserError(str(exc)) from None
 
-    def _histories(self, settings: dict, tf: str, days: int, progress) -> tuple[dict, Any]:
+    def _histories(self, settings: dict, tf: str, days: int, progress, extended_ok: bool = True) -> tuple[dict, Any]:
         quote = settings["general"]["quote"]
         wl = [s for s in settings["general"]["watchlist"] if not self.hub.markets or s in self.hub.markets]
         if not wl:
             raise UserError("Aucune des cryptos suivies n'est disponible sur la source de données")
         btc_sym = f"BTC/{quote}"
+        extended = bool(settings["ai"].get("extended_history", True)) and extended_ok
         need = wl + ([btc_sym] if btc_sym not in wl else [])
         hist = {}
         for k, sym in enumerate(need):
@@ -47,6 +49,13 @@ class TrainingMixin:
             except Exception as exc:
                 if sym in wl:
                     raise UserError(f"Historique indisponible pour {sym} : {exc}") from None
+                continue
+            alt = f"{sym.split('/')[0]}/USDT"
+            if extended and quote != "USDT" and (not self.hub.markets or alt in self.hub.markets):
+                try:  # paire USDT plus ancienne : davantage d'années pour apprendre
+                    hist[sym] = splice(self.history.update(alt, tf, days), hist[sym])
+                except Exception:
+                    pass
         btc = hist.get(btc_sym) if btc_sym not in wl else None
         return {s: hist[s] for s in wl if s in hist}, btc
 
@@ -60,7 +69,8 @@ class TrainingMixin:
         def sub(x, msg):
             progress(0.3 + 0.45 * x, msg)
 
-        res = train_walk_forward(cand, tf, min_edge=settings["ai"]["min_edge_r"], progress=sub)
+        res = train_walk_forward(cand, tf, min_edge=settings["ai"]["min_edge_r"], progress=sub,
+                                 rules_fallback=settings["ai"].get("rules_fallback", True))
         report = dict(res.report)
         report.update(verdict=res.verdict, reasons=res.reasons, days=days, auto=auto, trained_at=time.time())
         if res.eval_model is not None and res.holdout_start:

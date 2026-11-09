@@ -130,6 +130,7 @@ def train_walk_forward(
     holdout_frac: float = 0.2,
     min_edge: float | None = None,
     progress: Callable[[float, str], None] | None = None,
+    rules_fallback: bool = True,
 ) -> TrainResult:
     t_start = time.time()
 
@@ -257,6 +258,13 @@ def train_walk_forward(
             reasons.append(f"L'IA ne fait pas mieux que « prendre tous les signaux » ({m_model['mean_r']:+.3f} R contre {m_base['mean_r']:+.3f} R).")
     if ok:
         reasons.insert(0, f"Espérance positive sur des données jamais vues : {m_model['mean_r']:+.3f} R par trade sur {m_model['n']} trades.")
+    mode = "ia"
+    if not ok and rules_fallback and m_base["n"] >= 30 and (m_base["mean_r"] or 0) > 0 and lower_bound(m_base) > -0.05:
+        # Le filtre IA n'apporte pas de preuve, mais les règles seules en apportent : on les valide telles quelles.
+        ok, mode, thr = True, "règles seules", -1e9
+        reasons.insert(0, f"Validé en « règles seules » : prendre tous les signaux donne {m_base['mean_r']:+.3f} R par trade "
+                          f"sur {m_base['n']} trades jamais vus ; le filtre IA est désactivé car il n'a pas fait mieux.")
+        eval_model.threshold = thr
 
     # -- modèle final -------------------------------------------------------------------
     prog(0.9, "Entraînement du modèle final sur toutes les données")
@@ -267,10 +275,11 @@ def train_walk_forward(
     eval_model.version = final.version + "-eval"
     summary = {
         "verdict": "validé" if ok else "non validé",
-        "holdout_mean_r": m_model["mean_r"],
-        "holdout_n": m_model["n"],
-        "holdout_win_rate": m_model["win_rate"],
-        "holdout_ci": [m_model["ci_low"], m_model["ci_high"]],
+        "mode": mode,
+        "holdout_mean_r": (m_base if mode == "règles seules" else m_model)["mean_r"],
+        "holdout_n": (m_base if mode == "règles seules" else m_model)["n"],
+        "holdout_win_rate": (m_base if mode == "règles seules" else m_model)["win_rate"],
+        "holdout_ci": [(m_base if mode == "règles seules" else m_model)["ci_low"], (m_base if mode == "règles seules" else m_model)["ci_high"]],
         "baseline_mean_r": m_base["mean_r"],
         "auc": report["holdout"]["auc"],
         "threshold": thr,

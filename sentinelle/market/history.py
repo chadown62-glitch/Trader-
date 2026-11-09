@@ -7,6 +7,7 @@ Seules les bougies **clôturées** sont conservées (jamais la bougie en cours).
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from pathlib import Path
 from typing import Callable
@@ -68,6 +69,7 @@ class HistoryStore:
     def __init__(self, root: Path, source: MarketSource):
         self.root = Path(root)
         self.source = source
+        self._lock = threading.RLock()  # plusieurs threads peuvent mettre à jour l'historique
 
     def path(self, symbol: str, timeframe: str) -> Path:
         safe = symbol.replace("/", "-")
@@ -124,6 +126,10 @@ class HistoryStore:
         progress: Callable[[float], None] | None = None,
     ) -> pd.DataFrame:
         """Complète le cache pour couvrir `days` jours jusqu'à maintenant."""
+        with self._lock:
+            return self._update(symbol, timeframe, days, progress)
+
+    def _update(self, symbol, timeframe, days, progress) -> pd.DataFrame:
         step = timeframe_ms(timeframe)
         now = self.source.now_ms()
         start = now - days * 86_400_000
@@ -193,3 +199,26 @@ class HistoryStore:
             "gaps": count_gaps(df, timeframe),
             "updated": time.time(),
         }
+
+
+def splice(older: pd.DataFrame, newer: pd.DataFrame) -> pd.DataFrame:
+    """Raccorde un historique plus ancien (ex. BTC/USDT) devant un historique récent (ex. BTC/USDC).
+
+    Seule la partie antérieure au début de `newer` est conservée ; les prix sont
+    ajustés par le rapport observé au point de raccordement (écart USDT/USDC ≈ 0).
+    """
+    if older is None or older.empty:
+        return newer
+    if newer is None or newer.empty:
+        return older
+    first = int(newer["ts"].iloc[0])
+    before = older[older["ts"] < first].copy()
+    if before.empty:
+        return newer
+    overlap = older[older["ts"] == first]
+    ratio = float(newer["close"].iloc[0] / overlap["close"].iloc[0]) if len(overlap) else 1.0
+    if not (0.9 < ratio < 1.1):
+        ratio = 1.0
+    for col in ("open", "high", "low", "close"):
+        before[col] = before[col] * ratio
+    return pd.concat([before, newer], ignore_index=True)

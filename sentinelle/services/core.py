@@ -89,7 +89,7 @@ class Engine(threading.Thread):
         app = self.app
         app._startup()
         self.ready.set()
-        nxt = {"poll": 0.0, "equity": 0.0, "sync": 0.0, "reconcile": time.time() + 60, "maint": time.time() + 600,
+        nxt = {"poll": 0.0, "equity": 0.0, "sync": 0.0, "reconcile": time.time() + 60, "maint": time.time() + 600, "heartbeat": time.time() + 30,
                "learn": time.time() + 300, "markets": 0.0}
         while not self._stop.is_set():
             self.heartbeat = time.time()
@@ -122,6 +122,9 @@ class Engine(threading.Thread):
                 if now >= nxt["maint"]:
                     app._maintenance()
                     nxt["maint"] = now + 3600
+                if now >= nxt["heartbeat"]:
+                    app._heartbeat()
+                    nxt["heartbeat"] = now + 300
                 if now >= nxt["learn"]:
                     app._maybe_retrain()
                     nxt["learn"] = now + 600
@@ -157,6 +160,12 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin):
         self.started_at = time.time()
         self.extensions: list[Any] = []  # actualités, Telegram (démarrés par le serveur)
         self._feat_cache: dict[tuple, tuple[float, Any]] = {}
+        self.monitoring_status: dict = {}
+        self.crosscheck = None
+        if self.settings["market"]["source"] != "synthetic":
+            from ..market.crosscheck import CrossChecker
+
+            self.crosscheck = CrossChecker(self.settings["market"]["source"])
         self._ensure_default_accounts()
         self.engine = Engine(self)
         if start:
@@ -331,6 +340,51 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin):
         self.db.execute("DELETE FROM equity WHERE ts < ? AND CAST(ts / 60 AS INTEGER) % 60 != 0", (week,))
         self.db.execute("DELETE FROM logs WHERE ts < ?", (time.time() - 60 * 86400,))
         self.db.execute("DELETE FROM sessions WHERE expires_at < ?", (time.time(),))
+        self.backup_if_due()
+
+    # -- sauvegardes et surveillance ----------------------------------------------
+    def backup_if_due(self, force: bool = False) -> Path | None:
+        """Sauvegarde quotidienne de la base (data/backups), conservée N jours."""
+        day = time.strftime("%Y%m%d")
+        if not force and self.db.get_meta("last_backup_day") == day:
+            return None
+        folder = self.data_dir / "backups"
+        folder.mkdir(parents=True, exist_ok=True)
+        dest = folder / f"sentinelle-{day}.db"
+        try:
+            self.db.backup(dest)
+        except Exception as exc:
+            self.db.log("error", "sauvegarde", f"Sauvegarde impossible : {exc}")
+            return None
+        keep = self.settings["monitoring"]["backup_keep_days"]
+        for old_file in sorted(folder.glob("sentinelle-*.db"))[:-keep]:
+            try:
+                old_file.unlink()
+            except OSError:
+                pass
+        self.db.set_meta("last_backup_day", day)
+        self.db.log("info", "sauvegarde", f"Base sauvegardée : {dest.name}")
+        return dest
+
+    def _heartbeat(self) -> None:
+        """Signal de vie vers un service de surveillance externe (alerte si le PC s'arrête)."""
+        url = self.settings["monitoring"]["heartbeat_url"]
+        if not url:
+            return
+        last_ok = self.hub.status.get("last_ok") or 0
+        healthy = self.engine.is_alive() and (time.time() - last_ok < 600)
+        target = url if healthy else url.rstrip("/") + "/fail"
+
+        def ping():
+            import httpx
+
+            try:
+                httpx.get(target, timeout=10, headers={"User-Agent": "Sentinelle"})
+                self.monitoring_status = {"last_ping": time.time(), "healthy": healthy, "error": None}
+            except Exception as exc:
+                self.monitoring_status = {"last_ping": time.time(), "healthy": healthy, "error": str(exc)[:200]}
+
+        threading.Thread(target=ping, daemon=True).start()
 
     def _on_position_closed(self, pos: dict) -> None:
         self.bus.publish("trade_closed", pos)

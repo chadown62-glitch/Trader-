@@ -102,6 +102,7 @@ class AgentsMixin:
                 name, d["mode"], self.db, rt.positions, rt.risk, lambda: self.settings,
                 lambda: self.models.champion(tf), timeframe=tf, news_fn=news_fn,
                 fresh_fn=lambda s: self.hub.is_fresh(s, 180), budget_fn=budget_fn, bus=self.bus,
+                price_check_fn=self._price_check,
                 clock=self.market_clock if d["mode"] != "live" else time.time,
             )
             agent.running = True
@@ -127,6 +128,12 @@ class AgentsMixin:
             raise
         finally:
             self.bus.publish("agent", {"name": name, **self.agent_state[name]})
+
+    def _price_check(self, symbol: str, price: float) -> str | None:
+        m = self.settings["market"]
+        if not m.get("cross_check") or m["source"] == "synthetic" or self.crosscheck is None:
+            return None
+        return self.crosscheck.check(symbol, price, m["cross_check_max_pct"])
 
     def stop_agent(self, name: str, close_positions: bool = False) -> dict:
         agent = self.agents.pop(name, None)

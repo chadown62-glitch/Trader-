@@ -209,6 +209,9 @@ class TelegramService:
                 lines.append(f"{esc(a['label'])} : {esc(a.get('status'))}")
             live = app.live_status
             lines.append(f"Portefeuille réel : {'connecté' if live.get('connected') else 'non connecté'}")
+            for ext in app.extensions:
+                if getattr(ext, "name", "") == "context" and ext.summary():
+                    lines.append(f"Contexte : {esc(ext.summary())}")
             return "\n".join(lines)
         if cmd == "/positions":
             ov = app.call(app.overview).result(timeout=30)

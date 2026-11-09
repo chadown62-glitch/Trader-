@@ -29,18 +29,27 @@ const Login = {
     const password2 = ref('');
     const busy = ref(false);
     const error = ref('');
+    const code = ref('');
+    const needCode = ref(false);
     const submit = async () => {
       error.value = '';
       if (store.auth.setupRequired && password.value !== password2.value) { error.value = 'Les deux mots de passe ne correspondent pas.'; return; }
       busy.value = true;
       try {
-        await api.post(store.auth.setupRequired ? '/api/auth/setup' : '/api/auth/login', { password: password.value });
+        const body = { password: password.value };
+        if (needCode.value) body.code = code.value;
+        await api.post(store.auth.setupRequired ? '/api/auth/setup' : '/api/auth/login', body);
         store.auth.authenticated = true;
         store.auth.setupRequired = false;
-      } catch (e) { error.value = e.message; }
+      } catch (e) {
+        if (e.data && e.data.need_code) {
+          if (needCode.value) error.value = e.message;
+          needCode.value = true;
+        } else error.value = e.message;
+      }
       busy.value = false;
     };
-    return { store, password, password2, busy, error, submit, LOGO };
+    return { store, password, password2, busy, error, submit, code, needCode, LOGO };
   },
   template: `
   <div class="login">
@@ -55,6 +64,8 @@ const Login = {
       </template>
       <template v-else>
         <div class="field" style="margin-top:14px"><label>Mot de passe</label><input type="password" v-model="password" autocomplete="current-password" autofocus></div>
+        <div v-if="needCode" class="field"><label>Code de l'application d'authentification (6 chiffres)</label>
+          <input v-model="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></div>
       </template>
       <div v-if="error" class="note danger" style="margin-bottom:10px">{{ error }}</div>
       <button class="primary block" :disabled="busy || !password">{{ store.auth.setupRequired ? 'Créer le mot de passe' : 'Se connecter' }}</button>
