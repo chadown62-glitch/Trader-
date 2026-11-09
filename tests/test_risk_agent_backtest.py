@@ -1,6 +1,5 @@
 import copy
 
-import pandas as pd
 import pytest
 
 from sentinelle.agent.agent import TradingAgent

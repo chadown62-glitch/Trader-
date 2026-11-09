@@ -96,7 +96,9 @@ def test_labels_match_manual_simulation():
         st = STRATEGIES[row["strategy"]]
         i = int(row["idx"])
         entry = o[i + 1] * 1.0005
-        state = ExitState(entry, row["stop"], row["target"], row["stop"], st.horizon_bars, st.breakeven_r, 0.001, 0.0005)
+        target = None if np.isnan(row["target"]) else row["target"]
+        state = ExitState(entry, row["stop"], target, row["stop"], st.horizon("1h"), st.breakeven_r, 0.001, 0.0005,
+                          trail_atr=st.trail_atr, atr_entry=row["atr_entry"], peak=entry)
         for j in range(i + 1, len(o)):
             px, reason = step(state, o[j], h[j], l[j], c[j])
             if px is not None:
@@ -114,3 +116,16 @@ def test_non_overlapping_one_position_per_symbol():
         "outcome": ["target"] * 4,
     })
     assert non_overlapping(cand).tolist() == [True, False, True, True]
+
+
+def test_trailing_stop_follows_highest_close():
+    s = ExitState(entry=100, stop=94, target=None, initial_stop=94, horizon_bars=100, trail_atr=3.0, atr_entry=2.0, peak=100, slip=0.0)
+    assert step(s, 100, 104, 99, 103) == (None, None)
+    assert s.stop == pytest.approx(103 - 6)          # 97 : le stop monte avec la clôture la plus haute
+    assert step(s, 103, 110, 102, 109) == (None, None)
+    assert s.stop == pytest.approx(103)              # 109 - 6
+    step(s, 109, 109.5, 104, 105)                    # baisse : le stop ne redescend jamais
+    assert s.stop == pytest.approx(103)
+    px, reason = step(s, 105, 105, 102, 102.5)
+    assert reason == "trailing" and px == pytest.approx(103)
+    assert r_multiple(100, px, 94, 0.0) == pytest.approx(0.5)

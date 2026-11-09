@@ -17,7 +17,9 @@ PASSWORD = "un-mot-de-passe-solide"
 def app(tmp_path_factory):
     d = tmp_path_factory.mktemp("data")
     src = SyntheticSource(["BTC/USDC", "ETH/USDC", "SOL/USDC"], days=40)
-    a = App(d, source=src, settings_override={"market": {"source": "synthetic", "poll_seconds": 2}})
+    a = App(d, source=src, settings_override={"market": {"source": "synthetic", "poll_seconds": 2, "history_days": 120},
+                                              "general": {"watchlist": ["BTC/USDC", "ETH/USDC", "SOL/USDC"]},
+                                              "ai": {"timeframe": "1h"}})
     assert a.engine.ready.wait(30)
     deadline = time.time() + 20
     while time.time() < deadline and len(a.hub.prices) < 3:

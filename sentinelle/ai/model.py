@@ -54,7 +54,8 @@ class MetaModel:
 
     def fit(self, cand: pd.DataFrame) -> "MetaModel":
         cand = cand[cand["outcome"].notna()]
-        X = model_matrix(cand)
+        self.feature_names = list(MODEL_COLUMNS)
+        X = model_matrix(cand, self.feature_names)
         y = (cand["outcome_r"].to_numpy() > 0).astype(int)
         params = self.params or self.default_params(len(cand))
         self.clf = HistGradientBoostingClassifier(**params)
@@ -91,7 +92,7 @@ class MetaModel:
         """(probabilité de gain calibrée, espérance en R) pour chaque candidat."""
         if len(cand) == 0:
             return np.array([]), np.array([])
-        p = self.calibrate(self.raw_proba(model_matrix(cand)))
+        p = self.calibrate(self.raw_proba(model_matrix(cand, self.feature_names)))
         return p, self.expected_r(p, cand["strategy"].to_numpy())
 
     def save(self, path: Path) -> None:

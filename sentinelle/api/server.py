@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -265,7 +265,7 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         try:
             rows = await asyncio.to_thread(app.hub.ui_candles, symbol, tf, limit)
         except Exception as exc:
-            raise HTTPException(503, f"Données indisponibles : {exc}")
+            raise HTTPException(503, f"Données indisponibles : {exc}") from None
         return {"symbol": symbol, "tf": tf, "candles": rows}
 
     @api.get("/api/coach")

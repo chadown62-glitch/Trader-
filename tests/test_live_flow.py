@@ -32,7 +32,8 @@ def flow(tmp_path_factory):
         settings_override={
             "general": {"watchlist": ["BTC/USDC", "ETH/USDC"]},
             "market": {"source": "synthetic", "history_days": 210},
-            "ai": {"regime_filter": False},
+            "ai": {"regime_filter": False, "timeframe": "1h",
+                   "strategies": {"trend_breakout": True, "pullback": True, "mean_reversion": True, "momentum": True, "trend_follow": True}},
             "risk": {"min_reward_to_fees": 1.5, "cooldown_minutes_after_loss": 0},
         },
     )

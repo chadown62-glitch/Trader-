@@ -80,6 +80,7 @@ def compute_features(df: pd.DataFrame, timeframe: str, btc: pd.DataFrame | None 
     out["macd_hist_atr"] = hist / a_safe
     dh, dl = donchian_prev(h, l, 20)
     out["don_high"], out["don_low"] = dh, dl
+    out["don_high55"] = donchian_prev(h, l, 55)[0]
     out["don_pos"] = (c - dl) / (dh - dl).replace(0.0, np.nan)
     out["breakout_atr"] = (c - dh) / a_safe
     lv = np.log1p(v)

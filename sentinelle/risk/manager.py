@@ -185,6 +185,12 @@ class RiskManager:
             return dec.refuse("stop", "Le stop doit être sous le prix d'entrée.")
         if target is not None and target <= entry:
             return dec.refuse("objectif", "L'objectif doit être au-dessus du prix d'entrée.")
+        if target is None:
+            costs = entry * (2 * fee_rate + 2 * slip)
+            ratio = (entry - stop) / costs if costs > 0 else float("inf")
+            if ratio < cfg["min_reward_to_fees"]:
+                return dec.refuse("frais", f"Mouvement attendu trop faible face aux frais ({ratio:.1f}× les frais).")
+            dec.ok("frais", f"risque = {ratio:.1f}× les frais (stop suiveur, pas d'objectif fixe)")
         if target is not None:
             costs = entry * (2 * fee_rate + 2 * slip)
             ratio = (target - entry) / costs if costs > 0 else float("inf")

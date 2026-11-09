@@ -146,7 +146,7 @@ class PaperBroker:
         try:
             m = self.market_fn(symbol)
         except KeyError:
-            raise OrderError(f"Paire inconnue : {symbol}")
+            raise OrderError(f"Paire inconnue : {symbol}") from None
         last = self.price_fn(symbol)
         amount = m.floor_amount(float(amount))
         if type == "limit":
@@ -245,7 +245,6 @@ class PaperBroker:
         return self.get_order(order_id)
 
     def _fill(self, order: dict, price: float, maker: bool) -> dict:
-        m = self.market_fn(order["symbol"])
         base, quote = order["symbol"].split("/")
         amount = order["amount"] - order["filled"]
         fee_rate = self.fee_rate  # hypothèse prudente : même taux maker/taker
@@ -299,7 +298,6 @@ class PaperBroker:
                         self.cancel_order(sib["id"], "OCO : l'autre ordre a été exécuté")
         filled = self.get_order(order["id"])
         fill = self.db.one("SELECT * FROM fills WHERE id = ?", (fill_id,))
-        del m
         for fn in list(self.listeners):
             fn(filled, fill)
         return self.get_order(order["id"])

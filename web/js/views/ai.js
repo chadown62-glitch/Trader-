@@ -21,6 +21,7 @@ export default {
     const decisions = ref([]);
     const confirmText = ref('');
     const tab = ref('training');
+    const lastTrain = ref(null);
     const agents = computed(() => store.overview?.agents || []);
     const training = computed(() => agents.value.find(a => a.name === 'ia_entrainement'));
     const live = computed(() => agents.value.find(a => a.name === 'ia_reel'));
@@ -43,13 +44,15 @@ export default {
       decisions.value = (await safe(api.get('/api/decisions?limit=80'))) || [];
     };
     const loadJobs = async () => { (await safe(api.get('/api/jobs')) || []).forEach(j => { store.jobs[j.id] = j; }); };
-    onMounted(() => { loadModels(); loadReadiness(); loadStats(); loadJobs(); });
+    const loadLastTrain = async () => { lastTrain.value = await safe(api.get('/api/ai/last-training')); };
+    onMounted(() => { loadModels(); loadReadiness(); loadStats(); loadJobs(); loadLastTrain(); });
     watch(() => trainingAcc.value?.id, loadStats);
     const offs = [
       on('training_done', () => { reportVersion.value = null; loadModels(); loadReadiness(); }),
       on('job', async (j) => {
         if (j.kind === 'backtest' && j.status === 'done') { const full = await safe(api.get(`/api/jobs/${j.id}`)); btResult.value = full?.result || null; }
         if (j.kind === 'train' && j.status === 'error') toast('Entraînement : ' + (j.error || 'échec'), 'error', 10000);
+        if (j.kind === 'train' && j.status === 'done') { const full = await safe(api.get(`/api/jobs/${j.id}`)); if (full?.result) lastTrain.value = { verdict: full.result.verdict, reasons: full.result.reasons, trained_at: Date.now() / 1000 }; }
         if (j.kind === 'backtest' && j.status === 'error') toast('Simulation : ' + (j.error || 'échec'), 'error', 10000);
       }),
       on('decision', (d) => { decisions.value.unshift({ ...d, ts: Date.now() / 1000 }); decisions.value.splice(120); }),
@@ -88,7 +91,7 @@ export default {
     });
     const manualBtCurve = computed(() => btResult.value ? [{ data: btResult.value.equity || [], color: '#22c55e' }] : []);
     const STATUS = { champion: ['Actif', 'ok'], challenger: ['En test', 'warn'], rejected: ['Non validé', 'err'], retired: ['Retiré', ''] };
-    return { store, readiness, models, report, reportVersion, trainDays, btDays, btUseModel, btResult, stats, cands, decisions, confirmText, tab,
+    return { store, lastTrain, readiness, models, report, reportVersion, trainDays, btDays, btUseModel, btResult, stats, cands, decisions, confirmText, tab,
       training, live, trainingAcc, trainJob, btJob, prepJob, startTraining, stopAgent, startLive, train, backtest, promote, retire, openReport,
       holdoutCurves, btCurves, manualBtCurve, STATUS, money, signed, pct, plainPct, rr, cls, dt, dtMs, date, ago, STRATEGY_LABELS, FEATURE_LABELS, REASON_ICONS };
   },
@@ -195,6 +198,10 @@ export default {
             <div class="small muted">{{ trainJob.label }} — {{ trainJob.status==='running' ? trainJob.message : trainJob.status==='done' ? 'terminé' : 'échec : ' + trainJob.error }}</div>
             <div class="progress" style="margin-top:6px" :class="{ok: trainJob.status==='done'}"><div :style="{width: (trainJob.progress*100)+'%'}"></div></div>
           </div>
+          <div v-if="lastTrain" class="note small" :class="lastTrain.verdict==='validé' ? 'ok' : 'warn'" style="margin-top:12px">
+            <b>Dernier entraînement ({{ dt(lastTrain.trained_at) }}) : {{ lastTrain.verdict }}</b>
+            <div v-for="r in (lastTrain.reasons || [])" :key="r">{{ r }}</div>
+          </div>
         </div>
         <div class="card">
           <div class="card-head"><h2>Versions du modèle</h2></div>
@@ -263,7 +270,7 @@ export default {
             <h3>Par stratégie (période de contrôle)</h3>
             <div class="table-wrap"><table>
               <thead><tr><th>Stratégie</th><th class="num">IA : trades</th><th class="num">IA : moyenne</th><th class="num">Tous : trades</th><th class="num">Tous : moyenne</th></tr></thead>
-              <tbody><tr v-for="(v, k) in (report.holdout?.by_strategy || {})" :key="k"><td>{{ STRATEGY_LABELS[k] || k }}</td>
+              <tbody><tr v-for="(v, k) in (report.holdout?.by_strategy || {})" :key="k" v-show="v.model.n || v.baseline.n"><td>{{ STRATEGY_LABELS[k] || k }}</td>
                 <td class="num">{{ v.model.n }}</td><td class="num" :class="cls(v.model.mean_r)">{{ rr(v.model.mean_r) }}</td>
                 <td class="num">{{ v.baseline.n }}</td><td class="num" :class="cls(v.baseline.mean_r)">{{ rr(v.baseline.mean_r) }}</td></tr></tbody>
             </table></div>

@@ -1,6 +1,6 @@
 # Sentinelle : dossier de conception
 
-> **Nom provisoire.** Version 0.3, 9 novembre 2026.
+> **Nom provisoire.** Version 0.4, 9 novembre 2026 : première version du logiciel réalisée (voir §0 bis).
 > Bot de trading crypto qui tourne 24 h/24, se pilote depuis Telegram et depuis un logiciel de gestion dédié, et analyse les actualités avec une IA.
 
 ---
@@ -16,6 +16,24 @@
 - **Logiciel de gestion** : une application web qui marche sur PC comme sur téléphone. Elle regroupe le tableau de bord, les réglages, l'historique et le bouton d'arrêt d'urgence.
 - **Tout tourne sur votre PC** : le bot et l'IA (locale, gratuite) fonctionnent sur votre ordinateur allumé 24 h/24. Tout se pilote aussi depuis le téléphone (Telegram + logiciel de gestion).
 - **Argent fictif d'abord** : le mode réel reste verrouillé tant que le bot n'a pas fait ses preuves en simulation.
+
+---
+
+## 0 bis. Ce qui a été réalisé (version 0.1 du logiciel)
+
+| Élément prévu | État | Écart avec le plan initial |
+|---------------|------|---------------------------|
+| Moteur, données de marché, simulateur, risque, backtests | ✅ | — |
+| Panel de gestion (PC + téléphone) | ✅ | Trading manuel complet ajouté (comptes papier et réel) |
+| IA de trading (méta-modèle, validation chronologique, entraînement en direct, bulletin) | ✅ | Unité de temps par défaut **4 h** et stratégies de **tendance** (meilleurs résultats mesurés, voir docs/RESULTATS.md) |
+| Connexion à un exchange réel | ✅ testée contre un faux exchange | **À tester sur le testnet** avant tout usage réel |
+| Telegram (notifications + commandes + confirmation) | ✅ | Lecture de canaux de signaux (A) : **pas encore** (prévue plus tard, en observation) |
+| Actualités + IA | ✅ | IA **locale** (Ollama, gratuite) au lieu de l'API Claude |
+| Hébergement | ✅ | Sur **votre PC** Windows (choix « zéro frais d'IA ») |
+| Tests | ✅ 74 tests automatiques + vérification dans un navigateur | — |
+
+Résultat honnête à ce jour : l'IA est **non validée** sur les données récentes, donc le mode réel reste verrouillé.
+Le système protège le capital (−2,5 % sur un an quand le marché faisait −45,6 %), mais il n'a pas encore prouvé qu'il gagne de l'argent.
 
 ---
 

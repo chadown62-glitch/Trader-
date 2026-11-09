@@ -13,3 +13,8 @@ secrets*.json
 .DS_Store
 Thumbs.db
 test-results/
+
+# Captures des tests visuels
+tests/e2e/*.png
+captures/
+data-demo/

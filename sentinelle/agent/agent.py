@@ -30,7 +30,7 @@ from ..config import timeframe_ms
 from ..execution.base import OrderError
 from ..execution.positions import PositionManager
 from ..risk.manager import RiskManager
-from ..storage.db import Database, dumps
+from ..storage.db import Database, dumps, loads
 
 log = logging.getLogger("sentinelle.agent")
 
@@ -107,7 +107,7 @@ class TradingAgent:
         if self.last_bar.get(symbol, -1) >= bar_ts:
             return  # bougie déjà traitée
         self.last_bar[symbol] = bar_ts
-        self._manage_positions(symbol, row, bar_ts + self.tf_ms)
+        self._manage_positions(symbol, feat, i, bar_ts + self.tf_ms)
         if self.mode != "backtest":
             self._resolve_shadows(symbol, feat)
         enabled = [n for n, on in self.settings_fn()["ai"]["strategies"].items() if on and n in STRATEGIES]
@@ -118,7 +118,8 @@ class TradingAgent:
             self._consider(symbol, row, names, bar_ts)
 
     # -- gestion des positions ouvertes ------------------------------------------------
-    def _manage_positions(self, symbol: str, row, bar_close_ms: int) -> None:
+    def _manage_positions(self, symbol: str, feat: pd.DataFrame, i: int, bar_close_ms: int) -> None:
+        row = feat.iloc[i]
         for pos in self.positions.open_positions(symbol, agent=self.name):
             if pos["status"] != "open" or not pos["entry_ts"]:
                 continue
@@ -127,17 +128,28 @@ class TradingAgent:
             st = STRATEGIES.get(pos["strategy"] or "")
             # nombre de bougies écoulées depuis l'entrée (robuste si le PC a été en veille)
             elapsed = int((bar_close_ms - pos["entry_ts"] * 1000) // self.tf_ms)
+            extra = loads(pos.get("data"), {}) or {}
+            peak = pos["entry_price"]
+            if st is not None and st.trail_atr:
+                closes = feat["close"].to_numpy()[: i + 1]
+                closes_ts = feat["ts"].to_numpy()[: i + 1] + self.tf_ms
+                since = closes[closes_ts > pos["entry_ts"] * 1000]
+                if len(since):
+                    peak = max(peak, float(since.max()))
             state = ExitState(
                 entry=pos["entry_price"],
                 stop=pos["stop_price"] or 0.0,
                 target=pos["target_price"],
                 initial_stop=pos["initial_stop"] or pos["stop_price"] or 0.0,
-                horizon_bars=pos["horizon_bars"] or (st.horizon_bars if st else 48),
+                horizon_bars=pos["horizon_bars"] or (st.horizon(self.timeframe) if st else 48),
                 breakeven_r=st.breakeven_r if st else None,
                 fee_rate=self.fee_rate,
                 slip=self.slip,
                 bars=max(pos["bars_held"], elapsed - 1),
                 breakeven_done=bool(pos["breakeven_done"]),
+                trail_atr=st.trail_atr if st else None,
+                atr_entry=float(extra.get("atr_entry") or 0.0),
+                peak=peak,
             )
             moved, timed_out = end_of_bar(state, float(row["high"]), float(row["close"]))
             self.db.update("positions", pos["id"], {"bars_held": state.bars, "breakeven_done": int(state.breakeven_done)})
@@ -147,7 +159,11 @@ class TradingAgent:
                     self._journal(symbol, "sortie", f"Sortie de {symbol} : durée maximale atteinte ({state.bars} bougies).")
                 elif moved:
                     self.positions.modify(pos["id"], stop=state.stop)
-                    self._journal(symbol, "stop_relevé", f"{symbol} : stop remonté au point mort ({fmt_price(state.stop)}), le trade ne peut plus perdre (hors trou de cotation).")
+                    if state.trail_atr:
+                        msg = f"{symbol} : stop suiveur remonté à {fmt_price(state.stop)} pour protéger les gains."
+                    else:
+                        msg = f"{symbol} : stop remonté au point mort ({fmt_price(state.stop)}), le trade ne peut plus perdre (hors trou de cotation)."
+                    self._journal(symbol, "stop_relevé", msg)
             except OrderError as exc:
                 if exc.code == "would_trigger":
                     self.positions.close(pos["id"], "Stop dépassé : sortie immédiate")
@@ -158,7 +174,7 @@ class TradingAgent:
     # -- candidats fantômes -------------------------------------------------------------
     def _resolve_shadows(self, symbol: str, feat: pd.DataFrame) -> None:
         rows = self.db.query(
-            "SELECT id, ts, strategy, stop, target FROM candidates WHERE source = 'live' AND outcome IS NULL "
+            "SELECT id, ts, strategy, stop, target, entry, features FROM candidates WHERE source = 'live' AND outcome IS NULL "
             "AND symbol = ? AND timeframe = ? AND account_id = ?",
             (symbol, self.timeframe, self.account_id),
         )
@@ -174,7 +190,12 @@ class TradingAgent:
                 continue
             if r["strategy"] not in STRATEGIES:
                 continue
-            sim = simulate_candidate(o, h, l, c, i, r["stop"], r["target"], r["strategy"], self.fee_rate, self.slip)
+            atr_entry = 0.0
+            if STRATEGIES[r["strategy"]].trail_atr:
+                feats = loads(r.get("features"), {}) or {}
+                atr_entry = float(feats.get("atr_pct") or 0.0) * float(r.get("entry") or 0.0)
+            sim = simulate_candidate(o, h, l, c, i, r["stop"], r["target"], r["strategy"], self.fee_rate, self.slip,
+                                     self.timeframe, atr_entry)
             if sim is None:
                 self.db.update("candidates", r["id"], {"outcome": "impossible", "resolved_at": self.clock()})
             elif sim[0] is not None:
@@ -263,8 +284,8 @@ class TradingAgent:
                             symbol, rd.qty, origin="ai", agent=self.name, stop=c["stop"], target=c["target"],
                             strategy=c["name"], p_win=c["p"], expected_r=c["er"],
                             model_version=model.version if model is not None and mode_used == "model" else None,
-                            horizon_bars=st.horizon_bars, timeframe=self.timeframe, reason=explanation,
-                            data={"mode": mode_used, "risk_checks": rd.checks, "regime": regime},
+                            horizon_bars=st.horizon(self.timeframe), timeframe=self.timeframe, reason=explanation,
+                            data={"mode": mode_used, "risk_checks": rd.checks, "regime": regime, "atr_entry": a},
                         )
                         decision, reason, opened = "pris", explanation, True
                         self.stats["entries"] += 1
@@ -281,7 +302,7 @@ class TradingAgent:
                     "INSERT OR IGNORE INTO candidates(symbol, timeframe, ts, strategy, source, entry, stop, target, horizon_bars, "
                     "features, p_win, expected_r, model_version, decision, decision_reason, account_id) "
                     "VALUES (?, ?, ?, ?, 'live', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (symbol, self.timeframe, bar_ts, c["name"], close, c["stop"], c["target"], st.horizon_bars,
+                    (symbol, self.timeframe, bar_ts, c["name"], close, c["stop"], c["target"], st.horizon(self.timeframe),
                      dumps({k: c["row"][k] for k in FEATURE_COLUMNS + ["cost_r"]}), c["p"], c["er"],
                      model.version if model is not None else None, decision, reason, self.account_id),
                 )
@@ -296,7 +317,8 @@ class TradingAgent:
         else:
             parts.append("mode exploration (aucun modèle validé encore, taille réduite)")
         risk_pct = rd.risk_amount / max(1e-9, self.broker.equity()[0]) * 100
-        parts.append(f"risque {risk_pct:.2f} % du capital, stop {fmt_price(c['stop'])}, objectif {fmt_price(c['target'])}")
+        objective = f"objectif {fmt_price(c['target'])}" if c["target"] else "sans objectif fixe (stop suiveur)"
+        parts.append(f"risque {risk_pct:.2f} % du capital, stop {fmt_price(c['stop'])}, {objective}")
         return " ; ".join(parts) + "."
 
     def _journal(self, symbol: str, kind: str, message: str, data: dict | None = None) -> None:

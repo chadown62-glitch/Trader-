@@ -90,6 +90,7 @@ export const STRATEGY_LABELS = {
   pullback: 'Repli en tendance',
   mean_reversion: 'Retour à la moyenne',
   momentum: 'Élan haussier',
+  trend_follow: 'Suivi de tendance',
 };
 export const ROLE_LABELS = { ai_training: 'Entraînement IA', manual: 'Papier', live: 'Réel', backtest: 'Backtest' };
 export const REASON_ICONS = { pris: '🟢', refusé: '⚪', sortie: '🔵', stop_relevé: '🛡️', erreur: '🔴' };

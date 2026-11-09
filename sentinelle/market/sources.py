@@ -276,8 +276,8 @@ class SyntheticSource:
 def build_source(settings: dict) -> MarketSource:
     m = settings["market"]
     if m["source"] == "synthetic":
-        days = max(60, min(int(m.get("history_days", 365)), 400))
-        return SyntheticSource(settings["general"]["watchlist"], days=days)
+        # 260 jours : assez pour le climat de marché (moyenne 200 jours) sans alourdir la démo
+        return SyntheticSource(settings["general"]["watchlist"], days=260)
     return CcxtSource(m["source"], public_mirror=bool(m.get("binance_public_mirror", True)))
 
 

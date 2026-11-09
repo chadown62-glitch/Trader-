@@ -162,7 +162,7 @@ class LiveBroker:
         try:
             m = self.market_fn(symbol)
         except KeyError:
-            raise OrderError(f"Paire inconnue : {symbol}")
+            raise OrderError(f"Paire inconnue : {symbol}") from None
         last = self.price_fn(symbol)
         amount = m.floor_amount(float(amount))
         if type == "limit":

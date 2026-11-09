@@ -31,6 +31,9 @@ class ExitState:
     slip: float = 0.0005
     bars: int = 0
     breakeven_done: bool = False
+    trail_atr: float | None = None  # stop suiveur : plus haut de clôture − k × ATR d'entrée
+    atr_entry: float = 0.0
+    peak: float = 0.0
 
     @property
     def risk_unit(self) -> float:
@@ -40,7 +43,10 @@ class ExitState:
 def check_hits(state: ExitState, o: float, h: float, l: float) -> tuple[float | None, str | None]:
     """Étapes 1-2 : stop puis objectif. Renvoie (prix de sortie, motif) ou (None, None)."""
     if l <= state.stop:
-        reason = "breakeven" if state.breakeven_done else "stop"
+        if state.trail_atr and state.stop > state.initial_stop:
+            reason = "trailing"
+        else:
+            reason = "breakeven" if state.breakeven_done else "stop"
         return min(state.stop, o) * (1 - state.slip), reason
     if state.target is not None and h >= state.target:
         return (o if o > state.target else state.target), "target"
@@ -51,6 +57,12 @@ def end_of_bar(state: ExitState, h: float, c: float) -> tuple[bool, bool]:
     """Étape 3. Renvoie (stop_modifié, sortie_par_durée)."""
     state.bars += 1
     moved = False
+    if state.trail_atr and state.atr_entry > 0:
+        state.peak = max(state.peak or state.entry, c)
+        trail = state.peak - state.trail_atr * state.atr_entry
+        if state.stop < trail < c:
+            state.stop = trail
+            moved = True
     if state.breakeven_r and not state.breakeven_done and state.risk_unit > 0:
         if h >= state.entry + state.breakeven_r * state.risk_unit:
             be = state.entry * (1 + 2 * state.fee_rate + state.slip)
@@ -84,6 +96,7 @@ def r_multiple(entry_fill: float, exit_fill: float, initial_stop: float, fee_rat
 EXIT_LABELS = {
     "stop": "Stop-loss",
     "breakeven": "Stop au point mort",
+    "trailing": "Stop suiveur",
     "target": "Objectif",
     "time": "Durée maximale",
 }

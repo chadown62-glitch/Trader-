@@ -132,7 +132,7 @@ export default {
       if (await safe(api.post('/api/auth/password', { current: pwd.current, new: pwd.new }), 'Mot de passe modifié')) { pwd.current = pwd.new = pwd.new2 = ''; }
     };
     const TABS = [['general', 'Général'], ['risk', 'Risque'], ['ai', 'IA'], ['paper', 'Simulation'], ['live', 'Exchange réel'], ['telegram', 'Telegram'], ['news', 'Actualités'], ['accounts', 'Comptes'], ['security', 'Sécurité'], ['about', 'À propos']];
-    const STRATS = { trend_breakout: 'Cassure de tendance', pullback: 'Repli en tendance', mean_reversion: 'Retour à la moyenne', momentum: 'Élan haussier' };
+    const STRATS = { trend_follow: 'Suivi de tendance (recommandé)', trend_breakout: 'Cassure de tendance (recommandé)', pullback: 'Repli en tendance', mean_reversion: 'Retour à la moyenne', momentum: 'Élan haussier' };
     return { store, tab, form, secrets, secretInputs, addPair, feedsText, newAcc, pwd, accounts, live, newsStatus, SECTIONS, TABS, STRATS,
       display, setValue, save, saveGeneral, addSymbol, removeSymbol, saveSecrets, clearSecret, connect, testTelegram, createAccount,
       resetAccount, resumeAccount, changePassword, money, dt };

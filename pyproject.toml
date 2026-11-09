@@ -1,0 +1,18 @@
+[project]
+name = "sentinelle"
+version = "0.1.0"
+description = "Bot de trading crypto prudent avec panel de gestion"
+requires-python = ">=3.11"
+readme = "README.md"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["F", "E9", "B"]
+ignore = ["B008", "B905"]

@@ -30,13 +30,14 @@ def default_data_dir() -> Path:
 # ---------------------------------------------------------------------------
 
 TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"]
-AI_TIMEFRAMES = ["15m", "1h", "4h"]
-STRATEGY_NAMES = ["trend_breakout", "pullback", "mean_reversion", "momentum"]
+AI_TIMEFRAMES = ["15m", "1h", "4h", "1d"]
+STRATEGY_NAMES = ["trend_breakout", "pullback", "mean_reversion", "momentum", "trend_follow"]
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "general": {
         "quote": "USDC",
-        "watchlist": ["BTC/USDC", "ETH/USDC", "SOL/USDC"],
+        # Cryptos parmi les plus liquides (univers utilisé pour valider la configuration, voir docs/RESULTATS.md)
+        "watchlist": ["BTC/USDC", "ETH/USDC", "SOL/USDC", "BNB/USDC", "XRP/USDC", "DOGE/USDC", "ADA/USDC", "LINK/USDC"],
     },
     "market": {
         # Source des données de marché publiques (prix en direct, historique).
@@ -45,7 +46,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         # Miroir officiel de Binance pour les données publiques (sans compte).
         "binance_public_mirror": True,
         "poll_seconds": 5,
-        "history_days": 730,
+        "history_days": 1460,
     },
     "paper": {
         "fee_rate": 0.001,  # 0,1 % par ordre (hypothèse prudente)
@@ -53,8 +54,10 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "initial_balance": 10000.0,
     },
     "ai": {
-        "timeframe": "1h",
-        "strategies": {name: True for name in STRATEGY_NAMES},
+        # 4 h : meilleur compromis mesuré entre nombre de trades et poids des frais (docs/RESULTATS.md)
+        "timeframe": "4h",
+        # Seules les stratégies de tendance ont une espérance positive après frais sur l'historique testé.
+        "strategies": {name: name in ("trend_follow", "trend_breakout") for name in STRATEGY_NAMES},
         # En entraînement (argent fictif) : tant qu'aucun modèle n'est validé,
         # l'IA prend les signaux de base avec une taille réduite pour apprendre.
         "exploration": True,

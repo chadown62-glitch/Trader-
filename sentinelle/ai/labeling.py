@@ -28,7 +28,8 @@ def cost_in_r(entry: float, stop: float, fee_rate: float, slip: float) -> float:
     return float("inf") if risk <= 0 else entry * (2 * fee_rate + 2 * slip) / risk
 
 
-def simulate_candidate(o, h, l, c, i: int, stop: float, target: float, strategy: str, fee_rate: float, slip: float):
+def simulate_candidate(o, h, l, c, i: int, stop: float, target: float | None, strategy: str, fee_rate: float, slip: float,
+                       timeframe: str = "1h", atr_entry: float = 0.0):
     """Simule un candidat décidé à la clôture de la bougie i.
 
     Renvoie None si le trade était impossible (ouverture sous le stop),
@@ -42,8 +43,10 @@ def simulate_candidate(o, h, l, c, i: int, stop: float, target: float, strategy:
     entry_fill = o[i + 1] * (1 + slip)
     if entry_fill <= stop:
         return None
-    state = ExitState(entry_fill, stop, target, stop, st.horizon_bars, st.breakeven_r, fee_rate, slip)
-    for j in range(i + 1, min(n, i + 2 + st.horizon_bars)):
+    horizon = st.horizon(timeframe)
+    state = ExitState(entry_fill, stop, target, stop, horizon, st.breakeven_r, fee_rate, slip,
+                      trail_atr=st.trail_atr, atr_entry=atr_entry, peak=entry_fill)
+    for j in range(i + 1, min(n, i + 2 + horizon)):
         px, reason = step(state, o[j], h[j], l[j], c[j])
         if px is not None:
             return (reason, r_multiple(entry_fill, px, stop, fee_rate), j)
@@ -89,15 +92,16 @@ def label_candidates(
                 "decision_ts": int(ts[i] + tf),
                 "entry_ref": float(c[i]),
                 "stop": float(stop),
-                "target": float(target),
-                "horizon_bars": st.horizon_bars,
+                "target": float(target) if target is not None else np.nan,
+                "horizon_bars": st.horizon(timeframe),
+                "atr_entry": float(a[i]),
                 "cost_r": cost_in_r(c[i], stop, fee_rate, slip),
                 "outcome": None,
                 "outcome_r": np.nan,
                 "exit_ts": np.nan,
             }
             if i + 1 < n:
-                sim = simulate_candidate(o, h, l, c, i, stop, target, name, fee_rate, slip)
+                sim = simulate_candidate(o, h, l, c, i, stop, target, name, fee_rate, slip, timeframe, float(a[i]))
                 if sim is None:
                     continue  # ouverture déjà sous le stop : trade impossible
                 if sim[0] is not None:
@@ -115,8 +119,8 @@ def label_candidates(
     return cand.sort_values(["decision_ts", "symbol", "strategy"]).reset_index(drop=True)
 
 
-def model_matrix(cand: pd.DataFrame) -> pd.DataFrame:
-    X = cand.reindex(columns=MODEL_COLUMNS).astype(float)
+def model_matrix(cand: pd.DataFrame, columns: list[str] | None = None) -> pd.DataFrame:
+    X = cand.reindex(columns=columns or MODEL_COLUMNS).astype(float)
     return X.replace([np.inf, -np.inf], np.nan)
 
 

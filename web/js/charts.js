@@ -8,7 +8,7 @@ const theme = {
   rightPriceScale: { borderColor: '#23304a' },
   timeScale: { borderColor: '#23304a', timeVisible: true, secondsVisible: false },
   crosshair: { mode: 0 },
-  localization: { locale: 'fr-FR', priceFormatter: (p) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: p >= 100 ? 2 : p >= 1 ? 4 : 6 }).format(p) },
+  localization: { locale: 'fr-FR', priceFormatter: (p) => { const a = Math.abs(p); return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: a >= 100 ? 2 : a >= 1 ? 2 : a >= 0.01 ? 4 : 6 }).format(p); } },
 };
 
 export const toChartTime = (ms) => Math.floor(ms / 1000) + TZ;

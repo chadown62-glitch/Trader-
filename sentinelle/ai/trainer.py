@@ -169,7 +169,7 @@ def train_walk_forward(
             continue
         m = MetaModel(timeframe).fit(train)
         part = test.copy()
-        part["p_raw"] = m.raw_proba(model_matrix(test))
+        part["p_raw"] = m.raw_proba(model_matrix(test, m.feature_names))
         oos_parts.append(part)
         yt = (test["outcome_r"].to_numpy() > 0).astype(int)
         folds.append({
@@ -232,9 +232,9 @@ def train_walk_forward(
         try:
             from sklearn.inspection import permutation_importance
 
-            pi = permutation_importance(eval_model.clf, model_matrix(hold), y_h, scoring="roc_auc", n_repeats=3, random_state=0)
+            pi = permutation_importance(eval_model.clf, model_matrix(hold, eval_model.feature_names), y_h, scoring="roc_auc", n_repeats=3, random_state=0)
             order = np.argsort(-pi.importances_mean)[:10]
-            report["importance"] = [{"feature": MODEL_COLUMNS[i], "value": float(pi.importances_mean[i])} for i in order]
+            report["importance"] = [{"feature": eval_model.feature_names[i], "value": float(pi.importances_mean[i])} for i in order]
         except Exception:  # pragma: no cover - information facultative
             log.exception("Importance des variables indisponible")
 

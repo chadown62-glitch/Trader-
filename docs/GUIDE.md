@@ -1,0 +1,214 @@
+# Guide d'utilisation de Sentinelle
+
+> **À lire d'abord.** Sentinelle ne garantit aucun gain. Aucun logiciel ne le peut.
+> Le trading comporte un risque de perte en capital, et les résultats passés (réels ou simulés) ne garantissent pas les résultats futurs.
+> Sentinelle est conçu pour **protéger** votre argent : simulation par défaut, limites de perte automatiques et mode réel verrouillé tant que l'IA n'a pas fait ses preuves.
+
+---
+
+## 1. Installation sur Windows
+
+### Étape 1 : récupérer Sentinelle
+- Sur la page GitHub du projet : **Code → Download ZIP**, puis extrayez le dossier, par exemple dans `C:\Sentinelle`.
+- Ou, si vous utilisez Git : `git clone` du dépôt.
+
+### Étape 2 : installer Python (une seule fois)
+1. Allez sur <https://www.python.org/downloads/> et téléchargez **Python 3.12**.
+2. Pendant l'installation, **cochez « Add python.exe to PATH »**.
+
+Autre possibilité : ouvrez un terminal et tapez `winget install Python.Python.3.12`.
+
+### Étape 3 : lancer
+- Double-cliquez sur **`lancer.bat`**.
+- Au premier lancement, Sentinelle installe ses composants (2 à 5 minutes, connexion internet requise).
+- Le panel s'ouvre ensuite dans votre navigateur, à l'adresse **http://127.0.0.1:8765**.
+- **Choisissez votre mot de passe** (10 caractères minimum). Il protège le panel.
+
+### Raccourcis utiles
+
+| Fichier | Rôle |
+|---------|------|
+| `lancer.bat` | Démarre Sentinelle. Pour l'arrêter, fermez la fenêtre noire. |
+| `demo.bat` | Démo **hors-ligne** sur un marché simulé, pour découvrir sans connexion. |
+| `diagnostic.bat` | Vérifie l'installation : Python, internet, données de marché, Ollama, carte graphique. |
+
+---
+
+## 2. Tour du panel
+
+| Page | Ce que vous y faites |
+|------|---------------------|
+| **Tableau de bord** | Capital de chaque compte, état des IA, préparation au mode réel, courbe de capital, décisions de l'IA en direct. |
+| **Trader** | Graphique en temps réel, passage d'ordres, calculatrice de risque, avis de l'IA, positions et ordres. |
+| **IA** | Entraînement en direct, portefeuille réel (verrouillé), apprentissage sur l'historique, simulation accélérée, journal des décisions. |
+| **Historique** | Tous vos trades, leurs statistiques et l'export CSV (utile pour les impôts). |
+| **Actualités** | Fil d'actualités crypto analysé par l'IA locale. |
+| **Réglages** | Risque, IA, exchange réel, Telegram, actualités, comptes, mot de passe. |
+| **Journal** | Tout ce qui se passe dans le système. |
+
+En haut à droite, le bouton rouge **🛑 Urgence** propose deux niveaux :
+- **Arrêter les IA** : les positions ouvertes restent protégées par leurs stops.
+- **Tout revendre** : vente immédiate au prix du marché, après avoir tapé « URGENCE ».
+
+---
+
+## 3. Trader vous-même
+
+1. Page **Trader** : choisissez le compte. « Mon compte papier » utilise de l'argent fictif sur les prix réels.
+2. Choisissez la crypto et l'unité de temps du graphique.
+3. Remplissez le ticket :
+   - Cochez **« Calculer la quantité selon le risque »** et indiquez par exemple 0,5 %.
+   - Placez un **stop-loss** (boutons −1 %, −2 %… ou un prix précis).
+   - Ajoutez éventuellement un **objectif de gain**.
+   - L'aperçu affiche la quantité, les frais estimés et la **perte maximale** si le stop est touché.
+4. Le stop et l'objectif apparaissent sur le graphique. Vous pouvez les modifier ou fermer la position à tout moment.
+
+> Conseil : entraînez-vous plusieurs semaines sur le compte papier avant de trader en réel.
+
+---
+
+## 4. L'IA : le parcours recommandé
+
+### a) Apprentissage sur l'historique
+Page **IA → Apprentissage sur l'historique → Lancer l'entraînement**. Comptez une à quelques minutes.
+1. Sentinelle télécharge l'historique des prix.
+2. Il repère toutes les situations où les stratégies auraient acheté et calcule ce que chacune aurait rapporté, frais compris.
+3. L'IA apprend lesquelles valent la peine. Elle est ensuite testée sur une **période qu'elle n'a jamais vue** : c'est le seul test honnête.
+4. **Verdict :**
+   - **validé** : gain moyen positif et statistiquement crédible sur la période jamais vue. Le modèle devient actif.
+   - **non validé** : l'IA reste en « exploration » (argent fictif uniquement) et ne pourra pas trader en réel. **C'est une protection, pas un bug.**
+
+### b) Entraînement en direct (argent fictif, prix réels)
+Page **IA → Entraînement en direct → Démarrer**. L'IA surveille le marché 24 h/24 :
+- à chaque clôture de bougie, elle examine les signaux, demande l'avis du modèle et soumet chaque trade au gestionnaire de risque ;
+- chaque décision (prise **ou refusée**) est expliquée dans le journal ;
+- chaque signal est suivi jusqu'à son issue, ce qui permet de vérifier si l'IA a eu raison de refuser ;
+- elle se ré-entraîne régulièrement avec les données récentes. Un nouveau modèle n'est activé que s'il est validé.
+
+### c) Bulletin de préparation
+Le mode réel de l'IA se déverrouille seulement quand **toutes** ces conditions sont remplies (seuils réglables) :
+- un modèle validé ;
+- au moins 30 jours d'entraînement en direct ;
+- au moins 25 trades avec le modèle ;
+- un résultat net positif ;
+- une baisse maximale inférieure à 10 % ;
+- aucune erreur critique sur 7 jours.
+
+### d) Passage au réel, progressivement
+1. **Testnet** d'abord : réglage « testnet » activé, avec des clés créées sur le site de test de l'exchange (argent fictif sur la vraie plateforme).
+2. Ensuite le réel, avec un **petit budget** : une somme dont la perte ne changerait rien à votre vie.
+3. Confirmez en tapant la phrase demandée. Vous pouvez tout arrêter à tout moment.
+
+---
+
+## 5. Comprendre les chiffres
+
+| Indicateur | Signification |
+|------------|---------------|
+| **R** | Multiple du risque pris. Si vous risquez 50 € (distance jusqu'au stop), +1 R = +50 € et −1 R = −50 €. |
+| **Résultat moyen (R)** | Le chiffre le plus important. Il doit être **positif sur beaucoup de trades**, frais compris. |
+| **Taux de réussite** | Ne veut rien dire seul. On peut gagner 95 % des trades et perdre de l'argent (gros stops, petits gains). |
+| **Intervalle 95 %** | Marge d'incertitude. S'il contient des valeurs négatives, le résultat n'est pas prouvé. |
+| **Profit factor** | Gains totaux ÷ pertes totales. Au-dessus de 1, on gagne. |
+| **Acheter et garder** | Référence : ce qu'aurait rapporté le simple fait d'acheter et de garder. Battre cette référence est difficile. |
+
+---
+
+## 6. Le mode réel en sécurité
+
+- **Clés API** :
+  - droits « lecture + trading » seulement, **retrait désactivé** ;
+  - si possible, limitées à l'adresse IP de votre box (elle doit être fixe) ;
+  - elles restent sur votre ordinateur (`data/secrets.json`) et ne vont jamais sur GitHub.
+- **Double authentification** sur l'exchange, votre e-mail et Telegram.
+- **Plateforme** agréée en Europe (MiCA) : vérifiez sur le registre de l'ESMA ou la liste blanche de l'AMF.
+- **Le stop-loss est posé chez l'exchange** : il protège même si votre PC s'éteint. L'objectif de gain, lui, est surveillé par Sentinelle.
+- **Budget IA** : l'IA n'utilise jamais plus que le budget fixé dans les réglages.
+- **Plafond des ordres manuels réels** : protection contre les erreurs de saisie.
+- Méfiez-vous des arnaques : personne de sérieux ne vous demandera une clé avec droit de retrait ni de l'argent « pour débloquer des gains ».
+
+---
+
+## 7. Telegram (alertes et commandes)
+
+1. Dans Telegram, ouvrez **@BotFather**, envoyez `/newbot` et suivez les étapes. Copiez le **jeton**.
+2. Panel → **Réglages → Telegram** : collez le jeton, enregistrez, cochez « Activer » et enregistrez.
+3. Écrivez `/start` à votre bot : il vous répond avec **votre identifiant**.
+4. Collez cet identifiant dans les réglages et enregistrez. Le bot ne répondra **qu'à vous**.
+
+Commandes disponibles :
+
+| Commande | Effet |
+|----------|-------|
+| `/etat` | État de Sentinelle et des IA |
+| `/positions` | Positions ouvertes |
+| `/gains` | Résultats des comptes |
+| `/actus` | Dernières actualités importantes |
+| `/pause` | Arrête les IA (les positions gardent leurs stops) |
+| `/reprendre` | Relance l'IA d'entraînement |
+| `/urgence` | Tout revendre, après confirmation par bouton |
+| `/aide` | Liste des commandes |
+
+L'IA en argent réel ne se démarre que depuis le panel, jamais depuis Telegram.
+
+---
+
+## 8. Actualités avec l'IA locale (gratuite)
+
+Votre carte graphique (RTX 4060 Ti, 8 Go) fait tourner un modèle d'environ 7 à 8 milliards de paramètres.
+1. Installez **Ollama** : <https://ollama.com/download>.
+2. Dans un terminal : `ollama pull qwen2.5:7b`. Environ 5 Go à télécharger.
+3. Panel → **Actualités → Activer le module**.
+
+Le module joue le rôle de **garde du corps** : une actualité très négative bloque les achats, mais seulement si elle est **confirmée par deux sources**, ou à la fois critique et très sûre. L'IA des actualités ne passe jamais d'ordre elle-même.
+
+---
+
+## 9. Laisser tourner 24 h/24
+
+- **Windows → Paramètres → Système → Alimentation** : mise en veille sur « Jamais ».
+- **Windows Update** : définissez des « heures d'activité » pour éviter les redémarrages surprises.
+- **BIOS de la carte mère** : option « Restore on AC Power Loss » sur « Power On », pour que le PC redémarre seul après une coupure de courant.
+- **Démarrage automatique** : dans un terminal ouvert dans le dossier de Sentinelle, tapez `py -3 scripts\demarrage_auto.py --activer`. Pour annuler, remplacez `--activer` par `--desactiver`.
+- Après un redémarrage, Sentinelle relance l'IA d'entraînement si elle était en marche. Il compare aussi ses positions à l'exchange (réconciliation) et repose un stop manquant.
+
+---
+
+## 10. Accès depuis le téléphone
+
+1. Installez **Tailscale** (gratuit) sur le PC et sur le téléphone, avec le même compte. Cela crée un réseau privé.
+2. Lancez Sentinelle avec `lancer.bat --remote`. Si Windows le demande, autorisez l'accès sur les **réseaux privés** seulement.
+3. Sur le téléphone, ouvrez `http://<adresse Tailscale du PC>:8765`.
+
+Ne rendez **jamais** le panel accessible directement depuis internet.
+
+> Le premier mot de passe ne peut être créé que depuis le PC lui-même (sécurité).
+
+---
+
+## 11. Sauvegardes et mises à jour
+
+- Toutes vos données sont dans le dossier **`data/`** : base, historique des prix, modèles, secrets. Sauvegardez-le de temps en temps, avec Sentinelle arrêté.
+- Pour mettre à jour : remplacez les fichiers du programme en **gardant `data/`**, puis relancez `lancer.bat`. Les composants se mettent à jour tout seuls.
+
+---
+
+## 12. Dépannage
+
+| Problème | Solution |
+|----------|----------|
+| « Python n'est pas installé » | Réinstallez Python en cochant « Add python.exe to PATH ». |
+| Le panel ne s'ouvre pas | Allez sur http://127.0.0.1:8765. Lancez `diagnostic.bat`. |
+| « Données de marché » en orange | Vérifiez votre connexion internet. Sentinelle réessaie tout seul. |
+| L'IA ne fait aucun trade | Normal si le marché est baissier (l'IA reste à l'abri) ou si aucun signal n'est assez bon. Lisez le journal des décisions. |
+| Modèle « non validé » | L'IA n'a pas trouvé d'avantage fiable sur la période de contrôle. Elle ne tradera pas en réel. Réessayez avec plus d'historique, une autre unité de temps (4 h) ou d'autres cryptos. |
+| Clés API refusées | Vérifiez les droits (lecture + trading), l'adresse IP autorisée et le choix testnet / réel. |
+| Ollama injoignable | Lancez Ollama, puis vérifiez le modèle avec `ollama list`. |
+| Arrêt de sécurité (baisse max) | Réglages → Comptes → « Reprendre après arrêt de sécurité », après avoir compris ce qui s'est passé. |
+
+---
+
+## 13. Fiscalité (France)
+
+Les plus-values crypto sont imposables. Les comptes ouverts sur des plateformes étrangères se déclarent chaque année (formulaire 3916-bis).
+Exportez votre historique (page **Historique → Export CSV**) et faites valider votre situation par un expert-comptable. *Ceci n'est pas un conseil fiscal.*
