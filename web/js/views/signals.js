@@ -87,6 +87,7 @@ export default {
           <span v-if="data?.status?.error" class="down"> {{ data.status.error }}</span>
         </div>
         <label class="check" style="margin-top:8px"><input type="checkbox" :checked="store.settings?.signals?.enabled" @change="enable($event.target.checked)"> Lire les canaux ci-contre</label>
+        <p class="faint small" style="margin:8px 0 0">Ce compte sert aussi aux canaux de dépêches d’actualité (Réglages → Actualités), lus même si la case ci-dessus est décochée.</p>
       </div>
       <div class="card">
         <h2>Canaux suivis</h2>

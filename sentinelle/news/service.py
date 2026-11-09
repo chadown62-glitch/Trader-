@@ -81,6 +81,20 @@ def _ts(entry) -> float | None:
     return None
 
 
+STOP_WORDS = {"the", "and", "for", "with", "that", "this", "from", "les", "des", "une", "pour", "dans", "sur", "est", "aux",
+              "par", "has", "have", "are", "was", "will", "its", "after", "over", "into", "amid", "says", "said"}
+
+
+def tokens(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-zà-ÿ0-9$%]{3,}", (text or "").lower()) if w not in STOP_WORDS}
+
+
+def similarity(a: set[str], b: set[str]) -> float:
+    if not a or not b:
+        return 0.0
+    return len(a & b) / len(a | b)
+
+
 def validate_analysis(raw: dict, allowed_assets: set[str]) -> dict:
     """Borne et nettoie la réponse de l'IA. Lève ValueError si elle est inexploitable."""
     if not isinstance(raw, dict):
@@ -146,7 +160,8 @@ class NewsService:
         self._stop = threading.Event()
         self._wake = threading.Event()
         self.thread: threading.Thread | None = None
-        self.state = {"last_cycle": None, "error": None, "ollama_ok": None, "fetched": 0, "analyzed": 0}
+        self.state = {"last_cycle": None, "error": None, "ollama_ok": None, "fetched": 0, "analyzed": 0, "realtime": 0}
+        self._fast = threading.Event()  # dépêche reçue en temps réel : analyse immédiate
 
     @property
     def cfg(self) -> dict:
@@ -162,16 +177,25 @@ class NewsService:
         self._wake.set()
 
     def _run(self) -> None:
+        next_full = 0.0
         while not self._stop.is_set():
             if self.cfg["enabled"]:
                 try:
-                    self.cycle()
+                    if time.time() >= next_full:
+                        self.cycle()
+                        next_full = time.time() + self.cfg["poll_minutes"] * 60
+                    else:
+                        self.analyze_pending()  # réveil par une dépêche : on analyse sans attendre
                     self.state["error"] = None
                 except Exception as exc:
                     self.state["error"] = str(exc)[:300]
                     log.warning("Actualités : %s", exc)
-            self._wake.wait(timeout=self.cfg["poll_minutes"] * 60 if self.cfg["enabled"] else 30)
+            wait = max(1.0, next_full - time.time()) if self.cfg["enabled"] else 30
+            self._wake.wait(timeout=wait)
+            if self._wake.is_set() and not self._fast.is_set():
+                next_full = 0.0  # « Analyser maintenant » depuis le panel : cycle complet
             self._wake.clear()
+            self._fast.clear()
 
     def refresh(self) -> None:
         self._wake.set()
@@ -207,18 +231,68 @@ class NewsService:
                     published = _ts(e) or now
                     if now - published > max_age:
                         continue  # vieille nouvelle
-                    # même titre déjà reçu d'une autre source : on garde une seule fiche
-                    norm = re.sub(r"\W+", " ", title.lower()).strip()
-                    title_uid = hashlib.sha1(norm.encode()).hexdigest()
-                    if self.app.db.one("SELECT id FROM news WHERE uid IN (?, ?)", (uid, title_uid)):
-                        continue
-                    self.app.db.execute(
-                        "INSERT OR IGNORE INTO news(uid, source, title, url, published_ts, summary, fetched_ts) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        (uid, source, title, link[:500], published, _clean(e.get("summary", ""), 1500), now),
-                    )
-                    n_new += 1
+                    if self.insert(uid, source, title, link, published, _clean(e.get("summary", ""), 1500)):
+                        n_new += 1
         self.state["fetched"] += n_new
         return n_new
+
+    def insert(self, uid: str, source: str, title: str, url: str, published: float, summary: str) -> int | None:
+        """Enregistre une actualité ; les dépêches qui racontent le même événement sont regroupées."""
+        if self.app.db.one("SELECT id FROM news WHERE uid = ?", (uid,)):
+            return None
+        url = url if re.match(r"https?://", url or "", re.IGNORECASE) else ""  # jamais de lien « javascript: »
+        same_source = self.app.db.one("SELECT id FROM news WHERE source = ? AND title = ?", (source, title))
+        if same_source:
+            return None
+        tk = tokens(title)
+        cluster = None
+        recent = self.app.db.query(
+            "SELECT id, title, cluster FROM news WHERE published_ts >= ? ORDER BY published_ts DESC LIMIT 400",
+            (published - 6 * 3600,),
+        )
+        for r in recent:
+            if similarity(tk, tokens(r["title"])) >= 0.6:
+                cluster = r["cluster"] or r["id"]
+                break
+        new_id = self.app.db.insert("news", {"uid": uid, "source": source[:80], "title": title, "url": (url or "")[:500],
+                                             "published_ts": published, "summary": summary, "fetched_ts": time.time(), "cluster": cluster})
+        if cluster is None:
+            self.app.db.execute("UPDATE news SET cluster = id WHERE id = ?", (new_id,))
+        return new_id
+
+    def ingest(self, source: str, text: str, ts: float, uid: str, url: str = "") -> int | None:
+        """Dépêche reçue en temps réel (canal Telegram) : enregistrée puis analysée immédiatement."""
+        if not self.cfg["enabled"]:
+            return None
+        clean = _clean(text, 1800)
+        if len(clean) < 15:
+            return None
+        title, _, rest = clean.partition(". ")
+        title = title[:300] if len(title) >= 15 else clean[:300]
+        new_id = self.insert(uid, source, title, url, ts, rest[:1500])
+        if new_id:
+            self.state["realtime"] += 1
+            self._fast.set()
+            self._wake.set()
+        return new_id
+
+    def _copy_from_cluster(self, row: dict) -> bool:
+        """Si le même événement a déjà été analysé, on réutilise l'analyse (plus rapide, cohérent)."""
+        if not row.get("cluster"):
+            return False
+        twin = self.app.db.one(
+            "SELECT analysis, sentiment, importance, confidence, assets, event_type, engine FROM news "
+            "WHERE cluster = ? AND sentiment IS NOT NULL AND id != ? LIMIT 1", (row["cluster"], row["id"]),
+        )
+        if not twin:
+            return False
+        self.app.db.execute(
+            "UPDATE news SET analysis = ?, sentiment = ?, importance = ?, confidence = ?, assets = ?, event_type = ?, engine = ?, "
+            "analyzed_ts = ? WHERE id = ?",
+            (twin["analysis"], twin["sentiment"], twin["importance"], twin["confidence"], twin["assets"], twin["event_type"],
+             twin["engine"], time.time(), row["id"]),
+        )
+        return True
 
     def analyze_pending(self, limit: int = 25) -> int:
         cfg = self.cfg
@@ -227,6 +301,9 @@ class NewsService:
         rows = self.app.db.query("SELECT * FROM news WHERE analyzed_ts IS NULL ORDER BY published_ts DESC LIMIT ?", (limit,))
         done = 0
         for row in rows:
+            if self._copy_from_cluster(row):
+                done += 1
+                continue
             try:
                 raw = client.analyze(row["title"], row["summary"] or "")
                 a = validate_analysis(raw, allowed)
@@ -264,30 +341,38 @@ class NewsService:
         base = symbol.split("/")[0]
         since = time.time() - hours * 3600
         rows = self.app.db.query(
-            "SELECT title, source, sentiment, importance, confidence, assets, published_ts FROM news "
+            "SELECT id, title, source, sentiment, importance, confidence, assets, published_ts, cluster FROM news "
             "WHERE sentiment IS NOT NULL AND published_ts >= ?", (since,),
         )
         relevant = [r for r in rows if base in (loads(r["assets"], []) or []) or "*" in (loads(r["assets"], []) or [])]
         if not relevant:
             return {"score": 0.0, "n": 0, "headline": None}
+        # un événement repris par 10 médias compte une fois ; ses sources distinctes servent de confirmations
+        events: dict[int, dict] = {}
+        for r in relevant:
+            ev = events.setdefault(r["cluster"] or r["id"], {"row": r, "sources": set(), "first": r["published_ts"]})
+            ev["sources"].add(r["source"])
+            ev["first"] = min(ev["first"], r["published_ts"])
         now = time.time()
         num = den = 0.0
-        severe_sources = set()
-        critical = None
-        for r in relevant:
-            w = r["importance"] * r["confidence"] * (0.5 ** ((now - r["published_ts"]) / (6 * 3600)))
+        confirmed = False
+        for ev in events.values():
+            r = ev["row"]
+            w = r["importance"] * r["confidence"] * (0.5 ** ((now - ev["first"]) / (6 * 3600)))
             num += r["sentiment"] * w
             den += w
-            if r["sentiment"] <= -0.6 and r["importance"] >= 0.6:
-                severe_sources.add(r["source"])
-            if r["sentiment"] <= -0.8 and r["importance"] >= 0.9 and r["confidence"] >= 0.8:
-                critical = r
+            severe = r["sentiment"] <= -0.6 and r["importance"] >= 0.6
+            critical = r["sentiment"] <= -0.8 and r["importance"] >= 0.9 and r["confidence"] >= 0.8
+            if (severe and len(ev["sources"]) >= 2) or critical:
+                confirmed = True
+        severe_events = [ev for ev in events.values() if ev["row"]["sentiment"] <= -0.6 and ev["row"]["importance"] >= 0.6]
+        if len({s for ev in severe_events for s in ev["sources"]}) >= 2 and len(severe_events) >= 2:
+            confirmed = True  # deux mauvaises nouvelles distinctes de deux sources différentes
         score = num / den if den > 0 else 0.0
         worst = min(relevant, key=lambda r: r["sentiment"] * r["importance"])
-        confirmed = len(severe_sources) >= 2 or critical is not None
         if not confirmed:
             score = max(score, -0.59)  # une seule source ne suffit pas à déclencher un veto
-        return {"score": score, "n": len(relevant), "headline": worst["title"], "confirmed": confirmed}
+        return {"score": score, "n": len(events), "headline": worst["title"], "confirmed": confirmed}
 
     # -- panel ---------------------------------------------------------------------------------
     def status(self) -> dict:
@@ -296,11 +381,22 @@ class NewsService:
     def register_routes(self, api) -> None:
         @api.get("/api/news")
         async def news(limit: int = 100):
-            rows = self.app.db.query("SELECT * FROM news ORDER BY published_ts DESC LIMIT ?", (min(limit, 500),))
+            limit = min(max(limit, 1), 500)
+            rows = self.app.db.query("SELECT * FROM news ORDER BY published_ts DESC LIMIT ?", (limit * 4,))
+            # une fiche par événement : la première dépêche, puis les reprises par d'autres sources
+            events: dict[int, dict] = {}
             for r in rows:
                 r["analysis"] = loads(r["analysis"], None)
                 r["assets"] = loads(r["assets"], [])
-            return rows
+                key = r["cluster"] or r["id"]
+                ev = events.get(key)
+                if ev is None:
+                    events[key] = {**r, "also": []}
+                    continue
+                older, newer = (r, ev) if r["published_ts"] < ev["published_ts"] else (ev, r)
+                also = [*ev["also"], {k: newer[k] for k in ("source", "title", "url", "published_ts")}]
+                events[key] = {**older, "also": also}
+            return list(events.values())[:limit]
 
         @api.post("/api/news/refresh")
         async def news_refresh():

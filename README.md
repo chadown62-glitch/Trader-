@@ -17,9 +17,10 @@ Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et tél�
 - **Lancer l'IA sur votre portefeuille réel**, seulement quand le bulletin de préparation est au vert : modèle validé, 30 jours de résultats en direct, gains nets, baisse contenue.
 - **Simulation accélérée** : rejouer des mois de marché en quelques secondes, avec exactement les mêmes règles.
 - **Canaux de signaux Telegram** lus en **observation** : Sentinelle mesure la vraie fiabilité de chaque canal, sur les vrais prix.
-- **Contexte de marché** (Fear & Greed, indices boursiers, taux de financement) et **calendrier macro** : pas de nouvelle position autour des annonces de la Fed.
+- **Contexte de marché** (Fear & Greed, indices boursiers, taux de financement) et **calendrier économique automatique** : pas de nouvelle position autour des annonces importantes (inflation, emploi, Fed, BCE).
+- **Bouclier temps réel** : pas de nouvelle position pendant un mouvement brutal, une cascade de liquidations, un carnet d'ordres trop mince, ou juste après une actualité majeure.
 - **Telegram** : alertes, résumé quotidien et commandes (`/etat`, `/positions`, `/gains`, `/pause`, `/urgence`…), réservés à votre compte.
-- **Actualités** analysées par une **IA locale gratuite** (Ollama, sur votre carte graphique). Elles servent de « garde du corps » qui bloque les achats en cas de très mauvaise nouvelle confirmée.
+- **Actualités** analysées par une **IA locale gratuite** (Ollama, sur votre carte graphique) : médias crypto, communiqués officiels (Fed, BCE, SEC) et, en option, canaux Telegram de dépêches lus en quelques secondes. Elles servent de « garde du corps » qui bloque les achats en cas de très mauvaise nouvelle confirmée par deux sources.
 
 ## Sécurité intégrée
 
@@ -48,12 +49,13 @@ Autres lanceurs :
 - **`diagnostic.bat`** : vérification de l'installation.
 - Mac et Linux : `./lancer.sh`.
 
-Mode d'emploi complet : **[docs/GUIDE.md](docs/GUIDE.md)**. Ce qu'il reste à faire : **[docs/PLAN.md](docs/PLAN.md)**.
+Mode d'emploi complet : **[docs/GUIDE.md](docs/GUIDE.md)**. Ce qu'il reste à faire : **[docs/PLAN.md](docs/PLAN.md)**. Sources d'information retenues et écartées : **[docs/SOURCES.md](docs/SOURCES.md)**.
 
 ## Résultats mesurés
 
 Les résultats, y compris les mauvais, sont dans **[docs/RESULTATS.md](docs/RESULTATS.md)**. En résumé, sur données réelles et frais compris :
 - les stratégies de court terme perdent de l'argent ; le **suivi de tendance en 4 h** garde un léger avantage ;
+- exemple : un croisement de moyennes « EMA 9/21 » en 1 minute fait environ 1 000 trades par mois et perd **81 à 89 %** en un mois une fois les frais payés ;
 - sur 2018-2022 (années jamais utilisées pour concevoir les stratégies), le suivi de tendance est **positif** (+0,33 R par trade en 4 h) ;
 - sur l'année écoulée, le système a fait **−2,5 %** pendant que le marché (8 cryptos) faisait **−45,6 %** : **il protège le capital, il n'enrichit pas** ;
 - l'IA est aujourd'hui **« non validée »**, donc elle s'entraîne en argent fictif et le mode réel reste verrouillé.

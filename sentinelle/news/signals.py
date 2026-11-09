@@ -205,11 +205,12 @@ class SignalWatcher:
         last_resolve = 0.0
         while not self._stop.is_set():
             try:
-                if self.cfg["enabled"] and self._creds():
+                news_channels = self.app.settings["news"].get("telegram_channels") or []
+                if (self.cfg["enabled"] or news_channels) and self._creds():
                     client = await self._client()
                     self.state["authorized"] = await client.is_user_authorized()
                     if self.state["authorized"]:
-                        wanted = set(self.cfg["channels"])
+                        wanted = (set(self.cfg["channels"]) if self.cfg["enabled"] else set()) | set(news_channels)
                         if wanted != listening:
                             await self._listen(client, wanted)
                             listening = wanted
@@ -231,8 +232,9 @@ class SignalWatcher:
                 ent = await client.get_entity(ch.replace("https://t.me/", "").lstrip("@"))
                 entities.append(ent)
                 self.state["channels"][ch] = {"ok": True}
-                async for msg in client.iter_messages(ent, limit=300):  # historique : fiabilité mesurable tout de suite
-                    self.store_message(ch, msg.id, msg.date.timestamp(), msg.message or "")
+                if self.cfg["enabled"] and ch in self.cfg["channels"]:
+                    async for msg in client.iter_messages(ent, limit=300):  # historique : fiabilité mesurable tout de suite
+                        self.store_message(ch, msg.id, msg.date.timestamp(), msg.message or "")
             except Exception as exc:
                 self.state["channels"][ch] = {"ok": False, "error": str(exc)[:150]}
         if entities:
@@ -240,9 +242,20 @@ class SignalWatcher:
 
     async def _on_message(self, event) -> None:
         chat = await event.get_chat()
-        name = next((c for c in self.cfg["channels"] if c.lstrip("@").lower() in {(getattr(chat, "username", "") or "").lower(), str(chat.id)}),
+        configured = list(self.cfg["channels"]) + list(self.app.settings["news"].get("telegram_channels") or [])
+        ids = {(getattr(chat, "username", "") or "").lower(), str(chat.id)}
+        name = next((c for c in configured if c.replace("https://t.me/", "").lstrip("@").lower() in ids),
                     getattr(chat, "username", None) or str(chat.id))
-        self.store_message(name, event.message.id, event.message.date.timestamp(), event.message.message or "")
+        self.route_message(name, event.message.id, event.message.date.timestamp(), event.message.message or "")
+
+    def route_message(self, channel: str, msg_id: int, ts: float, text: str) -> None:
+        """Canal de signaux -> mesure de fiabilité ; canal de dépêches -> actualités analysées tout de suite."""
+        if channel in (self.app.settings["news"].get("telegram_channels") or []):
+            for ext in self.app.extensions:
+                if getattr(ext, "name", "") == "news":
+                    ext.ingest(f"Telegram {channel}", text, ts, uid=f"tg:{channel}:{msg_id}")
+        if self.cfg["enabled"] and channel in self.cfg["channels"]:
+            self.store_message(channel, msg_id, ts, text)
 
     # -- connexion (depuis le panel) ----------------------------------------------
     def _run(self, coro, timeout: float = 60):

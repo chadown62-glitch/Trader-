@@ -131,6 +131,26 @@ class CcxtSource:
     def now_ms(self) -> int:
         return int(time.time() * 1000)
 
+    def fetch_order_book(self, symbol: str, limit: int = 50) -> dict:
+        with self._lock:
+            ob = self._ex.fetch_order_book(symbol, limit=limit)
+        return {"bids": ob.get("bids") or [], "asks": ob.get("asks") or []}
+
+    def fetch_trade_flow(self, symbol: str, minutes: int = 15) -> dict:
+        """Volumes achetés et vendus « au marché » (acheteurs et vendeurs agressifs) sur les dernières minutes.
+
+        Les 1 000 transactions les plus RÉCENTES sont lues : sur une paire très active, elles peuvent
+        couvrir moins de `minutes` minutes ; la durée réellement couverte est renvoyée."""
+        now = int(time.time() * 1000)
+        since = now - minutes * 60_000
+        with self._lock:
+            trades = self._ex.fetch_trades(symbol, limit=1000)
+        trades = [t for t in trades if (t.get("timestamp") or 0) >= since]
+        buy = sum(t["amount"] * t["price"] for t in trades if t.get("side") == "buy")
+        sell = sum(t["amount"] * t["price"] for t in trades if t.get("side") == "sell")
+        covered = (now - min(t["timestamp"] for t in trades)) / 60_000 if trades else 0.0
+        return {"buy": buy, "sell": sell, "n": len(trades), "minutes": round(min(covered, minutes), 1)}
+
 
 # ---------------------------------------------------------------------------
 # Marché simulé
@@ -271,6 +291,18 @@ class SyntheticSource:
         else:
             rows = rows[-limit:]
         return [[int(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4]), float(r[5])] for r in rows]
+
+
+def _synthetic_book(self, symbol: str, limit: int = 50) -> dict:
+    """Carnet d'ordres simulé (écart faible, liquidité abondante)."""
+    rows = self.fetch_ohlcv(symbol, "1m", limit=1)
+    px = rows[-1][4]
+    step = px * 0.0001
+    return {"bids": [[px - step * (k + 0.5), 5.0 + k] for k in range(limit)],
+            "asks": [[px + step * (k + 0.5), 5.0 + k] for k in range(limit)]}
+
+
+SyntheticSource.fetch_order_book = _synthetic_book
 
 
 def build_source(settings: dict) -> MarketSource:

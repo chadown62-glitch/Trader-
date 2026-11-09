@@ -103,6 +103,8 @@ class AgentsMixin:
                 lambda: self.models.champion(tf), timeframe=tf, news_fn=news_fn,
                 fresh_fn=lambda s: self.hub.is_fresh(s, 180), budget_fn=budget_fn, bus=self.bus,
                 price_check_fn=self._price_check,
+                shield_fn=self.shield.check_entry,
+                context_fn=self.decision_context,
                 clock=self.market_clock if d["mode"] != "live" else time.time,
             )
             agent.running = True
@@ -128,6 +130,35 @@ class AgentsMixin:
             raise
         finally:
             self.bus.publish("agent", {"name": name, **self.agent_state[name]})
+
+    def decision_context(self, symbol: str) -> dict:
+        """Microstructure et sentiment au moment d'une décision (journal de recherche)."""
+        out: dict = {}
+        ms = self.shield.microstructure(symbol, 1000.0)
+        if ms:
+            out.update(spread_bps=round(ms["spread_bps"], 3), liquidite_0_5pct=round(ms["depth_quote"], 2))
+        flow_fn = getattr(self.source, "fetch_trade_flow", None)
+        if flow_fn is not None and self.settings["market"]["source"] != "synthetic":
+            try:
+                f = flow_fn(symbol, 15)
+                total = f["buy"] + f["sell"]
+                if total > 0:
+                    out["flux_acheteur_15m"] = round((f["buy"] - f["sell"]) / total, 4)
+                    out["flux_minutes"] = f.get("minutes")
+            except Exception:
+                pass
+        for ext in self.extensions:
+            if getattr(ext, "name", "") == "context":
+                fg = ext.data.get("fear_greed") or {}
+                if fg:
+                    out["fear_greed"] = fg.get("value")
+                fund = (ext.data.get("funding") or {}).get(symbol.split("/")[0])
+                if fund:
+                    out["funding"] = fund.get("rate")
+        liq = self.shield.metrics.get("liquidations_15m_musd")
+        if liq is not None:
+            out["liquidations_15m_musd"] = round(liq, 2)
+        return out
 
     def _price_check(self, symbol: str, price: float) -> str | None:
         m = self.settings["market"]

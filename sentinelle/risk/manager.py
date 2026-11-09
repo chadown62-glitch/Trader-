@@ -158,7 +158,7 @@ class RiskManager:
             return dec.refuse("perte_semaine", f"Limite de perte sur 7 jours atteinte ({st['week_pnl_pct']*100:.1f} %).")
         dec.ok("pertes", "limites journalière et hebdomadaire respectées")
 
-        mb = blackout(self.settings_fn(), now)
+        mb = blackout(self.settings_fn(), now, loads(self.db.get_meta("calendar_events"), []))
         if mb:
             return dec.refuse("macro", f"Annonce macro « {mb[1]} » : pas de nouvelle position autour de l'annonce.")
 

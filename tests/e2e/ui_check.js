@@ -40,6 +40,30 @@ const PWD = 'demo-mot-de-passe-123';
     await page.waitForTimeout(1500);
     await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true });
   }
+  // Réglages ajoutés pour le temps réel : bouclier, calendrier automatique, canaux de dépêches
+  await page.goto(BASE + '/#/settings');
+  await page.waitForTimeout(800);
+  for (const [name, label] of [['15-settings-shield', 'Bouclier'], ['16-settings-macro', 'Calendrier macro'], ['17-settings-news', 'Actualités']]) {
+    await page.locator('.tabs button', { hasText: label }).click();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true });
+  }
+  await page.locator('.tabs button', { hasText: 'Bouclier' }).click();
+  const cooldown = page.locator('.field', { hasText: 'Durée de la pause après un mouvement brutal' }).locator('input');
+  await cooldown.fill('45');
+  await page.locator('.card button.primary', { hasText: 'Enregistrer' }).click();
+  await page.waitForTimeout(800);
+  const saved = await page.evaluate(async () => (await (await fetch('/api/settings')).json()).shield.cooldown_minutes);
+  if (saved !== 45) errors.push(`[réglages] bouclier non enregistré : ${saved}`);
+  await page.locator('.tabs button', { hasText: 'Calendrier macro' }).click();
+  const countries = page.locator('.field', { hasText: 'Monnaies suivies' }).locator('input');
+  await countries.fill('usd, eur, gbp');
+  await countries.blur();
+  await page.locator('.card button.primary', { hasText: 'Enregistrer' }).click();
+  await page.waitForTimeout(800);
+  const cc = await page.evaluate(async () => (await (await fetch('/api/settings')).json()).macro.calendar_countries.join(','));
+  if (cc !== 'USD,EUR,GBP') errors.push(`[réglages] monnaies non enregistrées : ${cc}`);
+
   await page.goto(BASE + '/#/ai');
   await page.waitForTimeout(800);
   await page.click("text=Démarrer l'entraînement");

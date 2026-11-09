@@ -115,12 +115,48 @@ Principe : être investi sur une crypto quand son climat est haussier, en USDC s
 
 L'allocation réduit la baisse maximale, mais **54 % reste incompatible avec « jouer la sécurité »**, et elle a fait pire qu'acheter et garder en 2025 (−35 % contre −25 %). Non retenue.
 
-## 8. Ce qui pourrait améliorer les résultats (pistes, non prouvées)
+## 8. Bouclier temps réel : mesures (novembre 2026)
+
+Le bouclier n'achète ni ne vend : il interdit d'ouvrir une position au mauvais moment. Ses seuils ont été vérifiés sur des données réelles pour qu'il ne bloque pas le bot trop souvent.
+
+**Mouvement brutal** (bougie d'une minute ≥ 6 fois la normale et ≥ 0,8 %, pause de 30 min), mesuré sur 30 jours de bougies d'une minute (Binance, paires USDC) :
+
+| Crypto | Pauses en 30 jours | Temps en pause | Agitation des 30 min suivantes |
+|--------|--------------------|----------------|--------------------------------|
+| BTC | 2 | 0,14 % | 11,9 × la normale |
+| ETH | 15 | 1,12 % | 4,4 × |
+| SOL | 19 | 1,41 % | 3,7 × |
+| BNB | 5 | 0,47 % | 19,6 × |
+| XRP | 13 | 0,99 % | 3,9 × |
+| DOGE | 21 | 1,63 % | 5,2 × |
+| ADA | 28 | 2,09 % | 4,8 × |
+| LINK | 24 | 1,79 % | 3,7 × |
+
+Chaque crypto reste donc ouverte aux entrées environ 98 % du temps ou plus. Les pauses tombent sur des périodes où le marché reste très agité : entrer à ce moment-là exposerait le stop à des mouvements bien plus grands que prévu. Avec un seuil de 0,6 %, il y aurait jusqu'à 5 fois plus de pauses (BTC), suivies d'une agitation moindre. Le seuil de 0,8 % est donc conservé.
+
+**Cascades de liquidations** (OKX, BTC et ETH, 24 h d'historique) : environ 0,1 M$ liquidé par quart d'heure en temps normal. Le plus gros pic des 24 heures, 24 M$, coïncide avec la chute du BTC de 1,9 % en une minute (8 novembre 2026, 21 h 55 UTC), 57 fois l'amplitude habituelle. Seuil retenu : 10 M$ en 15 minutes et 20 fois le niveau habituel. Le seuil initial de 50 M$ n'aurait pas vu cet épisode.
+
+## 9. Stratégie « EMA 9/21 en 1 minute » (proposée, rejetée)
+
+Croisement de moyennes mobiles exponentielles 9 et 21, achat au croisement haussier, vente au croisement baissier, signal à la clôture et exécution à l'ouverture suivante. 30 derniers jours, Binance, paires USDC :
+
+| Unité de temps | Crypto | Trades | Trades gagnants | Sans frais | Frais 0,075 % | Frais 0,1 % | Simple détention |
+|----------------|--------|--------|-----------------|------------|---------------|-------------|------------------|
+| 1 min | BTC | 1 011 | 28 % | −6,6 % | −79,5 % | −87,6 % | −9,7 % |
+| 1 min | ETH | 1 046 | 27 % | −8,9 % | −81,0 % | −88,8 % | −15,1 % |
+| 1 min | SOL | 1 023 | 27 % | −12,5 % | −81,1 % | −88,7 % | −21,7 % |
+| 5 min | BTC | 216 | 25 % | −9,1 % | −34,3 % | −41,0 % | −9,7 % |
+| 15 min | BTC | 65 | 28 % | −2,9 % | −11,9 % | −14,8 % | −9,7 % |
+
+Même sans aucun frais, la stratégie ne fait pas mieux que la simple détention. Avec les frais réels, elle détruit le capital en un mois. Rejetée (détails dans [SOURCES.md](SOURCES.md)).
+
+## 10. Ce qui pourrait améliorer les résultats (pistes, non prouvées)
 
 1. ✅ *Fait* : historique étendu via les paires USDT (voir §6).
 2. **Unité de temps journalière** : l'avantage paraît plus net, mais il y a trop peu de trades pour le prouver.
 3. **Allocation de portefeuille par tendance** : être investi quand la tendance de fond est haussière et en USDC sinon, sans signaux d'entrée fins.
 4. **Laisser tourner l'entraînement en direct** : c'est la seule preuve qui compte vraiment, car ce sont des données que personne n'a pu « optimiser ».
+5. **Journal « microstructure »** : l'écart achat/vente, la liquidité et la pression acheteuse ou vendeuse sont enregistrés à chaque décision depuis novembre 2026. Après quelques mois, on pourra mesurer s'ils auraient amélioré les choix.
 
 > La période sous scellés ayant été utilisée, toute nouvelle amélioration devra être jugée sur des données **futures**
 > (entraînement en direct), sinon le risque de « sur-optimiser » le passé devient trop grand.

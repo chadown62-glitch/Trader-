@@ -40,6 +40,21 @@ const SECTIONS = {
   macro: { title: 'Calendrier macro', fields: [
     { key: 'enabled', label: 'Pas de nouvelle position autour des annonces', kind: 'bool' },
     { key: 'blackout_minutes', label: 'Fenêtre avant et après l\u2019annonce (minutes)', kind: 'int' },
+    { key: 'auto_calendar', label: 'Calendrier économique automatique', kind: 'bool', help: 'Importe les annonces à fort impact de la semaine (inflation, emploi, banques centrales…) depuis le calendrier public Forex Factory, avec les valeurs attendues.' },
+    { key: 'calendar_countries', label: 'Monnaies suivies', kind: 'list', upper: true, help: 'Séparées par des virgules. USD (États-Unis) et EUR (zone euro) font bouger les cryptos ; GBP, JPY, CNY… sont possibles.' },
+  ] },
+  shield: { title: 'Bouclier temps réel', fields: [
+    { key: 'enabled', label: 'Activer le bouclier', kind: 'bool', help: 'Empêche l\u2019IA d\u2019ouvrir une position quand le marché devient dangereux et vous avertit avant un achat manuel. Il ne vend jamais rien.' },
+    { key: 'volatility_multiple', label: 'Mouvement brutal : bougie d\u2019une minute supérieure à (× la normale)', kind: 'num', step: 0.5 },
+    { key: 'volatility_min_pct', label: 'Mouvement brutal : amplitude minimale (%)', kind: 'num', step: 0.1, help: 'Évite les fausses alertes quand le marché est très calme. Mesuré sur 30 jours : pause 0,1 % (BTC) à 2 % (ADA) du temps ; les 30 minutes suivantes sont 4 à 20 fois plus agitées que la normale.' },
+    { key: 'cooldown_minutes', label: 'Durée de la pause après un mouvement brutal (minutes)', kind: 'int' },
+    { key: 'max_spread_bps', label: 'Écart achat/vente maximal (points de base)', kind: 'num', step: 1, help: '20 = 0,20 %. Pendant une annonce, l\u2019écart s\u2019élargit : acheter coûterait cher.' },
+    { key: 'depth_multiple', label: 'Liquidité minimale (× la taille de l\u2019ordre)', kind: 'num', step: 0.5, help: 'Quantité disponible à moins de 0,5 % du prix dans le carnet d\u2019ordres.' },
+    { key: 'liquidations', label: 'Surveiller les liquidations forcées (marchés à levier)', kind: 'bool', help: 'Données publiques d\u2019OKX sur le BTC et l\u2019ETH, relevées chaque minute.' },
+    { key: 'cascade_multiple', label: 'Cascade : liquidations sur 15 min supérieures à (× l\u2019habituel)', kind: 'num', step: 0.5 },
+    { key: 'cascade_min_musd', label: 'Cascade : montant minimal (millions de dollars)', kind: 'num', step: 1, help: 'Mesuré sur le BTC et l\u2019ETH : environ 0,1 M$ par quart d\u2019heure en temps normal, 24 M$ lors de la chute éclair du 8 novembre 2026 (−1,9 % en une minute).' },
+    { key: 'news_pause', label: 'Pause après une actualité majeure', kind: 'bool', help: 'Une nouvelle jugée très importante par l\u2019IA locale (dans un sens ou dans l\u2019autre) suspend les entrées sur les cryptos concernées.' },
+    { key: 'news_pause_minutes', label: 'Durée de la pause « actualité » (minutes)', kind: 'int' },
   ] },
   monitoring: { title: 'Surveillance et sauvegardes', fields: [
     { key: 'heartbeat_url', label: 'Adresse de surveillance externe (facultatif)', kind: 'text', help: 'Créez un contrôle gratuit sur healthchecks.io (période 5 min) et collez son adresse « ping » : vous serez prévenu si Sentinelle ou le PC s\u2019arrête.' },
@@ -84,6 +99,7 @@ export default {
     const addPair = ref('');
     const feedsText = ref('');
     const eventsText = ref('');
+    const tgText = ref('');
     const notifState = ref((() => { try { return ('Notification' in window ? Notification.permission : 'indisponible') + (localStorage.getItem('stn-notif') === '1' ? '' : '-off'); } catch { return 'indisponible'; } })());
     const enableNotif = async () => {
       if (!('Notification' in window)) { toast('Notifications non prises en charge par ce navigateur', 'warn'); return; }
@@ -114,6 +130,7 @@ export default {
       Object.assign(form, JSON.parse(JSON.stringify(store.settings)));
       feedsText.value = (form.news?.feeds || []).join('\n');
       eventsText.value = (form.macro?.events || []).join('\n');
+      tgText.value = (form.news?.telegram_channels || []).join('\n');
     };
     watch(() => store.settings, load, { immediate: true });
     const loadSecrets = async () => { secrets.value = await safe(api.get('/api/secrets')); };
@@ -121,10 +138,12 @@ export default {
 
     const display = (section, f) => {
       const v = form[section]?.[f.key];
+      if (f.kind === 'list') return (v || []).join(', ');
       return f.kind === 'pct' && v !== null && v !== undefined ? Math.round(v * 10000) / 100 : v;
     };
     const setValue = (section, f, raw) => {
       let v = raw;
+      if (f.kind === 'list') v = raw.split(',').map(x => (f.upper ? x.trim().toUpperCase() : x.trim())).filter(Boolean);
       if (f.kind === 'pct') v = raw === '' ? null : Number(raw) / 100;
       else if (f.kind === 'num') v = raw === '' ? null : Number(raw);
       else if (f.kind === 'int') v = parseInt(raw, 10);
@@ -132,7 +151,10 @@ export default {
     };
     const save = async (section) => {
       const patch = { [section]: JSON.parse(JSON.stringify(form[section])) };
-      if (section === 'news') patch.news.feeds = feedsText.value.split('\n').map(s => s.trim()).filter(Boolean);
+      if (section === 'news') {
+        patch.news.feeds = feedsText.value.split('\n').map(s => s.trim()).filter(Boolean);
+        patch.news.telegram_channels = tgText.value.split('\n').map(s => s.trim()).filter(Boolean);
+      }
       if (section === 'macro') patch.macro.events = eventsText.value.split('\n').map(s => s.trim()).filter(Boolean);
       const r = await safe(api.put('/api/settings', patch), 'Réglages enregistrés');
       if (r) { store.settings = r; }
@@ -170,9 +192,9 @@ export default {
       if (pwd.new !== pwd.new2) { toast('Les deux nouveaux mots de passe ne correspondent pas', 'error'); return; }
       if (await safe(api.post('/api/auth/password', { current: pwd.current, new: pwd.new }), 'Mot de passe modifié')) { pwd.current = pwd.new = pwd.new2 = ''; }
     };
-    const TABS = [['general', 'Général'], ['risk', 'Risque'], ['ai', 'IA'], ['market', 'Données'], ['macro', 'Calendrier macro'], ['paper', 'Simulation'], ['live', 'Exchange réel'], ['telegram', 'Telegram'], ['news', 'Actualités'], ['monitoring', 'Surveillance'], ['accounts', 'Comptes'], ['security', 'Sécurité'], ['about', 'À propos']];
+    const TABS = [['general', 'Général'], ['risk', 'Risque'], ['ai', 'IA'], ['market', 'Données'], ['macro', 'Calendrier macro'], ['shield', 'Bouclier'], ['paper', 'Simulation'], ['live', 'Exchange réel'], ['telegram', 'Telegram'], ['news', 'Actualités'], ['monitoring', 'Surveillance'], ['accounts', 'Comptes'], ['security', 'Sécurité'], ['about', 'À propos']];
     const STRATS = { trend_follow: 'Suivi de tendance (recommandé)', trend_breakout: 'Cassure de tendance (recommandé)', pullback: 'Repli en tendance', mean_reversion: 'Retour à la moyenne', momentum: 'Élan haussier' };
-    return { store, tab, form, secrets, secretInputs, addPair, feedsText, eventsText, notifState, enableNotif, disableNotif, newAcc, pwd, accounts, live, newsStatus, SECTIONS, TABS, STRATS,
+    return { store, tab, form, secrets, secretInputs, addPair, feedsText, eventsText, tgText, notifState, enableNotif, disableNotif, newAcc, pwd, accounts, live, newsStatus, SECTIONS, TABS, STRATS,
       display, setValue, save, saveGeneral, addSymbol, removeSymbol, saveSecrets, clearSecret, connect, testTelegram, createAccount,
       resetAccount, resumeAccount, changePassword, totp, startTotp, enableTotp, disableTotp, money, dt };
   },
@@ -211,13 +233,17 @@ export default {
               <select v-if="f.kind==='select'" v-model="form[key][f.key]"><option v-for="o in f.options" :key="o[0]" :value="o[0]">{{ o[1] }}</option></select>
               <div v-else-if="f.kind==='pct'" class="input-suffix"><input type="number" :step="f.step || 0.1" :value="display(key, f)" @input="setValue(key, f, $event.target.value)"><span>%</span></div>
               <input v-else-if="f.kind==='text'" type="text" v-model="form[key][f.key]">
+              <input v-else-if="f.kind==='list'" type="text" :value="display(key, f)" @change="setValue(key, f, $event.target.value)">
               <input v-else type="number" :step="f.step || 1" :value="display(key, f)" @input="setValue(key, f, $event.target.value)">
             </template>
             <div v-if="f.help" class="hint">{{ f.help }}</div>
           </div>
-          <div v-if="key==='news'" class="field"><label>Flux RSS (un par ligne)</label><textarea rows="6" v-model="feedsText"></textarea></div>
-          <div v-if="key==='macro'" class="field"><label>Annonces (une par ligne : AAAA-MM-JJ HH:MM description, heure UTC)</label><textarea rows="8" v-model="eventsText"></textarea>
-            <div class="hint">À vérifier et compléter : réunions de la Fed (federalreserve.gov), inflation américaine CPI (bls.gov), emploi (NFP). Heure UTC (Paris = UTC+1 en hiver, UTC+2 en été).</div></div>
+          <div v-if="key==='news'" class="field"><label>Flux RSS (un par ligne)</label><textarea rows="6" v-model="feedsText"></textarea>
+            <div class="hint">Médias crypto et sources officielles (Fed, BCE, SEC). Lus toutes les quelques minutes.</div></div>
+          <div v-if="key==='news'" class="field"><label>Canaux Telegram de dépêches (un par ligne, ex. @nom_du_canal)</label><textarea rows="3" v-model="tgText" placeholder="@nom_du_canal"></textarea>
+            <div class="hint">Les flashs de ces canaux arrivent en quelques secondes et sont analysés dès réception. Nécessite le compte de lecture Telegram (page « Signaux Telegram »). Choisissez des canaux d\u2019information, pas de « signaux ».</div></div>
+          <div v-if="key==='macro'" class="field"><label>Annonces supplémentaires (une par ligne : AAAA-MM-JJ HH:MM description, heure UTC)</label><textarea rows="6" v-model="eventsText"></textarea>
+            <div class="hint">Le calendrier automatique couvre déjà la semaine en cours. Ajoutez ici les dates connues à l\u2019avance (réunions de la Fed sur federalreserve.gov…). Heure UTC (Paris = UTC+1 en hiver, UTC+2 en été).</div></div>
           <button class="primary" @click="save(key)">Enregistrer</button>
         </div>
         <div v-if="key==='live'" class="card">

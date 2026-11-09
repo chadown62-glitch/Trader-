@@ -19,14 +19,16 @@ export default {
     onMounted(load);
     onBeforeUnmount(() => { off(); clearInterval(timer); });
     const tone = (s) => s === null || s === undefined ? '' : s > 0.25 ? 'pos' : s < -0.25 ? 'neg' : '';
-    return { store, items, status, refresh, enable, tone, dt, ago };
+    const safeUrl = (u) => (typeof u === 'string' && /^https?:\/\//i.test(u) ? u : null);
+    const others = (n) => [...new Set((n.also || []).map(a => a.source).filter(s => s !== n.source))];
+    return { store, items, status, refresh, enable, tone, safeUrl, others, dt, ago };
   },
   template: `
   <div>
     <div class="page-head"><h1>Actualités</h1><span class="spacer"></span>
       <button v-if="store.settings?.news?.enabled" @click="refresh">↻ Analyser maintenant</button></div>
     <div v-if="status && !status.enabled" class="note info" style="margin-bottom:14px">
-      <b>Module désactivé.</b> Il lit les actualités crypto (RSS) et les fait analyser par une IA <b>locale et gratuite</b> (Ollama, sur votre carte graphique).
+      <b>Module désactivé.</b> Il lit les actualités crypto et les communiqués officiels (Fed, BCE, SEC), et en option des canaux Telegram de dépêches, puis les fait analyser par une IA <b>locale et gratuite</b> (Ollama, sur votre carte graphique).
       L'IA de trading s'en sert comme <b>garde du corps</b> : une nouvelle très négative et confirmée bloque les achats.
       <ol class="small" style="margin:8px 0 8px 18px;padding:0">
         <li>Installez Ollama : <a href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download</a></li>
@@ -48,8 +50,8 @@ export default {
       <div v-for="n in items" :key="n.id" class="news-item">
         <div class="bar" :class="tone(n.sentiment)"></div>
         <div>
-          <h4><a :href="n.url" target="_blank" rel="noopener noreferrer">{{ n.title }}</a></h4>
-          <div class="small muted">{{ n.source }} · {{ dt(n.published_ts) }}
+          <h4><a v-if="safeUrl(n.url)" :href="safeUrl(n.url)" target="_blank" rel="noopener noreferrer">{{ n.title }}</a><span v-else>{{ n.title }}</span></h4>
+          <div class="small muted">{{ n.source }}<span v-if="others(n).length" :title="others(n).join(', ')"> + {{ others(n).length }} autre{{ others(n).length > 1 ? 's' : '' }} source{{ others(n).length > 1 ? 's' : '' }}</span> · {{ dt(n.published_ts) }}
             <template v-if="n.sentiment !== null"> · impact {{ n.sentiment > 0 ? '+' : '' }}{{ n.sentiment?.toFixed(2) }} · importance {{ Math.round((n.importance||0)*100) }} %</template>
             <template v-else-if="n.analysis && n.analysis.error"> · analyse impossible</template>
             <template v-else> · en attente d'analyse</template></div>

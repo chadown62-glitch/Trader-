@@ -182,7 +182,8 @@ CREATE TABLE IF NOT EXISTS news(
     assets TEXT,
     event_type TEXT,
     engine TEXT,
-    analyzed_ts REAL
+    analyzed_ts REAL,
+    cluster INTEGER
 );
 CREATE TABLE IF NOT EXISTS logs(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -268,10 +269,17 @@ class Database:
             self.conn.execute("PRAGMA synchronous=NORMAL")
             self.conn.execute("PRAGMA busy_timeout=5000")
             self.conn.executescript(SCHEMA)
+            self._ensure_column("news", "cluster", "INTEGER")
             self.conn.execute(
                 "INSERT OR IGNORE INTO meta(key, value) VALUES ('schema_version', ?)",
                 (str(SCHEMA_VERSION),),
             )
+
+    def _ensure_column(self, table: str, column: str, decl: str) -> None:
+        """Migration douce : ajoute une colonne apparue dans une version plus récente."""
+        cols = {r[1] for r in self.conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        if column not in cols:
+            self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
 
     # -- accès bas niveau ---------------------------------------------------
     def execute(self, sql: str, params: tuple | list = ()) -> sqlite3.Cursor:

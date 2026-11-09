@@ -40,8 +40,8 @@ export const ContextCard = {
     </template>
     <div style="margin-top:10px" class="small">
       <b>Annonces à venir</b> <span class="faint">(pas de nouvelle position autour)</span>
-      <div v-if="!(ctx?.macro || []).length" class="muted">Aucune annonce enregistrée (Réglages → Calendrier macro).</div>
-      <div v-for="e in (ctx?.macro || [])" :key="e.ts">{{ dt(e.ts) }} — {{ e.label }}</div>
+      <div v-if="!(ctx?.macro || []).length" class="muted">Aucune annonce à fort impact prévue pour le moment (Réglages → Calendrier macro).</div>
+      <div v-for="e in (ctx?.macro || [])" :key="e.ts + e.label">{{ dt(e.ts) }} — {{ e.label }}<span v-if="e.forecast || e.previous" class="faint"> · attendu {{ e.forecast || '—' }}, précédent {{ e.previous || '—' }}</span></div>
     </div>
     <p class="faint small" style="margin-bottom:0">Informations de contexte : elles ne déclenchent aucun trade.</p>
   </div>`,

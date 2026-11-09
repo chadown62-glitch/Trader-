@@ -21,7 +21,7 @@ from typing import Any, Callable
 from .. import __version__
 from ..agent.agent import TradingAgent
 from ..ai.features import compute_features, warmup_bars
-from ..config import DEFAULT_SETTINGS, apply_update, deep_merge, validate_settings
+from ..config import DEFAULT_SETTINGS, SETTINGS_REV, apply_update, deep_merge, migrate_settings, validate_settings
 from ..execution.base import OrderError
 from ..execution.paper import PaperBroker
 from ..execution.positions import PositionManager
@@ -89,7 +89,7 @@ class Engine(threading.Thread):
         app = self.app
         app._startup()
         self.ready.set()
-        nxt = {"poll": 0.0, "equity": 0.0, "sync": 0.0, "reconcile": time.time() + 60, "maint": time.time() + 600, "heartbeat": time.time() + 30,
+        nxt = {"poll": 0.0, "equity": 0.0, "sync": 0.0, "reconcile": time.time() + 60, "maint": time.time() + 600, "heartbeat": time.time() + 30, "liq": time.time() + 20,
                "learn": time.time() + 300, "markets": 0.0}
         while not self._stop.is_set():
             self.heartbeat = time.time()
@@ -122,6 +122,9 @@ class Engine(threading.Thread):
                 if now >= nxt["maint"]:
                     app._maintenance()
                     nxt["maint"] = now + 3600
+                if now >= nxt["liq"]:
+                    app._poll_liquidations()
+                    nxt["liq"] = now + 60
                 if now >= nxt["heartbeat"]:
                     app._heartbeat()
                     nxt["heartbeat"] = now + 300
@@ -161,6 +164,12 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin):
         self.extensions: list[Any] = []  # actualités, Telegram (démarrés par le serveur)
         self._feat_cache: dict[tuple, tuple[float, Any]] = {}
         self.monitoring_status: dict = {}
+        from ..risk.shield import Shield
+
+        book_fn = getattr(self.source, "fetch_order_book", None)
+        self.shield = Shield(lambda: self.settings, book_fn=book_fn, db=self.db, bus=self.bus, clock=self.market_clock)
+        self.hub.tick_handlers.append(self.shield.on_tick)
+        self._liq_thread: threading.Thread | None = None
         self.crosscheck = None
         if self.settings["market"]["source"] != "synthetic":
             from ..market.crosscheck import CrossChecker
@@ -201,11 +210,18 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin):
     def _load_settings(self, override: dict | None) -> dict:
         row = self.db.one("SELECT data FROM settings WHERE id = 1")
         stored = loads(row["data"], {}) if row else {}
+        migrated = False
+        if row is not None:
+            stored, migrated = migrate_settings(stored, int(self.db.get_meta("settings_rev", "1") or 1))
         try:
             s = validate_settings(deep_merge(DEFAULT_SETTINGS, stored))
+            if migrated:
+                self.db.execute("UPDATE settings SET data = ?, updated_at = ? WHERE id = 1", (dumps(s), time.time()))
+                self.db.log("info", "réglages", "Réglages mis à niveau (nouvelles sources officielles d'actualités)")
         except Exception:
             log.exception("Réglages enregistrés invalides : valeurs par défaut utilisées")
             s = copy.deepcopy(DEFAULT_SETTINGS)
+        self.db.set_meta("settings_rev", str(SETTINGS_REV))
         if override:
             s = validate_settings(deep_merge(s, override))
         if row is None:
@@ -366,6 +382,16 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin):
         self.db.log("info", "sauvegarde", f"Base sauvegardée : {dest.name}")
         return dest
 
+    def _poll_liquidations(self) -> None:
+        """Relevé des liquidations (OKX) dans un thread à part : ne bloque jamais le moteur."""
+        cfg = self.settings["shield"]
+        if self.settings["market"]["source"] == "synthetic" or not (cfg["enabled"] and cfg["liquidations"]):
+            return
+        if self._liq_thread is not None and self._liq_thread.is_alive():
+            return
+        self._liq_thread = threading.Thread(target=self.shield.poll_liquidations, name="sentinelle-liquidations", daemon=True)
+        self._liq_thread.start()
+
     def _heartbeat(self) -> None:
         """Signal de vie vers un service de surveillance externe (alerte si le PC s'arrête)."""
         url = self.settings["monitoring"]["heartbeat_url"]
@@ -488,4 +514,5 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin):
             "settings_summary": {"watchlist": self.settings["general"]["watchlist"], "timeframe": self.settings["ai"]["timeframe"],
                                  "quote": self.settings["general"]["quote"], "source": self.settings["market"]["source"]},
             "extensions": {getattr(e, "name", "?"): e.status() for e in self.extensions if hasattr(e, "status")},
+            "shield": self.shield.status(),
         }

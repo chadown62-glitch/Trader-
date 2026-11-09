@@ -209,6 +209,13 @@ class TelegramService:
                 lines.append(f"{esc(a['label'])} : {esc(a.get('status'))}")
             live = app.live_status
             lines.append(f"Portefeuille réel : {'connecté' if live.get('connected') else 'non connecté'}")
+            sh = app.shield.status()
+            pauses = [v["reason"] for v in sh["volatility"].values()] + ([sh["cascade"]["reason"]] if sh["cascade"] else [])
+            pauses += [sh["news"]] if sh["news"] else []
+            if not sh["enabled"]:
+                lines.append("Bouclier temps réel : désactivé")
+            else:
+                lines.append("Bouclier temps réel : " + ("⏸ " + esc(" ; ".join(pauses)) if pauses else "✅ aucune pause"))
             for ext in app.extensions:
                 if getattr(ext, "name", "") == "context" and ext.summary():
                     lines.append(f"Contexte : {esc(ext.summary())}")

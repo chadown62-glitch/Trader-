@@ -2,12 +2,13 @@
 import { api, safe } from '../api.js';
 import { LineChart } from '../charts.js';
 import { ContextCard } from './context.js';
+import { ShieldCard } from './shield.js';
 import { store, money, signed, cls, pct, dt, ago, ROLE_LABELS, REASON_ICONS } from '../store.js';
 
 const { ref, computed, onMounted, watch } = Vue;
 
 export default {
-  components: { LineChart, ContextCard },
+  components: { LineChart, ContextCard, ShieldCard },
   setup() {
     const selected = ref(null);
     const equity = ref([]);
@@ -38,6 +39,7 @@ export default {
       await safe(api.post(`/api/agents/${a.name}/start`, {}), 'Préparation de l’IA en cours (téléchargement de l’historique)…');
     };
     const stopAgent = async (a) => { await safe(api.post(`/api/agents/${a.name}/stop`, { close_positions: false }), 'IA arrêtée (les positions gardent leurs stops)'); };
+    const shieldPaused = (s) => !!(s && (Object.keys(s.volatility || {}).length || s.cascade || s.news));
     const lights = computed(() => {
       const o = store.overview;
       if (!o) return [];
@@ -48,6 +50,7 @@ export default {
         { label: 'Portefeuille réel', ok: o.live?.connected, off: !o.live?.connected && !o.live?.error, err: !!o.live?.error },
         { label: 'Actualités (IA locale)', ok: ext.news?.enabled && ext.news?.ollama_ok !== false && !ext.news?.error, off: !ext.news?.enabled },
         { label: 'Telegram', ok: ext.telegram?.connected, off: !ext.telegram?.enabled },
+        { label: 'Bouclier', ok: o.shield?.enabled && !shieldPaused(o.shield), warn: o.shield?.enabled && shieldPaused(o.shield), off: !o.shield?.enabled },
       ];
     });
     return { store, accounts, agents, current, selected, equity, days, feed, readiness, lights, startAgent, stopAgent,
@@ -109,7 +112,10 @@ export default {
       </div>
 
       <div class="grid cols-2">
+      <div class="stack">
+      <ShieldCard />
       <ContextCard />
+      </div>
       <div class="card">
         <div class="card-head"><h2>Décisions de l'IA (journal « pourquoi »)</h2><span class="spacer"></span><a href="#/ai" class="small">Tout voir →</a></div>
         <div v-if="!feed.length" class="empty">Aucune décision pour le moment. Démarrez l'IA d'entraînement : elle analysera le marché à chaque clôture de bougie.</div>

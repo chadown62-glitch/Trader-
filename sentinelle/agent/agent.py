@@ -61,6 +61,8 @@ class TradingAgent:
         fresh_fn: Callable[[str], bool] | None = None,
         budget_fn: Callable[[], float | None] | None = None,
         price_check_fn: Callable[[str, float], str | None] | None = None,
+        shield_fn: Callable[[str, float], str | None] | None = None,
+        context_fn: Callable[[str], dict] | None = None,
         bus=None,
         clock: Callable[[], float] = time.time,
         record: bool = True,
@@ -80,6 +82,8 @@ class TradingAgent:
         self.fresh_fn = fresh_fn
         self.budget_fn = budget_fn
         self.price_check_fn = price_check_fn
+        self.shield_fn = shield_fn
+        self.context_fn = context_fn
         self.bus = bus
         self.clock = clock
         self.record = record
@@ -279,6 +283,15 @@ class TradingAgent:
             if news and news.get("score") is not None and news["score"] <= cfg["news"]["veto_threshold"]:
                 block = f"Actualités très négatives ({news.get('headline', '')[:120]})"
 
+        # Journal de contexte (carnet d'ordres, flux acheteur/vendeur, sentiment) : enregistré pour
+        # vérifier plus tard s'il aurait aidé. Il n'influence PAS la décision tant que ce n'est pas prouvé.
+        context = {}
+        if self.context_fn is not None and self.mode != "backtest":
+            try:
+                context = self.context_fn(symbol) or {}
+            except Exception:
+                log.info("Contexte de décision indisponible pour %s", symbol)
+
         opened = False
         for c in cands:
             st = c["st"]
@@ -312,6 +325,8 @@ class TradingAgent:
                     reason = "Paire indisponible"
                 elif not rd.approved:
                     reason = "Gestionnaire de risque : " + rd.reasons[0]
+                elif self.shield_fn is not None and (danger := self.shield_fn(symbol, rd.qty * close)):
+                    reason = "Bouclier temps réel : " + danger
                 else:
                     explanation = self._explain(symbol, c, row, thr, mode_used, rd)
                     try:
@@ -338,7 +353,7 @@ class TradingAgent:
                     "features, p_win, expected_r, model_version, decision, decision_reason, account_id) "
                     "VALUES (?, ?, ?, ?, 'live', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (symbol, self.timeframe, bar_ts, c["name"], close, c["stop"], c["target"], st.horizon(self.timeframe),
-                     dumps({k: c["row"][k] for k in FEATURE_COLUMNS + ["cost_r"]}), c["p"], c["er"],
+                     dumps({**{k: c["row"][k] for k in FEATURE_COLUMNS + ["cost_r"]}, "contexte": context}), c["p"], c["er"],
                      model.version if model is not None else None, decision, reason, self.account_id),
                 )
             self._journal(symbol, decision, msg, {"strategy": c["name"], "p_win": c["p"], "expected_r": c["er"]})

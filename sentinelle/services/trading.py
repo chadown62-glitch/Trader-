@@ -51,6 +51,10 @@ class TradingMixin:
             "risk_pct": (risk_amount / eq * 100) if risk_amount and eq else None,
             "live": rt.account["kind"] == "live",
         }
+        if req["side"] == "buy" and req.get("type", "market") == "market" and qty > 0:
+            danger = self.shield.check_entry(symbol, value)
+            if danger:
+                out["warnings"] = [*warnings, f"Bouclier temps réel : {danger}. Prudence."]
         if out["live"] and value > self.settings["live"]["manual_max_order_value"]:
             out["error"] = (f"Ordre supérieur au plafond de sécurité ({self.settings['live']['manual_max_order_value']:,.0f} "
                             f"{rt.account['quote']}) défini dans les réglages")

@@ -162,6 +162,14 @@ Votre carte graphique (RTX 4060 Ti, 8 Go) fait tourner un modèle d'environ 7 à
 
 Le module joue le rôle de **garde du corps** : une actualité très négative bloque les achats, mais seulement si elle est **confirmée par deux sources**, ou à la fois critique et très sûre. L'IA des actualités ne passe jamais d'ordre elle-même.
 
+Sources lues :
+- les médias crypto et les **communiqués officiels** de la Fed, de la BCE et de la SEC (flux RSS, toutes les 10 minutes) ;
+- en option, des **canaux Telegram de dépêches** : leurs flashs arrivent en quelques secondes et sont analysés dès réception. Inscrivez-les dans **Réglages → Actualités** (`@nom_du_canal`, un par ligne). Ils utilisent le compte de lecture Telegram de la page **Signaux** (voir 8 bis). Choisissez des canaux d'**information**, pas des canaux de « signaux ».
+
+Une même nouvelle reprise par plusieurs médias n'est analysée qu'**une fois**. Elle ne compte comme « confirmée » que si **deux sources différentes** la rapportent.
+
+La liste des sources étudiées, celles retenues et celles écartées (avec les raisons) est dans [SOURCES.md](SOURCES.md).
+
 ---
 
 ## 8 bis. Canaux de signaux Telegram (observation)
@@ -176,7 +184,14 @@ Rien n'est jamais tradé automatiquement. La connexion de votre compte reste sur
 
 ## 8 ter. Protections supplémentaires
 
-- **Calendrier macro** (Réglages → Calendrier macro) : aucune nouvelle position une heure avant et après les annonces listées. Ajoutez les dates de la Fed (federalreserve.gov) et de l'inflation US (bls.gov), en heure UTC.
+- **Calendrier économique automatique** (Réglages → Calendrier macro) : les annonces à fort impact de la semaine (inflation, emploi, banques centrales…) sont importées toutes les 3 heures. Aucune nouvelle position une heure avant et après. Les annonces à venir, avec les valeurs attendues, s'affichent sur le tableau de bord. Vous pouvez ajouter des dates connues à l'avance (réunions de la Fed), en heure UTC.
+- **Bouclier temps réel** (Réglages → Bouclier, carte sur le tableau de bord). Il interdit d'ouvrir une position :
+  - pendant un **mouvement brutal** (bougie d'une minute anormale, pause de 30 min) ;
+  - quand le **carnet d'ordres** est trop mince ou l'écart achat/vente trop large ;
+  - pendant une **cascade de liquidations** sur les marchés à levier (pause d'une heure) ;
+  - juste après une **actualité majeure**.
+
+  Il ne vend jamais rien : les positions ouvertes gardent leurs stops. Pour un achat manuel, il affiche seulement un avertissement. Sur 30 jours réels, il n'a bloqué les entrées que 0,1 % à 2 % du temps selon la crypto.
 - **Vérification des prix** (Réglages → Données) : le prix est comparé à celui de Kraken avant chaque entrée de l'IA.
 - **Surveillance externe** (Réglages → Surveillance) :
   1. créez un contrôle gratuit sur <https://healthchecks.io> (période 5 minutes) et collez son adresse ;

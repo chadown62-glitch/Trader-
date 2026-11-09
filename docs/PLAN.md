@@ -13,7 +13,8 @@ Mis à jour le 9 novembre 2026. ✅ = fait · 🔲 = à faire · 👤 = c'est à
 | 5 | Ollama + `ollama pull qwen2.5:7b`, puis activer les actualités | 👤 🔲 |
 | 6 | Laisser tourner l'IA d'entraînement **30 jours minimum** | 👤 🔲 |
 | 7 | Plateforme agréée MiCA + conseil fiscal | 👤 🔲 |
-| 7 bis | Compléter le calendrier macro (Réglages → Calendrier macro) avec les dates 2027 de la Fed et de l'inflation US | 👤 🔲 |
+| 7 bis | Calendrier macro : il se remplit désormais **tout seul** chaque semaine. Facultatif : ajouter les dates 2027 de la Fed | ✅ automatique |
+| 7 ter | Choisir 1 ou 2 canaux Telegram de **dépêches** fiables (Réglages → Actualités) | 👤 🔲 facultatif |
 
 ## 2. Fonctions ajoutées
 
@@ -26,6 +27,13 @@ Mis à jour le 9 novembre 2026. ✅ = fait · 🔲 = à faire · 👤 = c'est à
 | 12 | Sauvegarde quotidienne de la base (`data/backups`) | ✅ |
 | 13 | Vérification croisée des prix (Kraken) avant chaque entrée de l'IA | ✅ |
 | 14 | Double authentification du panel (QR code) | ✅ |
+| 14 bis | Calendrier économique automatique (Forex Factory) : inflation, emploi, banques centrales, avec valeurs attendues | ✅ (testé sur le réseau réel) |
+| 14 ter | Communiqués officiels Fed, BCE et SEC lus à la source | ✅ (testé sur le réseau réel) |
+| 14 quater | Canaux Telegram de dépêches, analysés dès réception | ✅ (testé avec des messages types ; connexion réelle à vérifier, point 👤) |
+| 14 quinquies | Regroupement des doublons : une seule analyse par événement, confirmation par deux sources différentes | ✅ |
+| 14 sexies | **Bouclier temps réel** : mouvement brutal, écart et liquidité du carnet d'ordres, cascades de liquidations, actualité majeure | ✅ (seuils mesurés sur données réelles, voir RESULTATS.md §8) |
+| 14 septies | Journal « microstructure » à chaque décision (écart, liquidité, pression acheteuse/vendeuse) | ✅ (enregistré seulement, pas encore utilisé pour décider) |
+| 14 octies | Étude des sources proposées par Gemini | ✅ (voir [SOURCES.md](SOURCES.md)) |
 
 ## 3. Recherche sur les résultats (détail dans RESULTATS.md)
 
@@ -36,6 +44,7 @@ Mis à jour le 9 novembre 2026. ✅ = fait · 🔲 = à faire · 👤 = c'est à
 | 17 | Allocation par tendance (investi ou en USDC) | ✅ Étudiée, **non retenue** : +46 %/an mais baisse maximale de 54 %, incompatible avec la prudence |
 | 18 | Validation « règles seules » quand le filtre IA n'apporte rien | ✅ Ajoutée |
 | 19 | Nouvelles idées jugées uniquement sur des données futures | En continu |
+| 19 bis | Stratégie « EMA 9/21 en 1 minute » (proposée par Gemini) | ✅ Mesurée, **rejetée** : −81 à −89 % en un mois avec les frais (RESULTATS.md §9) |
 
 État honnête : sur les 18 derniers mois, le système reste **à l'équilibre** (≈ 0 %) pendant que le marché perd environ 30 %. L'IA est toujours « non validée » et le mode réel reste verrouillé.
 
@@ -53,4 +62,5 @@ Mis à jour le 9 novembre 2026. ✅ = fait · 🔲 = à faire · 👤 = c'est à
 - Après 30 jours d'entraînement : bilan chiffré. Si le bulletin est au vert : testnet, puis réel avec un petit budget.
 - Activer un canal de signaux en trading **seulement** s'il est positif sur au moins 30 signaux mesurés (pas encore codé : à faire après observation).
 - Coupler 4 h et 1 jour (deux agents) si le journalier se confirme en direct.
+- Après quelques mois de journal « microstructure » : mesurer si la pression acheteuse/vendeuse ou l'écart auraient amélioré les décisions, et ne les utiliser que si c'est prouvé.
 - API Claude en option pour une analyse plus fine des actualités (payant, désactivé par défaut).

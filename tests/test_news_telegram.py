@@ -164,6 +164,15 @@ def test_telegram_commands_for_owner(tg):
     assert "reply_markup" in fake.sent[-1]  # confirmation par bouton obligatoire
 
 
+def test_telegram_status_reports_shield(tg, app):
+    svc, fake = tg
+    svc.handle_update(msg(42, "/etat"))
+    assert "Bouclier temps réel : ✅ aucune pause" in fake.sent[-1]["text"]
+    app.shield.cascade_until = (time.time() + 600, "cascade de liquidations sur les marchés à levier (80 M$ en 15 min)")
+    svc.handle_update(msg(42, "/etat", uid=2))
+    assert "⏸ cascade de liquidations" in fake.sent[-1]["text"]
+
+
 def test_telegram_urgence_confirmation_flattens(tg, app):
     svc, fake = tg
     cb = {"update_id": 5, "callback_query": {"id": "c1", "data": "urgence_ok", "message": {"chat": {"id": 42}}}}

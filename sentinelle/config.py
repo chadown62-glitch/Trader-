@@ -122,7 +122,13 @@ DEFAULT_SETTINGS: dict[str, Any] = {
             "https://decrypt.co/feed",
             "https://bitcoinmagazine.com/.rss/full/",
             "https://www.theblock.co/rss.xml",
+            # Sources officielles (« source zéro ») : banques centrales et régulateur américain
+            "https://www.federalreserve.gov/feeds/press_all.xml",
+            "https://www.ecb.europa.eu/rss/press.html",
+            "https://www.sec.gov/news/pressreleases.rss",
         ],
+        # Canaux Telegram de dépêches (flashs en quelques secondes), analysés dès réception.
+        "telegram_channels": [],
     },
     "telegram": {
         "enabled": False,
@@ -140,9 +146,28 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "macro": {
         "enabled": True,
         "blackout_minutes": 60,
+        # Import automatique du calendrier économique (annonces à fort impact).
+        "auto_calendar": True,
+        "calendar_countries": ["USD", "EUR"],
         "events": [
             "2026-12-09 19:00 Fed : décision de taux (FOMC)",
         ],
+    },
+    # Bouclier temps réel : bloque les NOUVELLES positions quand le marché devient dangereux.
+    "shield": {
+        "enabled": True,
+        "volatility_multiple": 6.0,  # bougie 1 min anormale : x fois l'amplitude habituelle
+        "volatility_min_pct": 0.8,
+        "cooldown_minutes": 30,
+        "max_spread_bps": 20.0,  # écart achat/vente maximal (0,20 %)
+        "depth_multiple": 3.0,  # liquidité disponible ≥ 3 × la taille de l'ordre
+        "liquidations": True,
+        # Mesuré sur 24 h réelles (BTC + ETH sur OKX) : 0,1 M$ par quart d'heure en temps normal,
+        # 24 M$ lors de la chute de 1,9 % en une minute du 08/11/2026 à 21 h 55 UTC.
+        "cascade_multiple": 20.0,
+        "cascade_min_musd": 10.0,
+        "news_pause": True,
+        "news_pause_minutes": 60,
     },
     "monitoring": {
         # Adresse de « ping » d'un service de surveillance externe (ex. healthchecks.io) :
@@ -220,6 +245,20 @@ BOUNDS: dict[str, tuple] = {
     "macro.blackout_minutes": ("int", 0, 24 * 60),
     "macro.events": ("list_str",),
     "monitoring.heartbeat_url": ("str", None),
+    "news.telegram_channels": ("list_str",),
+    "macro.auto_calendar": ("bool",),
+    "macro.calendar_countries": ("list_str",),
+    "shield.enabled": ("bool",),
+    "shield.volatility_multiple": ("float", 2.0, 50.0),
+    "shield.volatility_min_pct": ("float", 0.1, 10.0),
+    "shield.cooldown_minutes": ("int", 1, 24 * 60),
+    "shield.max_spread_bps": ("float", 1.0, 500.0),
+    "shield.depth_multiple": ("float", 0.5, 50.0),
+    "shield.liquidations": ("bool",),
+    "shield.cascade_multiple": ("float", 2.0, 200.0),
+    "shield.cascade_min_musd": ("float", 1.0, 10_000.0),
+    "shield.news_pause": ("bool",),
+    "shield.news_pause_minutes": ("int", 5, 24 * 60),
     "monitoring.backup_keep_days": ("int", 1, 365),
 }
 
@@ -320,6 +359,31 @@ def validate_settings(settings: dict) -> dict:
     if clean["risk"]["max_exposure_per_asset"] > clean["risk"]["max_exposure"]:
         raise SettingsError("L'exposition par crypto ne peut pas dépasser l'exposition totale")
     return clean
+
+
+# ---------------------------------------------------------------------------
+# Migrations des réglages déjà enregistrés (appliquées une seule fois, au démarrage)
+# ---------------------------------------------------------------------------
+SETTINGS_REV = 2
+OFFICIAL_FEEDS = [
+    "https://www.federalreserve.gov/feeds/press_all.xml",
+    "https://www.ecb.europa.eu/rss/press.html",
+    "https://www.sec.gov/news/pressreleases.rss",
+]
+
+
+def migrate_settings(stored: dict, rev: int) -> tuple[dict, bool]:
+    """Met à niveau des réglages enregistrés par une version précédente. Renvoie (réglages, modifiés ?)."""
+    changed = False
+    if rev < 2:
+        # Révision 2 : sources officielles (Fed, BCE, SEC) ajoutées à la liste de flux existante
+        feeds = (stored.get("news") or {}).get("feeds")
+        if isinstance(feeds, list):
+            for url in OFFICIAL_FEEDS:
+                if url not in feeds:
+                    feeds.append(url)
+                    changed = True
+    return stored, changed
 
 
 def apply_update(current: dict, patch: dict) -> dict:

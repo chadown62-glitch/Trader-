@@ -59,6 +59,7 @@ def check() -> int:
         line(INFO, "Port du panel (8765)", "déjà utilisé : Sentinelle est peut-être déjà lancé (ou utilisez --port 8770)")
     finally:
         s.close()
+    src = None
     try:
         from .market.sources import CcxtSource
 
@@ -69,9 +70,34 @@ def check() -> int:
     except Exception as exc:
         problems += 1
         line(KO, "Données de marché Binance", f"injoignables ({str(exc)[:120]}). Vérifiez la connexion internet / le pare-feu.")
+    # Sources du temps réel (facultatives : en cas d'échec, Sentinelle fonctionne sans elles)
+    if src is not None:
+        try:
+            ob = src.fetch_order_book("BTC/USDC", limit=20)
+            bid, ask = ob["bids"][0][0], ob["asks"][0][0]
+            spread = f"{(ask - bid) / ((ask + bid) / 2) * 1e4:.2f}".replace(".", ",")
+            line(OK, "Carnet d'ordres Binance (bouclier)", f"écart achat/vente {spread} point(s) de base")
+        except Exception as exc:
+            line(INFO, "Carnet d'ordres Binance (bouclier)", f"indisponible ({str(exc)[:80]})")
     try:
         import httpx
+    except ImportError:
+        return problems or 1
+    with httpx.Client(timeout=10, headers={"User-Agent": "Sentinelle"}) as client:
+        try:
+            from .market.context import fetch_calendar
 
+            ev = fetch_calendar(client, ["USD", "EUR"])
+            line(OK, "Calendrier économique", f"{len(ev)} annonce(s) importante(s) cette semaine")
+        except Exception as exc:
+            line(INFO, "Calendrier économique", f"injoignable ({str(exc)[:80]}) : ajoutez les annonces à la main dans les réglages")
+        try:
+            r = client.get("https://www.okx.com/api/v5/public/instruments", params={"instType": "SWAP", "instId": "BTC-USDT-SWAP"})
+            r.raise_for_status()
+            line(OK, "Liquidations OKX (bouclier)", "accessibles")
+        except Exception as exc:
+            line(INFO, "Liquidations OKX (bouclier)", f"injoignables ({str(exc)[:80]}) : le bouclier fonctionnera sans elles")
+    try:
         r = httpx.get("http://127.0.0.1:11434/api/tags", timeout=3)
         models = [m["name"] for m in r.json().get("models", [])]
         line(OK, "Ollama (IA locale pour les actualités)", "modèles : " + (", ".join(models) or "aucun (ollama pull qwen2.5:7b)"))

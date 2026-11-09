@@ -49,6 +49,39 @@ def fetch_funding(client: httpx.Client, base: str) -> float:
     return float(data[0]["fundingRate"])
 
 
+CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
+CALENDAR_FR = {
+    "CPI": "Inflation (CPI)", "Core CPI": "Inflation sous-jacente (CPI)", "PPI": "Prix à la production (PPI)",
+    "Core PPI": "Prix à la production sous-jacents", "Non-Farm Employment Change": "Emploi américain (NFP)",
+    "Unemployment Rate": "Taux de chômage", "FOMC Statement": "Fed : décision de taux", "Federal Funds Rate": "Fed : taux directeur",
+    "FOMC Press Conference": "Fed : conférence de presse", "Main Refinancing Rate": "BCE : taux directeur",
+    "Monetary Policy Statement": "BCE : décision de politique monétaire", "ECB Press Conference": "BCE : conférence de presse",
+    "Advance GDP q/q": "PIB (première estimation)", "Core PCE Price Index m/m": "Inflation PCE (indicateur préféré de la Fed)",
+    "Retail Sales m/m": "Ventes au détail", "ISM Manufacturing PMI": "Indice ISM manufacturier",
+}
+
+
+def fetch_calendar(client: httpx.Client, countries: list[str]) -> list[dict]:
+    """Annonces économiques à fort impact de la semaine (calendrier public, sans clé)."""
+    from datetime import datetime
+
+    r = client.get(CALENDAR_URL)
+    r.raise_for_status()
+    out = []
+    for e in r.json():
+        if e.get("impact") != "High" or e.get("country") not in countries:
+            continue
+        try:
+            ts = datetime.fromisoformat(e["date"]).timestamp()
+        except (KeyError, ValueError):
+            continue
+        base = e.get("title", "").replace(" m/m", "").replace(" y/y", "").replace(" q/q", "")
+        name = CALENDAR_FR.get(e.get("title", ""), CALENDAR_FR.get(base, e.get("title", "Annonce")))
+        out.append({"ts": ts, "label": f"{e['country']} : {name}", "forecast": e.get("forecast") or None,
+                    "previous": e.get("previous") or None})
+    return out
+
+
 def funding_comment(rate: float) -> str:
     if rate > 0.0003:
         return "euphorie (beaucoup d'acheteurs à levier)"
@@ -77,13 +110,40 @@ class ContextService:
 
     def _run(self) -> None:
         while not self._stop.is_set():
-            if self.app.settings["market"].get("context", True) and self.app.settings["market"]["source"] != "synthetic":
-                self.refresh()
+            if self.app.settings["market"]["source"] != "synthetic":
+                if self.app.settings["market"].get("context", True):
+                    self.refresh()
+                else:
+                    try:
+                        with httpx.Client(timeout=10.0, headers=UA, transport=self.transport) as c:
+                            self.refresh_calendar(c)
+                    except Exception as exc:
+                        self.data["errors"] = {"calendrier": str(exc)[:120]}
             self._stop.wait(self.period)
 
-    def refresh(self) -> dict:
+    def refresh_calendar(self, client: httpx.Client, force: bool = False) -> int:
+        """Met à jour les annonces automatiques (au plus toutes les 3 heures, sauf demande explicite)."""
+        macro = self.app.settings["macro"]
+        last = float(self.app.db.get_meta("calendar_fetched", "0") or 0)
+        if not macro.get("auto_calendar", True) or (not force and time.time() - last < 3 * 3600):
+            return 0
+        events = fetch_calendar(client, macro.get("calendar_countries") or ["USD"])
+        from ..storage.db import dumps, loads
+
+        # on garde aussi les annonces passées récentes (fenêtre d'exclusion encore en cours)
+        old = [e for e in loads(self.app.db.get_meta("calendar_events"), []) if e["ts"] > time.time() - 86400]
+        merged = {(e["ts"], e["label"]): e for e in old + events}
+        self.app.db.set_meta("calendar_events", dumps(sorted(merged.values(), key=lambda e: e["ts"])))
+        self.app.db.set_meta("calendar_fetched", str(time.time()))
+        return len(events)
+
+    def refresh(self, force_calendar: bool = False) -> dict:
         errors = {}
         with httpx.Client(timeout=10.0, headers=UA, transport=self.transport, follow_redirects=True) as c:
+            try:
+                self.refresh_calendar(c, force=force_calendar)
+            except Exception as exc:
+                errors["calendrier"] = str(exc)[:120]
             try:
                 self.data["fear_greed"] = fetch_fear_greed(c)
             except Exception as exc:
@@ -126,10 +186,11 @@ class ContextService:
         async def context_refresh():
             import asyncio
 
-            await asyncio.to_thread(self.refresh)
+            await asyncio.to_thread(lambda: self.refresh(force_calendar=True))
             return {**self.data, "macro": self._macro()}
 
     def _macro(self) -> list[dict]:
         from ..risk.macro import upcoming
+        from ..storage.db import loads
 
-        return upcoming(self.app.settings, time.time())
+        return upcoming(self.app.settings, time.time(), auto=loads(self.app.db.get_meta("calendar_events"), []))
