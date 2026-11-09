@@ -44,7 +44,7 @@ Mis à jour le 9 novembre 2026. ✅ = fait · 🔲 = à faire · 👤 = c'est à
 | 17 | Allocation par tendance (investi ou en USDC) | ✅ Étudiée, **non retenue** : +46 %/an mais baisse maximale de 54 %, incompatible avec la prudence |
 | 18 | Validation « règles seules » quand le filtre IA n'apporte rien | ✅ Ajoutée |
 | 19 | Nouvelles idées jugées uniquement sur des données futures | En continu |
-| 19 bis | Stratégie « EMA 9/21 en 1 minute » (proposée par Gemini) | ✅ Mesurée, **rejetée** : −81 à −89 % en un mois avec les frais (RESULTATS.md §9) |
+| 19 bis | Stratégie « EMA 9/21 en 1 minute » (proposée par Gemini) | ✅ Mesurée, **rejetée** : −80 à −89 % en un mois avec les frais (RESULTATS.md §9) |
 
 État honnête : sur les 18 derniers mois, le système reste **à l'équilibre** (≈ 0 %) pendant que le marché perd environ 30 %. L'IA est toujours « non validée » et le mode réel reste verrouillé.
 
