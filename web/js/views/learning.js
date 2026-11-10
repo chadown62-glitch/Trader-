@@ -61,7 +61,7 @@ export const LearningTab = {
         <template v-else>
           <dl class="kv small">
             <dt>Situations observées en direct</dt><dd>{{ monitor.seen }} (dont {{ monitor.resolved }} dénouées, {{ monitor.pending }} en cours)</dd>
-            <dt>Modèle actif</dt><dd>{{ monitor.model ? monitor.model.version + ' — niveau ' + monitor.model.level + (monitor.model.mode === 'règles seules' ? ' (règles seules)' : '') : 'aucun modèle validé' }}</dd>
+            <dt>Modèle actif</dt><dd>{{ monitor.model ? monitor.model.version + ' — recette ' + monitor.model.level + (monitor.model.mode === 'règles seules' ? ' (règles seules)' : '') + (monitor.model.trial ? ' — à l’essai en argent fictif' : '') : 'aucun (exploration)' }}</dd>
             <dt>Ré-entraînement automatique</dt>
             <dd v-if="monitor.retraining.enabled">toutes les {{ monitor.retraining.every_hours }} h, dès {{ monitor.retraining.min_new_samples }} nouvelles situations dénouées
               ({{ monitor.retraining.new_samples }} depuis le dernier{{ monitor.retraining.last ? ', ' + ago(monitor.retraining.last) : '' }})</dd>
@@ -74,7 +74,7 @@ export const LearningTab = {
             <span v-else-if="monitor.forecast.n >= 30"> Ses prévisions correspondent à la réalité.</span>
             <span v-else> Trop peu de cas pour conclure (30 minimum).</span>
           </div>
-          <div v-else class="muted small" style="margin-top:10px">Pas encore de prévision vérifiable : il faut un modèle validé et des situations dénouées en direct.</div>
+          <div v-else class="muted small" style="margin-top:10px">Pas encore de prévision vérifiable : il faut un modèle (validé ou à l'essai) et des situations dénouées en direct.</div>
         </template>
       </div>
     </div>
@@ -82,7 +82,7 @@ export const LearningTab = {
     <div v-if="bench" class="card" style="margin-bottom:14px">
       <h2>Détail des épreuves</h2>
       <div class="table-wrap"><table>
-        <thead><tr><th>Épreuve</th><th>Ce qui est caché</th><th v-for="n in bench.sizes" :key="n" class="num">{{ n }} situations</th><th class="num">Gain grâce à l'IA</th><th class="num">Validée</th></tr></thead>
+        <thead><tr><th>Épreuve</th><th>Ce qui est caché</th><th v-for="n in bench.sizes" :key="n" class="num">{{ n }} situations</th><th class="num">Gain grâce à l'IA</th><th class="num">Tri de l'IA validé</th></tr></thead>
         <tbody>
           <tr v-for="r in learnable" :key="r.name">
             <td><b>{{ r.label }}</b></td><td class="small muted">{{ r.description }}</td>
@@ -99,15 +99,15 @@ export const LearningTab = {
           {{ noise.false_discoveries === 0 ? 'Elle ne s’invente pas de fausses règles.' : 'Le critère de validation tolère environ une fausse alerte sur vingt : c’est attendu, et l’entraînement en argent fictif sert de second filtre.' }}
         </div>
         <div v-if="shift" class="note small" :class="(shift.rate || 0) >= 0.5 ? 'ok' : 'warn'">
-          <b>Changement de règle en cours de route.</b> Taux d'adaptation : <b>{{ pc(shift.rate) }}</b>, modèle validé dans {{ shift.by_size[shift.by_size.length - 1].validated }} cas sur {{ shift.by_size[shift.by_size.length - 1].runs }}.
-          Quand le marché change brutalement de logique, l'IA ne s'adapte pas tout de suite : elle a besoin de nouveaux exemples. Sa protection est de <b>refuser de se valider</b> tant que la nouvelle règle n'est pas apprise.
+          <b>Changement de règle en cours de route.</b> Taux d'adaptation : <b>{{ pc(shift.rate) }}</b>. Le tri de l'IA s'est validé dans {{ shift.by_size[shift.by_size.length - 1].validated }} cas sur {{ shift.by_size[shift.by_size.length - 1].runs }}.
+          Quand le marché change brutalement de logique, l'IA ne s'adapte pas tout de suite : elle a besoin de nouveaux exemples. Sa protection est de <b>refuser de valider son tri</b> tant que la nouvelle règle n'est pas apprise.
         </div>
       </div>
     </div>
 
     <div class="card">
       <h2>Et sur le vrai marché ?</h2>
-      <p class="small">Savoir apprendre ne suffit pas : encore faut-il qu'il y ait quelque chose de stable à apprendre. Mesures faites en novembre 2026 sur 33 cryptos et jusqu'à 450 000 exemples
+      <p class="small">Savoir apprendre ne suffit pas : encore faut-il qu'il y ait quelque chose de stable à apprendre. Mesures faites en novembre 2026 sur 33 cryptos et jusqu'à 475 000 exemples
         (détail dans <code>docs/RESULTATS.md</code>) :</p>
       <ul class="small" style="margin:0 0 0 18px;padding:0">
         <li>les prix passés contiennent <b>très peu d'information stable</b> sur la suite : même avec des centaines de milliers d'exemples, le score sur les périodes suivantes reste proche du hasard ;</li>

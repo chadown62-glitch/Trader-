@@ -246,3 +246,173 @@ def test_learning_api(app, monkeypatch, series):
         s = c.put("/api/settings", json={"ai": {"recipe": "auto", "half_life_days": 730}}, headers=h).json()
         assert s["ai"]["recipe"] == "auto" and s["ai"]["half_life_days"] == 730
         assert c.put("/api/settings", json={"ai": {"recipe": "magique"}}, headers=h).status_code == 400
+
+
+# -- chaîne complète du panel : historique -> entraînement -> modèle actif -> fiches ---------------
+class HistorySource:
+    """Source factice : renvoie des historiques fabriqués (aucun réseau)."""
+
+    name = "factice"
+
+    def __init__(self, series: dict):
+        self.series = series
+        self._now = int(max(df["ts"].iloc[-1] for df in series.values())) + HOUR + 1
+
+    def now_ms(self) -> int:
+        return self._now
+
+    def load_markets(self) -> dict:
+        return {}
+
+    def fetch_ohlcv(self, symbol, timeframe, since=None, limit=1000):
+        df = self.series.get(symbol)
+        if df is None:
+            return []
+        rows = df[df["ts"] >= (since or 0)].head(limit)
+        return rows[["ts", "open", "high", "low", "close", "volume"]].to_numpy().tolist()
+
+
+def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
+    def drift(ts):  # motif caché : hausse entre 0 h et 12 h
+        return np.where((ts // HOUR) % 24 < 12, 0.003, -0.003)
+
+    series = {s: make_series(17_000, seed=10 + i, start=p, drift_fn=drift)
+              for i, (s, p) in enumerate((("BTC/USDC", 30_000), ("ETH/USDC", 2_000), ("SOL/USDC", 50)))}
+    app = App(tmp_path, source=HistorySource(series), start=False, settings_override={
+        "general": {"watchlist": list(series)}, "market": {"source": "synthetic"},
+        "ai": {"timeframe": "1h", "strategies": {k: True for k in ("trend_breakout", "pullback", "mean_reversion", "momentum", "trend_follow")}}})
+    try:
+        steps = []
+        out = app._train(lambda x, m: steps.append(m), app.settings, "1h", 720, False)
+        assert out["ok"] and out["verdict"] == "validé", out["reasons"]
+        rep = out["report"]
+        assert rep["learner"]["recipe"] == "mixte" and rep["learner"]["chosen"] == "mixte"
+        assert rep["holdout"]["auc"] > 0.6 and rep["backtest_model"]["metrics"]["n"] > 0
+        champion = app.models.champion("1h")
+        assert champion is not None and champion.version == out["version"] and len(champion.members) == 2
+        assert any("Téléchargement" in m for m in steps) and any("Simulation" in m for m in steps)
+        # entraînement sur une période courte : les fiches sont calculées à part, sur l'historique complet
+        deadline = time.time() + 120
+        while time.time() < deadline and app.jobs.running("knowledge"):
+            time.sleep(0.2)
+        sheets = app.knowledge_list()["items"]
+        assert [s["symbol"] for s in sheets] == list(series) and not any(s.get("missing") for s in sheets)
+        assert app.knowledge_get("BTC/USDC")["history"]["bars"] == 17_000
+        assert app.refresh_knowledge_if_stale() is False  # fiches fraîches : rien à refaire
+        mon = app.learning_monitor()
+        assert mon["model"]["version"] == out["version"] and "mixte" in mon["model"]["level"]
+    finally:
+        app.db.close()
+
+
+# -- modèle « à l'essai » : prometteur, pas prouvé, argent fictif uniquement -------------------------
+def test_promising_but_unproven_model_goes_on_trial():
+    from sentinelle.ai.trainer import train_walk_forward
+
+    cand, _ = make_candidates(2500, "faible", seed=2)
+    res = train_walk_forward(cand, "4h", with_importance=False)
+    h = res.report["holdout"]
+    assert not res.ok and res.trial and res.report["summary"]["trial"] is True
+    assert h["model"]["n"] >= 30 and h["model"]["mean_r"] >= 0.05 and h["model"]["mean_r"] - h["baseline"]["mean_r"] >= 0.05
+    assert any("à l'essai" in r for r in res.reasons)
+    proven = train_walk_forward(make_candidates(2500, "faible", seed=1)[0], "4h", with_importance=False)
+    assert proven.ok and not proven.trial  # un modèle validé n'est pas « à l'essai »
+    noise = train_walk_forward(make_candidates(2000, "bruit", seed=0)[0], "4h", with_importance=False)
+    assert not noise.ok and not noise.trial  # rien de prometteur dans le bruit
+
+
+def test_model_registry_handles_trial_status(app):
+    from types import SimpleNamespace
+
+    def result(ok, trial, version):
+        m = MetaModel("4h").fit(make_candidates(400, "simple", seed=1)[0])
+        m.version = version
+        m.metrics = {"verdict": "validé" if ok else "non validé", "trial": trial}
+        return SimpleNamespace(final_model=m, ok=ok, trial=trial, reasons=["test"])
+
+    store = app.models
+    assert store.trial("4h") is None and store.champion("4h") is None
+    assert store.register(result(False, True, "m-essai-1"), {})["status"] == "trial"
+    assert store.trial("4h").version == "m-essai-1" and store.champion("4h") is None
+    with pytest.raises(ValueError):
+        store.promote("m-essai-1")  # un modèle non validé ne peut jamais devenir le modèle actif
+    assert store.register(result(False, True, "m-essai-2"), {})["status"] == "trial"
+    assert store.trial("4h").version == "m-essai-2" and store.get("m-essai-1")["status"] == "retired"
+    assert store.register(result(False, False, "m-rejet"), {})["status"] == "rejected"
+    assert store.trial("4h") is None  # le dernier entraînement fait foi : plus de modèle à l'essai
+    store.register(result(False, True, "m-essai-3"), {})
+    assert store.register(result(True, False, "m-valide"), {})["status"] == "champion"
+    assert store.champion("4h").version == "m-valide" and store.trial("4h") is None
+    statuses = [a for a in app.agents_status()]
+    assert all(a["model"] == "m-valide" and a["model_trial"] is False for a in statuses)
+
+
+class StubModel:
+    """Modèle factice : annonce 60 % de chances de gain et +0,5 R pour tout candidat."""
+
+    threshold = 0.1
+
+    def __init__(self, verdict):
+        self.version = "m-" + verdict
+        self.metrics = {"verdict": verdict}
+
+    def predict(self, cand):
+        return np.full(len(cand), 0.6), np.full(len(cand), 0.5)
+
+
+def test_trial_model_trades_in_paper_only(db, paper, pm, prices, clock):
+    from sentinelle.agent.agent import TradingAgent
+    from sentinelle.config import DEFAULT_SETTINGS, apply_update
+    from sentinelle.risk.manager import RiskManager
+
+    from .test_risk_agent_backtest import _feat_with_signal
+
+    settings = apply_update(DEFAULT_SETTINGS, {})
+    df, feat, idx = _feat_with_signal()
+    sub = feat.iloc[: idx[-1] + 1].reset_index(drop=True)
+    prices["ETH/USDC"] = float(sub["close"].iloc[-1])
+    settings["ai"]["regime_filter"] = False
+    settings["ai"]["strategies"] = {k: k == "trend_breakout" for k in settings["ai"]["strategies"]}
+    settings["risk"]["min_reward_to_fees"] = 1.0
+    risk = RiskManager(db, paper.account_id, lambda: settings, clock)
+    trial = StubModel("non validé")
+    # en réel : un modèle non validé n'est jamais utilisé
+    live = TradingAgent("ia-reel", "live", db, pm, risk, lambda: settings, lambda: trial, timeframe="1h", clock=clock)
+    live.running = True
+    live.on_bar("ETH/USDC", sub)
+    assert pm.open_positions() == []
+    assert "Aucun modèle validé" in db.one("SELECT decision_reason FROM candidates")["decision_reason"]
+    db.execute("DELETE FROM candidates")
+    # en entraînement : il est mis à l'essai, avec une taille réduite de moitié
+    agent = TradingAgent("ia", "training", db, pm, risk, lambda: settings, lambda: trial, timeframe="1h", clock=clock)
+    agent.running = True
+    agent.on_bar("ETH/USDC", sub)
+    pos = pm.open_positions("ETH/USDC", agent="ia")
+    assert len(pos) == 1 and pos[0]["model_version"] == "m-non validé"
+    assert json.loads(pos[0]["data"])["mode"] == "essai" if isinstance(pos[0]["data"], str) else pos[0]["data"]["mode"] == "essai"
+    assert pos[0]["risk_amount"] / paper.equity()[0] == pytest.approx(0.005 * 0.5, rel=0.15)
+    cand = db.one("SELECT * FROM candidates")
+    assert cand["decision"] == "pris" and "IA à l'essai" in cand["decision_reason"] and cand["p_win"] == pytest.approx(0.6)
+
+
+def test_validated_model_trades_full_size(db, paper, pm, prices, clock):
+    from sentinelle.agent.agent import TradingAgent
+    from sentinelle.config import DEFAULT_SETTINGS, apply_update
+    from sentinelle.risk.manager import RiskManager
+
+    from .test_risk_agent_backtest import _feat_with_signal
+
+    settings = apply_update(DEFAULT_SETTINGS, {})
+    df, feat, idx = _feat_with_signal()
+    sub = feat.iloc[: idx[-1] + 1].reset_index(drop=True)
+    prices["ETH/USDC"] = float(sub["close"].iloc[-1])
+    settings["ai"]["regime_filter"] = False
+    settings["ai"]["strategies"] = {k: k == "trend_breakout" for k in settings["ai"]["strategies"]}
+    settings["risk"]["min_reward_to_fees"] = 1.0
+    risk = RiskManager(db, paper.account_id, lambda: settings, clock)
+    agent = TradingAgent("ia", "training", db, pm, risk, lambda: settings, lambda: StubModel("validé"), timeframe="1h", clock=clock)
+    agent.running = True
+    agent.on_bar("ETH/USDC", sub)
+    pos = pm.open_positions("ETH/USDC", agent="ia")
+    assert len(pos) == 1 and pos[0]["risk_amount"] / paper.equity()[0] == pytest.approx(0.005, rel=0.15)
+    assert "IA : 60 % de chances de gain" in db.one("SELECT decision_reason FROM candidates")["decision_reason"]

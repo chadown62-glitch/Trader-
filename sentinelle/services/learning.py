@@ -17,6 +17,7 @@ from .common import UserError
 
 BENCH_SIZES = (1500, 4000)
 BENCH_SEEDS = 3
+KNOWLEDGE_DAYS = 2900  # les fiches sont calculées sur l'historique le plus long possible (environ 8 ans)
 
 
 class LearningMixin:
@@ -78,6 +79,9 @@ class LearningMixin:
         last = float(self.db.get_meta("last_train_ts", "0") or 0)
         new = self.db.scalar("SELECT COUNT(*) FROM candidates WHERE source = 'live' AND resolved_at > ?", (last,), 0)
         champion = self.models.champion(ai["timeframe"])
+        trial = champion is None
+        if trial:
+            champion = self.models.trial(ai["timeframe"])
         out["retraining"] = {
             "enabled": bool(ai["learning"]), "last": last or None, "every_hours": ai["retrain_hours"],
             "new_samples": int(new), "min_new_samples": ai["min_new_samples"],
@@ -86,7 +90,7 @@ class LearningMixin:
         out["model"] = None
         if champion is not None:
             chosen = getattr(champion, "chosen", None) or "riche"
-            out["model"] = {"version": champion.version, "level": RECIPE_LABELS.get(chosen, chosen),
+            out["model"] = {"version": champion.version, "level": RECIPE_LABELS.get(chosen, chosen), "trial": trial,
                             "half_life_days": getattr(champion, "half_life_days", None),
                             "mode": (champion.metrics or {}).get("mode")}
         return out
@@ -101,11 +105,22 @@ class LearningMixin:
         tf = settings["ai"]["timeframe"]
 
         def job(progress):
-            hist, btc = self._histories(settings, tf, 3000, lambda x, m: progress(0.8 * x / 0.25 if x <= 0.25 else 0.8, m))
+            hist, btc = self._histories(settings, tf, KNOWLEDGE_DAYS, lambda x, m: progress(0.8 * x / 0.25 if x <= 0.25 else 0.8, m))
             n = self.update_knowledge(hist, btc, tf, settings, lambda x, m: progress(0.8 + 0.2 * x, m))
             return {"updated": n}
 
         return self.jobs.submit("knowledge", "Mise à jour des fiches par crypto", job)
+
+    def refresh_knowledge_if_stale(self, max_age_hours: float = 24.0) -> bool:
+        """Relance le calcul des fiches (historique complet) si l'une manque ou date de plus d'un jour."""
+        if self.jobs.running("knowledge"):
+            return False
+        rows = {r["symbol"]: r["updated_at"] for r in self.db.query("SELECT symbol, updated_at FROM knowledge")}
+        wl = self.settings["general"]["watchlist"]
+        if all(s in rows and time.time() - rows[s] < max_age_hours * 3600 for s in wl):
+            return False
+        self.start_knowledge()
+        return True
 
     def update_knowledge(self, hist: dict, btc, tf: str, settings: dict, progress=None) -> int:
         """Recalcule la fiche de chaque crypto à partir de son historique complet (appelé aussi à chaque entraînement)."""

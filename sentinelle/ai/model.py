@@ -54,7 +54,7 @@ RECIPE_LABELS = {"mixte": "mixte (arbres simples + modèle linéaire)", "prudent
 MEMBERS = ("prudent", "moyen", "riche", "lin")
 # Mesures de novembre 2026 (docs/RESULTATS.md) :
 # - banc d'essai (règles cachées) : « mixte » retrouve 86 % des règles, « prudent » 87 %, l'ancien modèle « riche » 75 %,
-#   le modèle linéaire seul 63 % (il ne voit pas les règles en cloche) ;
+#   le modèle linéaire seul 62 % (il ne voit pas les règles en cloche) ;
 # - données réelles (8 cryptos, validation chronologique) : score 0,561 pour « mixte », 0,538 pour « prudent », 0,534 pour « riche ».
 # « mixte » est donc la recette de référence : aussi bonne sur les règles riches, nettement meilleure quand le signal est faible.
 DEFAULT_RECIPE = "mixte"

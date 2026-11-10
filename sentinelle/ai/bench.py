@@ -155,12 +155,12 @@ def run_bench(sizes: tuple[int, ...] = (1500, 4000), seeds: int = 3, timeframe: 
         for n in sizes:
             g = sub[sub["n"] == n]
             item = {"n": int(n), "auc": _mean(g["auc"]), "auc_oracle": _mean(g["auc_oracle"]),
-                    "validated": int((g["verdict"] == "validé").sum()), "runs": int(len(g)),
+                    # « validated » : le tri de l'IA a fait ses preuves ; « validated_rules » : validé sans le tri de l'IA
+                    "validated": int(((g["verdict"] == "validé") & (g["mode"] == "ia")).sum()),
+                    "validated_rules": int(((g["verdict"] == "validé") & (g["mode"] != "ia")).sum()), "runs": int(len(g)),
                     "model_r": _mean(g["model_r"]), "base_r": _mean(g["base_r"]), "oracle_r": _mean(g["oracle_r"])}
             if rule.learnable:
                 item["rate"] = _mean(g["rate"])  # une épreuve sans réponse (trop peu de cas) est ignorée
-            else:
-                item["ia_validated"] = int(((g["verdict"] == "validé") & (g["mode"] == "ia")).sum())
             entry["by_size"].append(item)
         if rule.learnable:
             best = entry["by_size"][-1].get("rate")

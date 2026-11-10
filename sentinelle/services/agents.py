@@ -28,7 +28,12 @@ class AgentsMixin:
                 st.update(agent.status())
             row = self.db.one("SELECT started_at FROM agents WHERE name = ?", (name,))
             st["started_at"] = row["started_at"] if row else None
-            model = self.models.champion(self.settings["ai"]["timeframe"])
+            tf = self.settings["ai"]["timeframe"]
+            model = self.models.champion(tf)
+            st["model_trial"] = False
+            if model is None and d["mode"] != "live":  # un modèle à l'essai ne sert qu'en argent fictif
+                model = self.models.trial(tf)
+                st["model_trial"] = model is not None
             st["model"] = model.version if model else None
             out.append(st)
         return out
@@ -98,9 +103,11 @@ class AgentsMixin:
             for ext in self.extensions:
                 if hasattr(ext, "score_for"):
                     news_fn = ext.score_for
+            # réel : uniquement un modèle validé ; entraînement : à défaut, le modèle « à l'essai »
+            model_fn = (lambda: self.models.champion(tf)) if d["mode"] == "live" else (lambda: self.models.champion(tf) or self.models.trial(tf))
             agent = TradingAgent(
                 name, d["mode"], self.db, rt.positions, rt.risk, lambda: self.settings,
-                lambda: self.models.champion(tf), timeframe=tf, news_fn=news_fn,
+                model_fn, timeframe=tf, news_fn=news_fn,
                 fresh_fn=lambda s: self.hub.is_fresh(s, 180), budget_fn=budget_fn, bus=self.bus,
                 price_check_fn=self._price_check,
                 shield_fn=self.shield.check_entry,

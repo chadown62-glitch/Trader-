@@ -66,7 +66,7 @@ export default {
           <template v-for="t in trades" :key="t.id">
             <tr @click="open = open===t.id ? null : t.id" style="cursor:pointer">
               <td class="nowrap">{{ dt(t.exit_ts) }}</td><td><b>{{ t.symbol }}</b></td>
-              <td><span class="badge" :class="t.origin==='ai' ? 'paper' : ''">{{ t.origin==='ai' ? (t.mode==='exploration' ? 'IA (explo.)' : 'IA') : 'Manuel' }}</span></td>
+              <td><span class="badge" :class="t.origin==='ai' ? 'paper' : ''">{{ t.origin==='ai' ? (t.mode==='exploration' ? 'IA (explo.)' : t.mode==='essai' ? 'IA (essai)' : 'IA') : 'Manuel' }}</span></td>
               <td>{{ STRATEGY_LABELS[t.strategy] || '—' }}</td><td class="num">{{ qty(t.initial_qty) }}</td>
               <td class="num">{{ price(t.entry_price) }}</td><td class="num">{{ price(t.exit_price) }}</td>
               <td class="num" :class="cls(t.realized_pnl)">{{ signed(t.realized_pnl) }}</td><td class="num" :class="cls(t.pnl_r)">{{ rr(t.pnl_r) }}</td>

@@ -56,7 +56,7 @@ def proven_positive(m: dict) -> bool:
     """L'espérance est-elle positive avec 95 % de confiance ? (moyenne − 1,645 erreur type > 0)
 
     Sur du bruit pur, un critère plus souple validait à tort environ 4 entraînements sur 10
-    (mesuré sur le banc d'essai) ; celui-ci limite ces fausses validations à environ 1 sur 20.
+    (mesuré sur le banc d'essai : 8 sur 18) ; avec celui-ci, 2 sur 72.
     """
     if not m or not m.get("n") or m.get("se") is None:
         return False

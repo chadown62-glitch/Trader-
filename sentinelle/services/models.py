@@ -41,6 +41,23 @@ class ModelStore:
             self._cache[timeframe] = model
         return model
 
+    def trial(self, timeframe: str) -> MetaModel | None:
+        """Modèle « à l'essai » : prometteur mais pas prouvé. Réservé à l'entraînement en argent fictif."""
+        key = "essai:" + timeframe
+        with self._lock:
+            if key in self._cache:
+                return self._cache[key]
+        row = self.db.one("SELECT * FROM models WHERE status = 'trial' AND timeframe = ? ORDER BY created_at DESC LIMIT 1", (timeframe,))
+        model = None
+        if row:
+            try:
+                model = MetaModel.load(Path(row["path"]))
+            except Exception:
+                log.exception("Modèle %s illisible", row["version"])
+        with self._lock:
+            self._cache[key] = model
+        return model
+
     def invalidate(self) -> None:
         with self._lock:
             self._cache.clear()
@@ -59,10 +76,16 @@ class ModelStore:
             {"version": version, "created_at": time.time(), "status": status, "timeframe": model.timeframe,
              "metrics": dumps(model.metrics), "path": str(path), "notes": notes},
         )
+        # le dernier entraînement fait foi : un ancien modèle à l'essai est retiré dans tous les cas
+        self.db.execute("UPDATE models SET status = 'retired' WHERE status = 'trial' AND timeframe = ? AND version != ?", (model.timeframe, version))
         if result.ok:
             self.promote(version)
+        elif getattr(result, "trial", False):
+            self.db.update("models", version, {"status": "trial"}, key="version")
+            self.db.log("info", "models", f"Modèle {version} mis à l'essai en argent fictif (prometteur, pas encore prouvé)")
         else:
             self.db.update("models", version, {"status": "rejected"}, key="version")
+        self.invalidate()
         return self.get(version)
 
     def promote(self, version: str) -> None:

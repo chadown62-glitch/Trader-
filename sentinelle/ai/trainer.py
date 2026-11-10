@@ -36,6 +36,7 @@ log = logging.getLogger("sentinelle.trainer")
 
 THRESHOLD_GRID = [-0.05, 0.0, 0.02, 0.05, 0.08, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4]
 MIN_RESOLVED = 300
+TRIAL_MARGIN = 0.05  # « à l'essai » : au moins +0,05 R par trade, et au moins +0,05 R de mieux que « tout prendre »
 
 
 @dataclass
@@ -47,6 +48,7 @@ class TrainResult:
     eval_model: MetaModel | None = None
     report: dict = field(default_factory=dict)
     holdout_start: int | None = None
+    trial: bool = False  # prometteur mais pas prouvé : utilisable en argent fictif uniquement
 
 
 def build_dataset(
@@ -74,6 +76,11 @@ def build_dataset(
         return pd.DataFrame(columns=["symbol", "strategy", "decision_ts", "outcome", "outcome_r", "exit_ts", *MODEL_COLUMNS]), feats
     cand = pd.concat(parts, ignore_index=True).sort_values(["decision_ts", "symbol", "strategy"]).reset_index(drop=True)
     return cand, feats
+
+
+def _r(x: float) -> str:
+    """Résultat en R au format français (+0,189)."""
+    return f"{x:+.3f}".replace(".", ",").replace("-", "−")
 
 
 def _auc(y: np.ndarray, p: np.ndarray) -> float | None:
@@ -271,18 +278,26 @@ def train_walk_forward(
         reasons.append("Résultat positif mais trop incertain statistiquement : il pourrait être dû au hasard (confiance inférieure à 95 %).")
     if m_base["mean_r"] is not None and m_model["mean_r"] is not None and m_model["n"] >= 30:
         if m_model["mean_r"] > m_base["mean_r"]:
-            reasons.append(f"L'IA fait mieux que « prendre tous les signaux » ({m_model['mean_r']:+.3f} R contre {m_base['mean_r']:+.3f} R par trade).")
+            reasons.append(f"L'IA fait mieux que « prendre tous les signaux » ({_r(m_model['mean_r'])} R contre {_r(m_base['mean_r'])} R par trade).")
         else:
-            reasons.append(f"L'IA ne fait pas mieux que « prendre tous les signaux » ({m_model['mean_r']:+.3f} R contre {m_base['mean_r']:+.3f} R).")
+            reasons.append(f"L'IA ne fait pas mieux que « prendre tous les signaux » ({_r(m_model['mean_r'])} R contre {_r(m_base['mean_r'])} R).")
     if ok:
-        reasons.insert(0, f"Espérance positive sur des données jamais vues : {m_model['mean_r']:+.3f} R par trade sur {m_model['n']} trades.")
+        reasons.insert(0, f"Espérance positive sur des données jamais vues : {_r(m_model['mean_r'])} R par trade sur {m_model['n']} trades.")
     mode = "ia"
     if not ok and rules_fallback and m_base["n"] >= 30 and proven_positive(m_base):
         # Le filtre IA n'apporte pas de preuve, mais les règles seules en apportent : on les valide telles quelles.
         ok, mode, thr = True, "règles seules", -1e9
-        reasons.insert(0, f"Validé en « règles seules » : prendre tous les signaux donne {m_base['mean_r']:+.3f} R par trade "
+        reasons.insert(0, f"Validé en « règles seules » : prendre tous les signaux donne {_r(m_base['mean_r'])} R par trade "
                           f"sur {m_base['n']} trades jamais vus ; le filtre IA est désactivé car il n'a pas fait mieux.")
         eval_model.threshold = thr
+
+    # Prometteur sans être prouvé : nettement positif sur les données jamais vues et nettement meilleur que « tout prendre ».
+    # Un tel modèle est mis « à l'essai » : l'IA d'entraînement s'en sert en argent fictif (taille réduite),
+    # ce qui permet de le juger sur des données vraiment nouvelles. Jamais en réel.
+    trial = bool(not ok and m_model["n"] >= 30 and (m_model["mean_r"] or 0) >= TRIAL_MARGIN
+                 and m_base["mean_r"] is not None and m_model["mean_r"] - m_base["mean_r"] >= TRIAL_MARGIN)
+    if trial:
+        reasons.append("Modèle mis à l'essai en argent fictif : prometteur, mais pas encore prouvé. Il ne peut pas trader en réel.")
 
     # -- modèle final -------------------------------------------------------------------
     prog(0.9, "Entraînement du modèle final sur toutes les données")
@@ -293,6 +308,7 @@ def train_walk_forward(
     eval_model.version = final.version + "-eval"
     summary = {
         "verdict": "validé" if ok else "non validé",
+        "trial": trial,
         "mode": mode,
         "holdout_mean_r": (m_base if mode == "règles seules" else m_model)["mean_r"],
         "holdout_n": (m_base if mode == "règles seules" else m_model)["n"],
@@ -309,4 +325,4 @@ def train_walk_forward(
     report["duration_s"] = round(time.time() - t_start, 1)
     report["base_rate"] = float(y_all.mean())
     prog(1.0, "Terminé")
-    return TrainResult(ok, "validé" if ok else "non validé", reasons, final, eval_model, report, hold_start)
+    return TrainResult(ok, "validé" if ok else "non validé", reasons, final, eval_model, report, hold_start, trial)

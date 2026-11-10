@@ -11,6 +11,7 @@ from ..backtest.engine import run_backtest
 from ..market.history import continuous_history, last_continuous
 from ..storage.db import dumps
 from .common import UserError
+from .learning import KNOWLEDGE_DAYS
 
 
 class TrainingMixin:
@@ -75,8 +76,11 @@ class TrainingMixin:
         res = train_walk_forward(cand, tf, min_edge=settings["ai"]["min_edge_r"], progress=sub,
                                  rules_fallback=settings["ai"].get("rules_fallback", True),
                                  recipe=settings["ai"]["recipe"], half_life_days=settings["ai"]["half_life_days"])
-        try:  # les fiches par crypto profitent de l'historique déjà chargé
-            self.update_knowledge(hist, btc, tf, settings)
+        try:
+            if days >= KNOWLEDGE_DAYS:  # les fiches par crypto profitent de l'historique complet déjà chargé
+                self.update_knowledge(hist, btc, tf, settings)
+            else:  # entraînement sur une période courte : les fiches gardent leur historique complet
+                self.refresh_knowledge_if_stale()
         except Exception as exc:
             self.db.log("warning", "ia", f"Fiches par crypto non mises à jour : {str(exc)[:150]}")
         report = dict(res.report)

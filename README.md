@@ -13,9 +13,11 @@ Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et tél�
   - avec **l'avis de l'IA** sur chaque crypto.
 - **Entraîner l'IA** :
   - sur des années d'historique, avec une validation honnête sur une période qu'elle n'a jamais vue ;
+  - **vérifier qu'elle sait apprendre** : un banc d'essai lui cache des règles dans des marchés artificiels et mesure ce qu'elle retrouve ;
   - puis **en direct, 24 h/24, avec de l'argent fictif**. Chaque décision, prise ou refusée, est expliquée, et chaque signal est suivi jusqu'à son issue.
 - **Lancer l'IA sur votre portefeuille réel**, seulement quand le bulletin de préparation est au vert : modèle validé, 30 jours de résultats en direct, gains nets, baisse contenue.
 - **Simulation accélérée** : rejouer des mois de marché en quelques secondes, avec exactement les mêmes règles.
+- **Fiches cryptos** : tout ce que Sentinelle sait de chaque crypto suivie (ampleur normale des mouvements, pires chutes, lien avec le Bitcoin, liquidité, résultats passés de chaque stratégie).
 - **Canaux de signaux Telegram** lus en **observation** : Sentinelle mesure la vraie fiabilité de chaque canal, sur les vrais prix.
 - **Contexte de marché** (Fear & Greed, indices boursiers, taux de financement) et **calendrier économique automatique** : pas de nouvelle position autour des annonces importantes (inflation, emploi, Fed, BCE).
 - **Bouclier temps réel** : pas de nouvelle position pendant un mouvement brutal, une cascade de liquidations, un carnet d'ordres trop mince, ou juste après une actualité majeure.
@@ -58,7 +60,11 @@ Les résultats, y compris les mauvais, sont dans **[docs/RESULTATS.md](docs/RESU
 - exemple : un croisement de moyennes « EMA 9/21 » en 1 minute fait environ 1 000 trades par mois et perd **80 à 89 %** en un mois une fois les frais payés ;
 - sur 2018-2022 (années jamais utilisées pour concevoir les stratégies), le suivi de tendance est **positif** (+0,33 R par trade en 4 h) ;
 - sur l'année écoulée, le système a fait **−2,5 %** pendant que le marché (8 cryptos) faisait **−45,6 %** : **il protège le capital, il n'enrichit pas** ;
-- l'IA est aujourd'hui **« non validée »**, donc elle s'entraîne en argent fictif et le mode réel reste verrouillé.
+- sur 25 autres cryptos liquides, les mêmes stratégies **perdent** (−0,06 à −0,09 R par trade) : l'avantage est concentré sur les plus grandes cryptos, et ajouter des cryptos ne multiplie pas les gains ;
+- **l'IA sait apprendre** : sur le banc d'essai, elle retrouve en moyenne 86 % d'une règle cachée (75 % avec l'ancien modèle) et ne « découvre » rien dans du bruit pur ;
+- **le vrai marché contient très peu d'information stable** : même avec 475 000 exemples, un modèle fait à peine mieux que le hasard sur la période suivante ;
+- le tri de l'IA aide tout de même : sur 18 mois jamais vus, **+0,19 R par trade contre +0,02 R sans tri**, portefeuille simulé à +6,6 % pendant que le marché perdait 43 % ;
+- ce n'est pas encore prouvé à 95 % : l'IA est donc **« non validée »**, son modèle est **« à l'essai » en argent fictif** et le mode réel reste verrouillé.
 
 ## Pour les développeurs
 

@@ -95,7 +95,7 @@ export default {
               <button v-else-if="a.running" class="small" @click="stopAgent(a)">Arrêter</button>
             </div>
             <div v-if="a.message" class="small muted" style="margin-top:6px">{{ a.message }}</div>
-            <div v-if="a.running" class="small muted" style="margin-top:6px">Unité de temps {{ a.timeframe }} · {{ a.stats.entries }} entrée(s) · modèle : {{ a.model || 'aucun (exploration)' }}</div>
+            <div v-if="a.running" class="small muted" style="margin-top:6px">Unité de temps {{ a.timeframe }} · {{ a.stats.entries }} entrée(s) · modèle : {{ a.model ? a.model + (a.model_trial ? ' (à l’essai)' : '') : 'aucun (exploration)' }}</div>
           </div>
           <div v-if="readiness" style="margin-top:6px">
             <div class="inline small"><b>Préparation au réel</b><span class="spacer" style="flex:1"></span><span class="num">{{ readiness.score }} %</span></div>

@@ -91,7 +91,7 @@ export default {
       return [{ data: r.backtest_model.equity || [], color: '#3b82f6' }, { data: r.backtest_baseline?.equity || [], color: '#93a0b8', dashed: true }];
     });
     const manualBtCurve = computed(() => btResult.value ? [{ data: btResult.value.equity || [], color: '#22c55e' }] : []);
-    const STATUS = { champion: ['Actif', 'ok'], challenger: ['En test', 'warn'], rejected: ['Non validé', 'err'], retired: ['Retiré', ''] };
+    const STATUS = { champion: ['Actif', 'ok'], trial: ['À l’essai', 'warn'], challenger: ['En test', 'warn'], rejected: ['Non validé', 'err'], retired: ['Retiré', ''] };
     return { store, lastTrain, readiness, models, report, reportVersion, trainDays, btDays, btUseModel, btResult, stats, cands, decisions, confirmText, tab,
       training, live, trainingAcc, trainJob, btJob, prepJob, startTraining, stopAgent, startLive, train, backtest, promote, retire, openReport,
       holdoutCurves, btCurves, manualBtCurve, STATUS, money, signed, pct, plainPct, rr, cls, dt, dtMs, date, ago, STRATEGY_LABELS, FEATURE_LABELS, REASON_ICONS };
@@ -130,7 +130,7 @@ export default {
             <div class="stat"><span class="label">Taux de réussite</span><span class="value">{{ stats?.ai?.win_rate !== null && stats?.ai?.win_rate !== undefined ? plainPct(stats.ai.win_rate) : '—' }}</span></div>
             <div class="stat"><span class="label">Résultat moyen</span><span class="value" :class="cls(stats?.ai?.mean_r)">{{ rr(stats?.ai?.mean_r) }}</span></div>
           </div>
-          <p class="faint small">Mode : {{ training?.model ? 'modèle validé ' + training.model : 'exploration (aucun modèle validé : signaux de base, taille réduite de moitié)' }}.</p>
+          <p class="faint small">Mode : {{ training?.model ? (training.model_trial ? 'modèle à l’essai ' + training.model + ' (prometteur mais pas encore prouvé : taille réduite de moitié, argent fictif uniquement)' : 'modèle validé ' + training.model) : 'exploration (aucun modèle : signaux de base, taille réduite de moitié)' }}.</p>
           <template v-if="training?.running && training.scan && Object.keys(training.scan).length">
             <h3 style="margin-top:12px">Ce que l'IA voit (dernière bougie {{ training.timeframe }})</h3>
             <div class="table-wrap"><table>
@@ -226,7 +226,7 @@ export default {
               <td><span class="badge" :class="(STATUS[m.status]||[])[1]">{{ (STATUS[m.status]||[m.status])[0] }}</span></td>
               <td class="nowrap"><button class="small" @click="openReport(m.version)">Rapport</button>
                 <button v-if="m.status!=='champion' && m.metrics?.verdict==='validé'" class="small" @click="promote(m)">Activer</button>
-                <button v-if="m.status==='champion'" class="small ghost" @click="retire(m)">Retirer</button></td></tr>
+                <button v-if="m.status==='champion' || m.status==='trial'" class="small ghost" @click="retire(m)">Retirer</button></td></tr>
               <tr v-if="!models.length"><td colspan="6" class="empty">Aucun entraînement pour l'instant.</td></tr></tbody>
           </table></div>
         </div>
@@ -236,7 +236,7 @@ export default {
         <div class="note verdict" :class="report.verdict==='validé' ? 'ok' : 'warn'" style="margin-bottom:14px">
           <span class="big-ico">{{ report.verdict==='validé' ? '✅' : '⚠️' }}</span>
           <div><b>Modèle {{ report.verdict }}{{ report.summary?.mode === 'règles seules' ? ' (règles seules : le filtre IA est désactivé)' : '' }}</b><div v-for="r in report.reasons" :key="r" class="small">{{ r }}</div>
-            <div v-if="report.verdict!=='validé'" class="small" style="margin-top:4px">Conséquence : l'IA reste en exploration (argent fictif) et ne peut pas trader en réel. C'est une protection, pas un bug.</div></div>
+            <div v-if="report.verdict!=='validé'" class="small" style="margin-top:4px">Conséquence : l'IA {{ report.summary?.trial ? 'utilise ce modèle « à l’essai » en argent fictif, avec une taille réduite,' : 'reste en exploration (argent fictif)' }} et ne peut pas trader en réel. C'est une protection, pas un bug.</div></div>
         </div>
         <div class="grid cols-2" style="margin-bottom:14px" v-if="report.holdout">
           <div>

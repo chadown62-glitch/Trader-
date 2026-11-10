@@ -76,7 +76,9 @@ Page **IA → Apprentissage sur l'historique → Lancer l'entraînement**. Compt
 3. L'IA apprend lesquelles valent la peine. Elle est ensuite testée sur une **période qu'elle n'a jamais vue** : c'est le seul test honnête.
 4. **Verdict :**
    - **validé** : gain moyen positif sur la période jamais vue, avec **95 % de confiance** que ce n'est pas dû au hasard. Le modèle devient actif.
-   - **non validé** : l'IA reste en « exploration » (argent fictif uniquement) et ne pourra pas trader en réel. **C'est une protection, pas un bug.**
+   - **non validé** : l'IA reste en argent fictif et ne pourra pas trader en réel. **C'est une protection, pas un bug.**
+     - Si le modèle est prometteur sans être prouvé, il est mis **« à l'essai »** : l'IA d'entraînement s'en sert en argent fictif, avec une taille réduite de moitié, pour le juger sur des données vraiment nouvelles.
+     - Sinon, l'IA reste en « exploration » : elle prend les signaux de base, avec une taille réduite.
 
 ### a bis) Vérifier que l'IA sait apprendre
 Page **IA → Capacités d'apprentissage → Tester les capacités d'apprentissage** (environ deux minutes, sans argent ni données de marché).

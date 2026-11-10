@@ -293,17 +293,22 @@ class TradingAgent:
                 log.info("Contexte de décision indisponible pour %s", symbol)
 
         opened = False
+        # Un modèle « à l'essai » (prometteur, pas prouvé) n'est utilisé qu'en argent fictif, avec une taille réduite.
+        validated = model is not None and (self.mode == "backtest" or (model.metrics or {}).get("verdict") == "validé")
+        on_trial = model is not None and not validated and self.mode == "training" and ai.get("exploration", True)
         for c in cands:
             st = c["st"]
             mode_used, risk_factor, decision, reason = None, 1.0, "refusé", ""
             if block:
                 reason = block
-            elif model is not None:
+            elif validated or on_trial:
                 if c["er"] >= thr:
-                    mode_used = "model"
+                    mode_used = "model" if validated else "essai"
+                    if on_trial:
+                        risk_factor = float(ai.get("exploration_risk_factor", 0.5))
                 else:
                     reason = f"Espérance insuffisante selon l'IA ({c['er']:+.2f} R, seuil {thr:+.2f} R)"
-            elif self.mode in ("training", "backtest") and ai.get("exploration", True):
+            elif model is None and self.mode in ("training", "backtest") and ai.get("exploration", True):
                 mode_used, risk_factor = "exploration", float(ai.get("exploration_risk_factor", 0.5))
             else:
                 reason = "Aucun modèle validé : l'IA observe sans trader"
@@ -333,7 +338,7 @@ class TradingAgent:
                         self.positions.open(
                             symbol, rd.qty, origin="ai", agent=self.name, stop=c["stop"], target=c["target"],
                             strategy=c["name"], p_win=c["p"], expected_r=c["er"],
-                            model_version=model.version if model is not None and mode_used == "model" else None,
+                            model_version=model.version if model is not None and mode_used in ("model", "essai") else None,
                             horizon_bars=st.horizon(self.timeframe), timeframe=self.timeframe, reason=explanation,
                             data={"mode": mode_used, "risk_checks": rd.checks, "regime": regime, "atr_entry": a},
                         )
@@ -364,6 +369,9 @@ class TradingAgent:
         parts = [f"Achat {base} : stratégie « {st.label} »", f"climat {REGIME_LABELS.get(row['regime'], row['regime'])}"]
         if mode_used == "model":
             parts.append(f"IA : {c['p']*100:.0f} % de chances de gain, espérance {c['er']:+.2f} R (seuil {thr:+.2f} R)")
+        elif mode_used == "essai":
+            parts.append(f"IA à l'essai : {c['p']*100:.0f} % de chances de gain, espérance {c['er']:+.2f} R (seuil {thr:+.2f} R) ; "
+                         "modèle prometteur mais pas encore prouvé, taille réduite")
         else:
             parts.append("mode exploration (aucun modèle validé encore, taille réduite)")
         risk_pct = rd.risk_amount / max(1e-9, self.broker.equity()[0]) * 100

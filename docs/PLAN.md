@@ -48,8 +48,13 @@ Mis à jour le 10 novembre 2026. ✅ = fait · 🔲 = à faire · 👤 = c'est �
 | 18 | Validation « règles seules » quand le filtre IA n'apporte rien | ✅ Ajoutée |
 | 19 | Nouvelles idées jugées uniquement sur des données futures | En continu |
 | 19 bis | Stratégie « EMA 9/21 en 1 minute » (proposée par Gemini) | ✅ Mesurée, **rejetée** : −80 à −89 % en un mois avec les frais (RESULTATS.md §9) |
+| 19 ter | Meilleur modèle d'apprentissage (recette « mixte ») | ✅ Adopté : 86 % des règles cachées retrouvées (75 % avant) ; sur données réelles, tri des signaux à +0,13 R (contre +0,04 R) |
+| 19 quater | Critère de validation à 95 % de confiance | ✅ Adopté : fausses validations sur bruit pur passées de 8 sur 18 à 2 sur 72 |
+| 19 quinquies | Trou de cotation des paires USDC (fin 2022 à 2023-2024) dans l'historique long | ✅ **Défaut corrigé** ; mesures refaites (RESULTATS.md §10 b) |
+| 19 sexies | Plus de cryptos, profil par crypto, mémoire par crypto, état du marché, flux acheteur/vendeur, apprentissage sur toutes les bougies | ✅ Mesurés, **non retenus** : aucun gain fiable (RESULTATS.md §10 c) |
+| 19 septies | Modèle « à l'essai » en argent fictif quand il est prometteur mais pas prouvé | ✅ Ajouté |
 
-État honnête : sur les 18 derniers mois, le système reste **à l'équilibre** (≈ 0 %) pendant que le marché perd environ 30 %. L'IA est toujours « non validée » et le mode réel reste verrouillé.
+État honnête : sur les 18 derniers mois (jamais vus par le modèle), le portefeuille simulé avec le tri de l'IA fait **+6,6 %** pendant que le marché perd 43 %. Mais 87 trades ne suffisent pas à le prouver à 95 % : l'IA est toujours « non validée », son modèle est « à l'essai » en argent fictif et le mode réel reste verrouillé.
 
 ## 4. Confort
 
@@ -63,6 +68,8 @@ Mis à jour le 10 novembre 2026. ✅ = fait · 🔲 = à faire · 👤 = c'est �
 ## 5. Pistes pour la suite
 
 - Après 30 jours d'entraînement : bilan chiffré. Si le bulletin est au vert : testnet, puis réel avec un petit budget.
+- Suivre le modèle « à l'essai » en direct : il faut environ 130 trades pour prouver (ou infirmer) à 95 % son avantage mesuré sur l'historique.
+- Flux acheteur/vendeur par bougie : petit effet mesuré sur 33 cryptos seulement. À revoir si la liste suivie s'élargit (demande de re-télécharger l'historique avec ces colonnes).
 - Activer un canal de signaux en trading **seulement** s'il est positif sur au moins 30 signaux mesurés (pas encore codé : à faire après observation).
 - Coupler 4 h et 1 jour (deux agents) si le journalier se confirme en direct.
 - Après quelques mois de journal « microstructure » : mesurer si la pression acheteuse/vendeuse ou l'écart auraient amélioré les décisions, et ne les utiliser que si c'est prouvé.
