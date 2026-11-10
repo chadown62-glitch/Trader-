@@ -17,7 +17,7 @@ from typing import Callable
 import pandas as pd
 
 from ..config import timeframe_ms
-from .history import HistoryStore, clean_frame, to_frame
+from .history import HistoryStore, clean_frame, last_continuous, to_frame
 from .markets import MarketInfo
 from .sources import MarketSource
 
@@ -145,7 +145,8 @@ class MarketHub:
     # -- bougies clôturées (IA) ---------------------------------------------
     def track(self, symbol: str, timeframe: str, warmup_days: int) -> pd.DataFrame:
         """Charge l'historique et suit les clôtures de bougies pour une paire."""
-        df = self.history.update(symbol, timeframe, warmup_days)
+        # jamais de trou de cotation dans la série suivie (paire retirée puis recotée)
+        df = last_continuous(self.history.update(symbol, timeframe, warmup_days))
         self._series[(symbol, timeframe)] = df
         self._tracked.setdefault(timeframe, set()).add(symbol)
         return df

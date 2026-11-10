@@ -1,12 +1,13 @@
 // IA : entraînement (argent fictif), portefeuille réel verrouillé, rapports d'entraînement, simulation accélérée
 import { api, on, safe } from '../api.js';
 import { LineChart } from '../charts.js';
+import { LearningTab } from './learning.js';
 import { store, toast, confirmBox, money, signed, pct, plainPct, rr, cls, dt, dtMs, date, ago, STRATEGY_LABELS, FEATURE_LABELS, REASON_ICONS } from '../store.js';
 
 const { ref, computed, onMounted, onBeforeUnmount, watch } = Vue;
 
 export default {
-  components: { LineChart },
+  components: { LineChart, LearningTab },
   setup() {
     const readiness = ref(null);
     const models = ref([]);
@@ -107,6 +108,7 @@ export default {
       <button :class="{on: tab==='training'}" @click="tab='training'">Entraînement en direct</button>
       <button :class="{on: tab==='live'}" @click="tab='live'">Portefeuille réel</button>
       <button :class="{on: tab==='learn'}" @click="tab='learn'">Apprentissage sur l'historique</button>
+      <button :class="{on: tab==='bench'}" @click="tab='bench'">Capacités d'apprentissage</button>
       <button :class="{on: tab==='sim'}" @click="tab='sim'">Simulation accélérée</button>
       <button :class="{on: tab==='journal'}" @click="tab='journal'">Journal des décisions</button>
     </div>
@@ -292,6 +294,8 @@ export default {
         </div>
       </div>
     </template>
+
+    <LearningTab v-if="tab==='bench'" />
 
     <template v-if="tab==='sim'">
       <div class="card">

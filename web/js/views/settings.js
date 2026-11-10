@@ -28,6 +28,8 @@ const SECTIONS = {
     { key: 'regime_filter', label: 'Rester à l’abri en marché baissier', kind: 'bool', help: 'Aucun achat quand le BTC est sous ses moyennes de fond (recommandé en spot).' },
     { key: 'use_news', label: 'Veto des actualités', kind: 'bool', help: 'Bloque les achats si une actualité très négative et confirmée concerne la crypto.' },
     { key: 'extended_history', label: 'Historique étendu pour l\u2019apprentissage', kind: 'bool', help: 'Ajoute l\u2019historique plus ancien des paires USDT (mêmes cryptos) : plusieurs années de plus pour apprendre.' },
+    { key: 'recipe', label: 'Recette du modèle', kind: 'select', options: [['mixte', 'Mixte : arbres simples + modèle linéaire (recommandé)'], ['auto', 'Choisie automatiquement à chaque entraînement'], ['prudent', 'Arbres simples'], ['lineaire', 'Linéaire seul'], ['moyen', 'Arbres intermédiaires'], ['riche', 'Arbres fins (ancien modèle)'], ['comite', 'Comité de trois modèles d\u2019arbres']], help: 'La recette mixte est celle qui apprend le mieux, sur le banc d\u2019essai (page IA → Capacités d\u2019apprentissage) comme sur les données réelles. S\u2019applique au prochain entraînement.' },
+    { key: 'half_life_days', label: 'Oubli progressif : demi-vie (jours, vide = désactivé)', kind: 'num', step: 30, help: 'Donne plus de poids aux situations récentes. Mesuré : effet neutre à légèrement positif sur données réelles ; désactivé par défaut.' },
     { key: 'rules_fallback', label: 'Validation « règles seules »', kind: 'bool', help: 'Si le filtre IA n\u2019apporte rien mais que les règles des stratégies sont prouvées sur des données jamais vues, elles sont validées telles quelles.' },
   ] },
   market: { title: 'Données et sécurité des prix', fields: [

@@ -23,6 +23,7 @@ from email.utils import parsedate_to_datetime
 
 import httpx
 
+from ..ai.coins import detect_assets, glossary, resolve_asset
 from ..storage.db import dumps, loads
 
 log = logging.getLogger("sentinelle.news")
@@ -109,7 +110,8 @@ def validate_analysis(raw: dict, allowed_assets: set[str]) -> dict:
     assets = raw.get("assets") or []
     if not isinstance(assets, list):
         raise ValueError("assets invalide")
-    clean_assets = sorted({str(a).upper().strip() for a in assets if str(a).upper().strip() in allowed_assets})
+    # l'IA locale répond parfois par un nom (« Ripple », « Ether ») : on le ramène au sigle suivi
+    clean_assets = sorted({r for r in (resolve_asset(a, allowed_assets) for a in assets) if r})
     et = raw.get("event_type") if raw.get("event_type") in EVENT_TYPES else "autre"
     summary = _clean(str(raw.get("summary_fr") or ""), 300)
     return {
@@ -134,14 +136,15 @@ class OllamaClient:
         r.raise_for_status()
         return [m.get("name") for m in r.json().get("models", [])]
 
-    def analyze(self, title: str, summary: str) -> dict:
+    def analyze(self, title: str, summary: str, known: str = "") -> dict:
+        system = SYSTEM_PROMPT + (f" Cryptos suivies (sigle et noms courants) : {known}." if known else "")
         payload = {
             "model": self.model,
             "stream": False,
             "format": SCHEMA,
             "options": {"temperature": 0},
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system},
                 {"role": "user", "content": f"<article>\nTitre : {title}\nRésumé : {summary}\n</article>"},
             ],
         }
@@ -298,6 +301,7 @@ class NewsService:
         cfg = self.cfg
         client = OllamaClient(cfg["ollama_url"], cfg["model"], transport=self.transport)
         allowed = self._allowed_assets()
+        known = glossary(allowed - {"USDC", "USDT"})
         rows = self.app.db.query("SELECT * FROM news WHERE analyzed_ts IS NULL ORDER BY published_ts DESC LIMIT ?", (limit,))
         done = 0
         for row in rows:
@@ -305,8 +309,12 @@ class NewsService:
                 done += 1
                 continue
             try:
-                raw = client.analyze(row["title"], row["summary"] or "")
+                raw = client.analyze(row["title"], row["summary"] or "", known)
                 a = validate_analysis(raw, allowed)
+                # filet de sécurité : si l'IA locale n'a rattaché l'article à aucune crypto alors que le titre
+                # en nomme une sans ambiguïté, on la rattache
+                if not a["assets"] and not a["market_wide"]:
+                    a["assets"] = detect_assets(row["title"], allowed - {"USDC", "USDT"})
                 self.state["ollama_ok"] = True
             except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
                 self.state["ollama_ok"] = False

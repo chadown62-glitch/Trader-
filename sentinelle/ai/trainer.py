@@ -28,8 +28,8 @@ from sklearn.metrics import roc_auc_score
 
 from .features import compute_features
 from .labeling import MODEL_COLUMNS, label_candidates, model_matrix, non_overlapping
-from .metrics import lower_bound, trade_metrics
-from .model import MetaModel, payoff_table
+from .metrics import lower_bound, proven_positive, trade_metrics
+from .model import DEFAULT_RECIPE, MetaModel, payoff_table
 from .strategies import STRATEGIES
 
 log = logging.getLogger("sentinelle.trainer")
@@ -104,6 +104,22 @@ def _curve(ts: np.ndarray, r: np.ndarray, max_points: int = 300) -> list[list[fl
     return [[int(ts[i]), float(cum[i])] for i in idx]
 
 
+def permutation_importance(model: MetaModel, data: pd.DataFrame, y: np.ndarray, n_repeats: int = 3, seed: int = 0) -> list[dict]:
+    """Ce que l'IA regarde le plus : baisse du score quand on mélange une caractéristique (données jamais vues)."""
+    X = model_matrix(data, model.feature_names)
+    base = roc_auc_score(y, model.raw_proba(X))
+    rng = np.random.default_rng(seed)
+    out = []
+    for col in model.feature_names:
+        drops = []
+        for _ in range(n_repeats):
+            Xp = X.copy()
+            Xp[col] = rng.permutation(Xp[col].to_numpy())
+            drops.append(base - roc_auc_score(y, model.raw_proba(Xp)))
+        out.append({"feature": col, "value": float(np.mean(drops))})
+    return sorted(out, key=lambda d: -d["value"])
+
+
 def select_threshold(oos: pd.DataFrame, er: np.ndarray, forced: float | None = None) -> tuple[float, list[dict]]:
     base_take = non_overlapping(oos)
     n_base = int(base_take.sum())
@@ -131,8 +147,14 @@ def train_walk_forward(
     min_edge: float | None = None,
     progress: Callable[[float, str], None] | None = None,
     rules_fallback: bool = True,
+    recipe: str = DEFAULT_RECIPE,
+    half_life_days: float | None = None,
+    with_importance: bool = True,
 ) -> TrainResult:
     t_start = time.time()
+
+    def new_model() -> MetaModel:
+        return MetaModel(timeframe, recipe=recipe, half_life_days=half_life_days)
 
     def prog(x: float, msg: str) -> None:
         if progress:
@@ -168,7 +190,7 @@ def train_walk_forward(
         y_tr = (train["outcome_r"].to_numpy() > 0).astype(int)
         if len(train) < 150 or len(test) < 20 or len(np.unique(y_tr)) < 2:
             continue
-        m = MetaModel(timeframe).fit(train)
+        m = new_model().fit(train)
         part = test.copy()
         part["p_raw"] = m.raw_proba(model_matrix(test, m.feature_names))
         oos_parts.append(part)
@@ -187,7 +209,7 @@ def train_walk_forward(
 
     # -- calibration et seuil ----------------------------------------------------
     prog(0.65, "Calibration des probabilités")
-    calib_model = MetaModel(timeframe)
+    calib_model = new_model()
     calib_model.fit_calibration(oos["p_raw"].to_numpy(), y_oos)
     calib_model.payoffs = payoff_table(dev)
     p_oos = calib_model.calibrate(oos["p_raw"].to_numpy())
@@ -201,7 +223,7 @@ def train_walk_forward(
     # -- évaluation finale sur des données jamais vues ------------------------------
     prog(0.75, "Évaluation sur la période de contrôle")
     eval_train = dev[dev["exit_ts"] < hold_start]
-    eval_model = MetaModel(timeframe).fit(eval_train)
+    eval_model = new_model().fit(eval_train)
     eval_model.calib = calib_model.calib
     eval_model.threshold = thr
     p_h, er_h = eval_model.predict(hold)
@@ -229,13 +251,9 @@ def train_walk_forward(
         }
     # Ce que l'IA regarde le plus (importance par permutation, sur le holdout)
     report["importance"] = []
-    if len(hold) >= 100 and len(np.unique(y_h)) == 2:
+    if with_importance and len(hold) >= 100 and len(np.unique(y_h)) == 2:
         try:
-            from sklearn.inspection import permutation_importance
-
-            pi = permutation_importance(eval_model.clf, model_matrix(hold, eval_model.feature_names), y_h, scoring="roc_auc", n_repeats=3, random_state=0)
-            order = np.argsort(-pi.importances_mean)[:10]
-            report["importance"] = [{"feature": eval_model.feature_names[i], "value": float(pi.importances_mean[i])} for i in order]
+            report["importance"] = permutation_importance(eval_model, hold, y_h)[:10]
         except Exception:  # pragma: no cover - information facultative
             log.exception("Importance des variables indisponible")
 
@@ -248,9 +266,9 @@ def train_walk_forward(
     if m_model["mean_r"] is None or m_model["mean_r"] <= 0:
         ok = False
         reasons.append("Espérance négative ou nulle après frais sur des données jamais vues.")
-    elif lower_bound(m_model) <= -0.05:
+    elif not proven_positive(m_model):
         ok = False
-        reasons.append("Résultat positif mais trop incertain statistiquement (marge d'erreur trop large).")
+        reasons.append("Résultat positif mais trop incertain statistiquement : il pourrait être dû au hasard (confiance inférieure à 95 %).")
     if m_base["mean_r"] is not None and m_model["mean_r"] is not None and m_model["n"] >= 30:
         if m_model["mean_r"] > m_base["mean_r"]:
             reasons.append(f"L'IA fait mieux que « prendre tous les signaux » ({m_model['mean_r']:+.3f} R contre {m_base['mean_r']:+.3f} R par trade).")
@@ -259,7 +277,7 @@ def train_walk_forward(
     if ok:
         reasons.insert(0, f"Espérance positive sur des données jamais vues : {m_model['mean_r']:+.3f} R par trade sur {m_model['n']} trades.")
     mode = "ia"
-    if not ok and rules_fallback and m_base["n"] >= 30 and (m_base["mean_r"] or 0) > 0 and lower_bound(m_base) > -0.05:
+    if not ok and rules_fallback and m_base["n"] >= 30 and proven_positive(m_base):
         # Le filtre IA n'apporte pas de preuve, mais les règles seules en apportent : on les valide telles quelles.
         ok, mode, thr = True, "règles seules", -1e9
         reasons.insert(0, f"Validé en « règles seules » : prendre tous les signaux donne {m_base['mean_r']:+.3f} R par trade "
@@ -268,7 +286,7 @@ def train_walk_forward(
 
     # -- modèle final -------------------------------------------------------------------
     prog(0.9, "Entraînement du modèle final sur toutes les données")
-    final = MetaModel(timeframe).fit(res)
+    final = new_model().fit(res)
     final.calib = calib_model.calib
     final.threshold = thr
     final.version = time.strftime("m%Y%m%d-%H%M%S-") + timeframe
@@ -287,6 +305,7 @@ def train_walk_forward(
     final.metrics = summary
     eval_model.metrics = summary
     report["summary"] = summary
+    report["learner"] = {"recipe": recipe, "chosen": final.chosen, "selection": final.selection, "half_life_days": half_life_days}
     report["duration_s"] = round(time.time() - t_start, 1)
     report["base_rate"] = float(y_all.mean())
     prog(1.0, "Terminé")

@@ -27,6 +27,7 @@ HELP = (
     "/positions : positions ouvertes\n"
     "/gains : résultats des comptes\n"
     "/actus : dernières actualités importantes\n"
+    "/fiche BTC : ce que Sentinelle sait d'une crypto\n"
     "/pause : arrêter les IA (les positions gardent leurs stops)\n"
     "/reprendre : relancer l'IA d'entraînement\n"
     "/urgence : tout revendre et tout arrêter (avec confirmation)\n"
@@ -190,8 +191,9 @@ class TelegramService:
                 self._unknown_seen.add(chat)
                 self.app.db.log("warning", "telegram", f"Message ignoré d'un compte non autorisé ({chat})")
             return
-        cmd = text.split()[0].split("@")[0].lower()
-        reply = self.command(cmd)
+        words = text.split()
+        cmd = words[0].split("@")[0].lower()
+        reply = self.command(f"{cmd} {words[1]}" if cmd == "/fiche" and len(words) > 1 else cmd)
         if cmd == "/urgence":
             self.send(reply, chat, buttons=[[{"text": "🛑 Confirmer : tout revendre", "callback_data": "urgence_ok"},
                                              {"text": "Annuler", "callback_data": "urgence_annule"}]])
@@ -244,6 +246,19 @@ class TelegramService:
                 return "Aucune actualité analysée (activez le module Actualités et Ollama)."
             return "<b>Actualités importantes</b>\n" + "\n".join(
                 f"{'🔴' if r['sentiment'] < -0.3 else '🟢' if r['sentiment'] > 0.3 else '⚪'} {esc(r['title'])}" for r in rows)
+        if cmd.startswith("/fiche"):
+            base = cmd.split()[1].upper() if len(cmd.split()) > 1 else ""
+            sym = next((s for s in app.settings["general"]["watchlist"] if s.split("/")[0] == base), None)
+            if sym is None:
+                return "Indiquez une crypto suivie, par exemple : /fiche BTC"
+            prof = app.knowledge_get(sym) or {}
+            info = prof.get("info") or {}
+            lines = [f"<b>{esc(info.get('name', base))} ({esc(base)})</b>", esc(info.get("what", ""))]
+            if prof.get("reading"):
+                lines += ["• " + esc(x) for x in prof["reading"][:7]]
+            else:
+                lines.append("Statistiques pas encore calculées : ouvrez « Fiches cryptos » dans le panel et cliquez sur « Mettre à jour ».")
+            return "\n".join(lines)
         if cmd == "/pause":
             res = app.call(app.emergency, "pause").result(timeout=60)
             return f"⏸ IA arrêtées : {', '.join(res['agents_stopped']) or 'aucune en marche'}. Les positions gardent leurs stops."

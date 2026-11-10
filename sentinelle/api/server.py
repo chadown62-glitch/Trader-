@@ -424,6 +424,34 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
     async def last_training():
         return loads(app.db.get_meta("last_train_report"), None)
 
+    # -- capacités d'apprentissage et fiches par crypto -----------------------------------
+    @api.get("/api/ai/bench")
+    async def bench_report():
+        return {"report": app.bench_report(), "running": bool(app.jobs.running("bench"))}
+
+    @api.post("/api/ai/bench")
+    async def bench_start():
+        return app.start_bench()
+
+    @api.get("/api/ai/learning")
+    async def learning_monitor():
+        return await asyncio.to_thread(app.learning_monitor)
+
+    @api.get("/api/knowledge")
+    async def knowledge_list():
+        return await asyncio.to_thread(app.knowledge_list)
+
+    @api.get("/api/knowledge/detail")
+    async def knowledge_detail(symbol: str):
+        prof = await asyncio.to_thread(app.knowledge_get, symbol)
+        if prof is None:
+            raise HTTPException(404, "Fiche introuvable")
+        return prof
+
+    @api.post("/api/knowledge/refresh")
+    async def knowledge_refresh():
+        return app.start_knowledge()
+
     @api.get("/api/jobs")
     async def jobs():
         return app.jobs.list()

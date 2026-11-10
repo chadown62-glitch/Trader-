@@ -8,7 +8,7 @@ from typing import Any
 
 from ..ai.trainer import build_dataset, train_walk_forward
 from ..backtest.engine import run_backtest
-from ..market.history import splice
+from ..market.history import continuous_history, last_continuous
 from ..storage.db import dumps
 from .common import UserError
 
@@ -51,11 +51,14 @@ class TrainingMixin:
                     raise UserError(f"Historique indisponible pour {sym} : {exc}") from None
                 continue
             alt = f"{sym.split('/')[0]}/USDT"
+            older = None
             if extended and quote != "USDT" and (not self.hub.markets or alt in self.hub.markets):
                 try:  # paire USDT plus ancienne : davantage d'années pour apprendre
-                    hist[sym] = splice(self.history.update(alt, tf, days), hist[sym])
+                    older = self.history.update(alt, tf, days)
                 except Exception:
-                    pass
+                    older = None
+            # jamais de trou de cotation dans l'historique d'apprentissage (paire retirée puis recotée)
+            hist[sym] = continuous_history(hist[sym], older) if older is not None else last_continuous(hist[sym])
         btc = hist.get(btc_sym) if btc_sym not in wl else None
         return {s: hist[s] for s in wl if s in hist}, btc
 
@@ -70,7 +73,12 @@ class TrainingMixin:
             progress(0.3 + 0.45 * x, msg)
 
         res = train_walk_forward(cand, tf, min_edge=settings["ai"]["min_edge_r"], progress=sub,
-                                 rules_fallback=settings["ai"].get("rules_fallback", True))
+                                 rules_fallback=settings["ai"].get("rules_fallback", True),
+                                 recipe=settings["ai"]["recipe"], half_life_days=settings["ai"]["half_life_days"])
+        try:  # les fiches par crypto profitent de l'historique déjà chargé
+            self.update_knowledge(hist, btc, tf, settings)
+        except Exception as exc:
+            self.db.log("warning", "ia", f"Fiches par crypto non mises à jour : {str(exc)[:150]}")
         report = dict(res.report)
         report.update(verdict=res.verdict, reasons=res.reasons, days=days, auto=auto, trained_at=time.time())
         if res.eval_model is not None and res.holdout_start:

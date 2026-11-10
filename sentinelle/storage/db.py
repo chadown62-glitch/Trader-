@@ -223,6 +223,12 @@ CREATE TABLE IF NOT EXISTS signals(
     resolved_at REAL,
     UNIQUE (channel, msg_id)
 );
+CREATE TABLE IF NOT EXISTS knowledge(
+    symbol TEXT PRIMARY KEY,
+    timeframe TEXT,
+    updated_at REAL,
+    data TEXT
+);
 CREATE TABLE IF NOT EXISTS sessions(
     token_hash TEXT PRIMARY KEY,
     created_at REAL,

@@ -201,6 +201,35 @@ class HistoryStore:
         }
 
 
+def last_continuous(df: pd.DataFrame | None, max_gap_days: float = 3.0) -> pd.DataFrame | None:
+    """Partie la plus récente de l'historique sans interruption de cotation de plus de `max_gap_days` jours.
+
+    Une paire peut être retirée puis recotée (les paires USDC de Binance ont disparu de fin septembre 2022
+    à 2023-2024). Calculer des indicateurs « par-dessus » un tel trou donnerait des valeurs fausses.
+    """
+    if df is None or len(df) < 2:
+        return df
+    gaps = np.flatnonzero(np.diff(df["ts"].to_numpy()) > max_gap_days * 86_400_000)
+    if len(gaps) == 0:
+        return df
+    return df.iloc[gaps[-1] + 1:].reset_index(drop=True)
+
+
+def continuous_history(primary: pd.DataFrame | None, alternate: pd.DataFrame | None = None) -> pd.DataFrame | None:
+    """Historique d'apprentissage sans trou.
+
+    La paire tradée est gardée sur sa période récente continue ; avant, on utilise la paire de
+    remplacement (ex. BTC/USDT, cotée sans interruption depuis 2017), elle aussi sur sa partie continue.
+    """
+    p = last_continuous(primary)
+    if alternate is None or alternate.empty:
+        return p
+    a = last_continuous(alternate)
+    if p is None or p.empty:
+        return a
+    return last_continuous(splice(a, p))
+
+
 def splice(older: pd.DataFrame, newer: pd.DataFrame) -> pd.DataFrame:
     """Raccorde un historique plus ancien (ex. BTC/USDT) devant un historique récent (ex. BTC/USDC).
 

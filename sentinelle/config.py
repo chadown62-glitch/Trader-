@@ -82,6 +82,11 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "extended_history": True,
         # Si le filtre IA n'apporte rien mais que les règles seules sont prouvées, valider « règles seules ».
         "rules_fallback": True,
+        # Recette du modèle. « mixte » (arbres simples + modèle linéaire) est celle qui apprend le mieux d'après le
+        # banc d'essai et les données réelles ; « auto » choisit à chaque entraînement d'après des données jamais vues.
+        "recipe": "mixte",
+        # Oubli progressif : poids divisé par deux tous les N jours d'ancienneté (None = tout le passé pèse autant).
+        "half_life_days": None,
     },
     "risk": {
         "risk_per_trade": 0.005,  # 0,5 % du capital perdu si le stop est touché
@@ -238,6 +243,8 @@ BOUNDS: dict[str, tuple] = {
     "market.context": ("bool",),
     "ai.extended_history": ("bool",),
     "ai.rules_fallback": ("bool",),
+    "ai.recipe": ("str", ["auto", "mixte", "prudent", "lineaire", "moyen", "riche", "comite"]),
+    "ai.half_life_days": ("float_or_none", 90.0, 3650.0),
     "signals.enabled": ("bool",),
     "signals.channels": ("list_str",),
     "signals.horizon_hours": ("int", 4, 24 * 14),

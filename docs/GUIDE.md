@@ -75,8 +75,17 @@ Page **IA → Apprentissage sur l'historique → Lancer l'entraînement**. Compt
 2. Il repère toutes les situations où les stratégies auraient acheté et calcule ce que chacune aurait rapporté, frais compris.
 3. L'IA apprend lesquelles valent la peine. Elle est ensuite testée sur une **période qu'elle n'a jamais vue** : c'est le seul test honnête.
 4. **Verdict :**
-   - **validé** : gain moyen positif et statistiquement crédible sur la période jamais vue. Le modèle devient actif.
+   - **validé** : gain moyen positif sur la période jamais vue, avec **95 % de confiance** que ce n'est pas dû au hasard. Le modèle devient actif.
    - **non validé** : l'IA reste en « exploration » (argent fictif uniquement) et ne pourra pas trader en réel. **C'est une protection, pas un bug.**
+
+### a bis) Vérifier que l'IA sait apprendre
+Page **IA → Capacités d'apprentissage → Tester les capacités d'apprentissage** (environ deux minutes, sans argent ni données de marché).
+Sentinelle fabrique des marchés artificiels où **une règle est cachée exprès**, puis mesure quelle part de cette règle l'IA retrouve sur des données jamais vues :
+- **taux d'apprentissage** : 100 % signifie que toute la règle a été retrouvée ;
+- **bruit pur** : aucune règle n'existe, l'IA ne doit rien « découvrir » ;
+- **changement de règle** : la règle s'inverse en cours de route. L'IA ne s'adapte pas instantanément, mais elle refuse de se valider tant qu'elle n'a pas réappris.
+
+Le même onglet montre **ce que l'IA apprend en direct** : ce qu'elle annonçait (chances de gain) comparé à ce qui s'est réellement passé, et la date du prochain ré-entraînement.
 
 ### b) Entraînement en direct (argent fictif, prix réels)
 Page **IA → Entraînement en direct → Démarrer**. L'IA surveille le marché 24 h/24 :
@@ -147,6 +156,7 @@ Commandes disponibles :
 | `/pause` | Arrête les IA (les positions gardent leurs stops) |
 | `/reprendre` | Relance l'IA d'entraînement |
 | `/urgence` | Tout revendre, après confirmation par bouton |
+| `/fiche BTC` | Ce que Sentinelle sait d'une crypto |
 | `/aide` | Liste des commandes |
 
 L'IA en argent réel ne se démarre que depuis le panel, jamais depuis Telegram.
@@ -171,6 +181,18 @@ Une même nouvelle reprise par plusieurs médias n'est analysée qu'**une fois**
 La liste des sources étudiées, celles retenues et celles écartées (avec les raisons) est dans [SOURCES.md](SOURCES.md).
 
 ---
+
+## 8 bis A. Fiches cryptos
+
+Page **Fiches cryptos**. Pour chaque crypto suivie, Sentinelle rassemble tout ce qu'il sait, calculé sur l'historique complet :
+- ce qu'est cette crypto, ce qui fait bouger son prix et ses risques propres ;
+- l'ampleur d'une journée normale, les pires chutes, le lien avec le Bitcoin (« quand le Bitcoin perd 5 %, elle perd en moyenne… ») ;
+- la liquidité, l'écart achat/vente, le montant minimal d'un ordre ;
+- les résultats passés de chaque stratégie sur cette crypto, frais compris, avec une fourchette de confiance.
+
+Les fiches se mettent à jour à chaque entraînement de l'IA, ou avec le bouton « Mettre à jour ». Sur Telegram : `/fiche BTC`.
+Elles servent à **comprendre et doser le risque**, pas à choisir les trades : il a été mesuré que le passé d'une crypto ne prédit presque rien de ses résultats futurs.
+Ces connaissances aident aussi l'analyse des actualités à reconnaître de quelle crypto parle un article (« Ripple » désigne XRP, « Ether » désigne ETH).
 
 ## 8 bis. Canaux de signaux Telegram (observation)
 

@@ -1,0 +1,248 @@
+"""Capacités d'apprentissage : recettes du modèle, critère de validation, banc d'essai, fiches par crypto."""
+
+import json
+import time
+
+import numpy as np
+import pytest
+
+from sentinelle.ai.bench import RULES, learning_rate, make_candidates, run_bench, run_case
+from sentinelle.ai.coins import COINS, coin_info, detect_assets, glossary, resolve_asset
+from sentinelle.ai.knowledge import brief, compute_profile, daily_frame
+from sentinelle.ai.labeling import MODEL_COLUMNS
+from sentinelle.ai.metrics import proven_positive, trade_metrics
+from sentinelle.ai.model import DEFAULT_RECIPE, PRESETS, RECIPES, MetaModel
+from sentinelle.market.sources import SyntheticSource
+from sentinelle.services.core import App
+
+from .helpers import HOUR, make_series
+
+
+# -- modèle : recettes, oubli progressif, compatibilité ---------------------------------------
+def test_recipes_and_default():
+    assert DEFAULT_RECIPE == "mixte" and RECIPES["mixte"] == ["prudent", "lin"] and set(RECIPES["comite"]) == set(PRESETS)
+    cand, _ = make_candidates(1500, "simple", seed=1)
+    for recipe, n_members in (("mixte", 2), ("prudent", 1), ("lineaire", 1), ("comite", 3)):
+        m = MetaModel("4h", recipe=recipe).fit(cand)
+        assert len(m.members) == n_members and m.chosen == recipe
+        p, er = m.predict(cand.tail(40))
+        assert ((p > 0) & (p < 1)).all() and np.isfinite(er).all()
+
+
+def test_auto_recipe_picks_a_level_on_unseen_data():
+    cand, _ = make_candidates(3000, "combinaison", seed=2)
+    m = MetaModel("4h", recipe="auto").fit(cand)
+    assert m.chosen in RECIPES and set(m.selection) == set(RECIPES)
+    assert max(m.selection.values()) > 0.6  # la règle cachée est bien visible sur la partie jamais vue
+    small, _ = make_candidates(250, "simple", seed=3)
+    assert MetaModel("4h", recipe="auto").fit(small).chosen == "mixte"  # trop peu de données pour comparer : recette de référence
+
+
+def test_forgetting_gives_more_weight_to_recent_samples():
+    cand, _ = make_candidates(400, "simple", seed=4)
+    w = MetaModel("4h", half_life_days=365)._weights(cand)
+    assert w[-1] == pytest.approx(1.0) and w[0] < 0.05 and (np.diff(w) >= 0).all()  # 6 ans d'écart : poids divisé par 64
+    assert MetaModel("4h")._weights(cand) is None
+
+
+def test_models_saved_by_a_previous_version_still_load(tmp_path):
+    cand, _ = make_candidates(600, "simple", seed=5)
+    m = MetaModel("4h", recipe="riche").fit(cand)
+    state = {k: v for k, v in m.__dict__.items() if k not in ("recipe", "half_life_days", "members", "chosen", "selection")}
+    old = MetaModel.__new__(MetaModel)
+    old.__setstate__(state)  # fichier d'avant : un seul modèle, pas de recette
+    assert old.recipe == "riche" and old.members == []
+    assert np.allclose(old.predict(cand.tail(20))[0], m.predict(cand.tail(20))[0])
+    path = tmp_path / "m.joblib"
+    m.save(path)
+    assert np.allclose(MetaModel.load(path).predict(cand.tail(20))[0], m.predict(cand.tail(20))[0])
+
+
+# -- critère de validation -----------------------------------------------------------------------
+def test_validation_requires_95_percent_confidence():
+    rng = np.random.default_rng(0)
+    weak = trade_metrics(rng.choice([2.0, -1.0], 270, p=[0.345, 0.655]))  # espérance vraie ≈ +0,03 R : indiscernable du hasard
+    strong = trade_metrics(rng.choice([2.0, -1.0], 270, p=[0.45, 0.55]))  # espérance vraie +0,35 R
+    assert not proven_positive(weak) and proven_positive(strong)
+    assert not proven_positive(trade_metrics([])) and not proven_positive(trade_metrics([1.0]))
+
+
+# -- banc d'essai ----------------------------------------------------------------------------------
+def test_bench_data_is_reproducible_and_hides_a_real_rule():
+    a, pa = make_candidates(2000, "simple", seed=7)
+    b, pb = make_candidates(2000, "simple", seed=7)
+    assert a.equals(b) and np.array_equal(pa, pb)
+    assert set(MODEL_COLUMNS) <= set(a.columns)
+    from sklearn.metrics import roc_auc_score
+
+    y = (a["outcome_r"] > 0).astype(int)
+    assert roc_auc_score(y, pa) > 0.7  # la règle existe vraiment
+    assert abs(a["outcome_r"].mean()) < 0.25  # mais « tout prendre » ne rapporte presque rien
+    n, pn = make_candidates(2000, "bruit", seed=7)
+    assert np.allclose(pn, pn[0])  # bruit pur : même probabilité pour tous
+    assert learning_rate(0.70, 0.75) == pytest.approx(0.8) and learning_rate(0.45, 0.75) == 0.0 and learning_rate(0.6, 0.5) is None
+
+
+def test_ai_recovers_hidden_rules_and_invents_nothing():
+    simple = run_case("simple", 2000, seed=11)
+    assert simple["verdict"] == "validé" and simple["rate"] > 0.85
+    assert simple["model_r"] > simple["base_r"] + 0.3  # le tri de l'IA rapporte nettement plus que « tout prendre »
+    combo = run_case("combinaison", 3000, seed=12)
+    assert combo["rate"] > 0.85
+    noise = run_case("bruit", 2000, seed=13)
+    assert noise["rate"] is None and not (noise["verdict"] == "validé" and noise["mode"] == "ia")
+    assert abs(noise["auc"] - 0.5) < 0.06
+
+
+def test_rule_change_is_not_validated():
+    """La règle s'inverse : l'IA ne s'adapte pas instantanément, mais elle ne se valide pas à tort."""
+    r = run_case("changement", 3000, seed=14)
+    assert not (r["verdict"] == "validé" and r["mode"] == "ia")
+
+
+def test_bench_report_structure():
+    seen = []
+    rep = run_bench(sizes=(600,), seeds=1, progress=lambda x, m: seen.append(x))
+    assert [r["name"] for r in rep["rules"]] == list(RULES)
+    assert 0.0 <= rep["score"] <= 1.0 and rep["noise_runs"] == 1 and seen[-1] == 1.0
+    json.dumps(rep, allow_nan=False)  # lisible par le panel (aucune valeur indéfinie)
+
+
+# -- connaissances générales ------------------------------------------------------------------------
+def test_coin_knowledge_and_news_entity_recognition():
+    allowed = {"BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "ADA", "LINK"}
+    assert allowed <= set(COINS)
+    for c in COINS.values():
+        assert c["what"] and c["drivers"] and c["risks"] and all(a == a.lower() for a in c["aliases"])
+    assert detect_assets("Ripple wins appeal as SEC drops case", allowed) == ["XRP"]
+    assert detect_assets("BTC and ETH slide; $SOL outperforms", allowed) == ["BTC", "ETH", "SOL"]
+    assert detect_assets("New link between inflation and jobs", allowed) == []  # mot courant, pas Chainlink
+    assert detect_assets("ADA compliance rules for websites", allowed) == []
+    assert detect_assets("Chainlink partners with Swift, Cardano founder reacts", allowed) == ["ADA", "LINK"]
+    assert [resolve_asset(x, allowed) for x in ("Ripple", "btc", "$SOL", "Ether", "Tether")] == ["XRP", "BTC", "SOL", "ETH", None]
+    assert "XRP (XRP, Ripple)" in glossary(allowed)
+    assert coin_info("zzz")["known"] is False and coin_info("btc")["name"] == "Bitcoin"
+
+
+def test_news_analysis_maps_names_to_tickers():
+    from sentinelle.news.service import validate_analysis
+
+    a = validate_analysis({"assets": ["Ripple", "Bitcoin", "Tether"], "market_wide": False, "event_type": "régulation", "sentiment": 0.5,
+                           "importance": 0.6, "confidence": 0.7, "summary_fr": "x"}, {"BTC", "XRP", "ETH"})
+    assert a["assets"] == ["BTC", "XRP"]
+
+
+# -- fiche calculée ------------------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def series():
+    btc = make_series(9000, seed=21, start=30_000, vol=0.008, tf_ms=4 * HOUR)
+    alt = btc.copy()
+    rng = np.random.default_rng(22)
+    ratio = np.exp(np.cumsum(rng.standard_normal(len(btc)) * 0.004))
+    growth = (btc["close"] / btc["close"].iloc[0]) ** 0.5  # suit le BTC en amplifiant ses mouvements d'une fois et demie
+    for col in ("open", "high", "low", "close"):
+        alt[col] = btc[col] * growth * ratio / 300
+    return btc, alt
+
+
+def test_profile_contents(series):
+    btc, alt = series
+    prof = compute_profile("ALT/USDC", alt, "4h", btc=btc)
+    json.dumps(prof, allow_nan=False)
+    assert prof["history"]["bars"] == 9000 and prof["history"]["years"] == pytest.approx(9000 / 6 / 365, abs=0.02)
+    v, e = prof["volatility"], prof["extremes"]
+    assert 0 < v["typical_day"] < 0.2 and v["annual"] > 0 and 0 <= v["rank_now"] <= 1
+    assert e["worst_day"]["return"] < 0 < e["best_day"]["return"] and e["max_drawdown"]["depth"] < 0
+    assert prof["btc"]["corr_all"] > 0.9 and prof["btc"]["beta_1y"] > 1.2  # liée au BTC, mouvements plus amples
+    assert set(prof["regime"]["share"]) == {"bull", "neutral", "bear"} and prof["regime"]["current"] in ("bull", "neutral", "bear")
+    assert set(prof["strategies"]) >= {"trend_follow", "trend_breakout"}
+    assert prof["seasonality"]["notable"] == []  # marche aléatoire : aucune régularité « fiable » ne doit apparaître
+    assert len(prof["reading"]) >= 5 and all(isinstance(x, str) and x.endswith(".") for x in prof["reading"])
+    b = brief(prof)
+    assert b["symbol"] == "ALT/USDC" and b["max_drawdown"] == e["max_drawdown"]["depth"]
+    solo = compute_profile("BTC/USDC", btc, "4h")
+    assert "btc" not in solo and solo["info"]["name"] == "Bitcoin"
+    short = compute_profile("NEW/USDC", btc.iloc[:200], "4h")
+    assert short.get("insufficient") is True
+
+
+def test_daily_frame_drops_incomplete_days():
+    df = make_series(6 * 10 + 3, seed=1, tf_ms=4 * HOUR, start_ts=1_600_000_000_000 - 1_600_000_000_000 % 86_400_000)
+    d = daily_frame(df)
+    assert len(d) == 10 and (d["bars"] == 6).all()
+    assert d["close"].iloc[0] == df["close"].iloc[5]
+
+
+# -- service : fiches, suivi en direct, banc d'essai, API ---------------------------------------
+@pytest.fixture
+def app(tmp_path):
+    a = App(tmp_path, source=SyntheticSource(["BTC/USDC", "ETH/USDC"], days=5), start=False,
+            settings_override={"general": {"watchlist": ["BTC/USDC", "ETH/USDC"]}, "market": {"source": "synthetic"}})
+    yield a
+    a.db.close()
+
+
+def test_knowledge_service(app, series):
+    btc, alt = series
+    assert app.knowledge_list()["items"][0]["missing"] is True
+    assert app.knowledge_get("BTC/USDC")["missing"] is True and app.knowledge_get("ZZZ/USDC") is None
+    n = app.update_knowledge({"BTC/USDC": btc, "ETH/USDC": alt}, None, "4h", app.settings)
+    assert n == 2
+    lst = app.knowledge_list()
+    assert [i["symbol"] for i in lst["items"]] == ["BTC/USDC", "ETH/USDC"] and lst["updated"] is not None
+    assert {i["volatility_rank"]["rank"] for i in lst["items"]} == {1, 2}
+    eth = app.knowledge_get("ETH/USDC")
+    assert eth["btc"]["corr_all"] > 0.9 and eth["enabled_strategies"] == ["trend_breakout", "trend_follow"] or set(eth["enabled_strategies"]) == {"trend_follow", "trend_breakout"}
+    assert eth["book"]["spread_bps"] > 0  # carnet d'ordres relevé au moment du calcul
+    app.update_knowledge({"BTC/USDC": btc, "ETH/USDC": alt}, None, "4h", app.settings)  # recalcul : mise à jour, pas de doublon
+    assert app.db.scalar("SELECT COUNT(*) FROM knowledge", (), 0) == 2
+
+
+def test_learning_monitor_compares_forecasts_with_outcomes(app):
+    mon = app.learning_monitor()
+    assert mon["seen"] == 0 and "forecast" not in mon and mon["model"] is None
+    rng = np.random.default_rng(3)
+    for k in range(60):  # l'IA annonce 70 % de gains, il y en a environ 30 %
+        win = rng.random() < 0.3
+        app.db.insert("candidates", {"symbol": "BTC/USDC", "timeframe": "4h", "ts": k, "strategy": "trend_follow", "source": "live", "p_win": 0.7,
+                                     "decision": "pris", "outcome": "target" if win else "stop", "outcome_r": 2.0 if win else -1.0, "resolved_at": time.time()})
+    app.db.insert("candidates", {"symbol": "BTC/USDC", "timeframe": "4h", "ts": 999, "strategy": "trend_follow", "source": "live", "p_win": 0.5, "decision": "refusé"})
+    mon = app.learning_monitor()
+    assert mon["seen"] == 61 and mon["resolved"] == 60 and mon["pending"] == 1
+    f = mon["forecast"]
+    assert f["announced"] == pytest.approx(0.7) and f["observed"] < 0.45 and f["drift"] is True and f["optimistic"] is True
+    assert mon["retraining"]["new_samples"] == 60
+
+
+def test_learning_api(app, monkeypatch, series):
+    from fastapi.testclient import TestClient
+
+    import sentinelle.services.learning as learning
+    from sentinelle.api.server import create_api
+
+    monkeypatch.setattr(learning, "BENCH_SIZES", (500,))
+    monkeypatch.setattr(learning, "BENCH_SEEDS", 1)
+    btc, alt = series
+    app.update_knowledge({"BTC/USDC": btc, "ETH/USDC": alt}, None, "4h", app.settings)
+    with TestClient(create_api(app)) as c:
+        h = {"X-Sentinelle": "1"}
+        assert c.get("/api/ai/bench").status_code == 401
+        assert c.post("/api/auth/setup", json={"password": "un-mot-de-passe-solide"}, headers=h).status_code == 200
+        assert c.get("/api/ai/bench").json() == {"report": None, "running": False}
+        job = c.post("/api/ai/bench", headers=h).json()
+        assert job["kind"] == "bench"
+        assert c.post("/api/ai/bench", headers=h).status_code == 400  # un seul test à la fois
+        deadline = time.time() + 120
+        while time.time() < deadline and c.get(f"/api/jobs/{job['id']}").json()["status"] == "running":
+            time.sleep(0.3)
+        rep = c.get("/api/ai/bench").json()["report"]
+        assert rep["recipe"] == "mixte" and len(rep["rules"]) == len(RULES)
+        assert c.get("/api/ai/learning").json()["seen"] == 0
+        items = c.get("/api/knowledge").json()["items"]
+        assert items[0]["symbol"] == "BTC/USDC" and items[0]["name"] == "Bitcoin"
+        d = c.get("/api/knowledge/detail", params={"symbol": "ETH/USDC"}).json()
+        assert d["info"]["name"] == "Ethereum" and d["reading"]
+        assert c.get("/api/knowledge/detail", params={"symbol": "NOPE/USDC"}).status_code == 404
+        s = c.put("/api/settings", json={"ai": {"recipe": "auto", "half_life_days": 730}}, headers=h).json()
+        assert s["ai"]["recipe"] == "auto" and s["ai"]["half_life_days"] == 730
+        assert c.put("/api/settings", json={"ai": {"recipe": "magique"}}, headers=h).status_code == 400

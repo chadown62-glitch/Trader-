@@ -34,6 +34,7 @@ from .agents import AgentsMixin
 from .bus import EventBus
 from .common import AGENTS, EMERGENCY_CONFIRM, LIVE_CONFIRM, AccountRuntime, LivePrices, UserError  # noqa: F401
 from .jobs import JobManager
+from .learning import LearningMixin
 from .live_ops import LiveMixin
 from .models import ModelStore
 from .secrets import SecretStore
@@ -137,7 +138,7 @@ class Engine(threading.Thread):
             self.drain(timeout=0.0)
 
 
-class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin):
+class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
     """Application complète. Les méthodes sont réparties par thème dans les modules *Mixin."""
 
     def __init__(self, data_dir: Path, *, source=None, start: bool = True, settings_override: dict | None = None):

@@ -52,6 +52,17 @@ def equity_metrics(equity: list[float]) -> dict:
     return {"return_pct": float((eq[-1] / eq[0] - 1) * 100), "max_dd_pct": float(dd.max() * 100)}
 
 
+def proven_positive(m: dict) -> bool:
+    """L'espérance est-elle positive avec 95 % de confiance ? (moyenne − 1,645 erreur type > 0)
+
+    Sur du bruit pur, un critère plus souple validait à tort environ 4 entraînements sur 10
+    (mesuré sur le banc d'essai) ; celui-ci limite ces fausses validations à environ 1 sur 20.
+    """
+    if not m or not m.get("n") or m.get("se") is None:
+        return False
+    return m["mean_r"] - 1.645 * m["se"] > 0
+
+
 def lower_bound(m: dict) -> float:
     """Estimation prudente de l'espérance : moyenne moins une erreur type."""
     if not m or not m.get("n"):

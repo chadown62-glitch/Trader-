@@ -173,6 +173,19 @@ def test_telegram_status_reports_shield(tg, app):
     assert "⏸ cascade de liquidations" in fake.sent[-1]["text"]
 
 
+def test_telegram_coin_sheet(tg, app):
+    svc, fake = tg
+    svc.handle_update(msg(42, "/fiche"))
+    assert "/fiche BTC" in fake.sent[-1]["text"]
+    svc.handle_update(msg(42, "/fiche btc", uid=2))
+    assert "Bitcoin (BTC)" in fake.sent[-1]["text"] and "pas encore calculées" in fake.sent[-1]["text"]
+    from .helpers import HOUR, make_series
+
+    app.update_knowledge({"BTC/USDC": make_series(4000, seed=3, start=30_000, tf_ms=4 * HOUR)}, None, "4h", app.settings)
+    svc.handle_update(msg(42, "/fiche BTC", uid=3))
+    assert "Un jour normal, le prix bouge" in fake.sent[-1]["text"]
+
+
 def test_telegram_urgence_confirmation_flattens(tg, app):
     svc, fake = tg
     cb = {"update_id": 5, "callback_query": {"id": "c1", "data": "urgence_ok", "message": {"chat": {"id": 42}}}}

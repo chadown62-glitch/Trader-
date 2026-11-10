@@ -1,6 +1,6 @@
 # Plan : ce qui reste à faire
 
-Mis à jour le 9 novembre 2026. ✅ = fait · 🔲 = à faire · 👤 = c'est à vous de le faire (je ne peux pas le faire à votre place).
+Mis à jour le 10 novembre 2026. ✅ = fait · 🔲 = à faire · 👤 = c'est à vous de le faire (je ne peux pas le faire à votre place).
 
 ## 1. Avant tout argent réel (indispensable)
 
@@ -34,6 +34,9 @@ Mis à jour le 9 novembre 2026. ✅ = fait · 🔲 = à faire · 👤 = c'est à
 | 14 sexies | **Bouclier temps réel** : mouvement brutal, écart et liquidité du carnet d'ordres, cascades de liquidations, actualité majeure | ✅ (seuils mesurés sur données réelles, voir RESULTATS.md §8) |
 | 14 septies | Journal « microstructure » à chaque décision (écart, liquidité, pression acheteuse/vendeuse) | ✅ (enregistré seulement, pas encore utilisé pour décider) |
 | 14 octies | Étude des sources proposées par Gemini | ✅ (voir [SOURCES.md](SOURCES.md)) |
+| 14 nonies | **Banc d'essai de l'apprentissage** : règles cachées, bruit pur, changement de règle (page IA → Capacités d'apprentissage) | ✅ |
+| 14 decies | **Fiches cryptos** : tout ce que Sentinelle sait de chaque crypto (page dédiée, `/fiche BTC` sur Telegram) | ✅ (testé sur données réelles) |
+| 14 undecies | Suivi de l'apprentissage en direct : prévisions de l'IA comparées à ce qui s'est passé | ✅ (testé avec des données fabriquées ; à observer en direct, point 👤) |
 
 ## 3. Recherche sur les résultats (détail dans RESULTATS.md)
 

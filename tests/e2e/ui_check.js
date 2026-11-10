@@ -64,6 +64,22 @@ const PWD = 'demo-mot-de-passe-123';
   const cc = await page.evaluate(async () => (await (await fetch('/api/settings')).json()).macro.calendar_countries.join(','));
   if (cc !== 'USD,EUR,GBP') errors.push(`[réglages] monnaies non enregistrées : ${cc}`);
 
+  // Capacités d'apprentissage (banc d'essai) et fiches par crypto
+  await page.goto(BASE + '/#/ai');
+  await page.waitForTimeout(800);
+  await page.locator('.tabs button', { hasText: 'Capacités d' }).click();
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${OUT}/18-ai-learning.png`, fullPage: true });
+  if (process.env.BENCH === '1') {
+    await page.click('text=Tester les capacités');
+    await page.waitForSelector('text=Détail des épreuves', { timeout: 600000 });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `${OUT}/18b-ai-learning-done.png`, fullPage: true });
+  }
+  await page.goto(BASE + '/#/knowledge');
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: `${OUT}/19-knowledge.png`, fullPage: true });
+
   await page.goto(BASE + '/#/ai');
   await page.waitForTimeout(800);
   await page.click("text=Démarrer l'entraînement");
