@@ -159,8 +159,12 @@ export default {
       if (r) { store.settings = r; store.markets = await api.get('/api/markets'); }
     };
     const useEuroMarkets = async () => {
-      const pairs = [...new Set((form.general.watchlist || []).map(s => `${s.split('/')[0]}/EUR`))];
-      const r = await safe(api.put('/api/settings', { general: { quote: 'EUR', watchlist: pairs.length ? pairs : ['BTC/EUR'] } }), 'Marchés en EUR configurés');
+      const candidates = [...new Set((form.general.watchlist || []).map(s => `${s.split('/')[0]}/EUR`))];
+      const known = new Set(store.markets.available || []);
+      const pairs = known.size ? candidates.filter(s => known.has(s)) : candidates;
+      if (!pairs.length && (!known.size || known.has('BTC/EUR'))) pairs.push('BTC/EUR');
+      if (!pairs.length) { toast('Aucune paire EUR disponible sur cette source de marché', 'warn'); return; }
+      const r = await safe(api.put('/api/settings', { general: { quote: 'EUR', watchlist: pairs } }), 'Marchés en EUR configurés');
       if (r) { store.settings = r; store.markets = await api.get('/api/markets'); }
     };
     const addSymbol = () => {
