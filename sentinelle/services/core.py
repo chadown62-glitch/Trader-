@@ -315,6 +315,7 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
         def fresh_price(symbol):
             return self.hub.price(symbol) if self.hub.is_fresh(symbol, 180) else None
         def fx_value(base, quote, quantity):
+            from ..execution.fx_ledger import PaperFXLedger
             from ..market.fx import FXError
             from ..market.fx_provider import PublicFXProvider
             provider = PublicFXProvider(self.source, self.hub.markets, clock)
@@ -326,6 +327,7 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
                     book = provider.snapshot(base, quote, via=via)
                     out = book.convert(quantity, base, quote, now=clock(), max_age=60,
                                        via=via, require_depth=True)
+                    PaperFXLedger(broker, clock).check_depth(out['legs'])
                     return float(out['amount'])
                 except FXError:
                     continue

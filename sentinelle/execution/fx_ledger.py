@@ -49,8 +49,8 @@ class PaperFXLedger:
                 'amount_out': row['amount_out'], 'fee_rate': row['fee_rate'], 'legs': json.loads(row['legs']),
                 'simulated': True, 'replayed': True}
 
-    def _consume_depth(self, legs):
-        """Reserve a snapshot's top-level depth atomically across conversions."""
+    def _consume_depth(self, legs, *, reserve=True):
+        """Check and optionally reserve top-level depth across conversions."""
         for leg in legs:
             direct = leg['base'] == leg['market_base']
             side = 'bid' if direct else 'ask'
@@ -66,9 +66,15 @@ class PaperFXLedger:
                 consumed = Decimal(0)
             if consumed + used > depth:
                 raise FXError('Liquidité déjà consommée pour ce carnet')
-            self.db.execute('INSERT INTO fx_liquidity_used(source, market_base, market_quote, market_ts, side, price, depth, consumed) '
-                            'VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(source, market_base, market_quote, market_ts, side) '
-                            'DO UPDATE SET consumed = excluded.consumed', (*key, str(price), str(depth), str(consumed + used)))
+            if reserve:
+                self.db.execute('INSERT INTO fx_liquidity_used(source, market_base, market_quote, market_ts, side, price, depth, consumed) '
+                                'VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(source, market_base, market_quote, market_ts, side) '
+                                'DO UPDATE SET consumed = excluded.consumed', (*key, str(price), str(depth), str(consumed + used)))
+
+    def check_depth(self, legs):
+        with self.db.transaction():
+            self._authorize()
+            self._consume_depth(legs, reserve=False)
 
     def replay(self, request_id, base, target, amount, via=None):
         amount = _amount(amount)

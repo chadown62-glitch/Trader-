@@ -263,6 +263,23 @@ def test_app_conversion_uses_public_data_and_values_portfolio(tmp_path, monkeypa
     app.db.close()
 
 
+def test_valuation_refuses_already_consumed_snapshot_depth(tmp_path, monkeypatch):
+    from sentinelle.execution.base import OrderError
+    source = SyntheticSource(['BTC/EUR', 'EUR/USDC'], days=3, clock=lambda: NOW)
+    books = FakeBookSource()
+    books.books['EUR/USDC']['asks'][0][1] = 10
+    monkeypatch.setattr(source, 'fetch_order_book', books.fetch_order_book)
+    app = App(tmp_path, source=source, start=False, settings_override={'market': {'source': 'synthetic'}, 'general': {'watchlist': ['BTC/EUR']}})
+    app._startup()
+    aid = app.db.one("SELECT id FROM accounts WHERE role='principal'")['id']
+    app.runtime(aid).broker.set_balance('USDC', 10.9)
+    app.db.execute('INSERT INTO fx_liquidity_used VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                   (source.name, 'EUR', 'USDC', str(NOW), 'ask', '1.09', '10', '1'))
+    with pytest.raises(OrderError, match='Valorisation impossible'):
+        app.account_summary(aid)
+    app.db.close()
+
+
 def test_api_conversion_auth_csrf_and_live_guard(tmp_path, monkeypatch):
     source = SyntheticSource(['BTC/EUR', 'EUR/USDC'], days=3)
     books = FakeBookSource()

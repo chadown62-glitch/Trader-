@@ -25,7 +25,8 @@ La profondeur déjà consommée du même carnet horodaté est également enregis
 dans la même transaction pour empêcher plusieurs conversions de la réutiliser.
 
 La valorisation EUR des monnaies détenues demande également des cours récents
-et une profondeur suffisante ; elle devient indisponible plutôt que de supposer
+et une profondeur suffisante après déduction de la liquidité déjà consommée sur
+le même instantané ; elle devient indisponible plutôt que de supposer
 une valeur nulle ou une équivalence stablecoin. Le solde EUR restant seul est
 affiché comme liquidité immédiatement utilisable pour les ordres EUR.
 
