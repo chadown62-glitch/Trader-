@@ -21,6 +21,7 @@ from __future__ import annotations
 import math
 import time
 import uuid
+from decimal import Decimal
 from collections import defaultdict
 from typing import Callable
 
@@ -28,6 +29,8 @@ from ..market.fx import FxQuote, identity
 from ..market.markets import MarketInfo
 from ..storage.db import Database, atomic
 from .fx_ledger import PaperFXLedger
+from .book_execution import match_snapshot
+from .liquidity import LiquidityError
 from ..market.fx_book import FXError
 from .base import OPEN_STATUSES, FillListener, OrderError
 from .contract import limit_fill, limit_hit, market_fill, stop_fill, stop_hit, valid_bar
@@ -55,6 +58,7 @@ class PaperBroker:
         fx_cost_bps: float = 0.0,
         trade_quote: str | None = None,
         defer_market: bool = False,
+        book_fn=None,
         spread_fn: Callable[[str], float | None] | None = None,
     ):
         self.db = db
@@ -69,6 +73,7 @@ class PaperBroker:
         self.fx_fn = fx_fn  # (monnaie, pour_un_ordre) -> taux daté ; None = compte tenu dans la monnaie de cotation
         self.fx_cost = fx_cost_bps / 10_000.0
         self.defer_market = defer_market
+        self.book_fn = book_fn
         self.spread_fn = spread_fn  # demi-écart achat/vente observé sur le carnet, en fraction du prix (facultatif)
         self.listeners: list[FillListener] = []
 
@@ -84,7 +89,7 @@ class PaperBroker:
     def fx_rate(self, symbol: str) -> float | None:
         """Taux courant pour la paire (1.0 si elle est cotée dans la monnaie du compte). None si inconnu."""
         try:
-            return float(self.fx(symbol.split("/")[1], False).rate)
+            return float(self.fx(symbol.split("/")[1]).rate)
         except OrderError:
             return None
 
@@ -217,7 +222,10 @@ class PaperBroker:
         position_id=None,
         oco_group=None,
         reason=None,
+        expires_at=None,
     ) -> dict:
+        if expires_at is not None and (not math.isfinite(expires_at) or expires_at <= self.clock()):
+            raise OrderError("Échéance de l’ordre invalide", "invalid")
         if side not in ("buy", "sell"):
             raise OrderError("Sens d'ordre invalide")
         if type not in ("market", "limit", "stop"):
@@ -286,6 +294,7 @@ class PaperBroker:
             "orders",
             {
                 "account_id": self.account_id,
+                "expires_at": expires_at,
                 "client_id": f"p{self.account_id}-{uuid.uuid4().hex[:16]}",
                 "symbol": symbol,
                 "side": side,
@@ -306,6 +315,11 @@ class PaperBroker:
             },
         )
         order = self.get_order(order_id)
+        if self.book_fn is not None:
+            # A protective order born during a fill first participates on the next market event.
+            if purpose not in ("stop", "target"):
+                self.process_book(symbol)
+            return self.get_order(order_id)
         # Exécution immédiate : ordre au marché ou ordre limite « traversant »
         if type == "market" and not self.defer_market:
             return self._fill(order, self._market_price(symbol, side, last), maker=False)
@@ -323,15 +337,18 @@ class PaperBroker:
         return o
 
     @atomic
-    def cancel_order(self, order_id: int, reason: str | None = None) -> dict:
+    def cancel_order(self, order_id: int, reason: str | None = None, *, expired=False) -> dict:
         o = self.get_order(order_id)
         if o["status"] not in OPEN_STATUSES:
             return o
         self.db.update(
             "orders",
             order_id,
-            {"status": "cancelled", "updated_at": self.clock(), "error": reason},
+            {"status": "expired" if expired else "cancelled", "updated_at": self.clock(), "error": reason},
         )
+        if o["purpose"] == "entry" and not o["filled"] and o["position_id"]:
+            self.db.execute("UPDATE positions SET status='cancelled', reason_close=? WHERE id=? AND status='pending'",
+                            (reason, o["position_id"]))
         return self.get_order(order_id)
 
     def _market_price(self, symbol: str, side: str, last: float) -> float:
@@ -349,7 +366,7 @@ class PaperBroker:
         raise OrderError(message, code)
 
     @atomic
-    def _fill(self, order: dict, price: float, maker: bool) -> dict:
+    def _fill(self, order: dict, price: float, maker: bool, *, quantity=None, source=None, market_ts=None) -> dict:
         order = self.get_order(order["id"])
         if order["status"] not in OPEN_STATUSES:
             raise OrderError("Exécution déjà traitée", "already_filled")
@@ -357,7 +374,13 @@ class PaperBroker:
             raise OrderError("Prix d’exécution invalide", "invalid")
         symbol = order["symbol"]
         base, quote = symbol.split("/")
-        amount = order["amount"] - order["filled"]
+        remaining = Decimal(str(order["amount"])) - Decimal(str(order["filled"]))
+        part = remaining if quantity is None else Decimal(str(quantity))
+        if not 0 < part <= remaining:
+            raise OrderError("Quantité de fill incohérente", "invalid")
+        amount = float(part)
+        filled_qty = float(Decimal(str(order["filled"])) + part)
+        complete = part == remaining
         fee_rate = self.fee_rate  # hypothèse prudente : même taux maker/taker
         now = self.clock()
         try:
@@ -398,6 +421,8 @@ class PaperBroker:
                     "price": price,
                     "fee": fee,
                     "fee_asset": quote,
+                    "price_source": source or "modèle OHLC / dernier prix",
+                    "price_ts": now if market_ts is None else market_ts,
                     "ts": now,
                     "fx_rate": rate,
                     "fx_source": fx.source if cross else None,
@@ -424,15 +449,15 @@ class PaperBroker:
                 "orders",
                 order["id"],
                 {
-                    "status": "filled",
-                    "filled": order["filled"] + amount,
-                    "avg_price": price,
+                    "status": "filled" if complete else "partially_filled",
+                    "filled": filled_qty,
+                    "avg_price": ((order["avg_price"] or 0) * order["filled"] + price * amount) / filled_qty,
                     "fee": (order["fee"] or 0) + fee,
                     "fee_asset": quote,
                     "updated_at": now,
                 },
             )
-            if order["oco_group"]:
+            if order["oco_group"] and complete:
                 for sib in self.open_orders(order["symbol"]):
                     if sib["oco_group"] == order["oco_group"] and sib["id"] != order["id"]:
                         self.cancel_order(sib["id"], "OCO : l'autre ordre a été exécuté")
@@ -443,8 +468,27 @@ class PaperBroker:
         return self.get_order(order["id"])
 
     # -- passage du temps -----------------------------------------------------
+    def process_book(self, symbol, snapshot=None, *, max_age=60):
+        now = self.clock()
+        try:
+            book = snapshot if snapshot is not None else self.book_fn(symbol)
+            return match_snapshot(self, symbol, book, now, max_age)
+        except (LiquidityError, KeyError, TypeError, ValueError, OSError) as exc:
+            raise OrderError(f"Carnet inexécutable pour {symbol} : {exc}", "invalid_book") from exc
+
     def process_bar(self, symbol: str, o: float, h: float, l: float, c: float, start_ms: int, end_ms: int | None = None) -> int:
         """Déclenche les ordres en attente touchés pendant la période. Renvoie le nombre d'exécutions."""
+        if self.book_fn is not None:
+            if not self.open_orders(symbol):
+                return 0
+            try:
+                return self.process_book(symbol)
+            except OrderError as exc:
+                self.db.log("warning", "simulation", exc.message, {"symbol": symbol})
+                return 0
+        for order in self.open_orders(symbol):
+            if order["expires_at"] is not None and self.clock() >= order["expires_at"]:
+                self.cancel_order(order["id"], "Ordre expiré", expired=True)
         if not valid_bar(o, h, l, c):
             return 0  # données incohérentes : aucune exécution
         orders = [x for x in self.open_orders(symbol) if x["created_at"] * 1000 <= start_ms + 1e-6]
@@ -500,6 +544,11 @@ class PaperBroker:
     @atomic
     def _record_rejection(self, order, exc):
         current = self.get_order(order["id"])
+        if exc.code == "already_filled":
+            return
+        if exc.code == "position_tracking":
+            self.db.log("error", "simulation", exc.message, {"order_id": order["id"]})
+            return
         if current["status"] in OPEN_STATUSES:
             self.db.update("orders", order["id"], {"status": "rejected", "error": exc.message})
             if order["purpose"] == "entry" and not current["filled"] and order["position_id"]:

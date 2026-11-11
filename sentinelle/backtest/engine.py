@@ -61,6 +61,7 @@ def run_backtest(
     extra_cost: float = 0.0,
     account_currency: str | None = None,
     historical_fx=None,
+    research_trace: bool = False,
 ) -> dict:
     """`initial` : capital de départ, dans la monnaie de cotation. `extra_cost` : coût supplémentaire par
     opération (fraction), par exemple la conversion en euros du portefeuille principal."""
@@ -112,6 +113,7 @@ def run_backtest(
 
     equity_curve: list[list[float]] = []
     bh_start: dict[str, float] = {}
+    observed_valid = {}
     skipped = 0
     n = len(all_ts)
     for step_i, ts in enumerate(all_ts):
@@ -123,21 +125,27 @@ def run_backtest(
                 continue
             f = data[sym][0]
             o, h, l, c = (float(f[col].iat[k]) for col in ("open", "high", "low", "close"))
-            if not valid_bar(o, h, l, c):
-                skipped += 1  # bougie incohérente : ni décision ni exécution
-                continue
             bars.append((sym, k, o, h, l, c))
         # 1) ouverture de la bougie : premier prix disponible après les décisions de la clôture précédente
         clock.t = ts / 1000
+        if bars and currency != quote:
+            # An unavailable historical conversion makes this replay unverifiable.
+            broker.fx(quote)
         for sym, _k, o, _h, _l, _c in bars:
-            prices[sym] = o
-            bh_start.setdefault(sym, o)
-        for sym, k, *_ in bars:
-            if k >= 1:
+            if np.isfinite(o) and o > 0:
+                prices[sym] = o
+                bh_start.setdefault(sym, o)
+        for sym, k, o, *_ in bars:
+            # At the open, only the preceding completed bar can qualify the signal.
+            if k >= 1 and np.isfinite(o) and o > 0 and observed_valid.get(sym, True):
                 feat, sig = data[sym]
                 agent.on_bar(sym, feat.iloc[:k], idx=k - 1, sig_at={name: bool(sig[name][k - 1]) for name in enabled})
         # 2) pendant la bougie : stops puis objectifs
         for sym, _k, o, h, l, c in bars:
+            observed_valid[sym] = valid_bar(o, h, l, c)
+            if not observed_valid[sym]:
+                skipped += 1
+                continue
             broker.process_bar(sym, o, h, l, c, ts)
             prices[sym] = c
         # 3) clôture : relevé du capital
@@ -174,7 +182,9 @@ def run_backtest(
         "equity_metrics": equity_metrics(eqs),
         "buy_hold_pct": bh,
         "open_positions": len(open_left),
-        "fees_paid": float(sum(p["fees"] for p in closed)),
+        "fees_paid": -float(db.scalar("SELECT SUM(amount) FROM ledger WHERE kind IN ('frais','conversion') AND asset=?",
+                                      (currency,), 0.0)),
+        "currency": currency,
         "exposure_pct": None,
         "duration_s": round(time.time() - t_run, 1),
         "agent_stats": agent.stats,
@@ -182,5 +192,10 @@ def run_backtest(
         "skipped_bars": skipped,
         "execution": "ouverture de la bougie suivant le signal",
     }
+    if research_trace:
+        result["equity"] = equity_curve
+        result["closed_positions"] = closed
+        result["fills"] = db.query("SELECT * FROM fills ORDER BY id")
+        result["unrealized_positions"] = open_left
     db.close()
     return result

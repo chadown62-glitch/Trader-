@@ -21,7 +21,7 @@ def app(tmp_path_factory):
                                               "general": {"watchlist": ["BTC/USDC", "ETH/USDC", "SOL/USDC"]},
                                               "ai": {"timeframe": "1h"},
                                               # capital fictif élevé : ces tests portent sur l'API, pas sur les petits montants
-                                              "portfolio": {"initial": 10_000.0}})
+                                              "portfolio": {"initial": 30.0}})
     assert a.engine.ready.wait(30)
     deadline = time.time() + 20
     while time.time() < deadline and len(a.hub.prices) < 3:
@@ -84,7 +84,7 @@ def test_manual_trade_round_trip(client, app):
     _login(client)
     acc = _manual_account(client)
     price = app.hub.price("ETH/USDC")
-    body = {"account_id": acc["id"], "symbol": "ETH/USDC", "side": "buy", "type": "market", "quote_amount": 500,
+    body = {"account_id": acc["id"], "symbol": "ETH/USDC", "side": "buy", "type": "market", "cash_amount": 12,
             "stop_loss": round(price * 0.95, 2), "take_profit": round(price * 1.10, 2)}
     prev = client.post("/api/orders/preview", json=body, headers=H).json()
     assert prev["error"] is None and prev["qty"] > 0
@@ -168,7 +168,7 @@ def test_accelerated_simulation_runs_in_portfolio_conditions(client, app):
     res = job["result"]
     cond = res["conditions"]
     assert cond["capital"] == 500 and cond["currency"] == "EUR" and cond["quote"] == "USDC" and cond["fx"]["source"]
-    assert res["initial"] == pytest.approx(500 / cond["fx"]["rate"]) and cond["extra_cost"] == pytest.approx(0.0005)
+    assert res["initial"] == 500 and cond["extra_cost"] == pytest.approx(0.0005)
     assert res["execution"] == "ouverture de la bougie suivant le signal" and res["skipped_bars"] == 0
     # le portefeuille principal n'a pas bougé
     assert client.get(f"/api/accounts/{main['id']}/ledger").json()["check"]["entries"] == before

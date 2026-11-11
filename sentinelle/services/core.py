@@ -307,13 +307,17 @@ class App(LiveMixin, PortfolioMixin, TradingMixin, AgentsMixin, TrainingMixin, L
         clock = self.market_clock
         trade_quote = self.settings["general"]["quote"]
         cross = acc["quote"] != trade_quote  # portefeuille en euros, paires cotées en USDC : conversion explicite
+        from ..execution.book_execution import read_public_book
+        from ..market.sources import SyntheticSource
+        book_fn = None if isinstance(self.source, SyntheticSource) else lambda symbol: read_public_book(self.source, symbol)
+
         def fresh_price(symbol):
             return self.hub.price(symbol) if self.hub.is_fresh(symbol, 180) else None
 
         broker = PaperBroker(self.db, acc["id"], acc["quote"], self.hub.market, fresh_price, p["fee_rate"], p["slippage_bps"], clock,
                              fx_fn=self._fx_quote if acc["role"] == "main" else None,
                              fx_cost_bps=self.settings["portfolio"]["fx_cost_bps"] if cross else 0.0,
-                             trade_quote=trade_quote, spread_fn=self._half_spread)
+                             trade_quote=trade_quote, spread_fn=self._half_spread, book_fn=book_fn)
         if not self.db.scalar("SELECT COUNT(*) FROM ledger WHERE account_id = ?", (acc["id"],), 0):
             # compte créé avant le grand livre : ses soldes y sont repris tels quels (rien n'est modifié)
             for row in self.db.query("SELECT asset, total FROM balances WHERE account_id = ?", (acc["id"],)):
@@ -448,7 +452,7 @@ class App(LiveMixin, PortfolioMixin, TradingMixin, AgentsMixin, TrainingMixin, L
                 raise UserError("Compte introuvable")
             require_paper_account(acc, "utilisation d'un compte non simulé", self.db)
             if not self.is_tradable(acc):
-                raise UserError("Ancien compte papier, conservé pour consultation : le trading se fait sur le portefeuille principal")
+                raise UserError("Ancien compte papier en lecture seule : le trading se fait sur le portefeuille principal")
             if not self.hub.markets:
                 raise UserError("Données de marché pas encore disponibles, patientez quelques secondes")
             rt = self._make_paper_runtime(acc)

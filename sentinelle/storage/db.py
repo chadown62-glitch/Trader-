@@ -84,6 +84,13 @@ CREATE TABLE IF NOT EXISTS fx_liquidity_used(
     consumed TEXT NOT NULL,
     PRIMARY KEY (source, market_base, market_quote, market_ts, side)
 );
+CREATE TABLE IF NOT EXISTS paper_books(
+    symbol TEXT NOT NULL, source TEXT NOT NULL, ts REAL NOT NULL, original TEXT NOT NULL, consumed TEXT NOT NULL,
+    PRIMARY KEY (symbol, source)
+);
+CREATE TABLE IF NOT EXISTS paper_book_events(
+    order_id INTEGER NOT NULL, source TEXT NOT NULL, ts REAL NOT NULL, PRIMARY KEY(order_id, source, ts)
+);
 CREATE TABLE IF NOT EXISTS fx_snapshots(
     base TEXT NOT NULL, quote TEXT NOT NULL, ts REAL NOT NULL, source TEXT NOT NULL, snapshot TEXT NOT NULL,
     PRIMARY KEY(base, quote, ts, source)
@@ -349,6 +356,10 @@ class Database:
             for column, decl in (("fx_rate", "REAL"), ("fx_source", "TEXT"), ("fx_ts", "REAL"),
                                  ("fx_cost", "REAL NOT NULL DEFAULT 0"), ("cash_amount", "REAL"), ("cash_asset", "TEXT")):
                 self._ensure_column("fills", column, decl)
+            self._ensure_column("orders", "expires_at", "REAL")
+            self._ensure_column("orders", "triggered", "INTEGER NOT NULL DEFAULT 0")
+            self._ensure_column("fills", "price_source", "TEXT")
+            self._ensure_column("fills", "price_ts", "REAL")
             self._ensure_column("orders", "cash_reserved", "REAL")
             self._ensure_column("fx_operations", "via", "TEXT")
             self._ensure_column("fx_operations", "request_id", "TEXT")

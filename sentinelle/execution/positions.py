@@ -97,6 +97,7 @@ class PositionManager:
         stop: float | None = None,
         target: float | None = None,
         entry_type: str = "market",
+        expires_at: float | None = None,
         limit_price: float | None = None,
         strategy: str | None = None,
         risk_amount: float | None = None,
@@ -158,6 +159,7 @@ class PositionManager:
                     agent=agent,
                     purpose="entry",
                     position_id=pos_id,
+                    expires_at=expires_at,
                     reason=reason,
                 )
             except OrderError as exc:
@@ -206,16 +208,18 @@ class PositionManager:
             "fees": pos["fees"] + fee_q,
             "entry_fees": pos["entry_fees"] + fee_q,
         }
-        fully = order["status"] == "filled" or order["filled"] + 1e-12 >= order["amount"]
-        if fully:
-            upd["status"] = "open"
+        upd["status"] = "open"
+        if not pos["qty"]:
             upd["entry_ts"] = fill["ts"]
-            if pos["stop_price"]:  # risque réellement pris, au prix et au taux d'exécution
-                upd["risk_amount"] = max(1e-9, (avg - pos["stop_price"]) * new_qty * entry_fx)
+        if pos["stop_price"]:
+            upd["risk_amount"] = max(1e-9, (avg - pos["stop_price"]) * new_qty * entry_fx)
         self.db.update("positions", pos_id, upd)
-        if fully:
-            self._publish("position_opened", self.get(pos_id))
-            self._place_protections(self.get(pos_id))
+        current = self.get(pos_id)
+        if not pos["qty"]:
+            self._place_protections(current)
+            self._publish("position_opened", current)
+        else:
+            self._resize_protections(current)
 
     def _guard(self, operation: str) -> None:
         """Sécurité : toute action passe par un courtier simulé, vérifié à chaque appel."""
@@ -258,6 +262,9 @@ class PositionManager:
         pos = self.get(pos_id)
         if pos["status"] not in ("open", "pending"):
             return
+        for entry in self.broker.open_orders(pos["symbol"]):
+            if entry["position_id"] == pos_id and entry["purpose"] == "entry":
+                self.broker.cancel_order(entry["id"], "Sortie de la position partiellement exécutée")
         base, quote = pos["symbol"].split("/")
         amount = float(fill["amount"])
         fx = _fx(fill)
@@ -321,11 +328,9 @@ class PositionManager:
         qty = m.floor_amount(pos["qty"])
         if all(abs((o["amount"] - o["filled"]) - qty) < 1e-12 for o in orders):
             return
-        for o in orders:
-            self.broker.cancel_order(o["id"], "Ajustement de quantité")
-        self._place_protections(pos)
+        for order in orders:
+            self.db.update("orders", order["id"], {"amount": order["filled"] + qty})
 
-    # -- actions ----------------------------------------------------------------
     def _required_price(self, symbol: str) -> float:
         last = self.broker.price_fn(symbol)
         if last is None or not math.isfinite(last) or last <= 0:
@@ -384,7 +389,7 @@ class PositionManager:
             return pos
         last = self._required_price(pos["symbol"])
         m = self.broker.market_fn(pos["symbol"])
-        if getattr(self.broker, "defer_market", False):
+        if self.broker.defer_market or self.broker.book_fn is not None:
             # Keep the existing stop/target until the delayed exit is actually
             # filled. All three reserve the same position through one OCO group.
             with self.db.transaction():

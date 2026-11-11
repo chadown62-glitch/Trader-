@@ -76,6 +76,7 @@ class FXBody(BaseModel):
 
 
 class OrderBody(BaseModel):
+    expires_at: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     account_id: int
     symbol: str = Field(max_length=30)
     side: Literal["buy", "sell"]

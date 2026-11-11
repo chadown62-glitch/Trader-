@@ -119,13 +119,13 @@ class TradingMixin:
                     raise UserError("Achat : ordre au marché ou à cours limité uniquement")
                 pos = rt.positions.open(
                     symbol, prev["qty"], origin="manual", stop=req.get("stop_loss"), target=req.get("take_profit"),
-                    entry_type=otype, limit_price=req.get("price") if otype == "limit" else None,
+                    expires_at=req.get("expires_at"), entry_type=otype, limit_price=req.get("price") if otype == "limit" else None,
                     reason=req.get("note") or "Trade manuel",
                 )
                 result = {"position": pos}
             else:
                 order = rt.broker.place_order(symbol, "sell", otype, prev["qty"], price=req.get("price"),
-                                              stop_price=req.get("stop_price"), origin="manual", purpose="manual",
+                                              stop_price=req.get("stop_price"), expires_at=req.get("expires_at"), origin="manual", purpose="manual",
                                               reason=req.get("note") or "Vente manuelle")
                 result = {"order": order}
         except OrderError as exc:

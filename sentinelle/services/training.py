@@ -81,9 +81,12 @@ class TrainingMixin:
         if res.eval_model is not None and res.holdout_start:
             progress(0.8, "Simulation du portefeuille sur la période de contrôle (avec l'IA)")
             markets = {s: self.hub.markets[s] for s in hist if s in self.hub.markets}
-            bt = run_backtest(hist, tf, settings, res.eval_model, start_ts=res.holdout_start, btc=btc, markets=markets)
+            cond = self.backtest_conditions()
+            replay = dict(initial=cond["initial"], account_currency=cond["currency"], extra_cost=cond["extra_cost"],
+                          historical_fx=self._historical_fx)
+            bt = run_backtest(hist, tf, settings, res.eval_model, start_ts=res.holdout_start, btc=btc, markets=markets, **replay)
             progress(0.9, "Simulation de référence (tous les signaux, sans l'IA)")
-            base = run_backtest(hist, tf, settings, None, exploration=True, start_ts=res.holdout_start, btc=btc, markets=markets)
+            base = run_backtest(hist, tf, settings, None, exploration=True, start_ts=res.holdout_start, btc=btc, markets=markets, **replay)
             report["backtest_model"] = {k: bt[k] for k in ("metrics", "equity_metrics", "equity", "buy_hold_pct", "final_equity", "initial", "fees_paid", "start", "end", "halted")}
             report["backtest_baseline"] = {k: base[k] for k in ("metrics", "equity_metrics", "equity", "buy_hold_pct", "final_equity", "initial", "fees_paid", "halted")}
         version = None
@@ -126,7 +129,8 @@ class TrainingMixin:
         if not (10 <= amount <= 10_000_000):
             raise UserError("Capital simulé entre 10 et 10 000 000")
         return {"initial": amount, "extra_cost": cfg["fx_cost_bps"] / 10_000, "currency": cfg["currency"],
-                "capital": amount, "fx": "carnets archivés à la date de chaque exécution" if quote != cfg["currency"] else None}
+                "capital": amount, "fx": ({"source": "carnet synthétique daté" if self.settings["market"]["source"] == "synthetic" else "carnets archivés",
+                                     "mode": "historical"} if quote != cfg["currency"] else None)}
 
     def start_backtest(self, days: int, use_model: bool, capital: float | None = None) -> dict:
         tf = self.settings["ai"]["timeframe"]
@@ -148,7 +152,7 @@ class TrainingMixin:
             res = run_backtest(hist, tf, settings, model, start_ts=start, btc=btc, markets=markets, exploration=not use_model,
                                progress=lambda x, m: progress(0.3 + 0.7 * x, m),
                                initial=cond["initial"], extra_cost=cond["extra_cost"], account_currency=cond["currency"],
-                               historical_fx=self.fx.historical)
+                               historical_fx=self._historical_fx)
             res["conditions"] = {**cond, "quote": settings["general"]["quote"]}
             res["use_model"] = use_model
             res["model"] = model.version if model else None

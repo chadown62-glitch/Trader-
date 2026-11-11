@@ -41,6 +41,17 @@ class PortfolioMixin:
             fetchers = [market_fetcher(self.source, lambda: self.settings["portfolio"]["fx_max_age_minutes"] * 60)]
         return FxService(base, fetchers, clock=self.market_clock, db=self.db)
 
+    def _historical_fx(self, currency, timestamp):
+        from ..market.sources import SyntheticSource
+        if isinstance(self.source, SyntheticSource) and self.settings["market"]["source"] == "synthetic":
+            if currency == self.fx.base:
+                return self.fx.historical(currency, timestamp)
+            q = synthetic_fetcher(lambda: timestamp)(self.fx.base, currency)
+            if q is None:
+                raise FxUnavailable("Devise absente du générateur de démonstration")
+            return q
+        return self.fx.historical(currency, timestamp)
+
     def _fx_quote(self, currency: str, for_trading: bool = True):
         return self.fx.quote(currency, for_trading=for_trading)
 
@@ -74,6 +85,8 @@ class PortfolioMixin:
                 raise UserError("Portefeuille principal incohérent : vérifier les comptes existants")
             if active and active[0]["role"] == "principal":
                 self.db.update("accounts", active[0]["id"], {"role": MAIN_ROLE})
+            if not active:
+                self.db.execute("UPDATE agents SET enabled=0 WHERE enabled!=0")
             self._ensure_main_account()
             self.db.set_meta("portfolio_mode", "main")
             for row in self.db.query("SELECT b.* FROM balances b JOIN accounts a ON a.id=b.account_id "
