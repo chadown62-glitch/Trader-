@@ -66,7 +66,7 @@ class LiveMixin:
         """Comptes actifs vérifiés. Tout compte actif qui n'est pas 100 % simulé est écarté et journalisé."""
         out = []
         for aid, rt in list(self.runtimes.items()):
-            if is_paper_runtime(rt):
+            if is_paper_runtime(rt) and self.is_tradable(rt.account):
                 out.append((aid, rt))
             else:
                 self._evict_runtime(aid, "compte actif non simulé écarté")

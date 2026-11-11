@@ -12,8 +12,18 @@ import sqlite3
 import threading
 import time
 from contextlib import contextmanager
+from functools import wraps
 from pathlib import Path
 from typing import Any, Iterator
+
+def atomic(fn):
+    """Serialize the complete read/check/write operation, including nested fill listeners."""
+    @wraps(fn)
+    def transactional(self, *args, **kwargs):
+        with self.db.transaction():
+            return fn(self, *args, **kwargs)
+    return transactional
+
 
 SCHEMA_VERSION = 1
 
@@ -48,6 +58,35 @@ CREATE TABLE IF NOT EXISTS balances(
     asset TEXT NOT NULL,
     total REAL NOT NULL DEFAULT 0,
     PRIMARY KEY (account_id, asset)
+);
+CREATE TABLE IF NOT EXISTS fx_operations(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id INTEGER NOT NULL,
+    ts REAL NOT NULL,
+    source_currency TEXT NOT NULL,
+    target_currency TEXT NOT NULL,
+    amount_in TEXT NOT NULL,
+    amount_out TEXT NOT NULL,
+    fee_rate TEXT NOT NULL,
+    via TEXT,
+    request_id TEXT,
+    legs TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_fx_operations_account ON fx_operations(account_id, ts);
+CREATE TABLE IF NOT EXISTS fx_liquidity_used(
+    source TEXT NOT NULL,
+    market_base TEXT NOT NULL,
+    market_quote TEXT NOT NULL,
+    market_ts TEXT NOT NULL,
+    side TEXT NOT NULL,
+    price TEXT NOT NULL,
+    depth TEXT NOT NULL,
+    consumed TEXT NOT NULL,
+    PRIMARY KEY (source, market_base, market_quote, market_ts, side)
+);
+CREATE TABLE IF NOT EXISTS fx_snapshots(
+    base TEXT NOT NULL, quote TEXT NOT NULL, ts REAL NOT NULL, source TEXT NOT NULL, snapshot TEXT NOT NULL,
+    PRIMARY KEY(base, quote, ts, source)
 );
 CREATE TABLE IF NOT EXISTS orders(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -310,6 +349,10 @@ class Database:
             for column, decl in (("fx_rate", "REAL"), ("fx_source", "TEXT"), ("fx_ts", "REAL"),
                                  ("fx_cost", "REAL NOT NULL DEFAULT 0"), ("cash_amount", "REAL"), ("cash_asset", "TEXT")):
                 self._ensure_column("fills", column, decl)
+            self._ensure_column("orders", "cash_reserved", "REAL")
+            self._ensure_column("fx_operations", "via", "TEXT")
+            self._ensure_column("fx_operations", "request_id", "TEXT")
+            self.conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_fx_request ON fx_operations(account_id, request_id)")
             self._ensure_column("positions", "entry_fx", "REAL")
             self._ensure_column("positions", "currency", "TEXT")
             self.conn.execute(
@@ -366,6 +409,8 @@ class Database:
         with self._lock:
             if self._depth == 0:
                 self.conn.execute("BEGIN IMMEDIATE")
+            else:
+                self.conn.execute(f"SAVEPOINT nested_{self._depth}")
             self._depth += 1
             try:
                 yield self
@@ -373,11 +418,16 @@ class Database:
                 self._depth -= 1
                 if self._depth == 0:
                     self.conn.execute("ROLLBACK")
+                else:
+                    self.conn.execute(f"ROLLBACK TO nested_{self._depth}")
+                    self.conn.execute(f"RELEASE nested_{self._depth}")
                 raise
             else:
                 self._depth -= 1
                 if self._depth == 0:
                     self.conn.execute("COMMIT")
+                else:
+                    self.conn.execute(f"RELEASE nested_{self._depth}")
 
     def backup(self, dest: str | Path) -> None:
         """Copie cohérente de la base (même pendant son utilisation)."""

@@ -19,6 +19,32 @@ class TradingMixin:
     # ======================================================================
     # Trading manuel
     # ======================================================================
+    def convert_paper_currency(self, account_id: int, base: str, target: str, amount, via: str | None = None,
+                               request_id: str | None = None) -> dict:
+        from ..execution.fx_ledger import PaperFXLedger
+        from ..market.fx import FXError
+        from ..market.fx_provider import PublicFXProvider
+
+        # Resolve and verify the simulated runtime before fetching any quote.
+        rt = self.runtime(account_id)
+        provider = PublicFXProvider(self.source, self.hub.markets, self.market_clock)
+        try:
+            ledger = PaperFXLedger(rt.broker, self.market_clock)
+            previous = ledger.replay(request_id, base, target, amount, via)
+            if previous is not None:
+                return previous
+            book = provider.snapshot(base, target, via=via)
+            return ledger.convert(base, target, amount, book, via=via, fee_rate=rt.broker.fee_rate, request_id=request_id)
+        except FXError as exc:
+            self.db.log("warning", "simulation", str(exc), {"account_id": account_id, "pair": f"{base}/{target}"})
+            raise UserError(str(exc)) from None
+
+    def paper_fx_history(self, account_id: int) -> list[dict]:
+        from ..storage.db import loads
+        self.runtime(account_id)
+        rows = self.db.query('SELECT * FROM fx_operations WHERE account_id = ? ORDER BY id DESC LIMIT 100', (account_id,))
+        return [{**r, 'legs': loads(r['legs'], [])} for r in rows]
+
     def _order_qty(self, rt: AccountRuntime, symbol: str, side: str, price: float, amount, quote_amount,
                    cash_amount=None, fx: float = 1.0) -> float:
         """Quantité demandée : directement, par un montant dans la monnaie de la paire, ou dans celle du compte."""
@@ -47,7 +73,7 @@ class TradingMixin:
         fx_info = None
         try:  # compte en euros, paire en USDC : le taux de change fait partie de l'ordre
             fxq = rt.broker.fx(quote)
-            fx = float(fxq.rate)
+            fx = float(fxq.cash_leg(1, req["side"], self.market_clock())[0])
             fx_info = fxq.to_dict(self.market_clock()) if cross else None
         except OrderError as exc:
             raise UserError(exc.message) from None
@@ -153,7 +179,9 @@ class TradingMixin:
         if stop >= entry or entry <= 0:
             raise UserError("Le stop doit être sous le prix d'entrée")
         risk_amount = eq * pct / 100  # monnaie du compte
-        fx = self.runtime(account_id).broker.fx_rate(self.settings["general"]["watchlist"][0]) or 1.0
+        fx = self.runtime(account_id).broker.fx_rate(self.settings["general"]["watchlist"][0])
+        if fx is None:
+            raise UserError("Change indisponible pour le calcul de risque")
         qty = risk_amount / ((entry - stop) * fx)
         return {"qty": qty, "value": qty * entry, "value_cash": qty * entry * fx, "risk_amount": risk_amount, "risk_pct": pct, "equity": eq}
 

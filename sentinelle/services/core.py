@@ -247,6 +247,7 @@ class App(LiveMixin, PortfolioMixin, TradingMixin, AgentsMixin, TrainingMixin, L
             for name in list(self.agents):
                 self._restart_agent_later(name)
         for _aid, rt in self.paper_runtimes():  # écarte au passage tout compte actif non simulé
+            rt.broker.trade_quote = new["general"]["quote"]
             rt.broker.fee_rate = new["paper"]["fee_rate"]
             rt.broker.slip = new["paper"]["slippage_bps"] / 10_000
             if rt.broker.fx_fn is not None:
@@ -300,12 +301,17 @@ class App(LiveMixin, PortfolioMixin, TradingMixin, AgentsMixin, TrainingMixin, L
 
     def _make_paper_runtime(self, acc: dict) -> AccountRuntime:
         require_paper_account(acc, "ouverture d'un compte non simulé", self.db)
+        if not self.is_tradable(acc):
+            raise UserError("Seul le portefeuille principal est actif")
         p = self.settings["paper"]
         clock = self.market_clock
         trade_quote = self.settings["general"]["quote"]
         cross = acc["quote"] != trade_quote  # portefeuille en euros, paires cotées en USDC : conversion explicite
-        broker = PaperBroker(self.db, acc["id"], acc["quote"], self.hub.market, self.hub.price, p["fee_rate"], p["slippage_bps"], clock,
-                             fx_fn=self._fx_quote if cross else None,
+        def fresh_price(symbol):
+            return self.hub.price(symbol) if self.hub.is_fresh(symbol, 180) else None
+
+        broker = PaperBroker(self.db, acc["id"], acc["quote"], self.hub.market, fresh_price, p["fee_rate"], p["slippage_bps"], clock,
+                             fx_fn=self._fx_quote if acc["role"] == "main" else None,
                              fx_cost_bps=self.settings["portfolio"]["fx_cost_bps"] if cross else 0.0,
                              trade_quote=trade_quote, spread_fn=self._half_spread)
         if not self.db.scalar("SELECT COUNT(*) FROM ledger WHERE account_id = ?", (acc["id"],), 0):
@@ -470,14 +476,14 @@ class App(LiveMixin, PortfolioMixin, TradingMixin, AgentsMixin, TrainingMixin, L
         rt = self.runtime(account_id)
         if any(agent.account_id == account_id for agent in self.agents.values()):
             raise UserError("Arrêtez d'abord l'IA qui utilise ce compte")
-        default = self.settings["portfolio"]["initial"] if rt.account["role"] == "main" else self.settings["paper"]["initial_balance"]
-        amount = float(initial or rt.account["initial_balance"] or default)
-        if not (10 <= amount <= 10_000_000):
-            raise UserError("Capital de départ entre 10 et 10 000 000")
-        rt.broker.reset(amount)
+        if initial is not None and float(initial) != 30:
+            raise UserError("Le portefeuille principal se réinitialise à 30 EUR fictifs")
+        amount = 30.0
+        with self.db.transaction():
+            rt.broker.reset(amount)
+            self.db.execute("DELETE FROM equity WHERE account_id = ?", (account_id,))
+            self.db.execute("UPDATE accounts SET initial_balance = ?, data = '{}' WHERE id = ?", (amount, account_id))
         rt.account["initial_balance"] = amount
-        self.db.execute("DELETE FROM equity WHERE account_id = ?", (account_id,))
-        self.db.execute("UPDATE accounts SET initial_balance = ?, data = '{}' WHERE id = ?", (amount, account_id))
         self.db.log("info", "comptes", f"Compte {rt.account['name']} réinitialisé à {amount:,.2f}")
 
     def account_summary(self, account_id: int) -> dict:
@@ -499,7 +505,8 @@ class App(LiveMixin, PortfolioMixin, TradingMixin, AgentsMixin, TrainingMixin, L
         if rt is None:
             if not out["tradable"]:  # ancien compte papier : dernière valeur connue, pour mémoire
                 last = self.db.one("SELECT equity, cash FROM equity WHERE account_id = ? ORDER BY ts DESC LIMIT 1", (account_id,))
-                out.update(equity=last["equity"] if last else acc["initial_balance"], cash=last["cash"] if last else None,
+                balances = {r["asset"]: r["total"] for r in self.db.query("SELECT asset, total FROM balances WHERE account_id=?", (account_id,))}
+                out.update(legacy=True, balances=balances, equity=last["equity"] if last else acc["initial_balance"], cash=last["cash"] if last else None,
                            positions=[], archived_paper=True,
                            total_pnl=(last["equity"] - acc["initial_balance"]) if last and acc["initial_balance"] else None)
             return out

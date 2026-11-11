@@ -1,22 +1,4 @@
-"""Taux de change entre la monnaie du portefeuille (l'euro) et les monnaies de cotation.
-
-Le portefeuille principal est tenu en euros, alors que les cryptos sont cotées en
-USDC, en USDT ou en dollars. Chaque conversion est donc **explicite** : un taux, sa
-**source** et son **horodatage**, enregistrés avec l'opération.
-
-Sources, dans l'ordre :
-1. la paire EUR/<monnaie> de la source de marché (Binance : cotée 24 h/24) ;
-2. à défaut, la paire EUR/USDT de la même source, en supposant 1 stablecoin ≈ 1 dollar
-   (le taux est alors marqué « approximatif ») ;
-3. à défaut, le taux de référence quotidien de la Banque centrale européenne (dollar),
-   lui aussi marqué « approximatif » ;
-4. sur le marché simulé (démo, tests) : un taux simulé, déterministe.
-
-Règle de sûreté : sans taux assez récent, aucun ordre n'est passé sur un portefeuille
-en euros (refus, jamais de taux inventé). Pour le simple affichage, le dernier taux
-connu reste utilisé et signalé comme ancien.
-"""
-
+"""Executable paper FX from dated two-sided quotes; reference rates are indicative only."""
 from __future__ import annotations
 
 import logging
@@ -27,6 +9,10 @@ from dataclasses import asdict, dataclass
 from typing import Callable
 
 from ..execution.base import OrderError
+
+from decimal import Decimal
+from .fx_book import FXBook, FXError, FXQuote
+from .fx_provider import PublicFXProvider
 
 log = logging.getLogger("sentinelle.fx")
 
@@ -46,6 +32,44 @@ class FxQuote:
     approx: bool = False  # vrai si l'on a supposé 1 stablecoin = 1 dollar
     max_age: float = 1800.0  # durée pendant laquelle ce taux peut servir à passer un ordre
 
+    market: dict | None = None
+
+    @classmethod
+    def from_book(cls, base, currency, book, max_age):
+        q, = book.quotes.values()
+        info = {k: str(v) if isinstance(v, Decimal) else v for k, v in asdict(q).items()}
+        # Indicative value is the cash recoverable when selling one unit.
+        rate = book.convert(1, currency, base, now=q.timestamp, max_age=max_age)["amount"]
+        return cls(base, currency, float(rate), q.source, q.timestamp, False, max_age, info)
+
+    def executable(self, now):
+        if self.base == self.quote:
+            return
+        if (not self.market or self.approx or not math.isfinite(now) or not math.isfinite(self.ts)
+                or not math.isfinite(self.max_age) or not 0 <= now - self.ts <= self.max_age):
+            raise FxUnavailable(f"Taux {self.base}/{self.quote} indicatif, futur ou trop ancien")
+        book = FXBook([FXQuote(**self.market)])
+        q, = book.quotes.values()
+        if q.timestamp != self.ts or q.source != self.source or q.bid_depth is None or q.ask_depth is None:
+            raise FxUnavailable("Provenance ou profondeur de change incohérente")
+        return book
+
+    def cash_leg(self, quantity, side, now):
+        """Cash price of acquiring/selling exactly quantity units of the trade currency."""
+        book = self.executable(now)
+        if not book:
+            return Decimal(1), []
+        value = Decimal(str(quantity))
+        try:
+            if side == "buy":
+                rate = book.convert(1, self.base, self.quote, now=now, max_age=self.max_age)["amount"]
+                legs = book.convert(value / rate, self.base, self.quote, now=now, max_age=self.max_age, require_depth=True)["legs"]
+                return 1 / rate, legs
+            out = book.convert(value, self.quote, self.base, now=now, max_age=self.max_age, require_depth=True)
+            return out["legs"][0]["rate"], out["legs"]
+        except FXError as exc:
+            raise FxUnavailable(str(exc)) from exc
+
     def age(self, now: float) -> float:
         return max(0.0, now - self.ts)
 
@@ -54,7 +78,8 @@ class FxQuote:
         d["inverse"] = 1.0 / self.rate if self.rate else None  # combien de `quote` pour 1 `base`
         if now is not None:
             d["age_s"] = self.age(now)
-            d["stale"] = self.age(now) > self.max_age
+            d["stale"] = not 0 <= now - self.ts <= self.max_age
+            d["indicative"] = self.approx or self.market is None and self.base != self.quote
         return d
 
 
@@ -73,34 +98,11 @@ def identity(currency: str, now: float) -> FxQuote:
 
 
 def market_fetcher(source, max_age: float | Callable[[], float] = 1800.0) -> Fetcher:
-    """Taux lu sur la source de marché : paire directe, sinon EUR/USDT pour une monnaie assimilée au dollar.
-
-    `max_age` (secondes, ou fonction qui le renvoie) : durée de validité du taux pour passer un ordre."""
-
-    def last_close(pair: str) -> tuple[float, float] | None:
-        rows = source.fetch_ohlcv(pair, "1m", limit=2)
-        if not rows:
-            return None
-        px = float(rows[-1][4])
-        if not (px > 0) or not math.isfinite(px):
-            return None
-        return px, min(source.now_ms() / 1000, rows[-1][0] / 1000 + 60)
-
-    def fetch(base: str, quote: str) -> FxQuote | None:
-        name = getattr(source, "name", "marché")
-        tries = [(f"{base}/{quote}", False)]
-        if quote in USD_LIKE and quote != "USDT":
-            tries.append((f"{base}/USDT", True))
-        for pair, approx in tries:
-            try:
-                hit = last_close(pair)
-            except Exception:
-                hit = None
-            if hit:
-                px, ts = hit
-                label = f"{name} {pair}" + (f" (1 {quote} ≈ 1 USDT)" if approx else "")
-                return FxQuote(base, quote, 1.0 / px, label, ts, approx, float(max_age() if callable(max_age) else max_age))
-        return None
+    """Read only an explicitly listed direct or inverse market and its exchange timestamp."""
+    def fetch(base, quote):
+        age = float(max_age() if callable(max_age) else max_age)
+        provider = PublicFXProvider(source, source.load_markets(), lambda: source.now_ms() / 1000, max_age=age)
+        return FxQuote.from_book(base, quote, provider.snapshot(base, quote), age)
 
     return fetch
 
@@ -136,11 +138,13 @@ def synthetic_fetcher(clock: Callable[[], float], per_base: float = 1.11) -> Fet
     """Taux simulé et déterministe (démo hors-ligne, tests) : oscille lentement de ±1 % autour de 1,11 USDC pour 1 €."""
 
     def fetch(base: str, quote: str) -> FxQuote | None:
-        if quote not in USD_LIKE:
+        offsets = {"USD": 0.0, "USDC": 0.002, "USDT": -0.003}
+        if base != "EUR" or quote not in offsets:
             return None
         now = clock()
-        px = per_base * (1 + 0.01 * math.sin(now / 86_400 / 9))
-        return FxQuote(base, quote, 1.0 / px, "taux simulé (démonstration)", now, False, 1800.0)
+        mid = per_base * (1 + offsets[quote] + 0.01 * math.sin(now / 86_400 / 9))
+        q = FXQuote(base, quote, mid * 0.9998, mid * 1.0002, now, "carnet simulé (démonstration)", 500, 500)
+        return FxQuote.from_book(base, quote, FXBook([q]), 1800.0)
 
     return fetch
 
@@ -167,6 +171,9 @@ class FxService:
             from ..storage.db import dumps
 
             self.db.set_meta(f"fx_last_{q.quote}", dumps(asdict(q)))
+            if q.market is not None:
+                self.db.execute("INSERT OR IGNORE INTO fx_snapshots(base, quote, ts, source, snapshot) VALUES(?,?,?,?,?)",
+                                (q.base, q.quote, q.ts, q.source, dumps(asdict(q))))
             last = self.db.one("SELECT ts, rate FROM fx_rates WHERE quote = ? ORDER BY id DESC LIMIT 1", (q.quote,))
             if last is None or q.ts - last["ts"] >= 600 or abs(q.rate / last["rate"] - 1) > 0.001:
                 self.db.insert("fx_rates", {"ts": q.ts, "base": q.base, "quote": q.quote, "rate": q.rate, "source": q.source})
@@ -230,10 +237,24 @@ class FxService:
         q = self.latest(currency)
         if q is None:
             raise FxUnavailable(f"Taux de change {self.base}/{currency} indisponible : aucun ordre possible sur un portefeuille en {self.base}")
-        if for_trading and q.age(self.clock()) > q.max_age:
-            minutes = q.age(self.clock()) / 60
-            raise FxUnavailable(f"Taux de change {self.base}/{currency} trop ancien ({minutes:.0f} min, source : {q.source}) : ordre refusé par prudence")
+        if q.quote != currency or q.base != self.base:
+            raise FxUnavailable("Devises du taux incompatibles")
+        if for_trading:
+            q.executable(self.clock())
         return q
+
+    def historical(self, currency, at):
+        """Never consult the current source or most recently cached quote during a replay."""
+        from ..storage.db import loads
+        if self.base == currency:
+            return identity(currency, at)
+        row = self.db.one("SELECT snapshot FROM fx_snapshots WHERE base=? AND quote=? AND ts<=? "
+                          "ORDER BY ts DESC, source LIMIT 1", (self.base, currency, at)) if self.db else None
+        if not row:
+            raise FxUnavailable(f"Aucun carnet historique {self.base}/{currency} à {at}")
+        quote = FxQuote(**loads(row["snapshot"], {}))
+        quote.executable(at)
+        return quote
 
     def status(self, currencies) -> dict:
         now = self.clock()

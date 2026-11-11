@@ -9,7 +9,7 @@ from typing import Any
 from ..ai.trainer import build_dataset, train_walk_forward
 from ..backtest.engine import run_backtest
 from ..execution.base import OrderError
-from ..market.history import continuous_history, last_continuous
+from ..market.history import last_continuous
 from ..storage.db import dumps
 from .common import UserError
 from .learning import KNOWLEDGE_DAYS
@@ -41,7 +41,6 @@ class TrainingMixin:
         if not wl:
             raise UserError("Aucune des cryptos suivies n'est disponible sur la source de données")
         btc_sym = f"BTC/{quote}"
-        extended = bool(settings["ai"].get("extended_history", True)) and extended_ok
         need = wl + ([btc_sym] if btc_sym not in wl else [])
         hist = {}
         for k, sym in enumerate(need):
@@ -52,15 +51,8 @@ class TrainingMixin:
                 if sym in wl:
                     raise UserError(f"Historique indisponible pour {sym} : {exc}") from None
                 continue
-            alt = f"{sym.split('/')[0]}/USDT"
-            older = None
-            if extended and quote != "USDT" and (not self.hub.markets or alt in self.hub.markets):
-                try:  # paire USDT plus ancienne : davantage d'années pour apprendre
-                    older = self.history.update(alt, tf, days)
-                except Exception:
-                    older = None
-            # jamais de trou de cotation dans l'historique d'apprentissage (paire retirée puis recotée)
-            hist[sym] = continuous_history(hist[sym], older) if older is not None else last_continuous(hist[sym])
+            # Different quote currencies require their own dated conversion data.
+            hist[sym] = last_continuous(hist[sym])
         btc = hist.get(btc_sym) if btc_sym not in wl else None
         return {s: hist[s] for s in wl if s in hist}, btc
 
@@ -123,10 +115,7 @@ class TrainingMixin:
             pass
 
     def backtest_conditions(self, capital: float | None = None) -> dict:
-        """Conditions de la simulation accélérée : celles du portefeuille principal (capital, coût de conversion).
-
-        La simulation est tenue dans la monnaie de cotation, sur un compte à part. Le capital en euros est converti
-        une fois, au taux du moment ; le coût de conversion s'ajoute aux frais de chaque ordre."""
+        """Capital en monnaie du compte, avec change historique au moment de chaque ordre."""
         quote = self.settings["general"]["quote"]
         if self.portfolio_mode() != "main":
             return {"initial": float(capital or self.settings["paper"]["initial_balance"]), "extra_cost": 0.0, "currency": quote,
@@ -136,9 +125,8 @@ class TrainingMixin:
         amount = float(capital or (main["initial_balance"] if main else cfg["initial"]))
         if not (10 <= amount <= 10_000_000):
             raise UserError("Capital simulé entre 10 et 10 000 000")
-        fxq = self.fx.quote(quote, for_trading=False)
-        return {"initial": amount / fxq.rate, "extra_cost": cfg["fx_cost_bps"] / 10_000, "currency": cfg["currency"],
-                "capital": amount, "fx": fxq.to_dict(self.market_clock())}
+        return {"initial": amount, "extra_cost": cfg["fx_cost_bps"] / 10_000, "currency": cfg["currency"],
+                "capital": amount, "fx": "carnets archivés à la date de chaque exécution" if quote != cfg["currency"] else None}
 
     def start_backtest(self, days: int, use_model: bool, capital: float | None = None) -> dict:
         tf = self.settings["ai"]["timeframe"]
@@ -159,7 +147,8 @@ class TrainingMixin:
             markets = {s: self.hub.markets[s] for s in hist if s in self.hub.markets}
             res = run_backtest(hist, tf, settings, model, start_ts=start, btc=btc, markets=markets, exploration=not use_model,
                                progress=lambda x, m: progress(0.3 + 0.7 * x, m),
-                               initial=cond["initial"], extra_cost=cond["extra_cost"])
+                               initial=cond["initial"], extra_cost=cond["extra_cost"], account_currency=cond["currency"],
+                               historical_fx=self.fx.historical)
             res["conditions"] = {**cond, "quote": settings["general"]["quote"]}
             res["use_model"] = use_model
             res["model"] = model.version if model else None

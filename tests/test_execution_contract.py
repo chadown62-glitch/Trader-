@@ -372,11 +372,11 @@ def test_panel_simulation_uses_the_main_portfolio_conditions(tmp_path):
     app = App(tmp_path, source=SyntheticSource([SYM], days=5), start=False,
               settings_override={"market": {"source": "synthetic"}, "general": {"watchlist": [SYM]}})
     try:
-        rate = app.fx.quote("USDC").rate
+        app.fx.quote = lambda *a, **kw: pytest.fail("Une cotation actuelle a été consultée")
         cond = app.backtest_conditions()
-        assert cond["capital"] == 30.0 and cond["currency"] == "EUR" and cond["initial"] == pytest.approx(30.0 / rate)
-        assert cond["extra_cost"] == pytest.approx(0.0005) and cond["fx"]["source"] and cond["fx"]["rate"] == pytest.approx(rate)
-        assert app.backtest_conditions(100.0)["initial"] == pytest.approx(100.0 / rate)
+        assert cond["capital"] == 30.0 and cond["currency"] == "EUR" and cond["initial"] == 30.0
+        assert cond["extra_cost"] == pytest.approx(0.0005) and "archivés" in cond["fx"]
+        assert app.backtest_conditions(100.0)["initial"] == 100.0
         with pytest.raises(UserError):
             app.backtest_conditions(5.0)
         app.db.set_meta("portfolio_mode", "legacy")  # ancienne installation : simulation dans la monnaie de cotation, sans conversion

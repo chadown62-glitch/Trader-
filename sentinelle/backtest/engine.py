@@ -53,12 +53,14 @@ def run_backtest(
     *,
     start_ts: int | None = None,
     end_ts: int | None = None,
-    initial: float = 10_000.0,
+    initial: float = 30.0,
     exploration: bool = False,
     markets: dict[str, MarketInfo] | None = None,
     btc: pd.DataFrame | None = None,
     progress: Callable[[float, str], None] | None = None,
     extra_cost: float = 0.0,
+    account_currency: str | None = None,
+    historical_fx=None,
 ) -> dict:
     """`initial` : capital de départ, dans la monnaie de cotation. `extra_cost` : coût supplémentaire par
     opération (fraction), par exemple la conversion en euros du portefeuille principal."""
@@ -66,11 +68,13 @@ def run_backtest(
     tf = timeframe_ms(timeframe)
     cfg = copy.deepcopy(settings)
     cfg["ai"]["exploration"] = exploration
-    cfg["paper"]["fee_rate"] = cfg["paper"]["fee_rate"] + max(0.0, extra_cost)
+    if not account_currency:
+        cfg["paper"]["fee_rate"] += max(0.0, extra_cost)
     quote = cfg["general"]["quote"]
+    currency = account_currency or quote
     db = Database(":memory:")
     clock = SimClock(0.0)
-    acc = db.insert("accounts", {"name": "backtest", "kind": "paper", "role": "backtest", "quote": quote, "initial_balance": initial, "created_at": 0})
+    acc = db.insert("accounts", {"name": "backtest", "kind": "paper", "role": "backtest", "quote": currency, "initial_balance": initial, "created_at": 0})
     prices: dict[str, float] = {}
     mk = dict(markets or {})
 
@@ -79,8 +83,10 @@ def run_backtest(
             mk[symbol] = generic_market(symbol)
         return mk[symbol]
 
-    broker = PaperBroker(db, acc, quote, market_fn, prices.get, cfg["paper"]["fee_rate"], cfg["paper"]["slippage_bps"], clock)
-    broker.set_balance(quote, initial)
+    broker = PaperBroker(db, acc, currency, market_fn, prices.get, cfg["paper"]["fee_rate"], cfg["paper"]["slippage_bps"], clock,
+                         trade_quote=quote, fx_cost_bps=extra_cost * 10000 if account_currency else 0,
+                         fx_fn=(lambda cur, _trading: historical_fx(cur, clock())) if historical_fx else None)
+    broker.set_balance(currency, initial)
     pm = PositionManager(db, broker, clock=clock)
     risk = RiskManager(db, acc, lambda: cfg, clock)
     agent = TradingAgent("backtest", "backtest", db, pm, risk, lambda: cfg, lambda: model, timeframe=timeframe, clock=clock, record=False)
@@ -129,7 +135,7 @@ def run_backtest(
         for sym, k, *_ in bars:
             if k >= 1:
                 feat, sig = data[sym]
-                agent.on_bar(sym, feat, idx=k - 1, sig_at={name: bool(sig[name][k - 1]) for name in enabled})
+                agent.on_bar(sym, feat.iloc[:k], idx=k - 1, sig_at={name: bool(sig[name][k - 1]) for name in enabled})
         # 2) pendant la bougie : stops puis objectifs
         for sym, _k, o, h, l, c in bars:
             broker.process_bar(sym, o, h, l, c, ts)

@@ -58,3 +58,19 @@ def test_public_factory_with_fake_ccxt_never_receives_credentials(monkeypatch):
     assert not set(config).intersection(CREDENTIAL_FIELDS)
     assert facade.fetch_ticker("BTC/EUR") == {"last": 100}
     inner.create_order.assert_not_called()
+
+
+def test_installed_ccxt_distribution_can_only_construct_the_public_facade():
+    import ccxt
+    import ccxt.async_support
+    import ccxt.pro
+    from importlib.metadata import distribution
+
+    assert {"binance", "kraken"} <= set(ccxt.exchanges)
+    assert any(str(f) == "ccxt/async_support/kraken.py" for f in distribution("ccxt").files)
+    for exchange_id in ("binance", "kraken"):
+        public = make_ccxt_exchange(exchange_id, public_mirror=False)
+        assert public.id == exchange_id
+        for operation in ("create_order", "cancel_order", "fetch_balance", "withdraw", "transfer"):
+            with pytest.raises(RealTradingForbidden):
+                getattr(public, operation)

@@ -39,27 +39,27 @@ class FakeSource:
     def now_ms(self):
         return int(self.now * 1000)
 
-    def fetch_ohlcv(self, symbol, timeframe, since=None, limit=2):
+    def load_markets(self):
+        return {pair: MarketInfo(pair, *pair.split("/")) for pair in self.pairs}
+
+    def fetch_order_book(self, symbol, limit=5):
         self.calls += 1
-        if symbol not in self.pairs:
-            raise KeyError(symbol)
         px = self.pairs[symbol]
-        minute = int(self.now // 60) * 60_000
-        return [[minute - 60_000, px, px, px, px, 1.0], [minute, px, px, px, px, 1.0]]
+        return {"timestamp": self.now_ms(), "bids": [[px, 1000]], "asks": [[px, 1000]]}
 
 
 def test_fx_reads_the_market_pair_with_source_and_timestamp():
     src = FakeSource({"EUR/USDC": 1.25, "EUR/USDT": 1.20})
     fx = FxService("EUR", [market_fetcher(src, 600)], clock=lambda: src.now)
     q = fx.quote("USDC")
-    assert q.rate == pytest.approx(0.8) and q.source == "bourse-test EUR/USDC" and not q.approx
+    assert q.rate == pytest.approx(0.8) and q.source == "bourse-test" and not q.approx
     assert src.now - 60 <= q.ts <= src.now and q.max_age == 600
     assert fx.quote("EUR").rate == 1.0  # même monnaie : pas de conversion
     d = q.to_dict(src.now)
     assert d["inverse"] == pytest.approx(1.25) and d["stale"] is False and d["age_s"] <= 60
-    # pas de paire directe : EUR/USDT, signalé comme approximation
-    usd = fx.quote("USD")
-    assert usd.rate == pytest.approx(1 / 1.20) and usd.approx and "≈" in usd.source
+    with pytest.raises(FxUnavailable):
+        fx.quote("USD")  # EUR/USDT must never stand in for EUR/USD.
+
 
 
 def test_fx_cache_fallback_and_refusal_when_stale():
@@ -86,7 +86,7 @@ def test_fx_remembers_the_last_rate_across_restarts(db):
     src = FakeSource({"EUR/USDC": 1.25})
     FxService("EUR", [market_fetcher(src)], clock=lambda: src.now, db=db).quote("USDC")
     row = db.one("SELECT * FROM fx_rates")
-    assert row["quote"] == "USDC" and row["rate"] == pytest.approx(0.8) and row["source"] == "bourse-test EUR/USDC"
+    assert row["quote"] == "USDC" and row["rate"] == pytest.approx(0.8) and row["source"] == "bourse-test"
     offline = FxService("EUR", [market_fetcher(FakeSource({}))], clock=lambda: src.now + 10, db=db)
     assert offline.quote("USDC").rate == pytest.approx(0.8)  # redémarrage sans réseau : dernier taux mémorisé
 
@@ -123,7 +123,9 @@ class Fx:
     def __call__(self, currency, for_trading=True):
         if self.down:
             raise FxUnavailable("Taux de change EUR/USDC indisponible")
-        return FxQuote("EUR", currency, self.rate, "taux-test", self.now(), False, 1800.0)
+        from sentinelle.market.fx_book import FXBook, FXQuote
+        q = FXQuote(currency, "EUR", self.rate, self.rate, self.now(), "taux-test", 10000, 10000)
+        return FxQuote.from_book("EUR", currency, FXBook([q]), 1800.0)
 
 
 @pytest.fixture
@@ -449,8 +451,9 @@ def test_reset_returns_to_the_starting_capital_and_keeps_a_trace(app):
     assert s["equity"] == s["cash"] == 30.0 and s["balances"] == {"EUR": 30.0} and s["positions"] == []
     kinds = [r["kind"] for r in app.ledger(main)["rows"]]
     assert kinds.count("reinitialisation") == 2 and "achat" in kinds and app.ledger(main)["check"]["ok"] is True
-    app.reset_paper_account(main, 50.0)
-    assert app.account_summary(main)["equity"] == 50.0 and app.main_account()["initial_balance"] == 50.0
+    with pytest.raises(UserError):
+        app.reset_paper_account(main, 50.0)
+    assert app.main_account()["initial_balance"] == 30.0
     with pytest.raises(UserError):
         app.reset_paper_account(main, 5.0)
 
@@ -488,42 +491,23 @@ def test_existing_install_keeps_its_accounts_until_explicit_migration(tmp_path):
     ids = legacy_install(tmp_path)
     app = make_app(tmp_path)
     try:
-        assert app.portfolio_mode() == "legacy" and app.main_account() is None  # rien n'est créé ni remplacé en silence
-        assert {r["role"] for r in app.db.query("SELECT role FROM accounts")} == {"ai_training", "manual"}
-        assert app.db.one("SELECT total FROM balances WHERE account_id = ? AND asset = 'USDC'", (ids["ai_training"],))["total"] == 9_500.0
-        assert app.ai_account()["id"] == ids["ai_training"] and set(app.runtimes) == set(ids.values())
-        status = app.portfolio_status()
-        assert status["migration_available"] is True and status["initial"] == 30.0
-        assert {a["id"] for a in status["legacy_accounts"]} == set(ids.values())
-        assert next(a for a in status["legacy_accounts"] if a["role"] == "ai_training")["open_positions"] == 1
-        assert app.ledger(ids["manual"])["check"]["ok"] is True  # soldes repris tels quels dans le grand livre
-        # l'ancien compte fonctionne toujours, dans sa monnaie
-        order = app.place_manual_order({"account_id": ids["manual"], "symbol": "BTC/USDC", "side": "buy", "quote_amount": 500})
-        assert order["position"]["status"] == "open" and order["position"]["entry_fx"] == 1.0
-
-        with pytest.raises(UserError):  # la migration exige une confirmation explicite
-            app.activate_main_portfolio()
-        assert app.portfolio_mode() == "legacy"
-
-        res = app.activate_main_portfolio(confirm=True)
-        assert app.portfolio_mode() == "main" and res["positions_closed"] == 2
         main = app.main_account()
-        assert (main["quote"], main["initial_balance"]) == ("EUR", 30.0) and app.account_summary(main["id"])["equity"] == 30.0
+        assert app.portfolio_mode() == "main" and app.runtime(main["id"]).broker.balances() == {"EUR": 30.0}
         assert app.ai_account()["id"] == main["id"] and set(app.runtimes) == {main["id"]}
-        # anciens comptes : toujours là, non archivés, historique intact, positions fermées au prix du marché simulé
-        old = {r["id"]: r for r in app.db.query("SELECT * FROM accounts WHERE role != 'main'")}
-        assert set(old) == set(ids.values()) and all(a["archived"] == 0 and a["initial_balance"] == 10_000.0 for a in old.values())
-        assert app.db.scalar("SELECT COUNT(*) FROM positions WHERE account_id = ? AND status = 'closed'", (ids["ai_training"],)) == 2
-        assert app.db.scalar("SELECT COUNT(*) FROM positions WHERE status IN ('open', 'pending')") == 0
-        assert app.db.one("SELECT total FROM balances WHERE account_id = ? AND asset = 'USDC'", (ids["ai_training"],))["total"] > 9_500.0
-        assert app.db.scalar("SELECT COUNT(*) FROM equity WHERE account_id = ?", (ids["ai_training"],)) >= 2
+        old = app.legacy_paper_accounts()
+        assert {a["id"] for a in old} == set(ids.values())
+        assert all(not a["archived"] and a["initial_balance"] == 10_000 for a in old)
+        assert app.ledger(ids["manual"])["check"]["ok"]
+        assert app.db.scalar("SELECT total FROM balances WHERE account_id=? AND asset='USDC'", (ids["ai_training"],)) == 9500
+        assert app.db.scalar("SELECT COUNT(*) FROM positions WHERE account_id=? AND status='open'", (ids["ai_training"],)) == 1
+        assert app.db.scalar("SELECT COUNT(*) FROM positions WHERE account_id=? AND status='closed'", (ids["ai_training"],)) == 1
+        assert app.db.scalar("SELECT COUNT(*) FROM equity WHERE account_id=?", (ids["ai_training"],)) == 1
         summary = app.account_summary(ids["ai_training"])
         assert summary["tradable"] is False and summary["archived_paper"] is True and summary["equity"] > 9_500.0
         with pytest.raises(UserError) as err:  # lecture seule
             app.place_manual_order({"account_id": ids["manual"], "symbol": "BTC/USDC", "side": "buy", "quote_amount": 50})
         assert "portefeuille principal" in str(err.value)
-        with pytest.raises(UserError):
-            app.activate_main_portfolio(confirm=True)  # déjà fait
+        assert app.activate_main_portfolio(confirm=True)["main_account_id"] == main["id"]
         assert app.portfolio_status()["migration_available"] is False
     finally:
         app.db.close()
@@ -544,7 +528,7 @@ def test_portfolio_api(tmp_path):
         with TestClient(create_api(app)) as c:
             assert c.post("/api/auth/setup", json={"password": "faux-mot-de-passe-de-test"}, headers=H).status_code == 200
             st = c.get("/api/portfolio").json()
-            assert st["mode"] == "legacy" and st["migration_available"] is True and st["fx"]["rates"]["USDC"]["source"]
+            assert st["mode"] == "main" and st["migration_available"] is False and st["fx"]["rates"]["USDC"]["source"]
             assert c.post("/api/portfolio/activate", json={}, headers=H).status_code == 400  # sans confirmation
             r = c.post("/api/portfolio/activate", json={"confirm": True}, headers=H)
             assert r.status_code == 200 and r.json()["status"]["mode"] == "main"
