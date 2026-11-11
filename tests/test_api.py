@@ -149,6 +149,32 @@ def test_training_agent_start_stop(client, app):
     assert r.status_code == 200 and "ia_entrainement" not in app.agents
 
 
+def test_accelerated_simulation_runs_in_portfolio_conditions(client, app):
+    """Simulation accélérée lancée par l'API : compte à part, capital du portefeuille, exécution à l'ouverture suivante."""
+    _login(client)
+    main = next(a for a in client.get("/api/accounts").json() if a["role"] == "main")
+    before = client.get(f"/api/accounts/{main['id']}/ledger").json()["check"]["entries"]
+    r = client.post("/api/ai/backtest", json={"days": 30, "use_model": False, "capital": 500}, headers=H)
+    assert r.status_code == 200, r.text
+    job_id = r.json()["id"]
+    deadline = time.time() + 120
+    job = {}
+    while time.time() < deadline:
+        job = client.get(f"/api/jobs/{job_id}").json()
+        if job.get("status") != "running":
+            break
+        time.sleep(0.3)
+    assert job.get("status") == "done", job
+    res = job["result"]
+    cond = res["conditions"]
+    assert cond["capital"] == 500 and cond["currency"] == "EUR" and cond["quote"] == "USDC" and cond["fx"]["source"]
+    assert res["initial"] == pytest.approx(500 / cond["fx"]["rate"]) and cond["extra_cost"] == pytest.approx(0.0005)
+    assert res["execution"] == "ouverture de la bougie suivant le signal" and res["skipped_bars"] == 0
+    # le portefeuille principal n'a pas bougé
+    assert client.get(f"/api/accounts/{main['id']}/ledger").json()["check"]["entries"] == before
+    assert client.post("/api/ai/backtest", json={"days": 30, "use_model": False, "capital": 5}, headers=H).status_code == 422
+
+
 def test_emergency_requires_confirmation(client):
     _login(client)
     r = client.post("/api/emergency", json={"action": "flatten"}, headers=H)

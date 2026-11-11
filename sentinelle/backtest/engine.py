@@ -1,6 +1,17 @@
 """Backtest événementiel : rejoue l'historique bougie par bougie avec exactement
 le même agent, le même gestionnaire de risque et le même broker simulé que
 l'entraînement en direct. C'est la « simulation accélérée ».
+
+Déroulement d'une bougie k (contrat d'exécution unique, execution/contract.py) :
+1. à son OUVERTURE, premier prix disponible après la clôture de la bougie k−1 : l'agent
+   applique les décisions fondées sur la bougie k−1 (entrées, sorties à la durée maximale,
+   relèvement des stops). Un achat est donc exécuté à l'ouverture de k, jamais à la clôture
+   de la bougie qui a donné le signal ;
+2. PENDANT la bougie : les stops puis les objectifs touchés sont exécutés ;
+3. à sa CLÔTURE : le capital est relevé.
+
+La simulation tourne dans sa propre base de données en mémoire : elle ne peut pas
+toucher au portefeuille principal.
 """
 
 from __future__ import annotations
@@ -18,6 +29,7 @@ from ..ai.metrics import equity_metrics, trade_metrics
 from ..ai.model import MetaModel
 from ..ai.strategies import STRATEGIES
 from ..config import timeframe_ms
+from ..execution.contract import valid_bar
 from ..execution.paper import PaperBroker
 from ..execution.positions import PositionManager
 from ..market.markets import MarketInfo, generic_market
@@ -46,11 +58,15 @@ def run_backtest(
     markets: dict[str, MarketInfo] | None = None,
     btc: pd.DataFrame | None = None,
     progress: Callable[[float, str], None] | None = None,
+    extra_cost: float = 0.0,
 ) -> dict:
+    """`initial` : capital de départ, dans la monnaie de cotation. `extra_cost` : coût supplémentaire par
+    opération (fraction), par exemple la conversion en euros du portefeuille principal."""
     t_run = time.time()
     tf = timeframe_ms(timeframe)
     cfg = copy.deepcopy(settings)
     cfg["ai"]["exploration"] = exploration
+    cfg["paper"]["fee_rate"] = cfg["paper"]["fee_rate"] + max(0.0, extra_cost)
     quote = cfg["general"]["quote"]
     db = Database(":memory:")
     clock = SimClock(0.0)
@@ -90,24 +106,36 @@ def run_backtest(
 
     equity_curve: list[list[float]] = []
     bh_start: dict[str, float] = {}
+    skipped = 0
     n = len(all_ts)
     for step_i, ts in enumerate(all_ts):
         ts = int(ts)
-        active = [(sym, pos_index[sym][ts]) for sym in data if ts in pos_index[sym]]
-        # 1) pendant la bougie : déclenchement des stops et objectifs
-        clock.t = ts / 1000
-        for sym, k in active:
+        bars = []
+        for sym in data:
+            k = pos_index[sym].get(ts)
+            if k is None:
+                continue
             f = data[sym][0]
             o, h, l, c = (float(f[col].iat[k]) for col in ("open", "high", "low", "close"))
+            if not valid_bar(o, h, l, c):
+                skipped += 1  # bougie incohérente : ni décision ni exécution
+                continue
+            bars.append((sym, k, o, h, l, c))
+        # 1) ouverture de la bougie : premier prix disponible après les décisions de la clôture précédente
+        clock.t = ts / 1000
+        for sym, _k, o, _h, _l, _c in bars:
             prices[sym] = o
+            bh_start.setdefault(sym, o)
+        for sym, k, *_ in bars:
+            if k >= 1:
+                feat, sig = data[sym]
+                agent.on_bar(sym, feat, idx=k - 1, sig_at={name: bool(sig[name][k - 1]) for name in enabled})
+        # 2) pendant la bougie : stops puis objectifs
+        for sym, _k, o, h, l, c in bars:
             broker.process_bar(sym, o, h, l, c, ts)
             prices[sym] = c
-            bh_start.setdefault(sym, o)
-        # 2) à la clôture : décisions de l'agent
+        # 3) clôture : relevé du capital
         clock.t = (ts + tf) / 1000
-        for sym, k in active:
-            feat, sig = data[sym]
-            agent.on_bar(sym, feat, idx=k, sig_at={n: bool(sig[n][k]) for n in enabled})
         eq, cash = broker.equity()
         db.execute("INSERT OR REPLACE INTO equity(account_id, ts, equity, cash) VALUES (?, ?, ?, ?)", (acc, clock.t, eq, cash))
         equity_curve.append([ts + tf, eq])
@@ -132,7 +160,8 @@ def run_backtest(
         "final_equity": eqs[-1],
         "equity": equity_curve[::step] + ([equity_curve[-1]] if equity_curve and (len(equity_curve) - 1) % step else []),
         "trades": [
-            {k: p[k] for k in ("symbol", "strategy", "entry_ts", "exit_ts", "entry_price", "exit_price", "realized_pnl", "pnl_r", "reason_close", "p_win", "expected_r")}
+            {k: p[k] for k in ("symbol", "strategy", "entry_ts", "exit_ts", "entry_price", "exit_price", "realized_pnl", "pnl_r", "reason_close", "p_win", "expected_r",
+                               "initial_stop", "target_price", "qty", "initial_qty", "fees", "risk_amount")}
             for p in closed[-500:]
         ],
         "metrics": trade_metrics(rs),
@@ -144,6 +173,8 @@ def run_backtest(
         "duration_s": round(time.time() - t_run, 1),
         "agent_stats": agent.stats,
         "halted": risk.halted()[0],
+        "skipped_bars": skipped,
+        "execution": "ouverture de la bougie suivant le signal",
     }
     db.close()
     return result

@@ -4,8 +4,11 @@ Pour chaque signal d'une stratégie à la clôture de la bougie i :
 - entrée au prix d'ouverture de la bougie i+1, glissement compris ;
 - stop et objectif calculés à la clôture de i (comme en direct) ;
 - simulation bougie par bougie avec exactement les règles de sortie du trading
-  réel (`exits.py`) jusqu'au stop, à l'objectif ou à la durée maximale ;
+  en argent fictif (`exits.py`) jusqu'au stop, à l'objectif ou à la durée maximale ;
 - résultat net de frais, exprimé en R (multiple du risque).
+
+Ces règles sont celles du contrat d'exécution unique (`execution/contract.py`) : la
+simulation accélérée et le trading en argent fictif appliquent les mêmes.
 """
 
 from __future__ import annotations
@@ -14,7 +17,8 @@ import numpy as np
 import pandas as pd
 
 from ..config import timeframe_ms
-from .exits import ExitState, r_multiple, step
+from ..execution.contract import entry_possible, market_fill, valid_bar
+from .exits import ExitState, r_multiple, step, time_exit_fill
 from .features import FEATURE_COLUMNS
 from .strategies import STRATEGIES, levels, signals
 
@@ -32,22 +36,34 @@ def simulate_candidate(o, h, l, c, i: int, stop: float, target: float | None, st
                        timeframe: str = "1h", atr_entry: float = 0.0):
     """Simule un candidat décidé à la clôture de la bougie i.
 
-    Renvoie None si le trade était impossible (ouverture sous le stop),
+    Renvoie None si le trade était impossible (ouverture sous le stop, bougie d'entrée invalide),
     (None, nan, None) si le résultat n'est pas encore connu,
-    sinon (motif, résultat en R, indice de la bougie de sortie).
+    sinon (motif, résultat en R, indice de la bougie à la clôture de laquelle la sortie est acquise).
+
+    Pour une sortie à la durée maximale, décidée à la clôture de la bougie j, la vente a lieu à
+    l'ouverture de la bougie j+1 : l'indice renvoyé est j (la sortie est datée de sa clôture, qui est
+    aussi l'ouverture de j+1), et le résultat reste inconnu tant que la bougie j+1 n'existe pas.
     """
     st = STRATEGIES[strategy]
     n = len(o)
     if i + 1 >= n:
         return (None, float("nan"), None)
-    entry_fill = o[i + 1] * (1 + slip)
-    if entry_fill <= stop:
+    if not valid_bar(o[i + 1], h[i + 1], l[i + 1], c[i + 1]):
         return None
+    if not entry_possible(o[i + 1], stop):
+        return None
+    entry_fill = market_fill(o[i + 1], "buy", slip)
     horizon = st.horizon(timeframe)
     state = ExitState(entry_fill, stop, target, stop, horizon, st.breakeven_r, fee_rate, slip,
                       trail_atr=st.trail_atr, atr_entry=atr_entry, peak=entry_fill)
     for j in range(i + 1, min(n, i + 2 + horizon)):
+        if not valid_bar(o[j], h[j], l[j], c[j]):
+            continue  # bougie incohérente : ni décision ni exécution
         px, reason = step(state, o[j], h[j], l[j], c[j])
+        if reason == "time":
+            if j + 1 >= n:
+                return (None, float("nan"), None)  # la bougie suivante n'existe pas encore
+            return (reason, r_multiple(entry_fill, time_exit_fill(state, o[j + 1]), stop, fee_rate), j)
         if px is not None:
             return (reason, r_multiple(entry_fill, px, stop, fee_rate), j)
     return (None, float("nan"), None)

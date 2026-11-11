@@ -113,6 +113,7 @@ class TrainBody(BaseModel):
 class BacktestBody(BaseModel):
     days: int = Field(default=90, ge=30, le=3000)
     use_model: bool = True
+    capital: float | None = Field(default=None, ge=10, le=10_000_000)  # monnaie du portefeuille ; défaut : son capital de départ
 
 
 class EmergencyBody(BaseModel):
@@ -444,7 +445,7 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
 
     @api.post("/api/ai/backtest")
     async def backtest(body: BacktestBody):
-        return app.start_backtest(body.days, body.use_model)
+        return app.start_backtest(body.days, body.use_model, body.capital)
 
     @api.get("/api/ai/last-training")
     async def last_training():

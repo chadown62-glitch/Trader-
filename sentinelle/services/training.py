@@ -8,6 +8,7 @@ from typing import Any
 
 from ..ai.trainer import build_dataset, train_walk_forward
 from ..backtest.engine import run_backtest
+from ..execution.base import OrderError
 from ..market.history import continuous_history, last_continuous
 from ..storage.db import dumps
 from .common import UserError
@@ -121,10 +122,32 @@ class TrainingMixin:
         except UserError:
             pass
 
-    def start_backtest(self, days: int, use_model: bool) -> dict:
+    def backtest_conditions(self, capital: float | None = None) -> dict:
+        """Conditions de la simulation accélérée : celles du portefeuille principal (capital, coût de conversion).
+
+        La simulation est tenue dans la monnaie de cotation, sur un compte à part. Le capital en euros est converti
+        une fois, au taux du moment ; le coût de conversion s'ajoute aux frais de chaque ordre."""
+        quote = self.settings["general"]["quote"]
+        if self.portfolio_mode() != "main":
+            return {"initial": float(capital or self.settings["paper"]["initial_balance"]), "extra_cost": 0.0, "currency": quote,
+                    "capital": float(capital or self.settings["paper"]["initial_balance"]), "fx": None}
+        cfg = self.settings["portfolio"]
+        main = self.main_account()
+        amount = float(capital or (main["initial_balance"] if main else cfg["initial"]))
+        if not (10 <= amount <= 10_000_000):
+            raise UserError("Capital simulé entre 10 et 10 000 000")
+        fxq = self.fx.quote(quote, for_trading=False)
+        return {"initial": amount / fxq.rate, "extra_cost": cfg["fx_cost_bps"] / 10_000, "currency": cfg["currency"],
+                "capital": amount, "fx": fxq.to_dict(self.market_clock())}
+
+    def start_backtest(self, days: int, use_model: bool, capital: float | None = None) -> dict:
         tf = self.settings["ai"]["timeframe"]
         settings = copy.deepcopy(self.settings)
         days = max(30, min(int(days), 3000))
+        try:
+            cond = self.backtest_conditions(capital)
+        except OrderError as exc:
+            raise UserError(exc.message) from None
 
         def job(progress):
             warm = 210 if tf != "4h" else 230
@@ -135,7 +158,9 @@ class TrainingMixin:
             start = int((time.time() - days * 86400) * 1000)
             markets = {s: self.hub.markets[s] for s in hist if s in self.hub.markets}
             res = run_backtest(hist, tf, settings, model, start_ts=start, btc=btc, markets=markets, exploration=not use_model,
-                               progress=lambda x, m: progress(0.3 + 0.7 * x, m))
+                               progress=lambda x, m: progress(0.3 + 0.7 * x, m),
+                               initial=cond["initial"], extra_cost=cond["extra_cost"])
+            res["conditions"] = {**cond, "quote": settings["general"]["quote"]}
             res["use_model"] = use_model
             res["model"] = model.version if model else None
             res["days"] = days
