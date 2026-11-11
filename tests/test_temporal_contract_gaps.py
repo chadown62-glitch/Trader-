@@ -100,3 +100,26 @@ def test_deferred_entry_stop_wins_when_target_also_hit(db):
     assert pm.get(pos['id'])['status'] == 'closed'
     assert pm.get(pos['id'])['reason_close'] == 'Stop-loss touché'
     assert broker.balances().get('BTC', 0) == pytest.approx(0)
+
+
+def test_deferred_exit_keeps_stop_until_next_fill(db):
+    from sentinelle.execution.positions import PositionManager
+    market = MarketInfo('BTC/EUR', 'BTC', 'EUR', amount_step=0.001, min_notional=5)
+    aid = db.insert('accounts', {'name': 'test', 'kind': 'paper', 'role': 'principal', 'quote': 'EUR'})
+    price = {'BTC/EUR': 100.0}
+    now = [1000.0]
+    broker = PaperBroker(db, aid, 'EUR', lambda _: market, price.get, clock=lambda: now[0], defer_market=True)
+    broker.set_balance('EUR', 30)
+    pm = PositionManager(db, broker, clock=lambda: now[0])
+    pos = pm.open('BTC/EUR', 0.1, origin='ai', stop=90)
+    now[0] += 60
+    broker.process_bar('BTC/EUR', 100, 105, 99, 100, int(now[0] * 1000))
+    pm.close(pos['id'])
+    assert any(o['purpose'] == 'stop' for o in pm.protective_orders(pos['id']))
+    pm.close(pos['id'])
+    assert sum(o['purpose'] == 'exit' for o in broker.open_orders()) == 1
+    now[0] += 60
+    price['BTC/EUR'] = 95
+    broker.process_bar('BTC/EUR', 95, 96, 94, 95, int(now[0] * 1000))
+    assert pm.get(pos['id'])['status'] == 'closed'
+    assert not broker.open_orders()

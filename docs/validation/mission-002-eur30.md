@@ -42,7 +42,8 @@ sur la PR #5. Rien n'a été fusionné dans `main`.
    horodatés, leurs règles d'arrondi, de fraîcheur et les frais de conversion.
 2. Le backtest diffère les ordres au marché à la prochaine ouverture ; le paper
    utilise le prochain prix effectivement observé. Les règles d'exécution
-   restent différentes et la parité complète n'est pas démontrée.
+   restent différentes et la parité complète n'est pas démontrée. Une sortie
+   différée conserve les protections jusqu'à son exécution en groupe OCO.
 3. La bougie synthétique partielle n'expose que son ouverture et un volume nul.
    La source ne simule pas encore de transactions intraminute observables ; sa
    granularité ne permet pas de valider le scalping ou la liquidité.
