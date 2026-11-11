@@ -175,7 +175,10 @@ def test_public_exchange_refuses_everything_private():
 def test_public_exchange_fails_closed_if_credentials_appear():
     inner = fake_exchange()
     ex = PublicExchange(inner)
-    assert ex.fetch_ticker is inner.fetch_ticker
+    ticker = ex.fetch_ticker
+    ticker("BTC/USDC")
+    inner.fetch_ticker.assert_called_once_with("BTC/USDC")
+    inner.fetch_ticker.reset_mock()
     inner.apiKey = FAKE_KEY  # quelqu'un contourne la façade et glisse une clé dans le client
     for name in ("fetch_ticker", "load_markets", "fetch_ohlcv"):
         with pytest.raises(RealTradingForbidden):
