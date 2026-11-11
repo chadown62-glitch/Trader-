@@ -3,7 +3,7 @@ import { api, safe } from '../api.js';
 import { LineChart } from '../charts.js';
 import { ContextCard } from './context.js';
 import { ShieldCard } from './shield.js';
-import { store, money, signed, cls, pct, dt, ago, ROLE_LABELS, REASON_ICONS } from '../store.js';
+import { store, money, signed, cls, pct, dt, ago, fxLine, confirmBox, ROLE_LABELS, REASON_ICONS } from '../store.js';
 
 const { ref, computed, onMounted, watch } = Vue;
 
@@ -37,6 +37,16 @@ export default {
     const startAgent = async (a) => {
       await safe(api.post(`/api/agents/${a.name}/start`, {}), 'Préparation de l’IA en cours (téléchargement de l’historique)…');
     };
+    const portfolio = computed(() => store.overview?.portfolio || {});
+    const activateMain = async () => {
+      const p = portfolio.value;
+      const ok = await confirmBox({ title: 'Passer au portefeuille principal', confirmLabel: 'Passer au portefeuille principal',
+        message: `Un portefeuille unique de ${money(p.initial, p.currency)} fictifs sera créé, partagé entre vous et l'IA.\n\n` +
+          `Vos anciens comptes sont conservés et restent consultables (historique, courbes), mais on n'y tradera plus. ` +
+          `Leurs positions encore ouvertes seront vendues au prix simulé du moment, et l'IA sera arrêtée : vous pourrez la relancer ensuite.` });
+      if (!ok) return;
+      if (await safe(api.post('/api/portfolio/activate', { confirm: true }), 'Portefeuille principal activé')) store.overview = await api.get('/api/overview');
+    };
     const stopAgent = async (a) => { await safe(api.post(`/api/agents/${a.name}/stop`, { close_positions: false }), 'IA arrêtée (les positions gardent leurs stops)'); };
     const shieldPaused = (s) => !!(s && (Object.keys(s.volatility || {}).length || s.cascade || s.news));
     const lights = computed(() => {
@@ -52,7 +62,7 @@ export default {
         { label: 'Bouclier', ok: o.shield?.enabled && !shieldPaused(o.shield), warn: o.shield?.enabled && shieldPaused(o.shield), off: !o.shield?.enabled },
       ];
     });
-    return { store, accounts, agents, current, selected, equity, days, feed, readiness, lights, startAgent, stopAgent,
+    return { store, accounts, agents, current, selected, equity, days, feed, readiness, lights, startAgent, stopAgent, portfolio, activateMain, fxLine,
       money, signed, cls, pct, dt, ago, ROLE_LABELS, REASON_ICONS };
   },
   template: `
@@ -62,19 +72,28 @@ export default {
     </div>
     <div v-if="!store.overview" class="card empty">Chargement…</div>
     <template v-else>
+      <div v-if="portfolio.migration_available" class="note info" style="margin-bottom:14px">
+        <b>Nouveau : un portefeuille principal de {{ money(portfolio.initial, portfolio.currency) }} fictifs</b>, partagé entre vous et l'IA, tenu en euros.
+        Vos anciens comptes sont conservés et <b>rien ne change tant que vous n'avez pas confirmé</b>.
+        <div style="margin-top:8px"><button class="primary small" @click="activateMain">Passer au portefeuille principal…</button></div>
+      </div>
       <div class="grid cols-3" style="margin-bottom:14px">
         <div v-for="a in accounts" :key="a.id" class="card account-card" :class="{selected: current && a.id===current.id}" @click="selected = a.id">
           <div class="card-head"><h3>{{ a.name }}</h3><span class="spacer"></span>
-            <span class="badge" :class="a.legacy ? '' : 'paper'">{{ a.legacy ? 'ANCIEN COMPTE — INERTE' : 'SIMULATION' }}</span></div>
+            <span class="badge" :class="a.legacy || a.archived_paper ? '' : 'paper'">{{ a.legacy ? 'ANCIEN COMPTE — INERTE' : a.archived_paper ? 'ANCIEN COMPTE — LECTURE SEULE' : 'SIMULATION' }}</span></div>
           <div v-if="a.legacy" class="muted small">Ancien compte réel : conservé pour mémoire, inutilisable (simulation uniquement).</div>
           <div v-else-if="a.connected === false" class="muted small">Compte en cours de chargement…</div>
           <template v-else>
             <div class="big">{{ money(a.equity, a.quote) }}</div>
             <div class="row small" style="margin-top:6px">
-              <div>Jour <span class="num" :class="cls(a.day_pnl)">{{ signed(a.day_pnl) }}</span></div>
+              <div v-if="!a.archived_paper">Jour <span class="num" :class="cls(a.day_pnl)">{{ signed(a.day_pnl) }}</span></div>
               <div v-if="a.total_pnl !== null && a.total_pnl !== undefined">Total <span class="num" :class="cls(a.total_pnl)">{{ signed(a.total_pnl) }}</span></div>
-              <div>{{ (a.positions || []).length }} position(s)</div>
+              <div v-if="!a.archived_paper">{{ (a.positions || []).length }} position(s)</div>
             </div>
+            <div v-if="a.available !== undefined" class="small muted" style="margin-top:6px">
+              Disponible <span class="num">{{ money(a.available, a.quote) }}</span> · réservé <span class="num">{{ money(a.reserved, a.quote) }}</span> · investi <span class="num">{{ money(a.invested, a.quote) }}</span>
+            </div>
+            <div v-if="a.fx" class="faint small" style="margin-top:4px" :title="'Taux de change utilisé pour convertir en ' + a.quote">{{ fxLine(a.fx) }}</div>
             <div v-if="a.risk && a.risk.halted" class="note danger small" style="margin-top:8px">Arrêt de sécurité : {{ a.risk.halted_reason }}</div>
           </template>
           <div class="faint small" style="margin-top:6px">{{ ROLE_LABELS[a.role] || a.role }}</div>

@@ -22,7 +22,7 @@ class AgentsMixin:
         for name, d in AGENTS.items():
             agent = self.agents.get(name)
             st = {"name": name, "label": d["label"], "mode": d["mode"], **self.agent_state.get(name, {})}
-            acc = self.db.one("SELECT id, name FROM accounts WHERE role = ? AND archived = 0", (d["role"],))
+            acc = self.ai_account()
             st["account_id"] = acc["id"] if acc else None
             st["account_name"] = acc["name"] if acc else None
             if agent:
@@ -41,7 +41,7 @@ class AgentsMixin:
 
     def readiness(self) -> dict:
         """Bulletin de fiabilité de l'IA en argent fictif. Il n'ouvre aucun mode réel."""
-        acc = self.db.one("SELECT id FROM accounts WHERE role = 'ai_training' AND kind = 'paper' AND archived = 0")
+        acc = self.ai_account()
         return compute_readiness(self.db, self.settings, acc["id"] if acc else None, self.models.champion(self.settings["ai"]["timeframe"]))
 
     def start_agent(self, name: str, confirm: str | None = None, auto: bool = False) -> dict:
@@ -55,7 +55,7 @@ class AgentsMixin:
             return self.agent_state[name]
         d = AGENTS[name]
         tf = self.settings["ai"]["timeframe"]
-        acc = self.db.one("SELECT * FROM accounts WHERE role = 'ai_training' AND kind = 'paper' AND archived = 0")
+        acc = self.ai_account()  # portefeuille principal (partagé avec le trading manuel), ou ancien compte avant la migration
         if acc is None:
             raise UserError("Compte associé introuvable")
         self.agent_state[name] = {"status": "préparation", "message": "Téléchargement de l'historique des prix…"}

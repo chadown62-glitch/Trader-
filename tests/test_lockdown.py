@@ -286,7 +286,8 @@ def make_app(tmp_path, monkeypatch, **overrides):
     monkeypatch.setattr(live_ops, "make_ccxt_exchange", factory)
     monkeypatch.setattr(sources, "make_ccxt_exchange", factory)
     app = App(tmp_path, source=SyntheticSource(["BTC/USDC", "ETH/USDC"], days=5), start=False, settings_override={
-        "market": {"source": "synthetic"}, "general": {"watchlist": ["BTC/USDC", "ETH/USDC"]}, **overrides})
+        "market": {"source": "synthetic"}, "general": {"watchlist": ["BTC/USDC", "ETH/USDC"]},
+        "portfolio": {"initial": 10_000.0}, **overrides})
     return app, factory
 
 
@@ -421,7 +422,7 @@ def test_retained_non_paper_runtime_is_evicted_and_never_used(app, kind, account
     """Un compte actif n'est accepté que si le compte ET le courtier sont réellement simulés."""
     boot(app)
     aid, rt = injected_runtime(app, kind, account_kind)
-    paper_id = app.db.one("SELECT id FROM accounts WHERE role = 'manual' AND kind = 'paper'")["id"]
+    paper_id = app.db.one("SELECT id FROM accounts WHERE role = 'main' AND kind = 'paper'")["id"]
     bought = app.place_manual_order({"account_id": paper_id, "symbol": "BTC/USDC", "side": "buy", "amount": 0.001})
     assert bought["position"]["status"] == "open"
 
@@ -449,7 +450,7 @@ def test_retained_non_paper_runtime_is_evicted_and_never_used(app, kind, account
 def test_broken_guard_refuses_instead_of_allowing(app, monkeypatch):
     """Si un contrôle de sécurité tombe en panne, l'opération est refusée (jamais autorisée par défaut)."""
     boot(app)
-    paper_id = app.db.one("SELECT id FROM accounts WHERE role = 'manual' AND kind = 'paper'")["id"]
+    paper_id = app.db.one("SELECT id FROM accounts WHERE role = 'main' AND kind = 'paper'")["id"]
     order = {"account_id": paper_id, "symbol": "BTC/USDC", "side": "buy", "amount": 0.001}
     before = app.db.scalar("SELECT COUNT(*) FROM orders")
 
@@ -583,9 +584,9 @@ def test_api_settings_cannot_enable_anything_real(app, client):
 
 
 def test_paper_trading_still_works_through_the_api(app, client):
-    acc = next(a for a in client.get("/api/accounts").json() if a["role"] == "manual")
+    acc = next(a for a in client.get("/api/accounts").json() if a["role"] == "main")
     r = client.post("/api/orders", json={"account_id": acc["id"], "symbol": "BTC/USDC", "side": "buy", "quote_amount": 200,
-                                         "stop_loss": 1.0}, headers=H)
+                                         "stop_loss": round(app.hub.price("BTC/USDC") * 0.9, 2)}, headers=H)
     assert r.status_code == 200, r.text
     pos = r.json()["position"]
     assert pos["status"] == "open" and pos["qty"] > 0

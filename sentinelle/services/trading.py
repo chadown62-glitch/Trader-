@@ -19,11 +19,16 @@ class TradingMixin:
     # ======================================================================
     # Trading manuel
     # ======================================================================
-    def _order_qty(self, rt: AccountRuntime, symbol: str, side: str, price: float, amount, quote_amount) -> float:
+    def _order_qty(self, rt: AccountRuntime, symbol: str, side: str, price: float, amount, quote_amount,
+                   cash_amount=None, fx: float = 1.0) -> float:
+        """Quantité demandée : directement, par un montant dans la monnaie de la paire, ou dans celle du compte."""
         if amount:
             return float(amount)
         if quote_amount:
             return float(quote_amount) / price
+        if cash_amount:  # montant en monnaie du compte (euros), frais et conversion compris pour un achat
+            costs = (1 + rt.broker.fee_rate + rt.broker.slip) * (1 + rt.broker.conversion_cost(symbol)) if side == "buy" else 1.0
+            return float(cash_amount) / (price * fx * costs)
         raise UserError("Indiquez une quantité ou un montant")
 
     def preview_order(self, req: dict) -> dict:
@@ -37,15 +42,36 @@ class TradingMixin:
         price = req.get("price") if req.get("type") == "limit" else last
         if not price:
             raise UserError("Prix indisponible pour le moment")
-        qty = m.floor_amount(self._order_qty(rt, symbol, req["side"], price, req.get("amount"), req.get("quote_amount")))
+        quote = symbol.split("/")[1]
+        cross = quote != rt.broker.quote
+        fx_info = None
+        try:  # compte en euros, paire en USDC : le taux de change fait partie de l'ordre
+            fxq = rt.broker.fx(quote)
+            fx = float(fxq.rate)
+            fx_info = fxq.to_dict(self.market_clock()) if cross else None
+        except OrderError as exc:
+            raise UserError(exc.message) from None
+        qty = m.floor_amount(self._order_qty(rt, symbol, req["side"], price, req.get("amount"), req.get("quote_amount"),
+                                             req.get("cash_amount"), fx))
         fee_rate = getattr(rt.broker, "fee_rate", 0.001)
-        value = qty * price
+        value = qty * price  # dans la monnaie de la paire
+        value_cash = value * fx  # dans la monnaie du compte
+        conv = rt.broker.conversion_cost(symbol)
         eq, _ = rt.broker.equity()
-        warnings = rt.risk.manual_warnings(symbol, qty, price, req.get("stop_loss"), eq or 0) if req["side"] == "buy" else []
+        stop = req.get("stop_loss")
+        buying = req["side"] == "buy"
+        warnings = rt.risk.manual_warnings(symbol, qty, price * fx, stop * fx if stop else None, eq or 0) if buying else []
         err = m.validate(qty, price)
-        risk_amount = (price - req["stop_loss"]) * qty if req.get("stop_loss") and req["side"] == "buy" else None
+        if not err and buying and stop and stop < price and m.validate(qty, stop):
+            err = (f"Montant trop faible pour que le stop soit accepté par la plateforme "
+                   f"(minimum {m.min_notional:g} {quote} au prix du stop)")
+        risk_amount = (price - stop) * qty * fx if stop and buying else None
         out = {
-            "symbol": symbol, "qty": qty, "price": price, "value": value, "fee": value * fee_rate,
+            "symbol": symbol, "qty": qty, "price": price, "value": value, "quote": quote,
+            "currency": rt.broker.quote, "value_cash": value_cash,
+            "fee": value_cash * fee_rate, "fx_cost": value_cash * conv,
+            "total_cash": value_cash * (1 + fee_rate + conv) if buying else value_cash * (1 - fee_rate - conv),
+            "fx": fx_info,
             "warnings": warnings, "error": err, "risk_amount": risk_amount,
             "risk_pct": (risk_amount / eq * 100) if risk_amount and eq else None,
         }
@@ -126,9 +152,10 @@ class TradingMixin:
         pct = risk_pct if risk_pct is not None else self.settings["risk"]["risk_per_trade"] * 100
         if stop >= entry or entry <= 0:
             raise UserError("Le stop doit être sous le prix d'entrée")
-        risk_amount = eq * pct / 100
-        qty = risk_amount / (entry - stop)
-        return {"qty": qty, "value": qty * entry, "risk_amount": risk_amount, "risk_pct": pct, "equity": eq}
+        risk_amount = eq * pct / 100  # monnaie du compte
+        fx = self.runtime(account_id).broker.fx_rate(self.settings["general"]["watchlist"][0]) or 1.0
+        qty = risk_amount / ((entry - stop) * fx)
+        return {"qty": qty, "value": qty * entry, "value_cash": qty * entry * fx, "risk_amount": risk_amount, "risk_pct": pct, "equity": eq}
 
     def coach(self, symbol: str) -> dict:
         """Avis de l'IA sur une crypto (aide au trading manuel)."""

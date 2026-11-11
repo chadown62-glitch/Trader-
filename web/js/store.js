@@ -32,13 +32,20 @@ export function confirmBox({ title, message, confirmLabel = 'Confirmer', danger 
 const nf = (min, max) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: min, maximumFractionDigits: max });
 const nf2 = nf(2, 2);
 
+const unit = (quote) => (quote === 'EUR' ? '\u00a0€' : quote ? ' ' + quote : '');
 export function money(x, quote = '') {
   if (x === null || x === undefined || Number.isNaN(x)) return '—';
-  return nf2.format(x) + (quote ? ' ' + quote : '');
+  return nf2.format(x) + unit(quote);
 }
 export function signed(x, quote = '') {
   if (x === null || x === undefined || Number.isNaN(x)) return '—';
-  return (x > 0 ? '+' : '') + nf2.format(x) + (quote ? ' ' + quote : '');
+  return (x > 0 ? '+' : '') + nf2.format(x) + unit(quote);
+}
+// Taux de change : « 1 USDC = 0,8978 € (source, il y a 12 s) »
+export function fxLine(fx) {
+  if (!fx || !fx.rate) return '';
+  const age = fx.age_s === undefined ? '' : fx.age_s < 90 ? `il y a ${Math.round(fx.age_s)} s` : fx.age_s < 5400 ? `il y a ${Math.round(fx.age_s / 60)} min` : `il y a ${Math.round(fx.age_s / 3600)} h`;
+  return `1 ${fx.quote} = ${nf(4, 4).format(fx.rate)}${unit(fx.base)} · source : ${fx.source}${age ? ' · ' + age : ''}${fx.approx ? ' · approximation' : ''}${fx.stale ? ' · taux ancien' : ''}`;
 }
 export function price(x) {
   if (x === null || x === undefined || Number.isNaN(x)) return '—';
@@ -92,7 +99,7 @@ export const STRATEGY_LABELS = {
   momentum: 'Élan haussier',
   trend_follow: 'Suivi de tendance',
 };
-export const ROLE_LABELS = { ai_training: 'Entraînement IA', manual: 'Papier', live: 'Ancien compte réel (inerte)', backtest: 'Backtest' };
+export const ROLE_LABELS = { main: 'Partagé entre vous et l’IA', ai_training: 'Entraînement IA', manual: 'Papier', live: 'Ancien compte réel (inerte)', backtest: 'Backtest' };
 export const REASON_ICONS = { pris: '🟢', refusé: '⚪', sortie: '🔵', stop_relevé: '🛡️', erreur: '🔴' };
 export const FEATURE_LABELS = {
   r1: 'Rendement 1 bougie', r3: 'Rendement 3 bougies', r6: 'Rendement 6 bougies', r12: 'Rendement 12 bougies',

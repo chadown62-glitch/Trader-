@@ -7,6 +7,7 @@ const { ref, reactive, computed, onMounted, watch } = Vue;
 const SECTIONS = {
   risk: { title: 'Gestion du risque', fields: [
     { key: 'risk_per_trade', label: 'Risque par trade', kind: 'pct', step: 0.1, help: 'Perte maximale si le stop-loss est touché. Conseillé : 0,5 %. Plafond absolu : 2 %.' },
+    { key: 'min_order_max_risk', label: 'Petit capital : risque maximal d’un ordre porté au minimum de la plateforme', kind: 'pct', step: 0.1, help: 'Avec un petit capital, la taille prudente est souvent sous le minimum de la plateforme (5 USDC). L’IA monte alors au minimum seulement si le risque reste sous ce plafond ; sinon elle refuse le trade.' },
     { key: 'max_positions', label: 'Positions simultanées maximum', kind: 'int', help: 'Nombre de cryptos détenues en même temps par l’IA (1 à 5).' },
     { key: 'max_exposure', label: 'Exposition totale maximum', kind: 'pct', step: 5, help: 'Part maximale du capital investie en même temps.' },
     { key: 'max_exposure_per_asset', label: 'Exposition maximum par crypto', kind: 'pct', step: 5, help: 'Part maximale du capital sur une seule crypto.' },
@@ -62,10 +63,15 @@ const SECTIONS = {
     { key: 'heartbeat_url', label: 'Adresse de surveillance externe (facultatif)', kind: 'text', help: 'Créez un contrôle gratuit sur healthchecks.io (période 5 min) et collez son adresse « ping » : vous serez prévenu si Sentinelle ou le PC s\u2019arrête.' },
     { key: 'backup_keep_days', label: 'Sauvegardes conservées (jours)', kind: 'int', help: 'Une copie de la base est faite chaque jour dans data/backups.' },
   ] },
+  portfolio: { title: 'Portefeuille principal (argent fictif, en euros)', fields: [
+    { key: 'initial', label: 'Capital de départ (euros)', kind: 'num', step: 5, help: 'Utilisé à la création du portefeuille et à sa prochaine réinitialisation (onglet Comptes).' },
+    { key: 'fx_cost_bps', label: 'Coût de conversion entre l’euro et la monnaie de cotation (points de base)', kind: 'num', step: 1, help: '5 = 0,05 % à chaque achat et à chaque vente, en plus des frais de la plateforme. Hypothèse prudente.' },
+    { key: 'fx_max_age_minutes', label: 'Âge maximal du taux de change pour passer un ordre (minutes)', kind: 'int', help: 'Si le taux lu sur le marché est plus ancien, l’ordre est refusé plutôt que converti à un taux douteux.' },
+  ] },
   paper: { title: 'Simulation (argent fictif)', fields: [
     { key: 'fee_rate', label: 'Frais par ordre', kind: 'pct', step: 0.01, help: 'Hypothèse prudente : 0,1 %.' },
     { key: 'slippage_bps', label: 'Glissement de prix (points de base)', kind: 'num', step: 1, help: '5 = 0,05 % de prix moins favorable à chaque exécution.' },
-    { key: 'initial_balance', label: 'Capital fictif de départ', kind: 'num', step: 100 },
+    { key: 'initial_balance', label: 'Capital des anciens comptes papier', kind: 'num', step: 100, help: 'Ne concerne que les comptes créés avant le portefeuille principal.' },
   ] },
   live: { title: 'Bulletin de fiabilité (argent fictif)', fields: [
     { key: 'unlock_min_days', label: 'Preuve : jours d’entraînement en direct minimum', kind: 'int', help: 'Ces seuils servent au bulletin de fiabilité de l’IA. Ils ne déverrouillent aucun mode réel.' },
@@ -193,7 +199,7 @@ export default {
       if (pwd.new !== pwd.new2) { toast('Les deux nouveaux mots de passe ne correspondent pas', 'error'); return; }
       if (await safe(api.post('/api/auth/password', { current: pwd.current, new: pwd.new }), 'Mot de passe modifié')) { pwd.current = pwd.new = pwd.new2 = ''; }
     };
-    const TABS = [['general', 'Général'], ['risk', 'Risque'], ['ai', 'IA'], ['market', 'Données'], ['macro', 'Calendrier macro'], ['shield', 'Bouclier'], ['paper', 'Simulation'], ['live', 'Verrou et fiabilité'], ['telegram', 'Telegram'], ['news', 'Actualités'], ['monitoring', 'Surveillance'], ['accounts', 'Comptes'], ['security', 'Sécurité'], ['about', 'À propos']];
+    const TABS = [['general', 'Général'], ['risk', 'Risque'], ['ai', 'IA'], ['market', 'Données'], ['macro', 'Calendrier macro'], ['shield', 'Bouclier'], ['portfolio', 'Portefeuille'], ['paper', 'Simulation'], ['live', 'Verrou et fiabilité'], ['telegram', 'Telegram'], ['news', 'Actualités'], ['monitoring', 'Surveillance'], ['accounts', 'Comptes'], ['security', 'Sécurité'], ['about', 'À propos']];
     const STRATS = { trend_follow: 'Suivi de tendance (recommandé)', trend_breakout: 'Cassure de tendance (recommandé)', pullback: 'Repli en tendance', mean_reversion: 'Retour à la moyenne', momentum: 'Élan haussier' };
     return { store, tab, form, secrets, secretInputs, addPair, feedsText, eventsText, tgText, notifState, enableNotif, disableNotif, newAcc, pwd, accounts, paperOnly, newsStatus, SECTIONS, TABS, STRATS,
       display, setValue, save, saveGeneral, addSymbol, removeSymbol, saveSecrets, clearSecret, clearLegacyKeys, testTelegram, createAccount,
@@ -291,11 +297,19 @@ export default {
         <h2>Comptes</h2>
         <div class="table-wrap"><table><thead><tr><th>Nom</th><th>Type</th><th class="num">Capital</th><th></th></tr></thead>
           <tbody><tr v-for="a in accounts" :key="a.id"><td>{{ a.name }}</td><td><span class="badge" :class="a.kind==='paper' ? 'paper' : ''">{{ a.kind==='paper' ? 'papier' : 'ancien compte réel (inerte)' }}</span></td>
-            <td class="num">{{ money(a.equity) }}</td>
-            <td class="nowrap"><button v-if="a.kind==='paper'" class="small" @click="resetAccount(a)">Réinitialiser</button>
+            <td class="num">{{ money(a.equity, a.quote) }}</td>
+            <td class="nowrap"><button v-if="a.kind==='paper' && a.tradable !== false" class="small" @click="resetAccount(a)">Réinitialiser</button>
+              <span v-else-if="a.kind==='paper'" class="faint small">lecture seule</span>
               <button v-if="a.risk && a.risk.halted" class="small danger" @click="resumeAccount(a)">Reprendre après arrêt de sécurité</button></td></tr></tbody></table></div>
       </div>
-      <div class="card">
+      <div v-if="store.overview?.portfolio?.mode === 'main'" class="card">
+        <h2>Un seul portefeuille</h2>
+        <p class="small">Le <b>portefeuille principal</b> est partagé entre votre trading manuel et l'IA. Il est tenu en euros ;
+          chaque achat ou vente sur une paire en {{ store.overview.portfolio.trade_quote }} est converti au taux du moment.</p>
+        <p class="small muted">« Réinitialiser » le remet à son capital de départ (onglet Portefeuille). Les simulations accélérées et
+          les entraînements sur l'historique utilisent des comptes à part : ils ne peuvent pas le modifier.</p>
+      </div>
+      <div v-else class="card">
         <h2>Nouveau compte papier</h2>
         <div class="field"><label>Nom</label><input v-model="newAcc.name"></div>
         <div class="field"><label>Capital fictif</label><input type="number" v-model.number="newAcc.initial_balance" min="10"></div>

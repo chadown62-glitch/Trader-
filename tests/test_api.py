@@ -19,7 +19,9 @@ def app(tmp_path_factory):
     src = SyntheticSource(["BTC/USDC", "ETH/USDC", "SOL/USDC"], days=40)
     a = App(d, source=src, settings_override={"market": {"source": "synthetic", "poll_seconds": 2, "history_days": 120},
                                               "general": {"watchlist": ["BTC/USDC", "ETH/USDC", "SOL/USDC"]},
-                                              "ai": {"timeframe": "1h"}})
+                                              "ai": {"timeframe": "1h"},
+                                              # capital fictif élevé : ces tests portent sur l'API, pas sur les petits montants
+                                              "portfolio": {"initial": 10_000.0}})
     assert a.engine.ready.wait(30)
     deadline = time.time() + 20
     while time.time() < deadline and len(a.hub.prices) < 3:
@@ -65,7 +67,8 @@ def test_overview_and_accounts(client):
     _login(client)
     ov = client.get("/api/overview").json()
     roles = {a["role"] for a in ov["accounts"]}
-    assert {"ai_training", "manual"} <= roles
+    assert roles == {"main"}  # un seul portefeuille, partagé entre le trading manuel et l'IA
+    assert ov["portfolio"]["mode"] == "main" and ov["portfolio"]["currency"] == "EUR"
     assert ov["engine_alive"] is True
     assert {a["name"] for a in ov["agents"]} == {"ia_entrainement"}  # simulation uniquement : plus d'IA « réelle »
     assert ov["paper_only"]["paper_only"] is True and ov["live"] == {"connected": False, "locked": True}
@@ -74,7 +77,7 @@ def test_overview_and_accounts(client):
 
 
 def _manual_account(client):
-    return next(a for a in client.get("/api/accounts").json() if a["role"] == "manual")
+    return next(a for a in client.get("/api/accounts").json() if a["role"] == "main")
 
 
 def test_manual_trade_round_trip(client, app):
