@@ -203,6 +203,10 @@ CREATE TABLE IF NOT EXISTS candidates(
     UNIQUE (symbol, timeframe, ts, strategy, source)
 );
 CREATE INDEX IF NOT EXISTS idx_candidates_unresolved ON candidates(outcome, symbol);
+CREATE TABLE IF NOT EXISTS evaluation_windows(
+    version TEXT PRIMARY KEY, timeframe TEXT NOT NULL, start_ms INTEGER NOT NULL, end_ms INTEGER NOT NULL,
+    reference TEXT NOT NULL, evidence TEXT
+);
 CREATE TABLE IF NOT EXISTS models(
     version TEXT PRIMARY KEY,
     created_at REAL,
@@ -356,6 +360,7 @@ class Database:
             for column, decl in (("fx_rate", "REAL"), ("fx_source", "TEXT"), ("fx_ts", "REAL"),
                                  ("fx_cost", "REAL NOT NULL DEFAULT 0"), ("cash_amount", "REAL"), ("cash_asset", "TEXT")):
                 self._ensure_column("fills", column, decl)
+            self._ensure_column("equity", "unrealized", "REAL")
             self._ensure_column("orders", "expires_at", "REAL")
             self._ensure_column("orders", "triggered", "INTEGER NOT NULL DEFAULT 0")
             self._ensure_column("fills", "price_source", "TEXT")

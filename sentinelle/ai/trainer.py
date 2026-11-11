@@ -12,13 +12,15 @@ vues pendant son apprentissage.
 3. Ces prédictions hors échantillon servent à calibrer les probabilités et à
    choisir le seuil d'espérance minimal.
 4. Évaluation finale sur le holdout, comparée à « prendre tous les signaux ».
-5. Le modèle déployé est ré-entraîné sur toutes les données.
+5. La version déployable conserve les paramètres effectivement évalués.
 """
 
 from __future__ import annotations
 
+import copy
 import logging
 import time
+import uuid
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -146,6 +148,11 @@ def select_threshold(oos: pd.DataFrame, er: np.ndarray, forced: float | None = N
     return best_thr, table
 
 
+def trial_eligible(approved, metrics, baseline):
+    return bool(not approved and metrics["n"] >= 30 and (metrics["mean_r"] or 0) >= TRIAL_MARGIN and
+                baseline["mean_r"] is not None and metrics["mean_r"] - baseline["mean_r"] >= TRIAL_MARGIN)
+
+
 def train_walk_forward(
     cand: pd.DataFrame,
     timeframe: str,
@@ -167,7 +174,20 @@ def train_walk_forward(
         if progress:
             progress(x, msg)
 
-    res = cand[cand["outcome"].notna()].sort_values("decision_ts").reset_index(drop=True)
+    if not 0 < holdout_frac < 1 or n_folds < 1:
+        raise ValueError("Découpage chronologique invalide")
+    if cand.empty:
+        return TrainResult(False, "données insuffisantes", ["Aucun candidat."])
+    decisions = pd.to_numeric(cand["decision_ts"], errors="coerce")
+    exits = pd.to_numeric(cand["exit_ts"], errors="coerce")
+    times = decisions[np.isfinite(decisions)]
+    if times.empty:
+        return TrainResult(False, "données insuffisantes", ["Aucune date de décision valide."])
+    # Boundaries depend on the observation clock, including unresolved decisions.
+    t0, t1 = int(times.min()), int(times.max())
+    resolved = (cand["outcome"].notna() & np.isfinite(cand["outcome_r"]) & np.isfinite(decisions)
+                & np.isfinite(exits) & (exits >= decisions) & (exits < t1))
+    res = cand.loc[resolved].sort_values("decision_ts", kind="stable").reset_index(drop=True)
     report: dict = {
         "timeframe": timeframe,
         "n_candidates": int(len(cand)),
@@ -180,27 +200,37 @@ def train_walk_forward(
                            [f"Seulement {len(res)} situations étiquetées (minimum {MIN_RESOLVED}). Ajoutez de l'historique ou des cryptos."],
                            report=report)
     y_all = (res["outcome_r"].to_numpy() > 0).astype(int)
-    t0, t1 = int(res["decision_ts"].min()), int(res["decision_ts"].max())
     hold_start = int(t0 + (t1 - t0) * (1 - holdout_frac))
-    dev = res[res["decision_ts"] < hold_start]
-    hold = res[res["decision_ts"] >= hold_start].reset_index(drop=True)
-    report["period"] = {"start": t0, "end": t1, "holdout_start": hold_start}
+    calibration_start = int(t0 + (hold_start - t0) * 0.60)
+    selection_start = int(t0 + (hold_start - t0) * 0.80)
 
-    # -- validation croisée chronologique avec purge ---------------------------
-    edges = np.linspace(dev["decision_ts"].min(), hold_start, n_folds + 2)
-    oos_parts, folds = [], []
+    def window(start, end):
+        return res[(res.decision_ts >= start) & (res.decision_ts < end) & (res.exit_ts < end)]
+
+    dev = window(t0, calibration_start)
+    calibration = window(calibration_start, selection_start)
+    selection = window(selection_start, hold_start)
+    hold = window(hold_start, t1)
+    report["period"] = {"start": t0, "end": t1, "calibration_start": calibration_start,
+                        "selection_start": selection_start, "holdout_start": hold_start}
+    report["split_counts"] = dict(fit=len(dev), calibration=len(calibration), selection=len(selection),
+                                  holdout=len(hold), censored=len(cand)-sum(map(len, (dev, calibration, selection, hold))))
+    if len(dev) < 150 or dev.outcome_r.gt(0).nunique() < 2 or min(map(len, (calibration, selection, hold))) < 20:
+        return TrainResult(False, "données insuffisantes", ["Fenêtres chronologiques purgées insuffisantes."], report=report)
+
+    edges = np.linspace(t0, calibration_start, n_folds + 2)
+    folds = []
     for k in range(1, n_folds + 1):
         prog(0.1 + 0.5 * k / n_folds, f"Validation sur la période {k}/{n_folds}")
         test_start, test_end = edges[k], edges[k + 1]
         train = dev[dev["exit_ts"] < test_start]  # purge : résultats connus avant le test
-        test = dev[(dev["decision_ts"] >= test_start) & (dev["decision_ts"] < test_end)]
+        test = window(test_start, test_end)
         y_tr = (train["outcome_r"].to_numpy() > 0).astype(int)
         if len(train) < 150 or len(test) < 20 or len(np.unique(y_tr)) < 2:
             continue
         m = new_model().fit(train)
         part = test.copy()
         part["p_raw"] = m.raw_proba(model_matrix(test, m.feature_names))
-        oos_parts.append(part)
         yt = (test["outcome_r"].to_numpy() > 0).astype(int)
         folds.append({
             "fold": k, "train": int(len(train)), "test": int(len(test)),
@@ -209,19 +239,20 @@ def train_walk_forward(
             "base_mean_r": float(test["outcome_r"].mean()),
         })
     report["folds"] = folds
-    if not oos_parts:
-        return TrainResult(False, "données insuffisantes", ["Pas assez de données pour la validation chronologique."], report=report)
-    oos = pd.concat(oos_parts).sort_values("decision_ts").reset_index(drop=True)
-    y_oos = (oos["outcome_r"].to_numpy() > 0).astype(int)
-
-    # -- calibration et seuil ----------------------------------------------------
-    prog(0.65, "Calibration des probabilités")
-    calib_model = new_model()
-    calib_model.fit_calibration(oos["p_raw"].to_numpy(), y_oos)
-    calib_model.payoffs = payoff_table(dev)
-    p_oos = calib_model.calibrate(oos["p_raw"].to_numpy())
-    er_oos = calib_model.expected_r(p_oos, oos["strategy"].to_numpy())
-    thr, thr_table = select_threshold(oos, er_oos, min_edge)
+    # Freeze the predictor before generating calibration, selection or holdout scores.
+    prog(0.65, "Calibration sur une période réservée")
+    eval_model = new_model().fit(dev)
+    raw = eval_model.raw_proba(model_matrix(calibration, eval_model.feature_names))
+    eval_model.fit_calibration(raw, calibration.outcome_r.gt(0).astype(int).to_numpy())
+    eval_model.payoffs = payoff_table(dev)
+    p_oos, er_oos = eval_model.predict(selection)
+    y_oos = selection.outcome_r.gt(0).astype(int).to_numpy()
+    thr, thr_table = select_threshold(selection, er_oos, min_edge)
+    selected = trade_metrics(selection.loc[non_overlapping(selection, er_oos >= thr), "outcome_r"].to_numpy())
+    rules = trade_metrics(selection.loc[non_overlapping(selection), "outcome_r"].to_numpy())
+    mode = "ia"
+    if rules_fallback and not proven_positive(selected) and proven_positive(rules):
+        mode, thr = "règles seules", -1e9
     report["threshold"] = thr
     report["threshold_table"] = thr_table
     report["oos_auc"] = _auc(y_oos, p_oos)
@@ -229,10 +260,8 @@ def train_walk_forward(
 
     # -- évaluation finale sur des données jamais vues ------------------------------
     prog(0.75, "Évaluation sur la période de contrôle")
-    eval_train = dev[dev["exit_ts"] < hold_start]
-    eval_model = new_model().fit(eval_train)
-    eval_model.calib = calib_model.calib
     eval_model.threshold = thr
+    eval_model.trained_until = int(selection.exit_ts.max())
     p_h, er_h = eval_model.predict(hold)
     y_h = (hold["outcome_r"].to_numpy() > 0).astype(int)
     take_h = non_overlapping(hold, er_h >= thr)
@@ -242,6 +271,7 @@ def train_walk_forward(
     report["holdout"] = {
         "n_candidates": int(len(hold)),
         "auc": _auc(y_h, p_h),
+        "brier": float(np.mean((p_h - y_h)**2)),
         "model": m_model,
         "baseline": m_base,
         "calibration": _calibration_table(p_h, y_h),
@@ -283,28 +313,20 @@ def train_walk_forward(
             reasons.append(f"L'IA ne fait pas mieux que « prendre tous les signaux » ({_r(m_model['mean_r'])} R contre {_r(m_base['mean_r'])} R).")
     if ok:
         reasons.insert(0, f"Espérance positive sur des données jamais vues : {_r(m_model['mean_r'])} R par trade sur {m_model['n']} trades.")
-    mode = "ia"
-    if not ok and rules_fallback and m_base["n"] >= 30 and proven_positive(m_base):
-        # Le filtre IA n'apporte pas de preuve, mais les règles seules en apportent : on les valide telles quelles.
-        ok, mode, thr = True, "règles seules", -1e9
-        reasons.insert(0, f"Validé en « règles seules » : prendre tous les signaux donne {_r(m_base['mean_r'])} R par trade "
-                          f"sur {m_base['n']} trades jamais vus ; le filtre IA est désactivé car il n'a pas fait mieux.")
-        eval_model.threshold = thr
+    if mode == "règles seules":
+        reasons.insert(0, "Les règles seules ont été sélectionnées avant la période de contrôle.")
 
     # Prometteur sans être prouvé : nettement positif sur les données jamais vues et nettement meilleur que « tout prendre ».
     # Un tel modèle est mis « à l'essai » : l'IA d'entraînement s'en sert en argent fictif (taille réduite),
     # ce qui permet de le juger sur des données vraiment nouvelles. Jamais en réel.
-    trial = bool(not ok and m_model["n"] >= 30 and (m_model["mean_r"] or 0) >= TRIAL_MARGIN
-                 and m_base["mean_r"] is not None and m_model["mean_r"] - m_base["mean_r"] >= TRIAL_MARGIN)
+    trial = trial_eligible(ok, m_model, m_base)
     if trial:
         reasons.append("Modèle mis à l'essai en argent fictif : prometteur, mais pas encore prouvé. Il ne peut pas trader en réel.")
 
     # -- modèle final -------------------------------------------------------------------
-    prog(0.9, "Entraînement du modèle final sur toutes les données")
-    final = new_model().fit(res)
-    final.calib = calib_model.calib
-    final.threshold = thr
-    final.version = time.strftime("m%Y%m%d-%H%M%S-") + timeframe
+    prog(0.9, "Conservation du modèle évalué")
+    final = copy.deepcopy(eval_model)
+    final.version = time.strftime("m%Y%m%d-%H%M%S-") + timeframe + "-" + uuid.uuid4().hex[:8]
     eval_model.version = final.version + "-eval"
     summary = {
         "verdict": "validé" if ok else "non validé",
