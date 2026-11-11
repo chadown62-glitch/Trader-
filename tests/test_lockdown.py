@@ -574,7 +574,7 @@ def test_api_settings_cannot_enable_anything_real(app, client):
 def test_paper_trading_still_works_through_the_api(app, client):
     acc = next(a for a in client.get("/api/accounts").json() if a["role"] == "principal")
     r = client.post("/api/orders", json={"account_id": acc["id"], "symbol": "BTC/EUR", "side": "buy", "quote_amount": 15,
-                                         "stop_loss": 1.0}, headers=H)
+                                         "stop_loss": app.hub.price("BTC/EUR") * 0.9}, headers=H)
     assert r.status_code == 200, r.text
     pos = r.json()["position"]
     assert pos["status"] == "open" and pos["qty"] > 0

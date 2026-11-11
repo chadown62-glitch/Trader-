@@ -28,6 +28,9 @@ sur la PR #5. Rien n'a été fusionné dans `main`.
   indisponible. Le remplacement d'un stop et la fermeture sont transactionnels :
   une erreur restaure les protections précédentes. Un montant sous le minimum
   de vente ne fait plus déclarer une position fermée sans vente fictive.
+* La mise à jour du solde, de l'exécution et de la position est atomique : une
+  panne du suivi de position annule l'exécution fictive. Si un stop initial
+  demandé ne peut pas être créé, l'entrée n'est pas conservée.
 * Le backtest est isolé dans une base SQLite en mémoire et son capital par défaut
   est 30 unités de la monnaie sélectionnée. Il ne modifie pas le portefeuille.
 

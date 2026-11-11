@@ -324,11 +324,13 @@ class PaperBroker:
                 for sib in self.open_orders(order["symbol"]):
                     if sib["oco_group"] == order["oco_group"] and sib["id"] != order["id"]:
                         self.cancel_order(sib["id"], "OCO : l'autre ordre a été exécuté")
-        filled = self.get_order(order["id"])
-        fill = self.db.one("SELECT * FROM fills WHERE id = ?", (fill_id,))
-        for fn in list(self.listeners):
-            fn(filled, fill)
-        return self.get_order(order["id"])
+            # Ledger, order and position updates form one transaction. A failed
+            # position listener must not leave a debit without a tracked asset.
+            filled = self.get_order(order["id"])
+            fill = self.db.one("SELECT * FROM fills WHERE id = ?", (fill_id,))
+            for fn in list(self.listeners):
+                fn(filled, fill)
+            return self.get_order(order["id"])
 
     # -- passage du temps -----------------------------------------------------
     def process_bar(self, symbol: str, o: float, h: float, l: float, c: float, start_ms: int, end_ms: int | None = None) -> int:

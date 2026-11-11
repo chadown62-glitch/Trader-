@@ -151,9 +151,10 @@ class PositionManager:
                 self._on_exit_fill(pos_id, order, fill)
             elif order["side"] == "sell" and purpose == "manual":
                 self._on_manual_sell(order, fill)
-        except Exception:
+        except Exception as exc:
             log.exception("Erreur de suivi de position (ordre %s)", order.get("id"))
             self.db.log("error", "positions", f"Erreur de suivi de position (ordre {order.get('id')})")
+            raise OrderError("Erreur de suivi de position : exécution annulée", "position_tracking") from exc
 
     def _on_entry_fill(self, pos_id: int, order: dict, fill: dict) -> None:
         pos = self.get(pos_id)
@@ -179,8 +180,14 @@ class PositionManager:
                 upd["risk_amount"] = max(1e-9, (avg - pos["stop_price"]) * new_qty)
         self.db.update("positions", pos_id, upd)
         if fully:
-            self._publish("position_opened", self.get(pos_id))
             self._place_protections(self.get(pos_id))
+            current = self.get(pos_id)
+            if current["status"] == "open" and current["stop_price"] and not any(
+                o["purpose"] == "stop" for o in self.protective_orders(pos_id)
+            ):
+                raise OrderError("Stop initial non posé : exécution annulée", "protection_failed")
+            if current["status"] == "open":
+                self._publish("position_opened", current)
 
     def _guard(self, operation: str) -> None:
         """Sécurité : toute action passe par un courtier simulé, vérifié à chaque appel."""

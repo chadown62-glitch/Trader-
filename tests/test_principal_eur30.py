@@ -139,6 +139,43 @@ def test_unsellable_position_is_not_falsely_marked_closed(eur_app):
     assert rt.positions.protective_orders(position["id"]) == before
 
 
+@pytest.mark.parametrize("entry_type", ["market", "limit"])
+def test_failed_position_tracking_cannot_debit_cash_without_position(eur_app, monkeypatch, entry_type):
+    rt = eur_app.runtime(principal(eur_app)["id"])
+    broker = rt.broker
+    def broken(*args):
+        raise RuntimeError("panne fictive du suivi")
+    if entry_type == "market":
+        monkeypatch.setattr(rt.positions, "_on_entry_fill", broken)
+        with pytest.raises(OrderError, match="suivi"):
+            rt.positions.open("BTC/EUR", 0.0002, origin="manual")
+        assert not rt.positions.open_positions()
+    else:
+        position = rt.positions.open("BTC/EUR", 0.0002, origin="manual", entry_type="limit", limit_price=49000)
+        assert position["status"] == "pending"
+        monkeypatch.setattr(rt.positions, "_on_entry_fill", broken)
+        start = int(eur_app.hub.source.now_ms()) + 1000
+        assert broker.process_bar("BTC/EUR", 48000, 50000, 47000, 49000, start) == 0
+        assert rt.positions.get(position["id"])["status"] == "pending"
+    assert broker.balances() == {"EUR": 30.0}
+    assert eur_app.db.scalar("SELECT COUNT(*) FROM fills", (), 0) == 0
+
+
+def test_entry_is_rolled_back_when_initial_stop_cannot_be_placed(eur_app, monkeypatch):
+    rt = eur_app.runtime(principal(eur_app)["id"])
+    original = rt.broker.place_order
+    def broken(*args, **kwargs):
+        if kwargs.get("purpose") == "stop":
+            raise OrderError("Échec fictif du stop")
+        return original(*args, **kwargs)
+    monkeypatch.setattr(rt.broker, "place_order", broken)
+    with pytest.raises(OrderError, match="suivi|stop"):
+        rt.positions.open("BTC/EUR", 0.0002, origin="manual", stop=45000)
+    assert rt.broker.balances() == {"EUR": 30.0}
+    assert not rt.positions.open_positions()
+    assert eur_app.db.scalar("SELECT COUNT(*) FROM fills", (), 0) == 0
+
+
 def test_legacy_accounts_and_orders_are_preserved_and_inert(tmp_path):
     db = Database(tmp_path / "sentinelle.db")
     old = db.insert("accounts", {"name": "legacy", "kind": "paper", "role": "ai_training", "quote": "USDC", "initial_balance": 10000})
