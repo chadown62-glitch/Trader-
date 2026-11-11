@@ -10,7 +10,7 @@ can recover a deliberately planted signal, identify noise and include costs.
 From the repository root, with Python 3.11–3.13:
 
 ```sh
-python -m unittest discover -s tests -p test_validation_lab.py -v
+python -m unittest discover -s tests -p 'test_validation_*.py' -v
 python -m tools.validation.lab --output /tmp/trader-lab --scenario noise --scenario trend --seed 17
 ```
 
@@ -63,6 +63,17 @@ downloaded. Keep output outside the repository unless intentionally archived.
 
 Signal disappearance and spurious correlation currently share a generator;
 their interpretation differs, and a richer independent confounder is future work.
+
+## Temporal leakage checks
+
+`tools.validation.leakage.purged_split` splits event indices by decision and
+exit time with an explicit embargo; unresolved or boundary-overlapping events
+are excluded from training. `prefix_mismatches` compares the output of a
+feature transform on prefixes and the full series, detecting many forms of
+future dependence. These utilities do not automatically audit production
+Sentinelle; in particular, external data revisions, transformations with
+state, cross-asset timestamps, threshold selection and repeated test reuse need
+separate review. The production adapter and end-to-end audit remain future work.
 
 ## Statistical boundaries
 
