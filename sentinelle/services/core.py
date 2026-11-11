@@ -49,7 +49,7 @@ class Engine(threading.Thread):
         super().__init__(name="sentinelle-moteur", daemon=True)
         self.app = app
         self.q: queue.Queue = queue.Queue()
-        self._stop = threading.Event()
+        self._stop_event = threading.Event()
         self.ready = threading.Event()
         self.heartbeat = 0.0
 
@@ -65,7 +65,7 @@ class Engine(threading.Thread):
         return fut
 
     def stop(self) -> None:
-        self._stop.set()
+        self._stop_event.set()
         self.q.put(None)
 
     def drain(self, timeout: float = 0.0) -> None:
@@ -93,7 +93,7 @@ class Engine(threading.Thread):
         self.ready.set()
         nxt = {"poll": 0.0, "equity": 0.0, "sweep": 0.0, "maint": time.time() + 600, "heartbeat": time.time() + 30, "liq": time.time() + 20,
                "learn": time.time() + 300, "markets": 0.0}
-        while not self._stop.is_set():
+        while not self._stop_event.is_set():
             self.heartbeat = time.time()
             now = time.time()
             due = min(nxt.values())
