@@ -13,7 +13,6 @@ from sentinelle.market.fx_provider import PublicFXProvider
 from sentinelle.market.markets import MarketInfo
 from sentinelle.market.sources import SyntheticSource
 from sentinelle.safety import RealTradingForbidden
-from sentinelle.services.common import UserError
 from sentinelle.services.core import App
 
 

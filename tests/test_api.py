@@ -214,3 +214,14 @@ def test_two_factor_login(client, app):
     # on désactive pour ne pas gêner les autres tests
     app.db.set_meta("totp_last_step", "0")
     assert client.post("/api/auth/2fa/disable", json={"password": PASSWORD, "code": totp(setup["secret"])}, headers=H).status_code == 200
+
+
+def test_evaluation_endpoint_requires_login_and_reads_the_main_wallet(client, app):
+    assert client.get("/api/portfolio/evaluation").status_code in (401, 403)
+    _login(client)
+    app._snapshot_equity()
+    rep = client.get("/api/portfolio/evaluation")
+    assert rep.status_code == 200
+    values = rep.json()
+    assert values["currency"] == "EUR" and values["equity"] == 30.
+    assert values["as_of"] and values["trades"] == [] and values["verdict"] == "NON TESTÉ"

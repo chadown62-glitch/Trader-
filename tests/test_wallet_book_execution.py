@@ -1,6 +1,4 @@
 from concurrent.futures import ThreadPoolExecutor
-from decimal import Decimal
-import os
 import subprocess
 import sys
 

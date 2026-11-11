@@ -90,6 +90,7 @@ def evaluate(scenario, seed, *, bars=7200, test_bars=600, sizes=SIZES, trial_cou
     # The smallest viable prespecified training size is frozen as Champion. The largest
     # feasible size is the single Challenger; intermediate points cannot select the winner.
     viable = []
+    latest_model = None
     for size in sorted(set(sizes)):
         row = {"requested_candidates": size, "available": len(training), "status": "NON TESTÉ"}
         result["learning_curve"].append(row)
@@ -114,6 +115,7 @@ def evaluate(scenario, seed, *, bars=7200, test_bars=600, sizes=SIZES, trial_cou
                    split_counts=run.report["split_counts"], threshold=model.threshold, calibration=list(model.calib),
                    training_holdout=run.report["summary"], forecast=forecast(model, test), portfolio=replay(model))
         viable.append(row)
+        latest_model = model
     result["comparison"] = {"verdict":"TESTS INCOMPLETS"}
     if len(viable) >= 2:
         champion, challenger = viable[0], viable[-1]
@@ -121,6 +123,14 @@ def evaluate(scenario, seed, *, bars=7200, test_bars=600, sizes=SIZES, trial_cou
         result["comparison"] = {**paired, "champion":champion["version"], "challenger":challenger["version"]}
     if viable:
         final = viable[-1]
+        sensitivity = {}
+        for multiplier in (.5, 2.0):
+            stressed = deepcopy(cfg)
+            stressed["paper"]["slippage_bps"] *= multiplier
+            stressed["paper"]["fee_rate"] *= multiplier
+            metrics = replay(latest_model, settings=stressed)
+            sensitivity[str(multiplier)] = {k: metrics[k] for k in ("n_trades", "net_return", "fees_eur", "max_drawdown")}
+        result["cost_sensitivity"] = sensitivity
         result["evidence"] = {"fit_auc":final["fit_forecast"]["auc"], "unseen_auc":final["forecast"]["auc"],
                               "unseen_brier":final["forecast"]["brier"], "net_return":final["portfolio"]["net_return"],
                               "net_verdict":result["comparison"]["verdict"]}
@@ -154,8 +164,8 @@ def reports(results, directory, *, revision=None):
     for result in results:
         for p in result["learning_curve"]:
             metrics = p.get("portfolio",{})
-            def value(key):
-                v = p.get("forecast",{}).get(key)
+            def value(key, forecast_metrics=p.get("forecast", {})):
+                v = forecast_metrics.get(key)
                 return f"{v:.3f}" if v is not None else "—"
             cash = f"{metrics['capital_eur']:.3f} €" if metrics else "—"
             lines.append(f"| {result['scenario']} | {result['seed']} | {p['requested_candidates']} | {value('auc')} | {value('brier')} | {metrics.get('n_trades','—')} | {cash} |")
@@ -167,6 +177,7 @@ def reports(results, directory, *, revision=None):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--suite", action="store_true", help="15 scénarios seed 41 et deux historiques longs seed 73")
     parser.add_argument("--scenarios",nargs="+",choices=SCENARIOS,default=["noise","trend","signal_inverts"])
     parser.add_argument("--seeds",type=int,nargs="+",default=[19])
     parser.add_argument("--sizes",type=int,nargs="+",default=list(SIZES))
@@ -174,9 +185,14 @@ def main():
     parser.add_argument("--test-bars",type=int,default=600)
     parser.add_argument("--output",type=Path,required=True)
     args=parser.parse_args()
-    total=len(args.scenarios)*len(args.seeds)
-    results=[evaluate(name, seed, bars=args.bars, test_bars=args.test_bars, sizes=args.sizes, trial_count=total)
-             for name in args.scenarios for seed in args.seeds]
+    if args.suite:
+        experiments = [(s, 41, 7200, 600, SIZES, 15) for s in SCENARIOS]
+        experiments.extend((s, 73, 30600, 600, SIZES, 2) for s in ("noise", "trend"))
+    else:
+        total = len(args.scenarios) * len(args.seeds)
+        experiments = [(s, seed, args.bars, args.test_bars, args.sizes, total) for s in args.scenarios for seed in args.seeds]
+    results = [evaluate(s, seed, bars=bars, test_bars=test_bars, sizes=sizes, trial_count=count)
+               for s, seed, bars, test_bars, sizes, count in experiments]
     reports(results,args.output)
 
 

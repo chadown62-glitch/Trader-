@@ -371,7 +371,16 @@ class App(LiveMixin, PortfolioMixin, TradingMixin, AgentsMixin, TrainingMixin, L
                 continue
             except Exception:
                 continue
-            self.db.execute("INSERT OR REPLACE INTO equity(account_id, ts, equity, cash) VALUES (?, ?, ?, ?)", (aid, now, eq, cash))
+            remaining = 0.0
+            for pos in rt.positions.open_positions():
+                if not pos["qty"]:
+                    continue
+                if rt.broker.price_fn(pos["symbol"]) is None or rt.broker.fx_rate(pos["symbol"]) is None:
+                    remaining = None
+                    break
+                remaining += rt.positions.unrealized(pos)["pnl"] - pos["realized_pnl"]
+            self.db.execute("INSERT OR REPLACE INTO equity(account_id, ts, equity, cash, unrealized) VALUES (?, ?, ?, ?, ?)",
+                            (aid, now, eq, cash, remaining))
             self.snapshots[aid] = {"equity": eq, "cash": cash, "ts": now, "error": None}
             self.bus.publish("equity", {"account_id": aid, "equity": eq, "cash": cash, "ts": now})
 

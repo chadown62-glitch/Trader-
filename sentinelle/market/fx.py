@@ -50,7 +50,8 @@ class FxQuote:
             raise FxUnavailable(f"Taux {self.base}/{self.quote} indicatif, futur ou trop ancien")
         book = FXBook([FXQuote(**self.market)])
         q, = book.quotes.values()
-        if q.timestamp != self.ts or q.source != self.source or q.bid_depth is None or q.ask_depth is None:
+        if ({q.base, q.quote} != {self.base, self.quote} or q.timestamp != self.ts or q.source != self.source
+                or q.bid_depth is None or q.ask_depth is None):
             raise FxUnavailable("Provenance ou profondeur de change incohérente")
         return book
 

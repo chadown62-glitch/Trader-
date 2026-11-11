@@ -22,6 +22,7 @@ import math
 import time
 import uuid
 from decimal import Decimal
+from functools import wraps
 from collections import defaultdict
 from typing import Callable
 
@@ -36,8 +37,20 @@ from .base import OPEN_STATUSES, FillListener, OrderError
 from .contract import limit_fill, limit_hit, market_fill, stop_fill, stop_hit, valid_bar
 
 EPS = 1e-9
-CASH_DUST = 1e-6  # tolérance d'arrondi sur les liquidités (un millionième d'unité monétaire)
-ASSET_DUST = 1e-12  # tolérance d'arrondi sur une quantité de crypto
+def exceeds(amount, balance):
+    """Allow binary representation error, never a fixed cash overdraft."""
+    return amount > balance and amount - balance > 4 * max(math.ulp(amount), math.ulp(balance))
+
+
+def logged_submission(submit):
+    @wraps(submit)
+    def wrapped(self, symbol, *args, **kwargs):
+        try:
+            return submit(self, symbol, *args, **kwargs)
+        except OrderError as exc:
+            self.record_refusal(symbol, exc.code, exc.message)
+            raise
+    return wrapped
 
 
 class PaperBroker:
@@ -126,7 +139,7 @@ class PaperBroker:
         if not math.isfinite(after):
             raise OrderError("Solde non fini", "invalid")
         if after < 0:
-            if after < -(CASH_DUST if asset == self.quote else ASSET_DUST):
+            if exceeds(-delta, before):
                 raise OrderError(f"Opération refusée : le solde {asset} deviendrait négatif ({after:.8g})", "insufficient_funds")
             after = 0.0  # poussière d'arrondi
         self._write(asset, before, after, kind, ref)
@@ -206,6 +219,11 @@ class PaperBroker:
                 "invested": max(0.0, total - cash), "currency": self.quote}
 
     # -- ordres ---------------------------------------------------------------
+    def record_refusal(self, symbol, code, reason):
+        self.db.insert("paper_refusals", {"account_id": self.account_id, "ts": self.clock(), "symbol": symbol,
+                                          "code": code, "reason": reason})
+
+    @logged_submission
     @atomic
     def place_order(
         self,
@@ -270,7 +288,7 @@ class PaperBroker:
             need = amount * px * (1 + self.fee_rate) * rate * (1 + self.conversion_cost(symbol))
             if type != "market":
                 need = amount * px * (1 + self.fee_rate + self.slip) * rate * (1 + self.conversion_cost(symbol))
-            if need > self.available(self.quote) + 1e-6:
+            if exceeds(need, self.available(self.quote)):
                 raise OrderError(
                     f"Fonds insuffisants : {need:,.2f} {self.quote} nécessaires, {self.available(self.quote):,.2f} disponibles",
                     "insufficient_funds",
@@ -283,7 +301,7 @@ class PaperBroker:
                     or [0.0]
                 )
                 extra = max(0.0, amount - current)
-            if extra > self.available(base) + 1e-12:
+            if exceeds(extra, self.available(base)):
                 raise OrderError(
                     f"Quantité insuffisante : {amount:g} {base} demandés, {self.available(base):g} disponibles",
                     "insufficient_funds",
@@ -400,12 +418,12 @@ class PaperBroker:
         if order["side"] == "buy":
             conv = (gross + fee) * rate * self.fx_cost if cross else 0.0
             cash = -((gross + fee) * rate + conv)
-            if self._total(self.quote) - other.get(self.quote, 0) + CASH_DUST < -cash:
+            if exceeds(-cash, self._total(self.quote) - other.get(self.quote, 0)):
                 self._reject(order, "Fonds insuffisants à l'exécution")
         else:
             conv = (gross - fee) * rate * self.fx_cost if cross else 0.0
             cash = (gross - fee) * rate - conv
-            if self._total(base) - other.get(base, 0) + ASSET_DUST < amount:
+            if exceeds(amount, self._total(base) - other.get(base, 0)):
                 self._reject(order, "Quantité insuffisante à l'exécution")
         ref = {"order_id": order["id"], "position_id": order["position_id"], "symbol": symbol, "price": price,
                "fx_rate": rate if cross else None, "fx_source": fx.source if cross else None, "fx_ts": fx.ts if cross else None}
@@ -553,6 +571,7 @@ class PaperBroker:
             self.db.update("orders", order["id"], {"status": "rejected", "error": exc.message})
             if order["purpose"] == "entry" and not current["filled"] and order["position_id"]:
                 self.db.update("positions", order["position_id"], {"status": "cancelled", "reason_close": exc.message})
+        self.record_refusal(order["symbol"], exc.code, exc.message)
         self.db.log("warning", "simulation", exc.message, {"order_id": order["id"]})
 
     # -- réinitialisation -----------------------------------------------------
