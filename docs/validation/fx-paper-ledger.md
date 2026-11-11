@@ -21,9 +21,12 @@ la sortie est arrondie vers le bas à 8 décimales. Une même requête répété
 son identifiant renvoie l'opération initiale sans nouveau débit ; un identifiant
 réutilisé avec des paramètres différents est refusé. Le taux, le carnet, les
 frais et la source descriptive de chaque étape sont conservés.
+La profondeur déjà consommée du même carnet horodaté est également enregistrée
+dans la même transaction pour empêcher plusieurs conversions de la réutiliser.
 
 La valorisation EUR des monnaies détenues demande également des cours récents
-et une profondeur suffisante ; elle devient indisponible plutôt que de supposer
+et une profondeur suffisante après déduction de la liquidité déjà consommée sur
+le même instantané ; elle devient indisponible plutôt que de supposer
 une valeur nulle ou une équivalence stablecoin. Le solde EUR restant seul est
 affiché comme liquidité immédiatement utilisable pour les ordres EUR.
 
@@ -39,7 +42,8 @@ affiché comme liquidité immédiatement utilisable pour les ordres EUR.
 * Le simulateur ne consomme que le premier niveau du carnet : il refuse les
   montants au-delà de cette profondeur. Il ne reproduit pas les exécutions
   partielles, la concurrence des autres acteurs ni les changements de carnet
-  entre lecture et exécution. L'API est disponible mais aucun écran dédié n'a
+  entre lecture et exécution. Un nouveau carnet public peut encore afficher la
+  liquidité utilisée par une opération fictive précédente. L'API est disponible mais aucun écran dédié n'a
   encore été ajouté.
 * Les actifs cotés USD/USDC/USDT ne sont pas encore négociables directement :
   le courtier continue de refuser les paires dont la devise de cotation diffère

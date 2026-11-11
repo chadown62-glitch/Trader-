@@ -110,6 +110,60 @@ def test_conversion_refuses_insufficient_top_of_book_depth(fx_env, db):
     assert db.scalar('SELECT COUNT(*) FROM fx_operations', (), 0) == 0
 
 
+def test_same_snapshot_depth_cannot_be_reused_for_later_conversions(fx_env, db):
+    broker, source, provider, ledger = fx_env
+    source.books['EUR/USDC']['bids'][0][1] = 15
+    first = provider.snapshot('EUR', 'USDC')
+    ledger.convert('EUR', 'USDC', '10', first)
+    with pytest.raises(FXError, match='déjà consommée'):
+        ledger.convert('EUR', 'USDC', '10', provider.snapshot('EUR', 'USDC'))
+    assert broker.balances()['EUR'] == pytest.approx(20)
+    assert db.scalar('SELECT COUNT(*) FROM fx_operations', (), 0) == 1
+    assert db.one('SELECT * FROM fx_liquidity_used')['consumed'] == '10'
+
+
+def test_concurrent_fx_conversions_share_same_snapshot_depth(fx_env, db):
+    broker, source, provider, ledger = fx_env
+    source.books['EUR/USDC']['bids'][0][1] = 15
+    book = provider.snapshot('EUR', 'USDC')
+    barrier, results = threading.Barrier(2), []
+    def attempt():
+        barrier.wait()
+        try:
+            ledger.convert('EUR', 'USDC', '10', book)
+            results.append('filled')
+        except FXError:
+            results.append('refused')
+    workers = [threading.Thread(target=attempt) for _ in range(2)]
+    for worker in workers: worker.start()
+    for worker in workers: worker.join(timeout=5)
+    assert all(not worker.is_alive() for worker in workers)
+    assert sorted(results) == ['filled', 'refused']
+    assert broker.balances()['EUR'] == pytest.approx(20)
+    assert db.scalar('SELECT COUNT(*) FROM fx_operations', (), 0) == 1
+
+
+def test_changed_book_at_same_timestamp_is_refused(fx_env):
+    broker, source, provider, ledger = fx_env
+    ledger.convert('EUR', 'USDC', '10', provider.snapshot('EUR', 'USDC'))
+    source.books['EUR/USDC']['bids'][0][1] = 101
+    with pytest.raises(FXError, match='même horodatage'):
+        ledger.convert('EUR', 'USDC', '1', provider.snapshot('EUR', 'USDC'))
+    assert broker.balances()['EUR'] == pytest.approx(20)
+
+
+def test_second_leg_depth_failure_rolls_back_first_leg_reservation(fx_env, db):
+    broker, source, provider, ledger = fx_env
+    source.books['USDC/USD']['bids'][0][1] = 15
+    db.execute('INSERT INTO fx_liquidity_used VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+               (source.name, 'USDC', 'USD', str(NOW), 'bid', '0.98', '15', '10'))
+    with pytest.raises(FXError, match='déjà consommée'):
+        ledger.convert('EUR', 'USD', '10', provider.snapshot('EUR', 'USD', via='USDC'), via='USDC')
+    assert broker.balances() == {'EUR': 30}
+    assert db.scalar('SELECT COUNT(*) FROM fx_operations', (), 0) == 0
+    assert db.scalar('SELECT COUNT(*) FROM fx_liquidity_used', (), 0) == 1
+
+
 def test_reserved_cash_cannot_be_spent_twice(fx_env):
     broker, source, provider, ledger = fx_env
     broker.place_order('BTC/EUR', 'buy', 'limit', 0.0004, price=49000)
@@ -136,6 +190,7 @@ def test_concurrent_conversions_cannot_spend_same_cash(fx_env, db):
     assert sorted(outcomes) == ['ok', 'refused']
     assert broker.balances()['EUR'] == pytest.approx(10)
     assert db.scalar('SELECT COUNT(*) FROM fx_operations', (), 0) == 1
+    assert db.one('SELECT * FROM fx_liquidity_used')['consumed'] == '20'
 
 
 def test_concurrent_retries_with_same_request_are_idempotent(fx_env, db):
@@ -153,6 +208,7 @@ def test_concurrent_retries_with_same_request_are_idempotent(fx_env, db):
     assert sorted(r['replayed'] for r in results) == [False, True]
     assert broker.balances()['EUR'] == pytest.approx(20)
     assert db.scalar('SELECT COUNT(*) FROM fx_operations', (), 0) == 1
+    assert db.one('SELECT * FROM fx_liquidity_used')['consumed'] == '10'
 
 
 def test_failure_after_debit_rolls_back_balances_and_history(fx_env, db, monkeypatch):
@@ -167,6 +223,7 @@ def test_failure_after_debit_rolls_back_balances_and_history(fx_env, db, monkeyp
         ledger.convert('EUR', 'USDC', '10', provider.snapshot('EUR', 'USDC'))
     assert broker.balances() == {'EUR': 30}
     assert db.scalar('SELECT COUNT(*) FROM fx_operations', (), 0) == 0
+    assert db.scalar('SELECT COUNT(*) FROM fx_liquidity_used', (), 0) == 0
 
 
 def test_revalidate_snapshot_after_it_becomes_stale(fx_env, db):
@@ -203,6 +260,23 @@ def test_app_conversion_uses_public_data_and_values_portfolio(tmp_path, monkeypa
     assert 29.8 < summary['equity'] < 30
     assert summary['cash'] == pytest.approx(20)
     assert len(app.paper_fx_history(aid)) == 1
+    app.db.close()
+
+
+def test_valuation_refuses_already_consumed_snapshot_depth(tmp_path, monkeypatch):
+    from sentinelle.execution.base import OrderError
+    source = SyntheticSource(['BTC/EUR', 'EUR/USDC'], days=3, clock=lambda: NOW)
+    books = FakeBookSource()
+    books.books['EUR/USDC']['asks'][0][1] = 10
+    monkeypatch.setattr(source, 'fetch_order_book', books.fetch_order_book)
+    app = App(tmp_path, source=source, start=False, settings_override={'market': {'source': 'synthetic'}, 'general': {'watchlist': ['BTC/EUR']}})
+    app._startup()
+    aid = app.db.one("SELECT id FROM accounts WHERE role='principal'")['id']
+    app.runtime(aid).broker.set_balance('USDC', 10.9)
+    app.db.execute('INSERT INTO fx_liquidity_used VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                   (source.name, 'EUR', 'USDC', str(NOW), 'ask', '1.09', '10', '1'))
+    with pytest.raises(OrderError, match='Valorisation impossible'):
+        app.account_summary(aid)
     app.db.close()
 
 
@@ -244,6 +318,7 @@ def test_fx_operations_and_idempotence_survive_restart(tmp_path):
     broker = PaperBroker(db, aid, 'EUR', lambda _: None, lambda _: None, clock=lambda: NOW)
     broker.set_balance('EUR', 30)
     source = FakeBookSource()
+    source.books['EUR/USDC']['bids'][0][1] = 15
     provider = PublicFXProvider(source, {'EUR/USDC': MarketInfo('EUR/USDC', 'EUR', 'USDC')}, lambda: NOW)
     op = PaperFXLedger(broker, lambda: NOW).convert('EUR', 'USDC', '10', provider.snapshot('EUR', 'USDC'), request_id='persisted_request_123')
     db.close()
@@ -253,6 +328,9 @@ def test_fx_operations_and_idempotence_survive_restart(tmp_path):
     assert broker2.balances()['USDC'] == pytest.approx(10.8)
     replay = PaperFXLedger(broker2, lambda: NOW + 1000).replay('persisted_request_123', 'EUR', 'USDC', '10')
     assert replay['id'] == op['id'] and replay['replayed'] is True
+    with pytest.raises(FXError, match='déjà consommée'):
+        PaperFXLedger(broker2, lambda: NOW).convert('EUR', 'USDC', '10', provider.snapshot('EUR', 'USDC'))
+    assert broker2.balances()['EUR'] == pytest.approx(20)
     assert reopened.scalar('SELECT COUNT(*) FROM fx_operations', (), 0) == 1
     reopened.close()
 
