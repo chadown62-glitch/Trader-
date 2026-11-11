@@ -63,6 +63,12 @@ class PublicExchange:
         object.__setattr__(self, "_ex", ex)
         self._assert_no_credentials("création d'un client de marché avec identifiants")
 
+    def __getattribute__(self, name):
+        # Do not expose the underlying CCXT client through normal access.
+        if name == "_ex":
+            forbid("accès au client interne de marché")
+        return object.__getattribute__(self, name)
+
     def _assert_no_credentials(self, operation: str) -> None:
         try:
             ex = object.__getattribute__(self, "_ex")
@@ -75,7 +81,16 @@ class PublicExchange:
     def __getattr__(self, name: str):
         if name.startswith("__") and name.endswith("__"):
             raise AttributeError(name)  # protocoles internes de Python (copie, etc.) : rien à exposer
-        if name in PUBLIC_METHODS or name in PUBLIC_ATTRIBUTES:
+        if name in PUBLIC_METHODS:
+            self._assert_no_credentials(f"lecture de marché « {name} » avec identifiants")
+            # Never return CCXT's bound method: __self__ would reveal the client.
+            # Recheck on invocation too, in case this callable was retained.
+            def public_call(*args, **kwargs):
+                self._assert_no_credentials(f"lecture de marché « {name} » avec identifiants")
+                ex = object.__getattribute__(self, "_ex")
+                return getattr(ex, name)(*args, **kwargs)
+            return public_call
+        if name in PUBLIC_ATTRIBUTES:
             self._assert_no_credentials(f"lecture de marché « {name} » avec identifiants")
             return getattr(object.__getattribute__(self, "_ex"), name)
         forbid(f"appel non public à l'exchange « {name} »")
@@ -171,7 +186,7 @@ class CcxtSource:
     def fetch_order_book(self, symbol: str, limit: int = 50) -> dict:
         with self._lock:
             ob = self._ex.fetch_order_book(symbol, limit=limit)
-        return {"bids": ob.get("bids") or [], "asks": ob.get("asks") or []}
+        return {"bids": ob.get("bids") or [], "asks": ob.get("asks") or [], "timestamp": ob.get("timestamp")}
 
     def fetch_trade_flow(self, symbol: str, minutes: int = 15) -> dict:
         """Volumes achetés et vendus « au marché » (acheteurs et vendeurs agressifs) sur les dernières minutes.
@@ -298,14 +313,11 @@ class SyntheticSource:
             l = l.copy()
             c = c.copy()
             if n and ts[-1] == cur_min:
-                # minute en cours : on ne révèle qu'une partie de la bougie
-                f = min(1.0, max(0.0, (now - cur_min) / 60_000))
-                o_, H, L, C = o[-1], h[-1], l[-1], c[-1]
-                cp = o_ + (C - o_) * f
-                h[-1] = max(o_, cp) + (H - max(o_, C)) * f
-                l[-1] = min(o_, cp) - (min(o_, C) - L) * f
-                c[-1] = cp
-                v[-1] = v[-1] * f
+                # No intraminute trades have been generated as observable
+                # events. Until the minute closes, reveal its opening only;
+                # never interpolate from the already-generated future OHLCV.
+                h[-1] = l[-1] = c[-1] = o[-1]
+                v[-1] = 0.0
         tf = timeframe_ms(timeframe)
         if tf == 60_000:
             rows = np.column_stack([ts.astype(float), o, h, l, c, v])

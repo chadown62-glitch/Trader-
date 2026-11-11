@@ -11,6 +11,7 @@ Fonctionne dans le thread du moteur (`services.engine`). À chaque relevé :
 from __future__ import annotations
 
 import logging
+import math
 import time
 from typing import Callable
 
@@ -37,6 +38,9 @@ class MarketHub:
         self.markets: dict[str, MarketInfo] = {}
         self.prices: dict[str, float] = {}
         self.price_ts: dict[str, float] = {}
+        # Separate the observation time from the underlying candle's time:
+        # repeatedly fetching an old candle must not make it fresh again.
+        self.price_source_ts: dict[str, float] = {}
         self.watch: set[str] = set()
         self.tick_handlers: list[TickHandler] = []
         self.candle_handlers: list[CandleHandler] = []
@@ -66,10 +70,12 @@ class MarketHub:
 
     def is_fresh(self, symbol: str | None = None, max_age: float = STALE_SECONDS) -> bool:
         now = self.source.now_ms() / 1000
+        def fresh(s):
+            observed, source = self.price_ts.get(s), self.price_source_ts.get(s)
+            return observed is not None and source is not None and 0 <= now - observed <= max_age and 0 <= now - source <= max_age
         if symbol is not None:
-            ts = self.price_ts.get(symbol)
-            return ts is not None and now - ts <= max_age
-        return bool(self.price_ts) and all(now - t <= max_age for t in self.price_ts.values())
+            return fresh(symbol)
+        return bool(self.price_ts) and all(fresh(s) for s in self.price_ts)
 
     def poll(self, between: Callable[[], None] | None = None) -> None:
         """Un relevé complet (appelé périodiquement par le moteur).
@@ -103,11 +109,16 @@ class MarketHub:
         if not rows:
             raise RuntimeError("aucune donnée reçue")
         cur = rows[-1]
-        minute_ts, H, L, close = int(cur[0]), float(cur[2]), float(cur[3]), float(cur[4])
-        if not (close > 0):
-            raise RuntimeError("prix invalide")
+        minute_ts, opening, H, L, close = int(cur[0]), float(cur[1]), float(cur[2]), float(cur[3]), float(cur[4])
+        now_ms = self.source.now_ms()
+        if minute_ts > now_ms or now_ms - minute_ts > STALE_SECONDS * 1000:
+            raise RuntimeError("bougie périmée ou future")
+        if not all(math.isfinite(p) and p > 0 for p in (opening, H, L, close)) or not (L <= min(opening, close) <= max(opening, close) <= H):
+            raise RuntimeError("prix de bougie incohérents")
         prev_price = self.prices.get(symbol)
         st = self._minute.get(symbol)
+        if st is not None and minute_ts < st[0]:
+            raise RuntimeError("bougie antérieure au dernier relevé")
         hi = lo = close
         if st is not None:
             if st[0] == minute_ts:
@@ -130,10 +141,10 @@ class MarketHub:
         o = prev_price if prev_price else close
         hi = max(hi, o, close)
         lo = min(lo, o, close)
-        now_ms = self.source.now_ms()
         start_ms = int(self.price_ts.get(symbol, now_ms / 1000) * 1000)
         self.prices[symbol] = close
         self.price_ts[symbol] = now_ms / 1000
+        self.price_source_ts[symbol] = minute_ts / 1000
         for h in list(self.tick_handlers):
             try:
                 h(symbol, o, hi, lo, close, start_ms, now_ms)

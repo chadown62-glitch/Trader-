@@ -1,22 +1,10 @@
-"""Portefeuille principal : une seule poche d'argent fictif, en euros, partagée entre le trading manuel et l'IA.
-
-Deux situations :
-- **nouvelle installation** : le portefeuille principal (30 € par défaut) est créé d'emblée ;
-- **installation existante** (anciens comptes papier de 10 000 USDC) : rien n'est remplacé en
-  silence. Sentinelle continue avec les anciens comptes tant que vous n'avez pas confirmé le
-  passage au portefeuille principal (`activate_main_portfolio`). Après ce passage, les anciens
-  comptes restent consultables (historique, courbes), mais on n'y trade plus.
-
-Les backtests et les entraînements sur l'historique utilisent leur propre base de données en
-mémoire (`backtest/engine.py`) : ils ne peuvent pas toucher à ce portefeuille.
-"""
-
+"""One active EUR paper wallet, with immutable legacy accounts and opening ledger entries."""
 from __future__ import annotations
 
 import time
 
 from ..execution.base import OrderError
-from ..market.fx import FxService, FxUnavailable, ecb_fetcher, market_fetcher, synthetic_fetcher
+from ..market.fx import FxService, FxUnavailable, market_fetcher, synthetic_fetcher
 from .common import UserError
 
 MAIN_ROLE = "main"
@@ -41,10 +29,28 @@ class PortfolioMixin:
     def _build_fx(self) -> FxService:
         base = self.settings["portfolio"]["currency"]
         if self.settings["market"]["source"] == "synthetic":
-            fetchers = [synthetic_fetcher(self.market_clock)]
+            books = market_fetcher(self.source)
+            generated = synthetic_fetcher(self.market_clock)
+            def simulated(base, quote):
+                markets = self.source.load_markets()
+                if f"{base}/{quote}" in markets or f"{quote}/{base}" in markets:
+                    return books(base, quote)
+                return generated(base, quote)
+            fetchers = [simulated]
         else:
-            fetchers = [market_fetcher(self.source, lambda: self.settings["portfolio"]["fx_max_age_minutes"] * 60), ecb_fetcher()]
+            fetchers = [market_fetcher(self.source, lambda: self.settings["portfolio"]["fx_max_age_minutes"] * 60)]
         return FxService(base, fetchers, clock=self.market_clock, db=self.db)
+
+    def _historical_fx(self, currency, timestamp):
+        from ..market.sources import SyntheticSource
+        if isinstance(self.source, SyntheticSource) and self.settings["market"]["source"] == "synthetic":
+            if currency == self.fx.base:
+                return self.fx.historical(currency, timestamp)
+            q = synthetic_fetcher(lambda: timestamp)(self.fx.base, currency)
+            if q is None:
+                raise FxUnavailable("Devise absente du générateur de démonstration")
+            return q
+        return self.fx.historical(currency, timestamp)
 
     def _fx_quote(self, currency: str, for_trading: bool = True):
         return self.fx.quote(currency, for_trading=for_trading)
@@ -73,17 +79,22 @@ class PortfolioMixin:
         return self.db.get_meta("portfolio_mode") or "legacy"
 
     def _init_portfolio(self) -> None:
-        """Au premier démarrage de cette version : décide du mode sans rien remplacer."""
-        if self.db.get_meta("portfolio_mode") is None:
-            existing = self.db.scalar("SELECT COUNT(*) FROM accounts", (), 0)
-            self.db.set_meta("portfolio_mode", "legacy" if existing else "main")
-            if existing:
-                self.db.log("info", "portefeuille", "Anciens comptes papier conservés. Le portefeuille principal de 30 € est proposé "
-                                                    "dans le panel : rien n'est remplacé sans votre confirmation.")
-        if self.portfolio_mode() == "main":
+        with self.db.transaction():
+            active = self.db.query("SELECT * FROM accounts WHERE role IN ('main','principal') AND archived=0")
+            if len(active) > 1 or any(a["kind"] != "paper" or a["quote"] != "EUR" for a in active):
+                raise UserError("Portefeuille principal incohérent : vérifier les comptes existants")
+            if active and active[0]["role"] == "principal":
+                self.db.update("accounts", active[0]["id"], {"role": MAIN_ROLE})
+            if not active:
+                self.db.execute("UPDATE agents SET enabled=0 WHERE enabled!=0")
             self._ensure_main_account()
-        else:
-            self._ensure_legacy_accounts()
+            self.db.set_meta("portfolio_mode", "main")
+            for row in self.db.query("SELECT b.* FROM balances b JOIN accounts a ON a.id=b.account_id "
+                                     "WHERE a.kind='paper' AND NOT EXISTS (SELECT 1 FROM ledger l "
+                                     "WHERE l.account_id=b.account_id AND l.asset=b.asset)"):
+                self.db.insert("ledger", {"account_id": row["account_id"], "ts": time.time(), "kind": "reprise",
+                               "asset": row["asset"], "amount": row["total"], "balance_after": row["total"],
+                               "note": "Solde existant à l’intégration"})
 
     def _ensure_main_account(self) -> dict:
         acc = self.main_account()
@@ -93,36 +104,21 @@ class PortfolioMixin:
         now = time.time()
         with self.db.transaction():
             aid = self.db.insert("accounts", {"name": MAIN_NAME, "kind": "paper", "role": MAIN_ROLE, "quote": cfg["currency"],
-                                              "initial_balance": cfg["initial"], "created_at": now, "data": "{}"})
-            self.db.execute("INSERT INTO balances(account_id, asset, total) VALUES (?, ?, ?)", (aid, cfg["currency"], cfg["initial"]))
-            self.db.insert("ledger", {"account_id": aid, "ts": now, "kind": "depot", "asset": cfg["currency"], "amount": cfg["initial"],
-                                      "balance_after": cfg["initial"], "note": "Capital de départ (argent fictif)"})
-        self.db.log("info", "portefeuille", f"Portefeuille principal créé : {cfg['initial']:.2f} {cfg['currency']} fictifs")
+                                              "initial_balance": 30.0, "created_at": now, "data": "{}"})
+            self.db.execute("INSERT INTO balances(account_id, asset, total) VALUES (?, ?, ?)", (aid, cfg["currency"], 30.0))
+            self.db.insert("ledger", {"account_id": aid, "ts": now, "kind": "depot", "asset": cfg["currency"], "amount": 30.0,
+                                      "balance_after": 30.0, "note": "Capital de départ (argent fictif)"})
+        self.db.log("info", "portefeuille", f"Portefeuille principal créé : {30.0:.2f} {cfg['currency']} fictifs")
         return self.main_account()
-
-    def _ensure_legacy_accounts(self) -> None:
-        quote = self.settings["general"]["quote"]
-        initial = self.settings["paper"]["initial_balance"]
-        for role, name in (("ai_training", "Entraînement IA"), ("manual", "Mon compte papier")):
-            if not self.db.one("SELECT id FROM accounts WHERE role = ? AND kind = 'paper' AND archived = 0", (role,)):
-                acc = self.db.insert("accounts", {"name": name, "kind": "paper", "role": role, "quote": quote,
-                                                  "initial_balance": initial, "created_at": time.time(), "data": "{}"})
-                self.db.execute("INSERT INTO balances(account_id, asset, total) VALUES (?, ?, ?)", (acc, quote, initial))
 
     def main_account(self) -> dict | None:
         return self.db.one("SELECT * FROM accounts WHERE role = ? AND kind = 'paper' AND archived = 0 ORDER BY id", (MAIN_ROLE,))
 
     def ai_account(self) -> dict | None:
-        """Compte utilisé par l'IA : le portefeuille principal, ou l'ancien compte d'entraînement avant la migration."""
-        if self.portfolio_mode() == "main":
-            return self.main_account()
-        return self.db.one("SELECT * FROM accounts WHERE role = 'ai_training' AND kind = 'paper' AND archived = 0 ORDER BY id")
+        return self.main_account()
 
     def is_tradable(self, acc: dict) -> bool:
-        """Dans le mode « portefeuille principal », on ne trade que sur lui : les anciens comptes sont en lecture seule."""
-        if acc.get("kind") != "paper" or acc.get("archived"):
-            return False
-        return acc.get("role") == MAIN_ROLE if self.portfolio_mode() == "main" else acc.get("role") != MAIN_ROLE
+        return bool(acc and acc.get("role") == MAIN_ROLE and acc.get("kind") == "paper" and not acc.get("archived"))
 
     def tradable_accounts(self) -> list[dict]:
         rows = self.db.query("SELECT * FROM accounts WHERE kind = 'paper' AND archived = 0 ORDER BY id")
@@ -161,7 +157,7 @@ class PortfolioMixin:
         return {
             "mode": mode,
             "currency": cfg["currency"],
-            "initial": cfg["initial"],
+            "initial": 30.0,
             "trade_quote": quote,
             "main_account_id": main["id"] if main else None,
             "migration_available": mode == "legacy",
@@ -171,43 +167,9 @@ class PortfolioMixin:
         }
 
     def activate_main_portfolio(self, confirm: bool = False) -> dict:
-        """Passage explicite au portefeuille principal. Les anciens comptes sont conservés, en lecture seule."""
-        if self.portfolio_mode() == "main":
-            raise UserError("Le portefeuille principal est déjà actif")
         if confirm is not True:
-            raise UserError("Confirmation nécessaire pour passer au portefeuille principal")
-        for name in list(self.agents):
-            self.stop_agent(name)
-        closed, errors = 0, []
-        for acc in self.legacy_paper_accounts():
-            rt = self.runtimes.get(acc["id"])
-            if rt is None:
-                continue
-            for pos in rt.positions.open_positions():
-                try:
-                    rt.positions.close(pos["id"], "Passage au portefeuille principal")
-                    closed += 1
-                except OrderError as exc:
-                    errors.append(f"{pos['symbol']} : {exc.message}")
-            for order in rt.broker.open_orders():
-                try:
-                    rt.broker.cancel_order(order["id"], "Passage au portefeuille principal")
-                except OrderError:
-                    pass
-        if errors:
-            raise UserError("Passage annulé : certaines positions des anciens comptes n'ont pas pu être fermées (" + " ; ".join(errors) + ")")
-        self._snapshot_equity()  # dernière valeur des anciens comptes, pour l'historique
-        self.db.set_meta("portfolio_mode", "main")
-        main = self._ensure_main_account()
-        for acc in self.legacy_paper_accounts():  # ils ne tournent plus : plus aucun ordre ni relevé
-            self.runtimes.pop(acc["id"], None)
-        if self.hub.markets:
-            self._make_paper_runtime(main)
-        self._refresh_watch()
-        self.db.log("info", "portefeuille", f"Passage au portefeuille principal confirmé : {closed} position(s) des anciens comptes fermée(s), "
-                                            "anciens comptes conservés en lecture seule")
-        self.bus.publish("settings", {})
-        return {"main_account_id": main["id"], "positions_closed": closed, "status": self.portfolio_status()}
+            raise UserError("Confirmation requise")
+        return {"main_account_id": self.main_account()["id"], "positions_closed": 0, "status": self.portfolio_status()}
 
     # ======================================================================
     # Grand livre
