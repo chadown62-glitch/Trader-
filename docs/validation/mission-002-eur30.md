@@ -56,3 +56,17 @@ sur la PR #5. Rien n'a été fusionné dans `main`.
 Le verdict de l'issue #6 reste **travail en cours / tests incomplets** : ni la
 simulation réaliste complète, ni la conversion multi-devises, ni l'apprentissage
 ou un rendement futur ne sont démontrés par cette branche.
+
+## Tests temporels reproductibles
+
+`tests/test_temporal_contract_gaps.py` contient deux tests marqués `xfail`
+strictement : ces exigences sont actuellement en échec et un passage inattendu
+rend la suite rouge jusqu'à révision. Dans le scénario du backtest, la clôture
+est 100 et l'ouverture suivante 120 : avec 5 points de base de glissement, le
+code exécute à **100,05**, contre **120,06** à l'ouverture suivante. L'autre
+modifie uniquement la clôture future pré-générée d'une bougie synthétique et
+constate que la partie supposée déjà observée change.
+
+Ces deux échecs ont aussi été exécutés avec `--runxfail` pour confirmer qu'ils
+reproduisent bien les défauts annoncés. Ils ne sont ni des validations ni une
+preuve que d'autres fuites temporelles n'existent pas.
