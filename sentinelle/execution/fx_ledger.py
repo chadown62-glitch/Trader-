@@ -49,6 +49,27 @@ class PaperFXLedger:
                 'amount_out': row['amount_out'], 'fee_rate': row['fee_rate'], 'legs': json.loads(row['legs']),
                 'simulated': True, 'replayed': True}
 
+    def _consume_depth(self, legs):
+        """Reserve a snapshot's top-level depth atomically across conversions."""
+        for leg in legs:
+            direct = leg['base'] == leg['market_base']
+            side = 'bid' if direct else 'ask'
+            price, depth = leg[side], leg[f'{side}_depth']
+            used = leg['input'] if direct else leg['gross']  # depth is in base units
+            key = (leg['source'], leg['market_base'], leg['market_quote'], str(leg['timestamp']), side)
+            row = self.db.one('SELECT * FROM fx_liquidity_used WHERE source = ? AND market_base = ? AND market_quote = ? AND market_ts = ? AND side = ?', key)
+            if row is not None:
+                if Decimal(row['price']) != price or Decimal(row['depth']) != depth:
+                    raise FXError('Carnet incohérent pour un même horodatage')
+                consumed = Decimal(row['consumed'])
+            else:
+                consumed = Decimal(0)
+            if consumed + used > depth:
+                raise FXError('Liquidité déjà consommée pour ce carnet')
+            self.db.execute('INSERT INTO fx_liquidity_used(source, market_base, market_quote, market_ts, side, price, depth, consumed) '
+                            'VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(source, market_base, market_quote, market_ts, side) '
+                            'DO UPDATE SET consumed = excluded.consumed', (*key, str(price), str(depth), str(consumed + used)))
+
     def replay(self, request_id, base, target, amount, via=None):
         amount = _amount(amount)
         with self.db.transaction():
@@ -78,6 +99,7 @@ class PaperFXLedger:
                 raise FXError('Montant de conversion impossible à représenter') from exc
             if output <= 0 or not math.isfinite(float(output)):
                 raise FXError('Montant de conversion trop faible après arrondi')
+            self._consume_depth(result['legs'])
             legs = [{k: str(v) if isinstance(v, Decimal) else v for k, v in leg.items()} for leg in result['legs']]
             self.broker._adjust(base, -float(amount))
             self.broker._adjust(target, float(output))

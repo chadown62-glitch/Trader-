@@ -63,6 +63,17 @@ CREATE TABLE IF NOT EXISTS fx_operations(
     legs TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_fx_operations_account ON fx_operations(account_id, ts);
+CREATE TABLE IF NOT EXISTS fx_liquidity_used(
+    source TEXT NOT NULL,
+    market_base TEXT NOT NULL,
+    market_quote TEXT NOT NULL,
+    market_ts TEXT NOT NULL,
+    side TEXT NOT NULL,
+    price TEXT NOT NULL,
+    depth TEXT NOT NULL,
+    consumed TEXT NOT NULL,
+    PRIMARY KEY (source, market_base, market_quote, market_ts, side)
+);
 CREATE TABLE IF NOT EXISTS orders(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     account_id INTEGER NOT NULL,
