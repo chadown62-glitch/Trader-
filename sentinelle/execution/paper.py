@@ -38,6 +38,7 @@ class PaperBroker:
         fee_rate: float = 0.001,
         slippage_bps: float = 5.0,
         clock: Callable[[], float] = time.time,
+        defer_market: bool = False,
     ):
         self.db = db
         self.account_id = account_id
@@ -47,6 +48,7 @@ class PaperBroker:
         self.fee_rate = fee_rate
         self.slip = slippage_bps / 10_000.0
         self.clock = clock
+        self.defer_market = defer_market
         self.listeners: list[FillListener] = []
 
     # -- soldes ---------------------------------------------------------------
@@ -239,6 +241,8 @@ class PaperBroker:
         order = self.get_order(order_id)
         # Exécution immédiate : ordre au marché ou ordre limite « traversant »
         if type == "market":
+            if self.defer_market:
+                return order
             fill_px = last * (1 + self.slip) if side == "buy" else last * (1 - self.slip)
             return self._fill(order, fill_px, maker=False)
         if type == "limit" and last:
@@ -341,6 +345,30 @@ class PaperBroker:
         if not orders:
             return 0
         count = 0
+        for od in [x for x in orders if x["type"] == "market"]:
+            current = self.get_order(od["id"])
+            if current["status"] not in OPEN_STATUSES:
+                continue
+            px = o * (1 + self.slip if current["side"] == "buy" else 1 - self.slip)
+            if current["side"] == "buy" and current.get("position_id"):
+                pos = self.db.one("SELECT * FROM positions WHERE id = ?", (current["position_id"],))
+                if pos and pos["stop_price"] and px <= pos["stop_price"]:
+                    with self.db.transaction():
+                        self.cancel_order(current["id"], "Ouverture sous le stop : entrée impossible")
+                        self.db.update("positions", pos["id"], {"status": "cancelled", "reason_close": "Ouverture sous le stop"})
+                    continue
+            try:
+                self._fill(current, px, maker=False)
+                count += 1
+            except OrderError as exc:
+                if exc.code == "insufficient_funds":
+                    with self.db.transaction():
+                        if self.get_order(current["id"])["status"] in OPEN_STATUSES:
+                            self.db.update("orders", current["id"], {"status": "rejected", "error": exc.message, "updated_at": self.clock()})
+                            if current.get("position_id") and current["side"] == "buy":
+                                self.db.update("positions", current["position_id"], {"status": "cancelled", "reason_close": exc.message})
+        # Include protective orders placed at this opening by an entry fill.
+        orders = [x for x in self.open_orders(symbol) if x["created_at"] * 1000 <= start_ms + 1e-6]
         stops = [x for x in orders if x["type"] == "stop"]
         limits = [x for x in orders if x["type"] == "limit"]
         for od in stops + limits:  # les stops d'abord (hypothèse pessimiste)

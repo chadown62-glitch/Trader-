@@ -63,7 +63,7 @@ def run_backtest(
             mk[symbol] = generic_market(symbol)
         return mk[symbol]
 
-    broker = PaperBroker(db, acc, quote, market_fn, prices.get, cfg["paper"]["fee_rate"], cfg["paper"]["slippage_bps"], clock)
+    broker = PaperBroker(db, acc, quote, market_fn, prices.get, cfg["paper"]["fee_rate"], cfg["paper"]["slippage_bps"], clock, defer_market=True)
     broker.set_balance(quote, initial)
     pm = PositionManager(db, broker, clock=clock)
     risk = RiskManager(db, acc, lambda: cfg, clock)

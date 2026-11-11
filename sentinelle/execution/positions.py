@@ -352,6 +352,20 @@ class PositionManager:
             return pos
         last = self._required_price(pos["symbol"])
         m = self.broker.market_fn(pos["symbol"])
+        if getattr(self.broker, "defer_market", False):
+            # Keep the existing stop/target until the delayed exit is actually
+            # filled. All three reserve the same position through one OCO group.
+            with self.db.transaction():
+                if any(o["position_id"] == position_id and o["purpose"] == "exit" for o in self.broker.open_orders(pos["symbol"])):
+                    return self.get(position_id)
+                qty = m.floor_amount(pos["qty"])
+                if qty <= 0 or qty * last < m.min_notional:
+                    raise OrderError("Vente impossible : minimum du marché insuffisant", "min_size")
+                self.broker.place_order(
+                    pos["symbol"], "sell", "market", qty, origin=pos["origin"], agent=pos["agent"],
+                    purpose="exit", position_id=position_id, oco_group=f"pos{position_id}", reason=reason,
+                )
+                return self.get(position_id)
         # Cancellation and exit must succeed together. In particular, a stale
         # price or an unsellable residual must not masquerade as liquidation.
         with self.db.transaction():
