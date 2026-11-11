@@ -1,0 +1,45 @@
+{
+  "before_commit": "79dac5c650cf94d9d14be9e283259b57da915b9b",
+  "after_commit": "7095b8fff6bea6078529689d29e666a3830ffcf9",
+  "generator": "make_candidates(1800, simple), 4h",
+  "before": [
+    {
+      "seed": 19,
+      "decisions": 359,
+      "trades": 114,
+      "mean_r": 0.85855204300163,
+      "auc": 0.7176216765023161,
+      "brier": 0.21240845600764743,
+      "cohort_sha256": "acdb5c71b742b2c68197147c9e9a75b13ef5b83aab11a2d4f0d8e9f04c7c350b"
+    },
+    {
+      "seed": 20,
+      "decisions": 359,
+      "trades": 69,
+      "mean_r": 1.0291327357237132,
+      "auc": 0.7610449735449735,
+      "brier": 0.1895145514148483,
+      "cohort_sha256": "9b68a0ca03f65a88fedabdb1aa9a13ab311ee0c3f12039fe79d6a897d6e70723"
+    }
+  ],
+  "after": [
+    {
+      "seed": 19,
+      "decisions": 359,
+      "trades": 108,
+      "mean_r": 0.8052298397035949,
+      "auc": 0.6938892061679041,
+      "brier": 0.2210755026637845,
+      "cohort_sha256": "acdb5c71b742b2c68197147c9e9a75b13ef5b83aab11a2d4f0d8e9f04c7c350b"
+    },
+    {
+      "seed": 20,
+      "decisions": 359,
+      "trades": 59,
+      "mean_r": 1.3894188126099525,
+      "auc": 0.7571097883597884,
+      "brier": 0.19274807532803706,
+      "cohort_sha256": "9b68a0ca03f65a88fedabdb1aa9a13ab311ee0c3f12039fe79d6a897d6e70723"
+    }
+  ]
+}
