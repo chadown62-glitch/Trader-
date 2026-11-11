@@ -216,12 +216,19 @@ def test_two_factor_login(client, app):
     assert client.post("/api/auth/2fa/disable", json={"password": PASSWORD, "code": totp(setup["secret"])}, headers=H).status_code == 200
 
 
-def test_evaluation_endpoint_requires_login_and_reads_the_main_wallet(client, app):
-    assert client.get("/api/portfolio/evaluation").status_code in (401, 403)
-    _login(client)
-    app._snapshot_equity()
-    rep = client.get("/api/portfolio/evaluation")
-    assert rep.status_code == 200
-    values = rep.json()
-    assert values["currency"] == "EUR" and values["equity"] == 30.
-    assert values["as_of"] and values["trades"] == [] and values["verdict"] == "NON TESTÉ"
+def test_evaluation_endpoint_requires_login_and_reads_the_main_wallet(tmp_path):
+    app = App(tmp_path, source=SyntheticSource(["BTC/EUR"], days=2), start=False,
+              settings_override={"market": {"source": "synthetic"}, "general": {"quote": "EUR", "watchlist": ["BTC/EUR"]}})
+    try:
+        app._startup()
+        with TestClient(create_api(app)) as client:
+            assert client.get("/api/portfolio/evaluation").status_code in (401, 403)
+            assert client.post("/api/auth/setup", json={"password": PASSWORD}, headers=H).status_code == 200
+            app._snapshot_equity()
+            rep = client.get("/api/portfolio/evaluation")
+            assert rep.status_code == 200
+            values = rep.json()
+            assert values["currency"] == "EUR" and values["equity"] == 30.
+            assert values["as_of"] and values["trades"] == [] and values["verdict"] == "NON TESTÉ"
+    finally:
+        app.close()
