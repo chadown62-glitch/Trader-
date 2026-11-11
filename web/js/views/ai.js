@@ -16,6 +16,7 @@ export default {
     const trainDays = ref(2920);
     const btDays = ref(90);
     const btUseModel = ref(false);
+    const btCapital = ref(null);
     const btResult = ref(null);
     const stats = ref(null);
     const cands = ref(null);
@@ -70,7 +71,7 @@ export default {
       await safe(api.post(`/api/agents/${name}/stop`, { close_positions: close }), 'IA arrêtée');
     };
     const train = async () => { await safe(api.post('/api/ai/train', { days: trainDays.value }), 'Entraînement lancé : il peut prendre quelques minutes'); };
-    const backtest = async () => { btResult.value = null; await safe(api.post('/api/ai/backtest', { days: btDays.value, use_model: btUseModel.value }), 'Simulation lancée'); };
+    const backtest = async () => { btResult.value = null; await safe(api.post('/api/ai/backtest', { days: btDays.value, use_model: btUseModel.value, capital: Number(btCapital.value) || null }), 'Simulation lancée'); };
     const promote = async (m) => { if (await safe(api.post(`/api/ai/models/${encodeURIComponent(m.version)}/promote`), 'Modèle activé')) loadModels(); };
     const retire = async (m) => { if (await safe(api.post(`/api/ai/models/${encodeURIComponent(m.version)}/retire`), 'Modèle retiré')) loadModels(); };
 
@@ -86,7 +87,7 @@ export default {
     });
     const manualBtCurve = computed(() => btResult.value ? [{ data: btResult.value.equity || [], color: '#22c55e' }] : []);
     const STATUS = { champion: ['Actif', 'ok'], trial: ['À l’essai', 'warn'], challenger: ['En test', 'warn'], rejected: ['Non validé', 'err'], retired: ['Retiré', ''] };
-    return { store, lastTrain, readiness, models, report, reportVersion, trainDays, btDays, btUseModel, btResult, stats, cands, decisions, confirmText, tab,
+    return { store, lastTrain, readiness, models, report, reportVersion, trainDays, btDays, btUseModel, btCapital, btResult, stats, cands, decisions, confirmText, tab,
       training, trainingAcc, trainJob, btJob, prepJob, startTraining, stopAgent, train, backtest, promote, retire, openReport,
       holdoutCurves, btCurves, manualBtCurve, STATUS, money, signed, pct, plainPct, rr, cls, dt, dtMs, date, ago, STRATEGY_LABELS, FEATURE_LABELS, REASON_ICONS };
   },
@@ -294,6 +295,9 @@ export default {
         <div class="row" style="max-width:640px">
           <div class="field"><label>Période</label><select v-model.number="btDays"><option :value="30">30 jours</option><option :value="90">90 jours</option><option :value="180">6 mois</option><option :value="365">1 an</option><option :value="730">2 ans</option></select></div>
           <div class="field"><label>Décisions</label><select v-model="btUseModel"><option :value="true">Avec le modèle actif</option><option :value="false">Tous les signaux (sans filtre IA)</option></select></div>
+          <div class="field"><label>Capital simulé ({{ store.overview?.portfolio?.mode === 'main' ? store.overview.portfolio.currency : store.settings?.general?.quote }})</label>
+            <input type="number" min="10" step="10" v-model="btCapital" :placeholder="store.overview?.portfolio?.mode === 'main' ? String(store.overview.portfolio.initial) + ' (votre portefeuille)' : '10000'">
+            <div class="hint">Par défaut, le capital de votre portefeuille : avec un petit capital, les ordres sous le minimum de la plateforme sont refusés, comme en direct.</div></div>
         </div>
         <button class="primary" :disabled="btJob && btJob.status==='running'" @click="backtest">▶ Lancer la simulation</button>
         <div v-if="btJob" style="margin-top:12px"><div class="small muted">{{ btJob.status==='running' ? btJob.message : btJob.status==='done' ? 'Terminé' : 'Échec : ' + btJob.error }}</div>
@@ -305,10 +309,15 @@ export default {
             <div class="stat"><span class="label">Trades</span><span class="value">{{ btResult.metrics.n }}</span></div>
             <div class="stat"><span class="label">Réussite</span><span class="value">{{ plainPct(btResult.metrics.win_rate) }}</span></div>
             <div class="stat"><span class="label">Moyenne</span><span class="value" :class="cls(btResult.metrics.mean_r)">{{ rr(btResult.metrics.mean_r) }}</span></div>
-            <div class="stat"><span class="label">Frais payés</span><span class="value">{{ money(btResult.fees_paid) }}</span></div>
+            <div class="stat"><span class="label">Frais payés</span><span class="value">{{ money(btResult.fees_paid, btResult.conditions?.quote) }}</span></div>
+            <div class="stat" v-if="btResult.agent_stats"><span class="label">Signaux refusés</span><span class="value">{{ btResult.agent_stats.refused }}</span></div>
             <div class="stat"><span class="label">Acheter et garder</span><span class="value" :class="cls(btResult.buy_hold_pct)">{{ pct((btResult.buy_hold_pct||0)/100) }}</span></div>
           </div>
           <LineChart :series="manualBtCurve" height="medium" />
+          <p v-if="btResult.conditions" class="faint small" style="margin:8px 0 0">
+            Capital simulé : {{ money(btResult.conditions.capital, btResult.conditions.currency) }}<span v-if="btResult.conditions.fx"> = {{ money(btResult.initial, btResult.conditions.quote) }} au taux du moment</span>.
+            Chaque ordre est exécuté à l'ouverture de la bougie qui suit le signal, frais, glissement<span v-if="btResult.conditions.extra_cost"> et conversion</span> compris.
+            La simulation tourne sur un compte à part : elle ne touche pas à votre portefeuille.</p>
           <div v-if="btResult.halted" class="note danger small" style="margin-top:8px">L'arrêt de sécurité (baisse maximale) s'est déclenché pendant la simulation.</div>
         </div>
       </div>

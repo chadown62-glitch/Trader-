@@ -20,6 +20,7 @@ from typing import Callable
 from ..safety import is_paper_broker, require_paper_broker
 from ..storage.db import Database, dumps
 from .base import OPEN_STATUSES, OrderError, fee_in_quote
+from .contract import entry_possible
 
 log = logging.getLogger("sentinelle.positions")
 
@@ -110,7 +111,8 @@ class PositionManager:
         self._guard("ouverture de position")
         if stop is not None and limit_price is None and entry_type == "market":
             last = self.broker.price_fn(symbol) if hasattr(self.broker, "price_fn") else None
-            if last and stop >= last:
+            # contrat d'exécution : entrée abandonnée si le premier prix disponible est déjà au niveau du stop
+            if last and not entry_possible(last, stop):
                 raise OrderError("Le stop-loss doit être sous le prix actuel", "invalid")
         if target is not None and stop is not None and target <= stop:
             raise OrderError("L'objectif doit être au-dessus du stop-loss", "invalid")

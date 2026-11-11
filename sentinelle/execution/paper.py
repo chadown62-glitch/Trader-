@@ -27,6 +27,7 @@ from ..market.fx import FxQuote, identity
 from ..market.markets import MarketInfo
 from ..storage.db import Database
 from .base import OPEN_STATUSES, FillListener, OrderError
+from .contract import limit_fill, limit_hit, market_fill, stop_fill, stop_hit, valid_bar
 
 EPS = 1e-9
 CASH_DUST = 1e-6  # tolérance d'arrondi sur les liquidités (un millionième d'unité monétaire)
@@ -307,8 +308,7 @@ class PaperBroker:
                 half_spread = max(0.0, min(0.05, float(self.spread_fn(symbol) or 0.0)))
             except Exception:
                 half_spread = 0.0
-        worse = self.slip + half_spread
-        return last * (1 + worse) if side == "buy" else last * (1 - worse)
+        return market_fill(last, side, self.slip, half_spread)
 
     def _reject(self, order: dict, message: str, code: str = "insufficient_funds"):
         self.db.update("orders", order["id"], {"status": "rejected", "error": message, "updated_at": self.clock()})
@@ -399,6 +399,8 @@ class PaperBroker:
     # -- passage du temps -----------------------------------------------------
     def process_bar(self, symbol: str, o: float, h: float, l: float, c: float, start_ms: int, end_ms: int | None = None) -> int:
         """Déclenche les ordres en attente touchés pendant la période. Renvoie le nombre d'exécutions."""
+        if not valid_bar(o, h, l, c):
+            return 0  # données incohérentes : aucune exécution
         orders = [x for x in self.open_orders(symbol) if x["created_at"] * 1000 <= start_ms + 1e-6]
         if not orders:
             return 0
@@ -411,17 +413,11 @@ class PaperBroker:
                 continue
             px = None
             if od["type"] == "stop":
-                sp = od["stop_price"]
-                if od["side"] == "sell" and l <= sp:
-                    px = min(sp, o) * (1 - self.slip)
-                elif od["side"] == "buy" and h >= sp:
-                    px = max(sp, o) * (1 + self.slip)
-            else:
-                lp = od["price"]
-                if od["side"] == "sell" and h >= lp:
-                    px = max(lp, o) if o > lp else lp
-                elif od["side"] == "buy" and l <= lp:
-                    px = min(lp, o) if o < lp else lp
+                if stop_hit(od["stop_price"], h, l, od["side"]):
+                    px = stop_fill(od["stop_price"], o, od["side"], self.slip)
+            elif od["type"] == "limit":
+                if limit_hit(od["price"], h, l, od["side"]):
+                    px = limit_fill(od["price"], o, od["side"])
             if px is None:
                 continue
             try:

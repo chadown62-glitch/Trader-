@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from sentinelle.ai.exits import ExitState, end_of_bar, r_multiple, step
+from sentinelle.ai.exits import ExitState, end_of_bar, r_multiple, step, time_exit_fill
 from sentinelle.ai.features import FEATURE_COLUMNS, compute_features, warmup_bars
 from sentinelle.ai.indicators import atr, rsi
 from sentinelle.ai.labeling import label_candidates, non_overlapping
@@ -76,7 +76,11 @@ def test_exit_time_and_breakeven():
     px, reason = step(s, 102, 102.4, 101, 101.5)
     assert px is None
     px, reason = step(s, 101.5, 101.8, 100.5, 101)
-    assert reason == "time" and px == 101
+    # durée maximale atteinte à la clôture : la vente a lieu à l'ouverture de la bougie suivante
+    assert reason == "time" and px is None
+    assert time_exit_fill(s, 100.8) == pytest.approx(100.8)
+    s.slip = 0.001
+    assert time_exit_fill(s, 100.8) == pytest.approx(100.8 * 0.999)
 
 
 def test_r_multiple_includes_fees():
@@ -101,6 +105,8 @@ def test_labels_match_manual_simulation():
                           trail_atr=st.trail_atr, atr_entry=row["atr_entry"], peak=entry)
         for j in range(i + 1, len(o)):
             px, reason = step(state, o[j], h[j], l[j], c[j])
+            if reason == "time":  # durée maximale : vente à l'ouverture de la bougie suivante
+                px = time_exit_fill(state, o[j + 1])
             if px is not None:
                 break
         assert reason == row["outcome"]
