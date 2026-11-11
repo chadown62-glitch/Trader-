@@ -112,3 +112,18 @@ def test_used_evaluation_days_cannot_be_reused(db, tmp_path):
     assert registry.reserve_evaluation("test-v3", "1h", 130, 240, "all_signals") == 180
     with pytest.raises(ValueError):
         registry.record_evaluation("test-v1", {"verdict": "MODÈLE APPROUVÉ POUR PAPER TRADING"})
+
+
+def test_passive_reference_can_invest_30_euros_across_a_feasible_basket():
+    from copy import deepcopy
+    from sentinelle.backtest.engine import run_backtest
+    from sentinelle.config import DEFAULT_SETTINGS
+    frame, _ = market_frame("trend", 7, 310)
+    cfg = deepcopy(DEFAULT_SETTINGS)
+    cfg["general"]["quote"] = "EUR"
+    history = {f"{symbol}/EUR": frame for symbol in "FEDCBA"}
+    run = run_backtest(history, "4h", cfg, None, initial=30., account_currency="EUR",
+                       start_ts=int(frame.ts.iloc[-10]), research_trace=True, reference_policy="passive")
+    assert {f["symbol"] for f in run["fills"]} == {"A/EUR", "B/EUR"}
+    assert all(5 <= f["amount"]*f["price"] <= 9 for f in run["fills"])
+    assert sum(-f["cash_amount"] for f in run["fills"]) <= 18

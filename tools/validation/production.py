@@ -144,13 +144,13 @@ def reports(results, directory, *, revision=None):
               "source":"OHLCV synthétiques déterministes", "capital_eur":30, "timeframe":TF, "results":results,
               "limits":["Le générateur plante un signal dans le volume. Les prix sont entièrement synthétiques.",
                         "Exécution OHLC à l'ouverture suivante avec glissement modélisé. Aucun carnet historique.",
-                        "La référence passive respecte les plafonds d'exposition initiaux et conserve sa position.",
+                        "La référence passive choisit son panier par ordre alphabétique avant l’essai, respecte les plafonds initiaux et conserve ses positions.",
                         "Les intervalles sont conditionnels au scénario et à la longueur de bloc. Les jours sans transaction sont inclus.",
                         "Une comparaison synthétique ne promeut aucun modèle dans l'application."]}
     (directory/"production.json").write_text(json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
     columns = ["scenario","seed","strategy","size","status","auc","brier","capital_eur","net_return","n_trades","fees_eur","max_drawdown"]
     with (directory/"production.csv").open("w", newline="", encoding="utf-8") as stream:
-        out = csv.DictWriter(stream,fieldnames=columns,extrasaction="ignore")
+        out = csv.DictWriter(stream,fieldnames=columns,extrasaction="ignore",lineterminator="\n")
         out.writeheader()
         for result in results:
             common = {"scenario":result["scenario"],"seed":result["seed"]}

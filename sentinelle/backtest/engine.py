@@ -117,6 +117,12 @@ def run_backtest(
 
     equity_curve: list[list[float]] = []
     bh_start: dict[str, float] = {}
+    # A six-way split of 30 EUR would fall below typical minimums. Predetermine
+    # the basket by symbol, allocating up to the identical portfolio/asset caps.
+    limits = cfg["risk"]
+    count = max(1, int(np.ceil(limits["max_exposure"] / limits["max_exposure_per_asset"])))
+    count = min(count, limits["max_positions"])
+    passive_basket = set(sorted(data)[:count])
     passive_attempted = set()
     observed_valid = {}
     skipped = 0
@@ -144,9 +150,9 @@ def run_backtest(
             if reference_policy == "cash":
                 continue
             if reference_policy == "passive":
-                if sym not in passive_attempted and np.isfinite(o) and o > 0:
+                if sym in passive_basket and sym not in passive_attempted and np.isfinite(o) and o > 0:
                     passive_attempted.add(sym)
-                    allocation = min(cfg["risk"]["max_exposure"] / len(data), cfg["risk"]["max_exposure_per_asset"])
+                    allocation = min(cfg["risk"]["max_exposure"] / len(passive_basket), cfg["risk"]["max_exposure_per_asset"])
                     rate = broker.fx(sym.split("/")[1]).cash_leg(1, "buy", clock())[0]
                     qty = initial * allocation / (o * float(rate) * (1 + broker.slip) * (1 + broker.fee_rate))
                     try:
