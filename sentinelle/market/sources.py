@@ -313,14 +313,11 @@ class SyntheticSource:
             l = l.copy()
             c = c.copy()
             if n and ts[-1] == cur_min:
-                # minute en cours : on ne révèle qu'une partie de la bougie
-                f = min(1.0, max(0.0, (now - cur_min) / 60_000))
-                o_, H, L, C = o[-1], h[-1], l[-1], c[-1]
-                cp = o_ + (C - o_) * f
-                h[-1] = max(o_, cp) + (H - max(o_, C)) * f
-                l[-1] = min(o_, cp) - (min(o_, C) - L) * f
-                c[-1] = cp
-                v[-1] = v[-1] * f
+                # No intraminute trades have been generated as observable
+                # events. Until the minute closes, reveal its opening only;
+                # never interpolate from the already-generated future OHLCV.
+                h[-1] = l[-1] = c[-1] = o[-1]
+                v[-1] = 0.0
         tf = timeframe_ms(timeframe)
         if tf == 60_000:
             rows = np.column_stack([ts.astype(float), o, h, l, c, v])

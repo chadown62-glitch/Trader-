@@ -40,12 +40,12 @@ sur la PR #5. Rien n'a été fusionné dans `main`.
 
 1. Conversion EUR/USD/USDC/USDT **non implémentée**. Il faut fournir des taux
    horodatés, leurs règles d'arrondi, de fraîcheur et les frais de conversion.
-2. Le paper trading utilise le prix observé alors que le backtest décide sur la
-   clôture et peut exécuter au prix de cette clôture. La parité temporelle et
-   l'exécution au premier prix suivant restent à concevoir et à tester.
-3. La source synthétique calcule sa bougie partielle à partir de la bougie entière
-   pré-générée. Elle n'est donc pas une preuve d'absence de fuite de données
-   futures ; ne pas l'utiliser pour valider la généralisation d'un modèle.
+2. Le backtest diffère les ordres au marché à la prochaine ouverture ; le paper
+   utilise le prochain prix effectivement observé. Les règles d'exécution
+   restent différentes et la parité complète n'est pas démontrée.
+3. La bougie synthétique partielle n'expose que son ouverture et un volume nul.
+   La source ne simule pas encore de transactions intraminute observables ; sa
+   granularité ne permet pas de valider le scalping ou la liquidité.
 4. Le spread, la profondeur, la liquidité, les exécutions partielles et les frais
    propres à chaque place ne sont pas reproduits complètement. Le glissement est
    fixe ; les seuils de marché sont ceux connus de la source de données.
@@ -70,14 +70,9 @@ ou un rendement futur ne sont démontrés par cette branche.
 
 ## Tests temporels reproductibles
 
-`tests/test_temporal_contract_gaps.py` contient deux tests marqués `xfail`
-strictement : ces exigences sont actuellement en échec et un passage inattendu
-rend la suite rouge jusqu'à révision. Dans le scénario du backtest, la clôture
-est 100 et l'ouverture suivante 120 : avec 5 points de base de glissement, le
-code exécute à **100,05**, contre **120,06** à l'ouverture suivante. L'autre
-modifie uniquement la clôture future pré-générée d'une bougie synthétique et
-constate que la partie supposée déjà observée change.
-
-Ces deux échecs ont aussi été exécutés avec `--runxfail` pour confirmer qu'ils
-reproduisent bien les défauts annoncés. Ils ne sont ni des validations ni une
-preuve que d'autres fuites temporelles n'existent pas.
+`tests/test_temporal_contract_gaps.py` vérifie que le backtest exécute à la
+prochaine ouverture : clôture 100, ouverture suivante 120 et glissement 5 bps
+produisent 120,06. Il vérifie aussi que modifier le futur OHLCV ne modifie pas la
+bougie synthétique partielle. Les tests couvrent également les gaps favorables et
+défavorables, une ouverture sous le stop, et une bougie atteignant stop et cible.
+Ces tests ne prouvent pas l'absence de toutes les fuites temporelles possibles.
