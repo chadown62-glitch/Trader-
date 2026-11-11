@@ -29,6 +29,8 @@ class TradingMixin:
     def preview_order(self, req: dict) -> dict:
         rt = self.runtime(req["account_id"])
         symbol = req["symbol"]
+        if not isinstance(symbol, str) or symbol.count("/") != 1 or symbol.split("/")[1] != rt.account["quote"]:
+            raise UserError(f"Paire incompatible avec le portefeuille {rt.account['quote']} : conversion indisponible.")
         try:
             m = rt.broker.market_fn(symbol)
         except KeyError:

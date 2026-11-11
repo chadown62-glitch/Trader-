@@ -30,7 +30,7 @@ def rfc822(ts):
 def app(tmp_path):
     src = SyntheticSource(["BTC/USDC", "ETH/USDC"], days=5)
     a = App(tmp_path, source=src, start=False, settings_override={
-        "general": {"watchlist": ["BTC/USDC", "ETH/USDC"]},
+        "general": {"quote": "USDC", "watchlist": ["BTC/USDC", "ETH/USDC"]},
         "market": {"source": "synthetic"},
         "news": {"enabled": True, "feeds": ["https://feed1.test/rss", "https://feed2.test/rss"]},
     })

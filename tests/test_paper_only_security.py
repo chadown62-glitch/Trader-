@@ -54,10 +54,10 @@ def app(tmp_path, monkeypatch, fake_exchange):
 
     # Must be in place before startup or any restoration of legacy secrets.
     monkeypatch.setattr(live_ops, "make_ccxt_exchange", Mock(return_value=fake_exchange))
-    source = SyntheticSource(["BTC/USDC"], days=5)
+    source = SyntheticSource(["BTC/EUR"], days=5)
     instance = App(tmp_path, source=source, start=False, settings_override={
         "market": {"source": "synthetic"},
-        "general": {"watchlist": ["BTC/USDC"]},
+        "general": {"watchlist": ["BTC/EUR"]},
     })
     yield instance
     instance.db.close()

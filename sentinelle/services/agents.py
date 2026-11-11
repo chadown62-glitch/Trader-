@@ -41,7 +41,7 @@ class AgentsMixin:
 
     def readiness(self) -> dict:
         """Bulletin de fiabilité de l'IA en argent fictif. Il n'ouvre aucun mode réel."""
-        acc = self.db.one("SELECT id FROM accounts WHERE role = 'ai_training' AND kind = 'paper' AND archived = 0")
+        acc = self.db.one("SELECT id FROM accounts WHERE role = 'principal' AND kind = 'paper' AND archived = 0")
         return compute_readiness(self.db, self.settings, acc["id"] if acc else None, self.models.champion(self.settings["ai"]["timeframe"]))
 
     def start_agent(self, name: str, confirm: str | None = None, auto: bool = False) -> dict:
@@ -55,9 +55,11 @@ class AgentsMixin:
             return self.agent_state[name]
         d = AGENTS[name]
         tf = self.settings["ai"]["timeframe"]
-        acc = self.db.one("SELECT * FROM accounts WHERE role = 'ai_training' AND kind = 'paper' AND archived = 0")
+        acc = self.db.one("SELECT * FROM accounts WHERE role = 'principal' AND kind = 'paper' AND archived = 0")
         if acc is None:
             raise UserError("Compte associé introuvable")
+        if self.settings["general"]["quote"] != acc["quote"]:
+            raise UserError("Le portefeuille principal est en EUR : configurez des marchés cotés en EUR. La conversion automatique n'est pas disponible.")
         self.agent_state[name] = {"status": "préparation", "message": "Téléchargement de l'historique des prix…"}
         self.bus.publish("agent", {"name": name, **self.agent_state[name]})
         symbols = self._agent_symbols()

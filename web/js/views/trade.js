@@ -10,7 +10,7 @@ export default {
   components: { CandleChart },
   setup() {
     const chart = ref(null);
-    const symbol = ref(store.markets.watchlist[0] || 'BTC/USDC');
+    const symbol = ref(store.markets.watchlist[0] || 'BTC/EUR');
     const tf = ref('15m');
     const candles = ref([]);
     const loading = ref(false);
@@ -19,7 +19,7 @@ export default {
     const coach = ref(null);
     const preview = ref(null);
     const busy = ref(false);
-    const accounts = computed(() => (store.overview?.accounts || []).filter(a => a.connected !== false && a.kind === 'paper'));
+    const accounts = computed(() => (store.overview?.accounts || []).filter(a => a.connected !== false && a.kind === 'paper' && a.role === 'principal'));
     const accountId = ref(null);
     const account = computed(() => accounts.value.find(a => a.id === accountId.value));
     const t = reactive({ side: 'buy', type: 'market', mode: 'quote', amount: null, limit: null, sl: null, tp: null, useRisk: false, riskPct: 0.5 });
@@ -35,7 +35,7 @@ export default {
 
     const pickAccount = () => {
       if (accountId.value && accounts.value.some(a => a.id === accountId.value)) return;
-      const manual = accounts.value.find(a => a.role === 'manual') || accounts.value[0];
+      const manual = accounts.value.find(a => a.role === 'principal') || accounts.value[0];
       accountId.value = manual?.id ?? null;
     };
     watch(accounts, pickAccount, { immediate: true });

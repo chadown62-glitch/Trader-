@@ -8,6 +8,7 @@ prix moyen, frais, résultat réalisé et résultat en R (multiple du risque).
 from __future__ import annotations
 
 import logging
+import math
 import time
 from typing import Callable
 
@@ -150,9 +151,10 @@ class PositionManager:
                 self._on_exit_fill(pos_id, order, fill)
             elif order["side"] == "sell" and purpose == "manual":
                 self._on_manual_sell(order, fill)
-        except Exception:
+        except Exception as exc:
             log.exception("Erreur de suivi de position (ordre %s)", order.get("id"))
             self.db.log("error", "positions", f"Erreur de suivi de position (ordre {order.get('id')})")
+            raise OrderError("Erreur de suivi de position : exécution annulée", "position_tracking") from exc
 
     def _on_entry_fill(self, pos_id: int, order: dict, fill: dict) -> None:
         pos = self.get(pos_id)
@@ -178,12 +180,24 @@ class PositionManager:
                 upd["risk_amount"] = max(1e-9, (avg - pos["stop_price"]) * new_qty)
         self.db.update("positions", pos_id, upd)
         if fully:
-            self._publish("position_opened", self.get(pos_id))
             self._place_protections(self.get(pos_id))
+            current = self.get(pos_id)
+            if current["status"] == "open" and current["stop_price"] and not any(
+                o["purpose"] == "stop" for o in self.protective_orders(pos_id)
+            ):
+                raise OrderError("Stop initial non posé : exécution annulée", "protection_failed")
+            if current["status"] == "open":
+                self._publish("position_opened", current)
 
     def _guard(self, operation: str) -> None:
         """Sécurité : toute action passe par un courtier simulé, vérifié à chaque appel."""
         require_paper_broker(self.broker, f"{operation} sur un courtier non simulé", self.db)
+
+    def _required_price(self, symbol: str) -> float:
+        last = self.broker.price_fn(symbol)
+        if last is None or not math.isfinite(last) or last <= 0:
+            raise OrderError("Prix indisponible : position et protections conservées", "no_price")
+        return last
 
     def _place_protections(self, pos: dict) -> None:
         self._guard("pose d'un stop ou d'un objectif")
@@ -293,22 +307,34 @@ class PositionManager:
         pos = self.get(position_id)
         if pos["status"] != "open":
             raise OrderError("Seule une position ouverte peut être modifiée")
-        last = self.broker.price_fn(pos["symbol"])
+        last = self._required_price(pos["symbol"])
         new_stop = pos["stop_price"] if stop is None else stop
         new_target = None if clear_target else (pos["target_price"] if target is None else target)
-        if new_stop is not None and last and new_stop >= last:
+        if any(value is not None and (not math.isfinite(value) or value <= 0) for value in (new_stop, new_target)):
+            raise OrderError("Prix de protection invalide", "invalid")
+        if new_stop is not None and new_stop >= last:
             raise OrderError("Le stop doit rester sous le prix actuel", "would_trigger")
         if new_target is not None and new_stop is not None and new_target <= new_stop:
             raise OrderError("L'objectif doit être au-dessus du stop")
-        for o in self.protective_orders(position_id):
-            self.broker.cancel_order(o["id"], "Modification des protections")
-        upd = {"stop_price": new_stop, "target_price": new_target}
-        if pos["initial_stop"] is None and new_stop is not None:
-            upd["initial_stop"] = new_stop
-            upd["risk_amount"] = max(1e-9, (pos["entry_price"] - new_stop) * pos["qty"])
-        self.db.update("positions", position_id, upd)
-        self._place_protections(self.get(position_id))
-        p = self.get(position_id)
+        if new_target is not None and new_target <= last:
+            raise OrderError("L'objectif doit rester au-dessus du prix actuel", "would_trigger")
+        # Replacing protections is atomic: if creation fails, restore the old
+        # stop, target and position values instead of leaving an unprotected trade.
+        with self.db.transaction():
+            for o in self.protective_orders(position_id):
+                self.broker.cancel_order(o["id"], "Modification des protections")
+            upd = {"stop_price": new_stop, "target_price": new_target}
+            if pos["initial_stop"] is None and new_stop is not None:
+                upd["initial_stop"] = new_stop
+                upd["risk_amount"] = max(1e-9, (pos["entry_price"] - new_stop) * pos["qty"])
+            self.db.update("positions", position_id, upd)
+            self._place_protections(self.get(position_id))
+            orders = self.protective_orders(position_id)
+            if new_stop is not None and not any(o["purpose"] == "stop" for o in orders):
+                raise OrderError("Impossible de remplacer le stop : ancienne protection conservée", "protection_failed")
+            if new_target is not None and not any(o["purpose"] == "target" for o in orders):
+                raise OrderError("Impossible de remplacer l'objectif : anciennes protections conservées", "protection_failed")
+            p = self.get(position_id)
         self._publish("position_updated", p)
         return p
 
@@ -324,29 +350,21 @@ class PositionManager:
             return self.get(position_id)
         if pos["status"] != "open":
             return pos
-        for o in self.protective_orders(position_id):
-            self.broker.cancel_order(o["id"], reason)
+        last = self._required_price(pos["symbol"])
         m = self.broker.market_fn(pos["symbol"])
-        qty = m.floor_amount(min(pos["qty"], self.broker.available(pos["symbol"].split("/")[0])))
-        if qty <= 0 or qty * (self.broker.price_fn(pos["symbol"]) or 0) < m.min_notional:
-            # reliquat trop petit pour être vendu : on clôture comptablement
-            self.db.update(
-                "positions",
-                position_id,
-                {"status": "closed", "exit_ts": self.clock(), "reason_close": f"{reason} (reliquat non vendable)",
-                 "exit_price": self.broker.price_fn(pos["symbol"]),
-                 "pnl_r": (pos["realized_pnl"] / pos["risk_amount"]) if pos["risk_amount"] else None},
+        # Cancellation and exit must succeed together. In particular, a stale
+        # price or an unsellable residual must not masquerade as liquidation.
+        with self.db.transaction():
+            for o in self.protective_orders(position_id):
+                self.broker.cancel_order(o["id"], reason)
+            qty = m.floor_amount(min(pos["qty"], self.broker.available(pos["symbol"].split("/")[0])))
+            if qty <= 0 or qty * last < m.min_notional:
+                raise OrderError("Vente impossible : solde disponible ou minimum du marché insuffisant", "min_size")
+            self.broker.place_order(
+                pos["symbol"], "sell", "market", qty, origin=pos["origin"], agent=pos["agent"],
+                purpose="exit", position_id=position_id, reason=reason,
             )
-            closed = self.get(position_id)
-            self._publish("position_closed", closed)
-            for fn in list(self.close_listeners):
-                fn(closed)
-            return closed
-        self.broker.place_order(
-            pos["symbol"], "sell", "market", qty, origin=pos["origin"], agent=pos["agent"],
-            purpose="exit", position_id=position_id, reason=reason,
-        )
-        return self.get(position_id)
+            return self.get(position_id)
 
     def unrealized(self, pos: dict) -> dict:
         last = self.broker.price_fn(pos["symbol"])

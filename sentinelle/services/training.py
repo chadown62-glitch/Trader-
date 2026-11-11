@@ -8,7 +8,7 @@ from typing import Any
 
 from ..ai.trainer import build_dataset, train_walk_forward
 from ..backtest.engine import run_backtest
-from ..market.history import continuous_history, last_continuous
+from ..market.history import last_continuous
 from ..storage.db import dumps
 from .common import UserError
 from .learning import KNOWLEDGE_DAYS
@@ -40,7 +40,6 @@ class TrainingMixin:
         if not wl:
             raise UserError("Aucune des cryptos suivies n'est disponible sur la source de données")
         btc_sym = f"BTC/{quote}"
-        extended = bool(settings["ai"].get("extended_history", True)) and extended_ok
         need = wl + ([btc_sym] if btc_sym not in wl else [])
         hist = {}
         for k, sym in enumerate(need):
@@ -51,15 +50,9 @@ class TrainingMixin:
                 if sym in wl:
                     raise UserError(f"Historique indisponible pour {sym} : {exc}") from None
                 continue
-            alt = f"{sym.split('/')[0]}/USDT"
-            older = None
-            if extended and quote != "USDT" and (not self.hub.markets or alt in self.hub.markets):
-                try:  # paire USDT plus ancienne : davantage d'années pour apprendre
-                    older = self.history.update(alt, tf, days)
-                except Exception:
-                    older = None
-            # jamais de trou de cotation dans l'historique d'apprentissage (paire retirée puis recotée)
-            hist[sym] = continuous_history(hist[sym], older) if older is not None else last_continuous(hist[sym])
+            # Never append a differently denominated USDT history as EUR/USD:
+            # a historical FX series and its timestamp alignment are required.
+            hist[sym] = last_continuous(hist[sym])
         btc = hist.get(btc_sym) if btc_sym not in wl else None
         return {s: hist[s] for s in wl if s in hist}, btc
 

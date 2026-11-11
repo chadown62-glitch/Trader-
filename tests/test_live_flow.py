@@ -24,13 +24,13 @@ class Clock:
 @pytest.fixture(scope="module")
 def flow(tmp_path_factory):
     clock = Clock()
-    src = SyntheticSource(["BTC/USDC", "ETH/USDC"], seed=3, days=215, clock=clock)
+    src = SyntheticSource(["BTC/EUR", "ETH/EUR"], seed=3, days=215, clock=clock)
     app = App(
         tmp_path_factory.mktemp("flow"),
         source=src,
         start=False,  # pas de thread moteur : on pilote le temps nous-mêmes
         settings_override={
-            "general": {"watchlist": ["BTC/USDC", "ETH/USDC"]},
+            "general": {"watchlist": ["BTC/EUR", "ETH/EUR"]},
             "market": {"source": "synthetic", "history_days": 210},
             "ai": {"regime_filter": False, "timeframe": "1h",
                    "strategies": {"trend_breakout": True, "pullback": True, "mean_reversion": True, "momentum": True, "trend_follow": True}},
@@ -53,8 +53,8 @@ def test_agent_trades_end_to_end(flow):
     agent = app.agents["ia_entrainement"]
     acc_id = agent.account_id
     # ce que l'IA « voit » est disponible dès le démarrage (même sans signal)
-    assert set(agent.last_scan) == {"BTC/USDC", "ETH/USDC"}
-    assert agent.last_scan["BTC/USDC"]["regime"] in ("haussier", "neutre", "baissier")
+    assert set(agent.last_scan) == {"BTC/EUR", "ETH/EUR"}
+    assert agent.last_scan["BTC/EUR"]["regime"] in ("haussier", "neutre", "baissier")
     opened = closed = 0
     # on fait avancer le temps : relevés toutes les 10 minutes simulées pendant 6 jours
     for _ in range(6 * 24 * 6):

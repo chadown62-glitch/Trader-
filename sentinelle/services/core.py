@@ -251,17 +251,25 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
     # Démarrage
     # ======================================================================
     def _ensure_default_accounts(self) -> None:
-        quote = self.settings["general"]["quote"]
-        initial = self.settings["paper"]["initial_balance"]
-        for role, name in (("ai_training", "Entraînement IA"), ("manual", "Mon compte papier")):
-            if not self.db.one("SELECT id FROM accounts WHERE role = ? AND archived = 0", (role,)):
-                acc = self.db.insert("accounts", {"name": name, "kind": "paper", "role": role, "quote": quote,
-                                                  "initial_balance": initial, "created_at": time.time(), "data": "{}"})
-                self.db.execute("INSERT INTO balances(account_id, asset, total) VALUES (?, ?, ?)", (acc, quote, initial))
+        # New shared principal; preserve all existing account rows and balances.
+        # Atomic creation makes restarts idempotent and avoids a funded account
+        # without its cash entry if the process is interrupted.
+        with self.db.transaction():
+            accounts = self.db.query("SELECT * FROM accounts WHERE role = 'principal' AND archived = 0")
+            if len(accounts) > 1 or (accounts and (accounts[0]["kind"] != "paper" or accounts[0]["quote"] != "EUR")):
+                raise UserError("Portefeuille principal incohérent : un seul compte papier EUR est autorisé")
+            if not accounts:
+                acc = self.db.insert("accounts", {"name": "Portefeuille principal", "kind": "paper", "role": "principal",
+                                                  "quote": "EUR", "initial_balance": 30.0, "created_at": time.time(), "data": "{}"})
+                self.db.execute("INSERT INTO balances(account_id, asset, total) VALUES (?, ?, ?)", (acc, "EUR", 30.0))
+                # Never silently redirect a previously enabled agent from a
+                # historical account onto the new portfolio.
+                self.db.execute("UPDATE agents SET enabled = 0 WHERE name = 'ia_entrainement' AND enabled = 1")
+                self.db.log("warning", "comptes", "Portefeuille principal fictif créé à 30 EUR ; anciens comptes conservés en lecture seule et agent arrêté.")
 
     def _startup(self) -> None:
         self._load_markets()
-        for acc in self.db.query("SELECT * FROM accounts WHERE archived = 0 AND kind = 'paper'"):
+        for acc in self.db.query("SELECT * FROM accounts WHERE archived = 0 AND kind = 'paper' AND role = 'principal'"):
             self._make_paper_runtime(acc)
         # Simulation uniquement : aucune connexion à un exchange, même si d'anciennes clés existent.
         self._connect_live()
@@ -295,7 +303,7 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
         quote = self.settings["general"]["quote"]
         extra = {p["symbol"] for p in self.db.query(
             "SELECT DISTINCT p.symbol FROM positions p JOIN accounts a ON a.id = p.account_id "
-            "WHERE p.status IN ('open', 'pending') AND a.kind = 'paper'")}
+            "WHERE p.status IN ('open', 'pending') AND a.kind = 'paper' AND a.role = 'principal'")}
         btc = f"BTC/{quote}"
         syms = set(wl) | extra | ({btc} if not self.hub.markets or btc in self.hub.markets else set())
         self.hub.set_watch(syms)
@@ -304,7 +312,9 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
         require_paper_account(acc, "ouverture d'un compte non simulé", self.db)
         p = self.settings["paper"]
         clock = self.market_clock
-        broker = PaperBroker(self.db, acc["id"], acc["quote"], self.hub.market, self.hub.price, p["fee_rate"], p["slippage_bps"], clock)
+        def fresh_price(symbol):
+            return self.hub.price(symbol) if self.hub.is_fresh(symbol, 180) else None
+        broker = PaperBroker(self.db, acc["id"], acc["quote"], self.hub.market, fresh_price, p["fee_rate"], p["slippage_bps"], clock)
         rt = AccountRuntime(acc, broker, PositionManager(self.db, broker, self.bus, clock),
                             RiskManager(self.db, acc["id"], lambda: self.settings, clock))
         rt.positions.close_listeners.append(self._on_position_closed)
@@ -432,32 +442,29 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
             if acc is None:
                 raise UserError("Compte introuvable")
             require_paper_account(acc, "utilisation d'un compte non simulé", self.db)
+            if acc.get("role") != "principal":
+                raise UserError("Ancien compte papier conservé en lecture seule ; utilisez le portefeuille principal.")
             if not self.hub.markets:
                 raise UserError("Données de marché pas encore disponibles, patientez quelques secondes")
             rt = self._make_paper_runtime(acc)
         if not is_paper_runtime(rt):
             self._evict_runtime(aid, "compte actif non simulé écarté")
             require_paper_runtime(rt, "utilisation d'un compte non simulé", self.db)
+        if rt.account.get("role") != "principal":
+            self._evict_runtime(aid, "ancien compte papier conservé en lecture seule")
+            raise UserError("Ancien compte papier conservé en lecture seule ; utilisez le portefeuille principal.")
         return rt
 
     def create_paper_account(self, name: str, initial: float) -> dict:
-        name = (name or "").strip()[:60] or "Compte papier"
-        if not (10 <= initial <= 10_000_000):
-            raise UserError("Capital de départ entre 10 et 10 000 000")
-        quote = self.settings["general"]["quote"]
-        aid = self.db.insert("accounts", {"name": name, "kind": "paper", "role": "manual", "quote": quote,
-                                          "initial_balance": initial, "created_at": time.time(), "data": "{}"})
-        self.db.execute("INSERT INTO balances(account_id, asset, total) VALUES (?, ?, ?)", (aid, quote, initial))
-        acc = self.db.one("SELECT * FROM accounts WHERE id = ?", (aid,))
-        if self.hub.markets:
-            self._make_paper_runtime(acc)
-        return acc
+        raise UserError("Un seul portefeuille principal est disponible ; les backtests utilisent des comptes isolés.")
 
     def reset_paper_account(self, account_id: int, initial: float | None) -> None:
         rt = self.runtime(account_id)
         if any(agent.account_id == account_id for agent in self.agents.values()):
             raise UserError("Arrêtez d'abord l'IA qui utilise ce compte")
-        amount = float(initial or rt.account["initial_balance"] or self.settings["paper"]["initial_balance"])
+        if initial is not None and float(initial) != 30.0:
+            raise UserError("Le portefeuille principal doit être réinitialisé à 30 EUR fictifs.")
+        amount = 30.0
         rt.broker.reset(amount)
         self.db.execute("DELETE FROM equity WHERE account_id = ?", (account_id,))
         self.db.execute("UPDATE accounts SET initial_balance = ?, data = '{}' WHERE id = ?", (amount, account_id))
@@ -471,6 +478,11 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
         if acc["kind"] != "paper":
             # ancien compte réel : affiché pour mémoire, jamais connecté ni utilisé
             out.update(connected=False, legacy=True, error="Ancien compte réel : conservé pour mémoire, inutilisable (simulation uniquement)")
+            return out
+        if acc["role"] != "principal":
+            out.update(connected=False, legacy=True, balances={r["asset"]: r["total"] for r in self.db.query(
+                "SELECT asset, total FROM balances WHERE account_id = ?", (account_id,))},
+                error="Ancien compte papier conservé en lecture seule ; ses soldes n'ont pas été déplacés.")
             return out
         rt = self.runtimes.get(account_id)
         if rt is not None and not is_paper_runtime(rt):

@@ -120,7 +120,7 @@ def test_backup_creates_copy(tmp_path):
     from sentinelle.services.core import App
 
     app = App(tmp_path, source=SyntheticSource(["BTC/USDC"], days=3), start=False,
-              settings_override={"general": {"watchlist": ["BTC/USDC"]}, "market": {"source": "synthetic"}})
+              settings_override={"general": {"quote": "USDC", "watchlist": ["BTC/USDC"]}, "market": {"source": "synthetic"}})
     dest = app.backup_if_due(force=True)
     assert dest and dest.exists() and dest.stat().st_size > 0
     assert app.backup_if_due() is None  # une seule sauvegarde par jour

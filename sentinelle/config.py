@@ -35,9 +35,9 @@ STRATEGY_NAMES = ["trend_breakout", "pullback", "mean_reversion", "momentum", "t
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "general": {
-        "quote": "USDC",
+        "quote": "EUR",
         # Cryptos parmi les plus liquides (univers utilisé pour valider la configuration, voir docs/RESULTATS.md)
-        "watchlist": ["BTC/USDC", "ETH/USDC", "SOL/USDC", "BNB/USDC", "XRP/USDC", "DOGE/USDC", "ADA/USDC", "LINK/USDC"],
+        "watchlist": ["BTC/EUR", "ETH/EUR", "SOL/EUR", "BNB/EUR", "XRP/EUR", "DOGE/EUR", "ADA/EUR", "LINK/EUR"],
     },
     "market": {
         # Source des données de marché publiques (prix en direct, historique).
@@ -56,7 +56,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "paper": {
         "fee_rate": 0.001,  # 0,1 % par ordre (hypothèse prudente)
         "slippage_bps": 5.0,  # glissement de prix simulé : 0,05 %
-        "initial_balance": 10000.0,
+        "initial_balance": 30.0,
     },
     "ai": {
         # 4 h : meilleur compromis mesuré entre nombre de trades et poids des frais (docs/RESULTATS.md)

@@ -16,9 +16,9 @@ PASSWORD = "un-mot-de-passe-solide"
 @pytest.fixture(scope="module")
 def app(tmp_path_factory):
     d = tmp_path_factory.mktemp("data")
-    src = SyntheticSource(["BTC/USDC", "ETH/USDC", "SOL/USDC"], days=40)
+    src = SyntheticSource(["BTC/EUR", "ETH/EUR", "SOL/EUR"], days=40)
     a = App(d, source=src, settings_override={"market": {"source": "synthetic", "poll_seconds": 2, "history_days": 120},
-                                              "general": {"watchlist": ["BTC/USDC", "ETH/USDC", "SOL/USDC"]},
+                                              "general": {"watchlist": ["BTC/EUR", "ETH/EUR", "SOL/EUR"]},
                                               "ai": {"timeframe": "1h"}})
     assert a.engine.ready.wait(30)
     deadline = time.time() + 20
@@ -65,23 +65,23 @@ def test_overview_and_accounts(client):
     _login(client)
     ov = client.get("/api/overview").json()
     roles = {a["role"] for a in ov["accounts"]}
-    assert {"ai_training", "manual"} <= roles
+    assert roles == {"principal"}
     assert ov["engine_alive"] is True
     assert {a["name"] for a in ov["agents"]} == {"ia_entrainement"}  # simulation uniquement : plus d'IA « réelle »
     assert ov["paper_only"]["paper_only"] is True and ov["live"] == {"connected": False, "locked": True}
     m = client.get("/api/markets").json()
-    assert "BTC/USDC" in m["prices"]
+    assert "BTC/EUR" in m["prices"]
 
 
 def _manual_account(client):
-    return next(a for a in client.get("/api/accounts").json() if a["role"] == "manual")
+    return next(a for a in client.get("/api/accounts").json() if a["role"] == "principal")
 
 
 def test_manual_trade_round_trip(client, app):
     _login(client)
     acc = _manual_account(client)
-    price = app.hub.price("ETH/USDC")
-    body = {"account_id": acc["id"], "symbol": "ETH/USDC", "side": "buy", "type": "market", "quote_amount": 500,
+    price = app.hub.price("ETH/EUR")
+    body = {"account_id": acc["id"], "symbol": "ETH/EUR", "side": "buy", "type": "market", "quote_amount": 15,
             "stop_loss": round(price * 0.95, 2), "take_profit": round(price * 1.10, 2)}
     prev = client.post("/api/orders/preview", json=body, headers=H).json()
     assert prev["error"] is None and prev["qty"] > 0
@@ -99,15 +99,15 @@ def test_manual_trade_round_trip(client, app):
     trades = client.get("/api/trades", params={"account_id": acc["id"]}).json()
     assert trades and trades[0]["id"] == pos["id"]
     csv = client.get("/api/trades.csv", params={"account_id": acc["id"]})
-    assert csv.status_code == 200 and "ETH/USDC" in csv.text
+    assert csv.status_code == 200 and "ETH/EUR" in csv.text
 
 
 def test_order_errors_are_readable(client):
     _login(client)
     acc = _manual_account(client)
-    r = client.post("/api/orders", json={"account_id": acc["id"], "symbol": "ETH/USDC", "side": "buy", "quote_amount": 10_000_000}, headers=H)
+    r = client.post("/api/orders", json={"account_id": acc["id"], "symbol": "ETH/EUR", "side": "buy", "quote_amount": 10_000_000}, headers=H)
     assert r.status_code == 400 and "insuffisant" in r.json()["detail"].lower()
-    r = client.post("/api/orders", json={"account_id": acc["id"], "symbol": "XYZ/USDC", "side": "buy", "quote_amount": 50}, headers=H)
+    r = client.post("/api/orders", json={"account_id": acc["id"], "symbol": "XYZ/EUR", "side": "buy", "quote_amount": 50}, headers=H)
     assert r.status_code == 400
 
 
