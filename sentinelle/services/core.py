@@ -378,7 +378,11 @@ class App(LiveMixin, PortfolioMixin, TradingMixin, AgentsMixin, TrainingMixin, L
                 if rt.broker.price_fn(pos["symbol"]) is None or rt.broker.fx_rate(pos["symbol"]) is None:
                     remaining = None
                     break
-                remaining += rt.positions.unrealized(pos)["pnl"] - pos["realized_pnl"]
+                pnl = rt.positions.unrealized(pos)["pnl"]
+                if pnl is None:
+                    remaining = None
+                    break
+                remaining += pnl - pos["realized_pnl"]
             self.db.execute("INSERT OR REPLACE INTO equity(account_id, ts, equity, cash, unrealized) VALUES (?, ?, ?, ?, ?)",
                             (aid, now, eq, cash, remaining))
             self.snapshots[aid] = {"equity": eq, "cash": cash, "ts": now, "error": None}

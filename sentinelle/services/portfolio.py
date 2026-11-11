@@ -226,7 +226,10 @@ class PortfolioMixin:
             trades = self.db.query("SELECT id,symbol,exit_ts,realized_pnl,initial_qty,entry_price,entry_fx,entry_fees "
                                    "FROM positions WHERE account_id=? AND status='closed' ORDER BY exit_ts DESC LIMIT 30", (aid,))
             for trade in trades:
-                basis = (trade["initial_qty"] or 0)*(trade["entry_price"] or 0)*(trade["entry_fx"] or 1) + trade["entry_fees"]
+                rate = trade["entry_fx"]
+                if rate is None and trade["symbol"].split("/")[1] == account["quote"]:
+                    rate = 1.
+                basis = ((trade["initial_qty"] or 0)*(trade["entry_price"] or 0)*rate + trade["entry_fees"]) if rate else 0.
                 trade["net_return"] = trade["realized_pnl"]/basis if basis > 0 else None
             fees = -self.db.scalar("SELECT SUM(amount) FROM ledger WHERE account_id=? AND asset='EUR' "
                                    "AND kind IN ('frais','conversion')", (aid,), 0)

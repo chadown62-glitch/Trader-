@@ -28,7 +28,9 @@ def portfolio_metrics(replay):
     initial = replay["initial"]
     closed = replay["closed_positions"]
     pnl = np.asarray([p["realized_pnl"] for p in closed], dtype=float)
-    bases = np.asarray([p["initial_qty"] * p["entry_price"] * (p["entry_fx"] or 1) + p["entry_fees"] for p in closed])
+    from ..execution.positions import settlement_rate
+    bases = np.asarray([p["initial_qty"] * p["entry_price"] * settlement_rate(p["symbol"], replay["currency"], p.get("entry_fx"))
+                        + p["entry_fees"] for p in closed])
     eq = np.array([initial] + [v for _, v in replay["equity"]])
     wins, losses = pnl[pnl > 0], pnl[pnl < 0]
     return {

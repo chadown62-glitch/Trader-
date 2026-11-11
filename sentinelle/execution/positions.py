@@ -25,9 +25,14 @@ from .contract import entry_possible
 
 log = logging.getLogger("sentinelle.positions")
 
-def _fx(fill: dict) -> float:
-    """Taux de change appliqué à une exécution (1.0 quand le compte est tenu dans la monnaie de cotation)."""
-    return float(fill.get("fx_rate") or 1.0)
+def settlement_rate(symbol, account_currency, recorded):
+    """Identity is defined only for the same currency; a missing cross rate has no value."""
+    quote = symbol.split("/")[1]
+    if recorded is None and quote == account_currency:
+        return 1.0
+    if recorded is None or not math.isfinite(recorded) or recorded <= 0 or (quote == account_currency and recorded != 1):
+        raise OrderError(f"Taux historique invalide ou manquant pour {quote}/{account_currency}", "no_fx")
+    return float(recorded)
 
 
 CLOSE_REASONS = {
@@ -191,14 +196,16 @@ class PositionManager:
         pos = self.get(pos_id)
         base, quote = pos["symbol"].split("/")
         amount = float(fill["amount"])
-        fx = _fx(fill)
+        fx = settlement_rate(pos["symbol"], self.quote, fill.get("fx_rate"))
         fee_q = fee_in_quote(fill["fee"], fill["fee_asset"], base, quote, fill["price"]) * fx + float(fill.get("fx_cost") or 0.0)
         if fill.get("fee_asset") == base:
             amount -= float(fill["fee"])  # frais prélevés sur la crypto achetée
         new_qty = pos["qty"] + amount
         avg = ((pos["entry_price"] or 0) * pos["qty"] + fill["price"] * amount) / new_qty if new_qty > 0 else fill["price"]
         # taux moyen d'entrée, pondéré par les montants achetés : coût en monnaie du compte = prix moyen × quantité × taux moyen
-        cost_before = (pos["entry_price"] or 0) * pos["qty"] * (pos.get("entry_fx") or 1.0)
+        cost_before = 0.
+        if pos["qty"]:
+            cost_before = pos["entry_price"] * pos["qty"] * settlement_rate(pos["symbol"], self.quote, pos.get("entry_fx"))
         entry_fx = (cost_before + fill["price"] * amount * fx) / (avg * new_qty) if avg * new_qty > 0 else fx
         upd = {
             "qty": new_qty,
@@ -267,8 +274,8 @@ class PositionManager:
                 self.broker.cancel_order(entry["id"], "Sortie de la position partiellement exécutée")
         base, quote = pos["symbol"].split("/")
         amount = float(fill["amount"])
-        fx = _fx(fill)
-        entry_fx = pos.get("entry_fx") or 1.0
+        fx = settlement_rate(pos["symbol"], self.quote, fill.get("fx_rate"))
+        entry_fx = settlement_rate(pos["symbol"], self.quote, pos.get("entry_fx"))
         fee_q = fee_in_quote(fill["fee"], fill["fee_asset"], base, quote, fill["price"]) * fx + float(fill.get("fx_cost") or 0.0)
         init = pos["initial_qty"] or amount
         entry_fee_share = pos["entry_fees"] * min(1.0, amount / init)
@@ -362,7 +369,7 @@ class PositionManager:
             upd = {"stop_price": new_stop, "target_price": new_target}
             if pos["initial_stop"] is None and new_stop is not None:
                 upd["initial_stop"] = new_stop
-                upd["risk_amount"] = max(1e-9, (pos["entry_price"] - new_stop) * pos["qty"] * (pos.get("entry_fx") or 1.0))
+                upd["risk_amount"] = max(1e-9, (pos["entry_price"] - new_stop) * pos["qty"] * settlement_rate(pos["symbol"], self.quote, pos.get("entry_fx")))
             self.db.update("positions", position_id, upd)
             self._place_protections(self.get(position_id))
             orders = self.protective_orders(position_id)
@@ -421,8 +428,13 @@ class PositionManager:
         last = self.broker.price_fn(pos["symbol"])
         if not last or not pos["entry_price"] or pos["status"] != "open":
             return {"price": last, "pnl": 0.0, "pnl_pct": 0.0, "r": None, "value": 0.0}
-        entry_fx = pos.get("entry_fx") or 1.0
-        fx = self.broker.fx_rate(pos["symbol"]) or entry_fx  # taux inconnu : on garde celui de l'entrée
+        try:
+            entry_fx = settlement_rate(pos["symbol"], self.quote, pos.get("entry_fx"))
+        except OrderError as exc:
+            return {"price": last, "pnl": None, "pnl_pct": None, "r": None, "value": None, "fx": None, "error": exc.message}
+        fx = self.broker.fx_rate(pos["symbol"])
+        if fx is None:
+            return {"price": last, "pnl": None, "pnl_pct": None, "r": None, "value": None, "fx": None}
         value = last * pos["qty"] * fx  # valeur actuelle dans la monnaie du compte
         gross = value - pos["entry_price"] * pos["qty"] * entry_fx
         est_exit_cost = value * (getattr(self.broker, "fee_rate", 0.001) + self.broker.conversion_cost(pos["symbol"]))

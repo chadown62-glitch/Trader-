@@ -97,7 +97,12 @@ class PaperBroker:
             return identity(currency, self.clock())
         if self.fx_fn is None:
             raise OrderError(f"Ce compte est tenu en {self.quote} : il ne peut pas traiter une paire cotée en {currency}", "no_fx")
-        return self.fx_fn(currency, for_trading)
+        view = self.fx_fn(currency, for_trading)
+        if view.base != self.quote or view.quote != currency:
+            raise OrderError("Devises de règlement incohérentes", "no_fx")
+        if for_trading:
+            view.executable(self.clock())
+        return view
 
     def fx_rate(self, symbol: str) -> float | None:
         """Taux courant pour la paire (1.0 si elle est cotée dans la monnaie du compte). None si inconnu."""
