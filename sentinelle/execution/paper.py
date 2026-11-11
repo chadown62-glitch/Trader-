@@ -39,6 +39,7 @@ class PaperBroker:
         slippage_bps: float = 5.0,
         clock: Callable[[], float] = time.time,
         defer_market: bool = False,
+        fx_value_fn: Callable[[str, str, float], float] | None = None,
     ):
         self.db = db
         self.account_id = account_id
@@ -49,6 +50,7 @@ class PaperBroker:
         self.slip = slippage_bps / 10_000.0
         self.clock = clock
         self.defer_market = defer_market
+        self.fx_value_fn = fx_value_fn
         self.listeners: list[FillListener] = []
 
     # -- soldes ---------------------------------------------------------------
@@ -119,6 +121,12 @@ class PaperBroker:
         total = cash
         for asset, qty in bal.items():
             if asset == self.quote or abs(qty) < EPS:
+                continue
+            if asset in ('EUR', 'USD', 'USDC', 'USDT') and self.fx_value_fn is not None:
+                value = self.fx_value_fn(asset, self.quote, qty)
+                if not math.isfinite(value) or value < 0:
+                    raise OrderError(f"Valorisation {asset} indisponible", "no_price")
+                total += value
                 continue
             px = self.price_fn(f"{asset}/{self.quote}")
             if px is None or not math.isfinite(px) or px <= 0:

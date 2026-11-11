@@ -19,6 +19,31 @@ class TradingMixin:
     # ======================================================================
     # Trading manuel
     # ======================================================================
+    def convert_paper_currency(self, account_id: int, base: str, target: str, amount, via: str | None = None,
+                               request_id: str | None = None) -> dict:
+        from ..execution.fx_ledger import PaperFXLedger
+        from ..market.fx import FXError
+        from ..market.fx_provider import PublicFXProvider
+
+        # Resolve and verify the simulated runtime before fetching any quote.
+        rt = self.runtime(account_id)
+        provider = PublicFXProvider(self.source, self.hub.markets, self.market_clock)
+        try:
+            ledger = PaperFXLedger(rt.broker, self.market_clock)
+            previous = ledger.replay(request_id, base, target, amount, via)
+            if previous is not None:
+                return previous
+            book = provider.snapshot(base, target, via=via)
+            return ledger.convert(base, target, amount, book, via=via, fee_rate=rt.broker.fee_rate, request_id=request_id)
+        except FXError as exc:
+            raise UserError(str(exc)) from None
+
+    def paper_fx_history(self, account_id: int) -> list[dict]:
+        from ..storage.db import loads
+        self.runtime(account_id)
+        rows = self.db.query('SELECT * FROM fx_operations WHERE account_id = ? ORDER BY id DESC LIMIT 100', (account_id,))
+        return [{**r, 'legs': loads(r['legs'], [])} for r in rows]
+
     def _order_qty(self, rt: AccountRuntime, symbol: str, side: str, price: float, amount, quote_amount) -> float:
         if amount:
             return float(amount)

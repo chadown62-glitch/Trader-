@@ -26,6 +26,8 @@ class FXQuote:
     ask: Decimal
     timestamp: float
     source: str
+    bid_depth: Decimal | None = None
+    ask_depth: Decimal | None = None
 
     def __post_init__(self):
         currencies = {'EUR', 'USD', 'USDC', 'USDT'}
@@ -38,6 +40,13 @@ class FXQuote:
             raise FXError('Date ou source manquante')
         object.__setattr__(self, 'bid', bid)
         object.__setattr__(self, 'ask', ask)
+        for field in ('bid_depth', 'ask_depth'):
+            value = getattr(self, field)
+            if value is not None:
+                depth = _decimal(value)
+                if depth <= 0:
+                    raise FXError('Profondeur de marché invalide')
+                object.__setattr__(self, field, depth)
 
 
 class FXBook:
@@ -61,9 +70,9 @@ class FXBook:
             raise FXError(f'Cours manquant : {base}/{quote}')
         if q.timestamp > now or now - q.timestamp > max_age:
             raise FXError(f'Cours périmé ou futur : {base}/{quote}')
-        return (Decimal(1) / q.ask if inverse else q.bid), q
+        return (Decimal(1) / q.ask if inverse else q.bid), q, inverse
 
-    def convert(self, amount, base, quote, *, now, max_age, via=None, fee_rate=0):
+    def convert(self, amount, base, quote, *, now, max_age, via=None, fee_rate=0, require_depth=False):
         amount, fee = _decimal(amount), _decimal(fee_rate)
         if amount < 0 or fee < 0 or fee >= 1:
             raise FXError('Montant ou frais invalides')
@@ -79,7 +88,16 @@ class FXBook:
         path = [base, quote] if via is None else [base, via, quote]
         legs = []
         for a, b in zip(path, path[1:]):
-            rate, q = self._leg(a, b, now, max_age)
-            amount = amount * rate * (1 - fee)
-            legs.append({'base': a, 'quote': b, 'rate': rate, 'timestamp': q.timestamp, 'source': q.source})
+            rate, q, inverse = self._leg(a, b, now, max_age)
+            depth = q.ask_depth * q.ask if inverse and q.ask_depth is not None else q.bid_depth if not inverse else None
+            if require_depth and (depth is None or amount > depth):
+                raise FXError(f'Liquidité insuffisante ou inconnue : {a}/{b}')
+            source_amount = amount
+            gross = source_amount * rate
+            paid_fee = gross * fee
+            amount = gross - paid_fee
+            legs.append({'base': a, 'quote': b, 'rate': rate, 'timestamp': q.timestamp, 'source': q.source,
+                         'market_base': q.base, 'market_quote': q.quote, 'bid': q.bid, 'ask': q.ask,
+                         'bid_depth': q.bid_depth, 'ask_depth': q.ask_depth,
+                         'input': source_amount, 'gross': gross, 'fee': paid_fee, 'output': amount})
         return {'amount': amount, 'legs': legs}
