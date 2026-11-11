@@ -10,7 +10,7 @@ export default {
   components: { CandleChart },
   setup() {
     const chart = ref(null);
-    const symbol = ref(store.markets.watchlist[0] || 'BTC/USDC');
+    const symbol = ref(store.markets.watchlist[0] || 'BTC/EUR');
     const tf = ref('15m');
     const candles = ref([]);
     const loading = ref(false);

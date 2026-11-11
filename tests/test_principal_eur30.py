@@ -203,6 +203,22 @@ def test_legacy_accounts_and_orders_are_preserved_and_inert(tmp_path):
     reopened.db.close()
 
 
+def test_old_usdc_settings_can_switch_to_eur_without_refunding_portfolio(tmp_path):
+    source = SyntheticSource(["BTC/USDC", "BTC/EUR"], days=5)
+    app = App(tmp_path, source=source, start=False, settings_override={
+        "market": {"source": "synthetic"},
+        "general": {"quote": "USDC", "watchlist": ["BTC/USDC"]},
+    })
+    app._startup()
+    account = principal(app)
+    before = app.runtime(account["id"]).broker.balances()
+    changed = app.update_settings({"general": {"quote": "EUR", "watchlist": ["BTC/EUR"]}})
+    assert changed["general"]["quote"] == "EUR"
+    assert changed["general"]["watchlist"] == ["BTC/EUR"]
+    assert app.runtime(account["id"]).broker.balances() == before == {"EUR": 30}
+    app.db.close()
+
+
 def test_completed_trade_balances_and_history_survive_restart(tmp_path):
     source = SyntheticSource(["BTC/EUR"], days=5)
     settings = {"market": {"source": "synthetic"}, "general": {"quote": "EUR", "watchlist": ["BTC/EUR"]}}

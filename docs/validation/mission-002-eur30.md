@@ -15,6 +15,8 @@ sur la PR #5. Rien n'a été fusionné dans `main`.
   Les paires USD, USDC et USDT sont refusées : aucune parité ni conversion
   automatique n'est supposée. Les anciennes configurations en USDC restent
   conservées ; il faut choisir une liste de paires EUR avant de démarrer l'IA.
+  Le bouton correspondant modifie la configuration des marchés sans convertir
+  ni déplacer les anciens soldes ; la disponibilité des paires reste à vérifier.
 * Les historiques USDT ne sont plus accolés à ceux d'une autre monnaie sans
   conversion. En attendant les taux historiques, l'historique peut être plus court.
 * Les réservations et ouvertures passent sous transaction SQLite. Un ordre ne

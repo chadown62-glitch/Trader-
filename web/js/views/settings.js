@@ -158,6 +158,11 @@ export default {
       const r = await safe(api.put('/api/settings', { general: { watchlist: form.general.watchlist }, ai: { strategies: form.ai.strategies } }), 'Réglages enregistrés');
       if (r) { store.settings = r; store.markets = await api.get('/api/markets'); }
     };
+    const useEuroMarkets = async () => {
+      const pairs = [...new Set((form.general.watchlist || []).map(s => `${s.split('/')[0]}/EUR`))];
+      const r = await safe(api.put('/api/settings', { general: { quote: 'EUR', watchlist: pairs.length ? pairs : ['BTC/EUR'] } }), 'Marchés en EUR configurés');
+      if (r) { store.settings = r; store.markets = await api.get('/api/markets'); }
+    };
     const addSymbol = () => {
       const s = addPair.value.trim().toUpperCase();
       if (s && !form.general.watchlist.includes(s)) form.general.watchlist.push(s);
@@ -192,7 +197,7 @@ export default {
     const TABS = [['general', 'Général'], ['risk', 'Risque'], ['ai', 'IA'], ['market', 'Données'], ['macro', 'Calendrier macro'], ['shield', 'Bouclier'], ['paper', 'Simulation'], ['live', 'Verrou et fiabilité'], ['telegram', 'Telegram'], ['news', 'Actualités'], ['monitoring', 'Surveillance'], ['accounts', 'Comptes'], ['security', 'Sécurité'], ['about', 'À propos']];
     const STRATS = { trend_follow: 'Suivi de tendance (recommandé)', trend_breakout: 'Cassure de tendance (recommandé)', pullback: 'Repli en tendance', mean_reversion: 'Retour à la moyenne', momentum: 'Élan haussier' };
     return { store, tab, form, secrets, secretInputs, addPair, feedsText, eventsText, tgText, notifState, enableNotif, disableNotif, pwd, accounts, paperOnly, newsStatus, SECTIONS, TABS, STRATS,
-      display, setValue, save, saveGeneral, addSymbol, removeSymbol, saveSecrets, clearSecret, clearLegacyKeys, testTelegram,
+      display, setValue, save, saveGeneral, useEuroMarkets, addSymbol, removeSymbol, saveSecrets, clearSecret, clearLegacyKeys, testTelegram,
       resetAccount, resumeAccount, changePassword, totp, startTotp, enableTotp, disableTotp, money, dt };
   },
   template: `
@@ -205,6 +210,7 @@ export default {
         <h2>Cryptos suivies</h2>
         <p class="muted small">Cotées en {{ form.general.quote }}. Restez sur des cryptos très liquides (moins de manipulation, moins de glissement).</p>
         <p v-if="form.general.quote !== 'EUR'" class="small danger">Le portefeuille principal est en EUR : configurez des paires EUR pour trader. La conversion automatique n'est pas encore disponible.</p>
+        <button v-if="form.general.quote !== 'EUR'" class="small" @click="useEuroMarkets">Configurer les marchés en EUR</button>
         <div class="chips" style="margin-bottom:10px"><span v-for="s in form.general.watchlist" :key="s" class="chip">{{ s }}<button @click="removeSymbol(s)" title="Retirer">✕</button></span></div>
         <div class="row"><input v-model="addPair" list="pairs" placeholder="ex. XRP/EUR"><button @click="addSymbol">Ajouter</button></div>
         <datalist id="pairs"><option v-for="p in store.markets.available" :key="p" :value="p"></option></datalist>
