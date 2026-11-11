@@ -225,6 +225,8 @@ def test_evaluation_endpoint_requires_login_and_reads_the_main_wallet(tmp_path):
             assert client.get("/api/portfolio/evaluation").status_code in (401, 403)
             assert client.post("/api/auth/setup", json={"password": PASSWORD}, headers=H).status_code == 200
             app._snapshot_equity()
+            overview = client.get("/api/overview")
+            assert overview.status_code == 200 and overview.json()["accounts"][0]["quote"] == "EUR"
             rep = client.get("/api/portfolio/evaluation")
             assert rep.status_code == 200
             values = rep.json()

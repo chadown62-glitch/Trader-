@@ -76,6 +76,8 @@ class FxQuote:
 
     def to_dict(self, now: float | None = None) -> dict:
         d = asdict(self)
+        if not math.isfinite(self.max_age):
+            d["max_age"] = None  # identity needs no FX quote or expiration
         d["inverse"] = 1.0 / self.rate if self.rate else None  # combien de `quote` pour 1 `base`
         if now is not None:
             d["age_s"] = self.age(now)

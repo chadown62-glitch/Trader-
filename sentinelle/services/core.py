@@ -541,7 +541,7 @@ class App(LiveMixin, PortfolioMixin, TradingMixin, AgentsMixin, TrainingMixin, L
                    day_pnl=day_pnl, total_pnl=total_pnl, error=snap.get("error"),
                    available=parts["available"], reserved=parts["reserved"], invested=parts["invested"],
                    trade_quote=rt.broker.trade_quote)
-        if rt.broker.fx_fn is not None:
+        if rt.broker.fx_fn is not None and rt.broker.trade_quote != rt.broker.quote:
             q = self.fx.latest(rt.broker.trade_quote)
             out["fx"] = q.to_dict(self.market_clock()) if q else None
         return out

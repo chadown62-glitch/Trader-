@@ -133,3 +133,43 @@ pm.open("ABC/EUR", .12, origin="manual")
     assert pm.open("ABC/EUR", .12, origin="manual")["qty"] == pytest.approx(.11)
     check_ledger(db, b)
     db.close()
+
+
+def test_application_manual_orders_use_the_public_book_adapter(tmp_path):
+    from sentinelle.market.sources import SyntheticSource
+    from sentinelle.services.core import App
+    from sentinelle.services.common import UserError
+
+    class RecordedMarket:
+        name = "enregistrement public local"
+        def __init__(self):
+            self.clock = lambda: 1700000000.
+            self.recording = SyntheticSource(["BTC/EUR"], days=2, clock=self.clock)
+            self.book_time = int(self.clock()*1000)
+        def now_ms(self):
+            return self.recording.now_ms()
+        def load_markets(self):
+            return {"BTC/EUR":MarketInfo("BTC/EUR","BTC","EUR",amount_step=.001,min_notional=1)}
+        def fetch_ohlcv(self, symbol, timeframe, since=None, limit=500):
+            return [[r[0],100.,101.,99.,100.,r[5]] for r in self.recording.fetch_ohlcv(symbol,timeframe,since,limit)]
+        def fetch_order_book(self, symbol, limit=20):
+            return {"bids":[[99.,.08]],"asks":[[101.,.07]],"timestamp":self.book_time}
+
+    source = RecordedMarket()
+    app = App(tmp_path, source=source, start=False, settings_override={"market":{"source":"synthetic"},
+                                                                       "general":{"quote":"EUR","watchlist":["BTC/EUR"]}})
+    try:
+        app._startup()
+        app.hub.poll()
+        account = app.main_account()["id"]
+        result = app.place_manual_order({"account_id":account,"symbol":"BTC/EUR","side":"buy","amount":.12})
+        assert result["position"]["qty"] == pytest.approx(.07)
+        fill = app.db.one("SELECT * FROM fills")
+        assert fill["price"] == 101 and fill["price_source"] == source.name and fill["price_ts"] == source.clock()
+        before = app.runtime(account).broker.balances()
+        source.book_time = None
+        with pytest.raises(UserError, match="Carnet"):
+            app.place_manual_order({"account_id":account,"symbol":"BTC/EUR","side":"buy","amount":.05})
+        assert app.runtime(account).broker.balances() == before and app.ledger_check(account)["ok"]
+    finally:
+        app.close()
