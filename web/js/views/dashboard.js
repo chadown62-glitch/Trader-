@@ -22,7 +22,7 @@ export default {
     const loadEquity = async () => {
       if (!current.value) return;
       const rows = await safe(api.get(`/api/accounts/${current.value.id}/equity?days=${days.value}`));
-      equity.value = rows ? [{ data: rows.map(r => [r[0] * 1000, r[1]]), color: current.value.kind === 'live' ? '#ef4444' : '#3b82f6' }] : [];
+      equity.value = rows ? [{ data: rows.map(r => [r[0] * 1000, r[1]]), color: '#3b82f6' }] : [];
     };
     const loadDecisions = async () => { decisions.value = (await safe(api.get('/api/decisions?limit=40'))) || []; };
     const loadReadiness = async () => { readiness.value = await safe(api.get('/api/ai/readiness')); };
@@ -35,7 +35,6 @@ export default {
     });
 
     const startAgent = async (a) => {
-      if (a.mode === 'live') { location.hash = '#/ai'; return; }
       await safe(api.post(`/api/agents/${a.name}/start`, {}), 'Préparation de l’IA en cours (téléchargement de l’historique)…');
     };
     const stopAgent = async (a) => { await safe(api.post(`/api/agents/${a.name}/stop`, { close_positions: false }), 'IA arrêtée (les positions gardent leurs stops)'); };
@@ -47,7 +46,7 @@ export default {
       return [
         { label: 'Moteur', ok: o.engine_alive },
         { label: 'Données de marché', ok: o.market?.status?.ok, warn: !o.market?.status?.ok },
-        { label: 'Portefeuille réel', ok: o.live?.connected, off: !o.live?.connected && !o.live?.error, err: !!o.live?.error },
+        { label: 'Argent fictif uniquement', ok: o.paper_only?.paper_only === true, err: o.paper_only?.paper_only !== true },
         { label: 'Actualités (IA locale)', ok: ext.news?.enabled && ext.news?.ollama_ok !== false && !ext.news?.error, off: !ext.news?.enabled },
         { label: 'Telegram', ok: ext.telegram?.connected, off: !ext.telegram?.enabled },
         { label: 'Bouclier', ok: o.shield?.enabled && !shieldPaused(o.shield), warn: o.shield?.enabled && shieldPaused(o.shield), off: !o.shield?.enabled },
@@ -66,8 +65,9 @@ export default {
       <div class="grid cols-3" style="margin-bottom:14px">
         <div v-for="a in accounts" :key="a.id" class="card account-card" :class="{selected: current && a.id===current.id}" @click="selected = a.id">
           <div class="card-head"><h3>{{ a.name }}</h3><span class="spacer"></span>
-            <span class="badge" :class="a.kind==='live' ? 'live' : 'paper'">{{ a.kind==='live' ? 'RÉEL' : 'SIMULATION' }}</span></div>
-          <div v-if="a.connected === false" class="muted small">Non connecté — <a href="#/settings">renseigner les clés API</a></div>
+            <span class="badge" :class="a.legacy ? '' : 'paper'">{{ a.legacy ? 'ANCIEN COMPTE — INERTE' : 'SIMULATION' }}</span></div>
+          <div v-if="a.legacy" class="muted small">Ancien compte réel : conservé pour mémoire, inutilisable (simulation uniquement).</div>
+          <div v-else-if="a.connected === false" class="muted small">Compte en cours de chargement…</div>
           <template v-else>
             <div class="big">{{ money(a.equity, a.quote) }}</div>
             <div class="row small" style="margin-top:6px">
@@ -88,19 +88,19 @@ export default {
             <div class="inline" style="flex-wrap:wrap">
               <span class="dot" :class="a.running ? 'ok' : a.status==='préparation' ? 'warn' : ''"></span>
               <b>{{ a.label }}</b>
-              <span class="badge" :class="a.mode==='live' ? 'live' : 'paper'">{{ a.mode==='live' ? 'RÉEL' : 'FICTIF' }}</span>
+              <span class="badge paper">FICTIF</span>
               <span class="spacer" style="flex:1"></span>
               <span class="muted small">{{ a.running ? 'en marche' : a.status }}</span>
-              <button v-if="!a.running && a.status!=='préparation'" class="small" :class="a.mode==='live' ? '' : 'primary'" @click="startAgent(a)">{{ a.mode==='live' ? 'Conditions…' : 'Démarrer' }}</button>
+              <button v-if="!a.running && a.status!=='préparation'" class="small primary" @click="startAgent(a)">Démarrer</button>
               <button v-else-if="a.running" class="small" @click="stopAgent(a)">Arrêter</button>
             </div>
             <div v-if="a.message" class="small muted" style="margin-top:6px">{{ a.message }}</div>
             <div v-if="a.running" class="small muted" style="margin-top:6px">Unité de temps {{ a.timeframe }} · {{ a.stats.entries }} entrée(s) · modèle : {{ a.model ? a.model + (a.model_trial ? ' (à l’essai)' : '') : 'aucun (exploration)' }}</div>
           </div>
           <div v-if="readiness" style="margin-top:6px">
-            <div class="inline small"><b>Préparation au réel</b><span class="spacer" style="flex:1"></span><span class="num">{{ readiness.score }} %</span></div>
+            <div class="inline small"><b>Fiabilité prouvée en argent fictif</b><span class="spacer" style="flex:1"></span><span class="num">{{ readiness.score }} %</span></div>
             <div class="progress" :class="{ok: readiness.unlocked}" style="margin-top:6px"><div :style="{width: readiness.score + '%'}"></div></div>
-            <div class="small muted" style="margin-top:6px">{{ readiness.unlocked ? 'Toutes les conditions sont remplies.' : 'Le mode réel de l’IA reste verrouillé tant que les conditions ne sont pas remplies.' }}</div>
+            <div class="small muted" style="margin-top:6px">{{ readiness.unlocked ? 'Toutes les preuves sont réunies (en argent fictif).' : 'L’IA n’a pas encore fait toutes ses preuves. Tout reste en argent fictif.' }}</div>
           </div>
         </div>
         <div class="card">

@@ -9,7 +9,8 @@
    au gestionnaire de risque, qui a le dernier mot ;
 4. explique chaque décision en français (journal « pourquoi »).
 
-Le même code tourne en entraînement (argent fictif), en réel et en backtest.
+Le même code tourne en entraînement (argent fictif, prix en direct) et en backtest.
+Il n'existe pas de mode réel : l'agent refuse tout courtier qui n'est pas simulé.
 """
 
 from __future__ import annotations
@@ -30,11 +31,12 @@ from ..config import timeframe_ms
 from ..execution.base import OrderError
 from ..execution.positions import PositionManager
 from ..risk.manager import RiskManager
+from ..safety import forbid, require_paper_broker
 from ..storage.db import Database, dumps, loads
 
 log = logging.getLogger("sentinelle.agent")
 
-MODES = {"training": "Entraînement (argent fictif)", "live": "Réel", "backtest": "Backtest"}
+MODES = {"training": "Entraînement (argent fictif)", "backtest": "Backtest"}
 
 
 def fmt_price(x: float) -> str:
@@ -67,7 +69,9 @@ class TradingAgent:
         clock: Callable[[], float] = time.time,
         record: bool = True,
     ):
-        assert mode in MODES
+        if mode not in MODES:  # dont l'ancien mode « live » : refus explicite, jamais d'argent réel
+            forbid(f"création d'un agent en mode « {mode} »", db=db, agent=name)
+        require_paper_broker(positions.broker, "création d'un agent sur un courtier non simulé", db)
         self.name = name
         self.mode = mode
         self.db = db
@@ -315,6 +319,7 @@ class TradingAgent:
             if mode_used and opened:
                 mode_used, reason = None, "Une position vient d'être ouverte sur cette crypto"
             if mode_used:
+                require_paper_broker(self.broker, "décision d'achat de l'IA sur un courtier non simulé", self.db)
                 equity, _cash = self.broker.equity()
                 try:
                     market = self.broker.market_fn(symbol)

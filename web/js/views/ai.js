@@ -1,4 +1,4 @@
-// IA : entraînement (argent fictif), portefeuille réel verrouillé, rapports d'entraînement, simulation accélérée
+// IA : entraînement (argent fictif), bulletin de fiabilité, rapports d'entraînement, simulation accélérée
 import { api, on, safe } from '../api.js';
 import { LineChart } from '../charts.js';
 import { LearningTab } from './learning.js';
@@ -25,7 +25,6 @@ export default {
     const lastTrain = ref(null);
     const agents = computed(() => store.overview?.agents || []);
     const training = computed(() => agents.value.find(a => a.name === 'ia_entrainement'));
-    const live = computed(() => agents.value.find(a => a.name === 'ia_reel'));
     const trainingAcc = computed(() => (store.overview?.accounts || []).find(a => a.role === 'ai_training'));
     const jobs = computed(() => Object.values(store.jobs).sort((a, b) => b.started_at - a.started_at));
     const trainJob = computed(() => jobs.value.find(j => j.kind === 'train'));
@@ -69,12 +68,6 @@ export default {
       }
       await safe(api.post(`/api/agents/${name}/stop`, { close_positions: close }), 'IA arrêtée');
     };
-    const startLive = async () => {
-      const ok = await confirmBox({ title: 'Lancer l’IA sur votre argent réel', danger: true, confirmLabel: 'Lancer en réel',
-        message: `L'IA va passer de vrais ordres avec un budget maximal de ${money(store.settings?.live?.budget, store.settings?.general?.quote)}.\nLes gains ne sont jamais garantis. Vous pouvez l'arrêter à tout moment (bouton Urgence).` });
-      if (!ok) return;
-      await safe(api.post('/api/agents/ia_reel/start', { confirm: confirmText.value }), 'IA réelle en préparation…');
-    };
     const train = async () => { await safe(api.post('/api/ai/train', { days: trainDays.value }), 'Entraînement lancé : il peut prendre quelques minutes'); };
     const backtest = async () => { btResult.value = null; await safe(api.post('/api/ai/backtest', { days: btDays.value, use_model: btUseModel.value }), 'Simulation lancée'); };
     const promote = async (m) => { if (await safe(api.post(`/api/ai/models/${encodeURIComponent(m.version)}/promote`), 'Modèle activé')) loadModels(); };
@@ -93,7 +86,7 @@ export default {
     const manualBtCurve = computed(() => btResult.value ? [{ data: btResult.value.equity || [], color: '#22c55e' }] : []);
     const STATUS = { champion: ['Actif', 'ok'], trial: ['À l’essai', 'warn'], challenger: ['En test', 'warn'], rejected: ['Non validé', 'err'], retired: ['Retiré', ''] };
     return { store, lastTrain, readiness, models, report, reportVersion, trainDays, btDays, btUseModel, btResult, stats, cands, decisions, confirmText, tab,
-      training, live, trainingAcc, trainJob, btJob, prepJob, startTraining, stopAgent, startLive, train, backtest, promote, retire, openReport,
+      training, trainingAcc, trainJob, btJob, prepJob, startTraining, stopAgent, train, backtest, promote, retire, openReport,
       holdoutCurves, btCurves, manualBtCurve, STATUS, money, signed, pct, plainPct, rr, cls, dt, dtMs, date, ago, STRATEGY_LABELS, FEATURE_LABELS, REASON_ICONS };
   },
   template: `
@@ -102,11 +95,11 @@ export default {
     <div class="note info" style="margin-bottom:14px">
       <b>Comment l'IA apprend.</b> Des stratégies repèrent des situations d'achat. L'IA apprend, sur des années d'historique, lesquelles valent vraiment la peine,
       et elle n'est validée que si elle gagne sur une période qu'elle n'a <b>jamais vue</b>. Elle s'entraîne ensuite en direct avec de l'argent fictif.
-      Le mode réel ne se déverrouille que si ces résultats sont bons. <b>Aucun résultat n'est garanti</b> : le marché change, et l'IA peut se tromper.
+<b>Tout se passe en argent fictif</b> : cette version ne peut passer aucun ordre réel. <b>Aucun résultat n'est garanti</b> : le marché change, et l'IA peut se tromper.
     </div>
     <div class="tabs">
       <button :class="{on: tab==='training'}" @click="tab='training'">Entraînement en direct</button>
-      <button :class="{on: tab==='live'}" @click="tab='live'">Portefeuille réel</button>
+      <button :class="{on: tab==='proof'}" @click="tab='proof'">Bulletin de fiabilité</button>
       <button :class="{on: tab==='learn'}" @click="tab='learn'">Apprentissage sur l'historique</button>
       <button :class="{on: tab==='bench'}" @click="tab='bench'">Capacités d'apprentissage</button>
       <button :class="{on: tab==='sim'}" @click="tab='sim'">Simulation accélérée</button>
@@ -163,16 +156,13 @@ export default {
       </div>
     </template>
 
-    <template v-if="tab==='live'">
+    <template v-if="tab==='proof'">
       <div class="grid cols-2">
         <div class="card">
-          <div class="card-head"><h2>IA — Portefeuille réel</h2><span class="badge live">ARGENT RÉEL</span><span class="spacer"></span>
-            <span class="inline small"><span class="dot" :class="live?.running ? 'ok' : ''"></span>{{ live?.running ? 'en marche' : live?.status }}</span></div>
-          <div v-if="!store.overview?.live?.connected" class="note warn small" style="margin-bottom:10px">Portefeuille réel non connecté. Ajoutez des clés API (sans droit de retrait) dans <a href="#/settings">Réglages → Exchange</a>.
-            Commencez par le <b>testnet</b> de l'exchange (argent fictif sur la vraie plateforme).</div>
-          <div class="note" :class="readiness?.unlocked ? 'ok' : 'danger'" style="margin-bottom:12px">
-            <b>{{ readiness?.unlocked ? '🔓 Conditions remplies' : '🔒 Mode réel verrouillé' }}</b> — préparation {{ readiness?.score ?? 0 }} %
-            <div class="small" style="margin-top:4px">Budget maximal confié à l'IA : {{ money(store.settings?.live?.budget, store.settings?.general?.quote) }} (réglable).</div>
+          <div class="card-head"><h2>Bulletin de fiabilité</h2><span class="badge paper">ARGENT FICTIF</span></div>
+          <div class="note" :class="readiness?.unlocked ? 'ok' : 'warn'" style="margin-bottom:12px">
+            <b>{{ readiness?.unlocked ? '✅ Toutes les preuves sont réunies' : '⏳ Preuves en cours' }}</b> — {{ readiness?.score ?? 0 }} %
+            <div class="small" style="margin-top:4px">Ce bulletin mesure si l'IA fait ses preuves en argent fictif, sur des prix en direct. Il n'ouvre aucun mode réel.</div>
           </div>
           <div class="criteria" v-if="readiness">
             <div v-for="c in readiness.criteria" :key="c.key" class="criterion">
@@ -180,22 +170,21 @@ export default {
               <div class="progress" :class="{ok: c.ok}"><div :style="{width: (c.progress*100)+'%'}"></div></div>
             </div>
           </div>
-          <div v-if="!live?.running" style="margin-top:14px">
-            <div class="field"><label>Tapez « {{ readiness?.confirm_phrase }} »</label><input v-model="confirmText" :placeholder="readiness?.confirm_phrase" :disabled="!readiness?.unlocked"></div>
-            <button class="danger block" :disabled="!readiness?.unlocked || !store.overview?.live?.connected || confirmText.trim().toUpperCase() !== readiness?.confirm_phrase" @click="startLive">Lancer l'IA en argent réel</button>
-          </div>
-          <div v-else class="btn-row" style="margin-top:14px"><button @click="stopAgent('ia_reel')">⏸ Arrêter l'IA réelle</button><button class="danger" @click="stopAgent('ia_reel', true)">Arrêter et tout revendre</button></div>
         </div>
         <div class="card">
-          <h2>Avant de passer en réel</h2>
+          <h2>🔒 Simulation uniquement</h2>
+          <p class="small">Cette version de Sentinelle ne peut <b>ni envoyer, ni modifier, ni annuler un ordre réel</b>. Ce n'est pas un réglage :
+            le code qui parlait à la plateforme d'échange a été retiré du programme.</p>
           <ul class="small" style="padding-left:18px;color:var(--muted)">
-            <li>Créez des clés API <b>sans droit de retrait</b>, limitées à l'adresse IP de votre box si possible.</li>
-            <li>Activez la double authentification sur l'exchange.</li>
-            <li>Testez d'abord sur le <b>testnet</b> (réglage « testnet » activé).</li>
-            <li>Commencez avec un petit budget, une somme dont la perte ne changerait rien à votre vie.</li>
-            <li>Les gains passés (même en simulation) ne garantissent pas les gains futurs.</li>
-            <li>En France, les plus-values crypto sont imposables : exportez votre historique (onglet Historique) et faites-vous conseiller.</li>
+            <li>L'IA et le trading manuel utilisent uniquement de l'argent fictif, avec les vrais prix du marché.</li>
+            <li>Aucune clé API de plateforme d'échange n'est demandée, lue ou utilisée.</li>
+            <li>Un bulletin favorable, une phrase de confirmation ou un réglage ne peuvent rien déverrouiller.</li>
+            <li>Les gains simulés ne garantissent jamais des gains réels.</li>
           </ul>
+          <div v-if="store.overview?.paper_only?.legacy_accounts?.length || store.overview?.paper_only?.legacy_keys" class="note warn small">
+            D'anciennes données de « portefeuille réel » existent sur ce PC : elles sont conservées mais ignorées.
+            <span v-if="store.overview.paper_only.legacy_note">{{ store.overview.paper_only.legacy_note }}</span>
+          </div>
         </div>
       </div>
     </template>

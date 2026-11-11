@@ -20,7 +20,7 @@ const SECTIONS = {
   ] },
   ai: { title: 'Intelligence artificielle', fields: [
     { key: 'timeframe', label: 'Unité de temps de l\u2019IA', kind: 'select', options: [['15m', '15 minutes'], ['1h', '1 heure'], ['4h', '4 heures (recommandé)'], ['1d', '1 jour (peu de trades)']], help: 'Plus l’unité est longue, moins les frais pèsent. Changer d’unité demande un nouvel entraînement.' },
-    { key: 'exploration', label: 'Exploration en entraînement', kind: 'bool', help: 'Sans modèle validé, l’IA d’entraînement prend les signaux de base (taille réduite) pour apprendre. Jamais en réel.' },
+    { key: 'exploration', label: 'Exploration en entraînement', kind: 'bool', help: 'Sans modèle validé, l’IA d’entraînement prend les signaux de base (taille réduite) pour apprendre. Toujours en argent fictif.' },
     { key: 'exploration_risk_factor', label: 'Taille en exploration', kind: 'pct', step: 10, help: 'Fraction du risque normal utilisée en exploration.' },
     { key: 'learning', label: 'Apprentissage continu', kind: 'bool', help: 'Ré-entraîne régulièrement l’IA avec les données récentes (le nouveau modèle n’est activé que s’il est validé).' },
     { key: 'retrain_hours', label: 'Fréquence de ré-entraînement (heures)', kind: 'int' },
@@ -67,14 +67,10 @@ const SECTIONS = {
     { key: 'slippage_bps', label: 'Glissement de prix (points de base)', kind: 'num', step: 1, help: '5 = 0,05 % de prix moins favorable à chaque exécution.' },
     { key: 'initial_balance', label: 'Capital fictif de départ', kind: 'num', step: 100 },
   ] },
-  live: { title: 'Portefeuille réel', fields: [
-    { key: 'exchange', label: 'Exchange', kind: 'select', options: [['binance', 'Binance'], ['kraken', 'Kraken'], ['bybit', 'Bybit'], ['okx', 'OKX'], ['coinbase', 'Coinbase']], help: 'Choisissez une plateforme agréée MiCA (vérifiez sur le registre de l’ESMA / la liste de l’AMF).' },
-    { key: 'testnet', label: 'Testnet (argent fictif sur la vraie plateforme)', kind: 'bool', help: 'À utiliser en premier. Les clés testnet se créent sur le site de test de l’exchange.' },
-    { key: 'budget', label: 'Budget maximal confié à l’IA', kind: 'num', step: 10, help: 'L’IA n’utilise jamais plus que ce montant, même si le compte contient plus.' },
-    { key: 'manual_max_order_value', label: 'Plafond d’un ordre manuel réel', kind: 'num', step: 10, help: 'Protection contre les erreurs de saisie.' },
-    { key: 'unlock_min_days', label: 'Déverrouillage : jours d’entraînement minimum', kind: 'int' },
-    { key: 'unlock_min_trades', label: 'Déverrouillage : trades minimum', kind: 'int' },
-    { key: 'unlock_max_drawdown', label: 'Déverrouillage : baisse maximale tolérée', kind: 'pct', step: 1 },
+  live: { title: 'Bulletin de fiabilité (argent fictif)', fields: [
+    { key: 'unlock_min_days', label: 'Preuve : jours d’entraînement en direct minimum', kind: 'int', help: 'Ces seuils servent au bulletin de fiabilité de l’IA. Ils ne déverrouillent aucun mode réel.' },
+    { key: 'unlock_min_trades', label: 'Preuve : trades minimum avec le modèle', kind: 'int' },
+    { key: 'unlock_max_drawdown', label: 'Preuve : baisse maximale tolérée', kind: 'pct', step: 1 },
   ] },
   telegram: { title: 'Telegram', fields: [
     { key: 'enabled', label: 'Activer Telegram', kind: 'bool' },
@@ -97,7 +93,7 @@ export default {
     const tab = ref('general');
     const form = reactive({});
     const secrets = ref(null);
-    const secretInputs = reactive({ exchange_api_key: '', exchange_secret: '', exchange_password: '', telegram_token: '' });
+    const secretInputs = reactive({ telegram_token: '' });
     const addPair = ref('');
     const feedsText = ref('');
     const eventsText = ref('');
@@ -125,7 +121,7 @@ export default {
     const enableTotp = async () => { if (await safe(api.post('/api/auth/2fa/enable', { code: totp.code }), 'Double authentification activée')) { totp.enabled = true; totp.setup = null; totp.code = ''; } };
     const disableTotp = async () => { if (await safe(api.post('/api/auth/2fa/disable', { password: totp.disablePwd, code: totp.disableCode }), 'Double authentification désactivée')) { totp.enabled = false; totp.disablePwd = totp.disableCode = ''; } };
     const accounts = computed(() => store.overview?.accounts || []);
-    const live = computed(() => store.overview?.live || {});
+    const paperOnly = computed(() => store.overview?.paper_only || {});
 
     const load = () => {
       if (!store.settings) return;
@@ -182,7 +178,10 @@ export default {
       const ok = await confirmBox({ title: 'Supprimer ce secret', message: 'Il sera effacé de votre ordinateur.', confirmLabel: 'Supprimer', danger: true });
       if (ok) secrets.value = await safe(api.put('/api/secrets', { values: { [k]: null } }), 'Supprimé');
     };
-    const connect = async () => { const r = await safe(api.post('/api/live/connect')); if (r) toast(r.connected ? 'Connecté à l’exchange' : 'Connexion impossible : ' + r.error, r.connected ? 'success' : 'error', 8000); };
+    const clearLegacyKeys = async () => {
+      const ok = await confirmBox({ title: 'Supprimer les anciennes clés API', message: 'Les anciennes clés de plateforme d’échange enregistrées sur ce PC seront effacées. Elles ne sont de toute façon plus utilisées.', confirmLabel: 'Supprimer', danger: true });
+      if (ok) secrets.value = await safe(api.put('/api/secrets', { values: { exchange_api_key: null, exchange_secret: null, exchange_password: null } }), 'Anciennes clés supprimées');
+    };
     const testTelegram = async () => { await safe(api.post('/api/telegram/test'), 'Message de test envoyé'); };
     const createAccount = async () => { if (await safe(api.post('/api/accounts', newAcc), 'Compte papier créé')) store.overview = await api.get('/api/overview'); };
     const resetAccount = async (a) => {
@@ -194,10 +193,10 @@ export default {
       if (pwd.new !== pwd.new2) { toast('Les deux nouveaux mots de passe ne correspondent pas', 'error'); return; }
       if (await safe(api.post('/api/auth/password', { current: pwd.current, new: pwd.new }), 'Mot de passe modifié')) { pwd.current = pwd.new = pwd.new2 = ''; }
     };
-    const TABS = [['general', 'Général'], ['risk', 'Risque'], ['ai', 'IA'], ['market', 'Données'], ['macro', 'Calendrier macro'], ['shield', 'Bouclier'], ['paper', 'Simulation'], ['live', 'Exchange réel'], ['telegram', 'Telegram'], ['news', 'Actualités'], ['monitoring', 'Surveillance'], ['accounts', 'Comptes'], ['security', 'Sécurité'], ['about', 'À propos']];
+    const TABS = [['general', 'Général'], ['risk', 'Risque'], ['ai', 'IA'], ['market', 'Données'], ['macro', 'Calendrier macro'], ['shield', 'Bouclier'], ['paper', 'Simulation'], ['live', 'Verrou et fiabilité'], ['telegram', 'Telegram'], ['news', 'Actualités'], ['monitoring', 'Surveillance'], ['accounts', 'Comptes'], ['security', 'Sécurité'], ['about', 'À propos']];
     const STRATS = { trend_follow: 'Suivi de tendance (recommandé)', trend_breakout: 'Cassure de tendance (recommandé)', pullback: 'Repli en tendance', mean_reversion: 'Retour à la moyenne', momentum: 'Élan haussier' };
-    return { store, tab, form, secrets, secretInputs, addPair, feedsText, eventsText, tgText, notifState, enableNotif, disableNotif, newAcc, pwd, accounts, live, newsStatus, SECTIONS, TABS, STRATS,
-      display, setValue, save, saveGeneral, addSymbol, removeSymbol, saveSecrets, clearSecret, connect, testTelegram, createAccount,
+    return { store, tab, form, secrets, secretInputs, addPair, feedsText, eventsText, tgText, notifState, enableNotif, disableNotif, newAcc, pwd, accounts, paperOnly, newsStatus, SECTIONS, TABS, STRATS,
+      display, setValue, save, saveGeneral, addSymbol, removeSymbol, saveSecrets, clearSecret, clearLegacyKeys, testTelegram, createAccount,
       resetAccount, resumeAccount, changePassword, totp, startTotp, enableTotp, disableTotp, money, dt };
   },
   template: `
@@ -249,16 +248,21 @@ export default {
           <button class="primary" @click="save(key)">Enregistrer</button>
         </div>
         <div v-if="key==='live'" class="card">
-          <h2>Clés API de l'exchange</h2>
-          <div class="note warn small" style="margin-bottom:12px">Créez des clés avec les droits <b>lecture + trading</b> uniquement, <b>retrait désactivé</b>, et si possible limitées à l'adresse IP de votre box. Ne les communiquez à personne.</div>
-          <div v-for="k in ['exchange_api_key','exchange_secret','exchange_password']" :key="k" class="field">
-            <label>{{ secrets?.[k]?.label }} <span v-if="secrets?.[k]?.set" class="badge ok">définie {{ secrets[k].hint || '' }}</span></label>
-            <div class="row"><input type="password" v-model="secretInputs[k]" autocomplete="off" :placeholder="secrets?.[k]?.set ? 'laisser vide pour conserver' : ''">
-              <button v-if="secrets?.[k]?.set" class="small ghost" @click="clearSecret(k)">Effacer</button></div>
+          <h2>🔒 Simulation uniquement</h2>
+          <p class="small">Cette version de Sentinelle ne peut <b>ni envoyer, ni modifier, ni annuler un ordre réel</b>.
+            Ce n'est pas un réglage : aucun paramètre, aucune clé et aucune commande ne peut l'activer.
+            Les cours du marché restent réels ; l'argent, lui, est toujours fictif.</p>
+          <div v-if="paperOnly.legacy_keys" class="note warn small" style="margin-bottom:10px">
+            D'anciennes clés API de plateforme d'échange sont enregistrées sur ce PC. Elles ne sont <b>plus jamais lues ni utilisées</b>.
+            Vous pouvez les supprimer ici ; pensez aussi à les révoquer sur le site de la plateforme.
+            <div style="margin-top:8px"><button class="small danger" @click="clearLegacyKeys">Supprimer les anciennes clés</button></div>
           </div>
-          <div class="btn-row"><button class="primary" @click="saveSecrets(['exchange_api_key','exchange_secret','exchange_password'])">Enregistrer les clés</button><button @click="connect">Se connecter / tester</button></div>
-          <div class="note small" :class="live.connected ? 'ok' : live.error ? 'danger' : ''" style="margin-top:12px">
-            {{ live.connected ? 'Connecté à ' + live.exchange + (live.testnet ? ' (testnet)' : ' (RÉEL)') : live.error ? 'Non connecté : ' + live.error : 'Non connecté.' }}</div>
+          <div v-else class="note ok small" style="margin-bottom:10px">Aucune clé API de plateforme d'échange n'est enregistrée.</div>
+          <div v-if="(paperOnly.legacy_accounts || []).length" class="note warn small">
+            Ancien compte réel conservé pour mémoire (jamais connecté) :
+            <span v-for="a in paperOnly.legacy_accounts" :key="a.id"> « {{ a.name }} » ({{ a.open_positions }} position(s), {{ a.open_orders }} ordre(s) enregistrés)</span>.
+            {{ paperOnly.legacy_note }}
+          </div>
         </div>
         <div v-if="key==='telegram'" class="card">
           <h2>Connexion du bot</h2>
@@ -286,7 +290,7 @@ export default {
       <div class="card">
         <h2>Comptes</h2>
         <div class="table-wrap"><table><thead><tr><th>Nom</th><th>Type</th><th class="num">Capital</th><th></th></tr></thead>
-          <tbody><tr v-for="a in accounts" :key="a.id"><td>{{ a.name }}</td><td><span class="badge" :class="a.kind==='live' ? 'live' : 'paper'">{{ a.kind==='live' ? 'réel' : 'papier' }}</span></td>
+          <tbody><tr v-for="a in accounts" :key="a.id"><td>{{ a.name }}</td><td><span class="badge" :class="a.kind==='paper' ? 'paper' : ''">{{ a.kind==='paper' ? 'papier' : 'ancien compte réel (inerte)' }}</span></td>
             <td class="num">{{ money(a.equity) }}</td>
             <td class="nowrap"><button v-if="a.kind==='paper'" class="small" @click="resetAccount(a)">Réinitialiser</button>
               <button v-if="a.risk && a.risk.halted" class="small danger" @click="resumeAccount(a)">Reprendre après arrêt de sécurité</button></td></tr></tbody></table></div>

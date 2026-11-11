@@ -22,7 +22,9 @@ from pydantic import BaseModel, Field
 from .. import __version__
 from ..config import SettingsError
 from ..execution.base import OrderError
-from ..services.core import EMERGENCY_CONFIRM, LIVE_CONFIRM, App, UserError
+from ..safety import RealTradingForbidden, forbid
+from ..services.core import EMERGENCY_CONFIRM, App, UserError
+from ..services.secrets import LEGACY_IGNORED
 from ..storage.db import loads
 from .auth import COOKIE, CSRF_HEADER, Auth
 
@@ -172,6 +174,11 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         if path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
         return response
+
+    @api.exception_handler(RealTradingForbidden)
+    async def _paper_only(_: Request, exc: RealTradingForbidden):
+        # refus de sécurité explicite (à ne pas confondre avec une donnée manquante ou une saisie invalide)
+        return JSONResponse({"detail": exc.message, "code": exc.code, "operation": exc.operation}, status_code=403)
 
     @api.exception_handler(UserError)
     async def _user_error(_: Request, exc: UserError):
@@ -389,7 +396,7 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
 
     @api.get("/api/ai/readiness")
     async def readiness():
-        return {**(await app.acall(app.readiness)), "confirm_phrase": LIVE_CONFIRM}
+        return await app.acall(app.readiness)
 
     @api.get("/api/ai/models")
     async def models():
@@ -589,12 +596,20 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
 
     @api.put("/api/secrets")
     async def put_secrets(body: SecretsBody):
+        # Simulation uniquement : on ne peut plus enregistrer de clé d'exchange (on peut seulement effacer les anciennes).
+        if any(k in LEGACY_IGNORED and v for k, v in body.values.items()):
+            forbid("enregistrement d'une clé API d'exchange", db=app.db)
         app.secrets.set(body.values)
         app.db.log("info", "sécurité", "Secrets modifiés : " + ", ".join(sorted(body.values)))
         return app.secrets.status()
 
+    @api.get("/api/security")
+    async def security_status():
+        return await app.acall(app.paper_only_status)
+
     @api.post("/api/live/connect")
     async def live_connect():
+        # ancien point d'accès : toujours refusé (403), aucune connexion n'est tentée
         return await app.acall(app.reconnect_live)
 
     # -- urgence et journal ----------------------------------------------------------------------

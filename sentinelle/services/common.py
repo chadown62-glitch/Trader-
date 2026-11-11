@@ -2,24 +2,22 @@
 
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass
 from typing import Any
 
+from ..errors import UserError  # noqa: F401  (ré-exporté : point d'import historique)
 from ..execution.positions import PositionManager
 from ..risk.manager import RiskManager
+from ..safety import RealTradingForbidden  # noqa: F401  (ré-exporté)
 
-LIVE_CONFIRM = "JE COMPRENDS LES RISQUES"
 EMERGENCY_CONFIRM = "URGENCE"
 
+# Seule l'IA d'entraînement (argent fictif) existe. L'ancienne « IA — Portefeuille réel »
+# a été retirée : toute tentative de la démarrer est refusée (voir sentinelle/safety.py).
 AGENTS = {
     "ia_entrainement": {"mode": "training", "role": "ai_training", "label": "IA — Entraînement (argent fictif)"},
-    "ia_reel": {"mode": "live", "role": "live", "label": "IA — Portefeuille réel"},
 }
-
-
-class UserError(Exception):
-    """Erreur à afficher telle quelle à l'utilisateur."""
+RETIRED_AGENTS = {"ia_reel": "IA — Portefeuille réel"}
 
 
 @dataclass
@@ -28,25 +26,3 @@ class AccountRuntime:
     broker: Any
     positions: PositionManager
     risk: RiskManager
-
-
-class LivePrices:
-    """Prix de l'exchange réel (ou testnet) : peuvent différer de la source de données."""
-
-    def __init__(self, exchange, ttl: float = 4.0):
-        self.ex = exchange
-        self.ttl = ttl
-        self.cache: dict[str, tuple[float, float]] = {}
-
-    def __call__(self, symbol: str) -> float | None:
-        hit = self.cache.get(symbol)
-        if hit and time.time() - hit[0] < self.ttl:
-            return hit[1]
-        try:
-            t = self.ex.fetch_ticker(symbol)
-            px = float(t.get("last") or t.get("close") or 0) or None
-        except Exception:
-            return hit[1] if hit else None
-        if px:
-            self.cache[symbol] = (time.time(), px)
-        return px
