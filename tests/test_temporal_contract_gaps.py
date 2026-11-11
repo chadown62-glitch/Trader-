@@ -123,3 +123,20 @@ def test_deferred_exit_keeps_stop_until_next_fill(db):
     broker.process_bar('BTC/EUR', 95, 96, 94, 95, int(now[0] * 1000))
     assert pm.get(pos['id'])['status'] == 'closed'
     assert not broker.open_orders()
+
+
+def test_backtest_does_not_pass_future_rows_to_agent(monkeypatch):
+    bars = pd.DataFrame([
+        {'ts': 0, 'open': 100., 'high': 101., 'low': 99., 'close': 100.},
+        {'ts': 3600000, 'open': 100., 'high': 102., 'low': 99., 'close': 101.},
+        {'ts': 7200000, 'open': 101., 'high': 105., 'low': 100., 'close': 104.},
+    ])
+    cfg = deepcopy(DEFAULT_SETTINGS)
+    cfg['ai']['strategies'] = {name: False for name in cfg['ai']['strategies']}
+    monkeypatch.setattr(engine, 'compute_features', lambda frame, *args, **kw: frame)
+    visible = []
+    def inspect_rows(agent, symbol, feat, idx=None, sig_at=None):
+        visible.append((idx, list(feat['ts'])))
+    monkeypatch.setattr(TradingAgent, 'on_bar', inspect_rows)
+    engine.run_backtest({'BTC/EUR': bars}, '1h', cfg, None)
+    assert visible == [(0, [0]), (1, [0, 3600000]), (2, [0, 3600000, 7200000])]

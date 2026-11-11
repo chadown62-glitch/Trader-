@@ -107,7 +107,10 @@ def run_backtest(
         clock.t = (ts + tf) / 1000
         for sym, k in active:
             feat, sig = data[sym]
-            agent.on_bar(sym, feat, idx=k, sig_at={n: bool(sig[n][k]) for n in enabled})
+            # Give the agent only bars that have actually closed. Passing the
+            # complete precomputed frame allowed a future-looking strategy to
+            # inspect rows beyond the decision time.
+            agent.on_bar(sym, feat.iloc[: k + 1], idx=k, sig_at={n: bool(sig[n][k]) for n in enabled})
         eq, cash = broker.equity()
         db.execute("INSERT OR REPLACE INTO equity(account_id, ts, equity, cash) VALUES (?, ?, ?, ?)", (acc, clock.t, eq, cash))
         equity_curve.append([ts + tf, eq])
