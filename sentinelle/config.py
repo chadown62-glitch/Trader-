@@ -56,7 +56,18 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "paper": {
         "fee_rate": 0.001,  # 0,1 % par ordre (hypothèse prudente)
         "slippage_bps": 5.0,  # glissement de prix simulé : 0,05 %
+        # Capital des ANCIENS comptes papier (avant le portefeuille principal en euros). Conservé pour eux seuls.
         "initial_balance": 10000.0,
+    },
+    "portfolio": {
+        # Portefeuille principal en argent fictif : une seule poche, partagée entre le trading manuel et l'IA.
+        "currency": "EUR",
+        "initial": 30.0,
+        # Coût de conversion entre l'euro et la monnaie de cotation, appliqué à chaque achat et à chaque vente
+        # (hypothèse prudente : 0,05 %, en plus des frais de la plateforme).
+        "fx_cost_bps": 5.0,
+        # Âge maximal du taux de change lu sur le marché pour passer un ordre.
+        "fx_max_age_minutes": 30,
     },
     "ai": {
         # 4 h : meilleur compromis mesuré entre nombre de trades et poids des frais (docs/RESULTATS.md)
@@ -90,6 +101,9 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     },
     "risk": {
         "risk_per_trade": 0.005,  # 0,5 % du capital perdu si le stop est touché
+        # Petit capital : si la taille prudente est sous le minimum de la plateforme, l'ordre est porté au minimum
+        # seulement si le risque reste sous ce plafond (1 % du capital). Sinon l'IA refuse le trade.
+        "min_order_max_risk": 0.01,
         "max_positions": 3,
         "max_exposure": 0.6,
         "max_exposure_per_asset": 0.3,
@@ -199,6 +213,10 @@ BOUNDS: dict[str, tuple] = {
     "paper.fee_rate": ("float", 0.0, 0.01),
     "paper.slippage_bps": ("float", 0.0, 100.0),
     "paper.initial_balance": ("float", 10.0, 10_000_000.0),
+    "portfolio.currency": ("str", ["EUR"]),
+    "portfolio.initial": ("float", 10.0, 1_000_000.0),
+    "portfolio.fx_cost_bps": ("float", 0.0, 100.0),
+    "portfolio.fx_max_age_minutes": ("int", 1, 24 * 60),
     "ai.timeframe": ("str", AI_TIMEFRAMES),
     "ai.exploration": ("bool",),
     "ai.exploration_risk_factor": ("float", 0.1, 1.0),
@@ -210,6 +228,7 @@ BOUNDS: dict[str, tuple] = {
     "ai.use_news": ("bool",),
     # Plafonds absolus de sécurité (cf. dossier de conception §4.5)
     "risk.risk_per_trade": ("float", 0.001, 0.02),
+    "risk.min_order_max_risk": ("float", 0.001, 0.02),
     "risk.max_positions": ("int", 1, 5),
     "risk.max_exposure": ("float", 0.1, 1.0),
     "risk.max_exposure_per_asset": ("float", 0.05, 0.5),

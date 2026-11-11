@@ -3,6 +3,7 @@ import { api, safe } from '../api.js';
 import { store, money, signed, price, qty, plainPct, rr, cls, dt, duration, STRATEGY_LABELS } from '../store.js';
 
 const { ref, computed, onMounted, watch } = Vue;
+const nf4 = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 
 export default {
   setup() {
@@ -12,11 +13,14 @@ export default {
     const trades = ref([]);
     const stats = ref(null);
     const open = ref(null);
+    const ledger = ref(null);
+    const acc = computed(() => accounts.value.find(a => a.id === accountId.value));
     const load = async () => {
       if (accountId.value === null && accounts.value.length) accountId.value = accounts.value[0].id;
       if (accountId.value === null) return;
       trades.value = (await safe(api.get(`/api/trades?account_id=${accountId.value}&limit=1000${origin.value ? '&origin=' + origin.value : ''}`))) || [];
       stats.value = await safe(api.get(`/api/stats?account_id=${accountId.value}`));
+      ledger.value = await safe(api.get(`/api/accounts/${accountId.value}/ledger?limit=300`));
     };
     onMounted(load);
     watch([accountId, origin], load);
@@ -29,7 +33,7 @@ export default {
     watch(accountId, loadFiscal);
     onMounted(loadFiscal);
     const s = computed(() => (origin.value === 'ai' ? stats.value?.ai : origin.value === 'manual' ? stats.value?.manual : stats.value?.all) || {});
-    return { accounts, accountId, origin, trades, stats, s, open, csvUrl, fiscalYear, fiscalUrl, fiscal, money, signed, price, qty, plainPct, rr, cls, dt, duration, STRATEGY_LABELS };
+    return { accounts, accountId, origin, trades, stats, s, open, ledger, acc, nf4, csvUrl, fiscalYear, fiscalUrl, fiscal, money, signed, price, qty, plainPct, rr, cls, dt, duration, STRATEGY_LABELS };
   },
   template: `
   <div>
@@ -45,8 +49,8 @@ export default {
         <div class="stat"><span class="label">Résultat moyen</span><span class="value" :class="cls(s.mean_r)">{{ rr(s.mean_r) }}</span><span class="sub muted" v-if="s.ci_low !== null && s.ci_low !== undefined">95 % : {{ rr(s.ci_low) }} à {{ rr(s.ci_high) }}</span></div>
         <div class="stat"><span class="label">Profit factor</span><span class="value">{{ s.profit_factor ? s.profit_factor.toFixed(2) : '—' }}</span></div>
         <div class="stat"><span class="label">Gain moyen / perte moyenne</span><span class="value small">{{ rr(s.avg_win) }} / {{ rr(s.avg_loss) }}</span></div>
-        <div class="stat"><span class="label">Résultat net</span><span class="value" :class="cls(stats?.pnl)">{{ signed(origin==='ai' ? stats?.ai?.pnl : origin==='manual' ? stats?.manual?.pnl : stats?.pnl) }}</span></div>
-        <div class="stat"><span class="label">Frais payés</span><span class="value">{{ money(stats?.fees) }}</span></div>
+        <div class="stat"><span class="label">Résultat net</span><span class="value" :class="cls(stats?.pnl)">{{ signed(origin==='ai' ? stats?.ai?.pnl : origin==='manual' ? stats?.manual?.pnl : stats?.pnl, acc?.quote) }}</span></div>
+        <div class="stat"><span class="label">Frais payés</span><span class="value">{{ money(stats?.fees, acc?.quote) }}</span></div>
       </div>
       <p class="faint small" style="margin-bottom:0">Le taux de réussite seul ne veut rien dire : c'est le résultat moyen (en R, frais compris) qui doit être positif sur un grand nombre de trades.</p>
     </div>
@@ -81,6 +85,24 @@ export default {
           <tr v-if="!trades.length"><td colspan="11" class="empty">Aucun trade clôturé sur ce compte.</td></tr>
         </tbody>
       </table></div>
+    </div>
+    <div v-if="ledger" class="card" style="margin-top:14px">
+      <div class="card-head"><h2>Grand livre : toutes les opérations</h2><span class="spacer"></span>
+        <span class="badge" :class="ledger.check.ok ? 'ok' : 'err'">{{ ledger.check.ok ? 'comptes vérifiés' : 'écart détecté' }}</span></div>
+      <p class="faint small" style="margin-top:0">Chaque variation d'un solde est inscrite ici avec le solde obtenu. Contrôle permanent : la somme des écritures égale le solde, et aucun solde n'est négatif.
+        Pour une paire cotée dans une autre monnaie que celle du compte, le taux de change appliqué et sa source sont indiqués.</p>
+      <div class="table-wrap" style="max-height:420px;overflow:auto"><table>
+        <thead><tr><th>Date</th><th>Opération</th><th>Paire</th><th class="num">Montant</th><th class="num">Solde après</th><th class="num">Prix</th><th>Taux de change</th></tr></thead>
+        <tbody>
+          <tr v-for="r in ledger.rows" :key="r.id">
+            <td class="nowrap">{{ dt(r.ts) }}</td><td>{{ r.label }}<span v-if="r.note" class="faint small"> — {{ r.note }}</span></td><td>{{ r.symbol || '' }}</td>
+            <td class="num" :class="cls(r.amount)">{{ r.asset === ledger.currency ? (Math.abs(r.amount) < 0.1 && r.amount ? (r.amount > 0 ? '+' : '') + nf4.format(r.amount) + (r.asset === 'EUR' ? '\u00a0€' : ' ' + r.asset) : signed(r.amount, r.asset)) : (r.amount > 0 ? '+' : '') + qty(r.amount) + ' ' + r.asset }}</td>
+            <td class="num">{{ r.asset === ledger.currency ? money(r.balance_after, r.asset) : qty(r.balance_after) + ' ' + r.asset }}</td>
+            <td class="num">{{ r.price ? price(r.price) : '' }}</td>
+            <td class="small muted">{{ r.fx_rate ? nf4.format(r.fx_rate) + ' (' + r.fx_source + ')' : '' }}</td>
+          </tr>
+          <tr v-if="!ledger.rows.length"><td colspan="7" class="empty">Aucune opération.</td></tr>
+        </tbody></table></div>
     </div>
   </div>`,
 };

@@ -54,7 +54,7 @@ En haut à droite, le bouton rouge **🛑 Urgence** propose deux niveaux :
 
 ## 3. Trader vous-même
 
-1. Page **Trader** : choisissez le compte. « Mon compte papier » utilise de l'argent fictif sur les prix réels.
+1. Page **Trader** : le **portefeuille principal** (30 € fictifs, partagé avec l'IA) utilise de l'argent fictif sur les prix réels. Indiquez le montant **en euros** : l'aperçu affiche le montant en USDC, les frais, le coût de conversion, le total débité et le taux de change appliqué. La plateforme refuse les ordres de moins de 5 USDC (voir [PORTEFEUILLE.md](PORTEFEUILLE.md)).
 2. Choisissez la crypto et l'unité de temps du graphique.
 3. Remplissez le ticket :
    - Cochez **« Calculer la quantité selon le risque »** et indiquez par exemple 0,5 %.

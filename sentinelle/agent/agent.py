@@ -104,6 +104,10 @@ class TradingAgent:
     def fee_rate(self) -> float:
         return float(getattr(self.broker, "fee_rate", 0.001))
 
+    def cost_rate(self, symbol: str) -> float:
+        """Coût par opération : frais de la plateforme + conversion en euros si le compte est en euros."""
+        return self.fee_rate + float(self.broker.conversion_cost(symbol))
+
     @property
     def slip(self) -> float:
         return float(getattr(self.broker, "slip", self.settings_fn()["paper"]["slippage_bps"] / 10_000))
@@ -180,7 +184,7 @@ class TradingAgent:
                 initial_stop=pos["initial_stop"] or pos["stop_price"] or 0.0,
                 horizon_bars=pos["horizon_bars"] or (st.horizon(self.timeframe) if st else 48),
                 breakeven_r=st.breakeven_r if st else None,
-                fee_rate=self.fee_rate,
+                fee_rate=self.cost_rate(symbol),
                 slip=self.slip,
                 bars=max(pos["bars_held"], elapsed - 1),
                 breakeven_done=bool(pos["breakeven_done"]),
@@ -231,7 +235,7 @@ class TradingAgent:
             if STRATEGIES[r["strategy"]].trail_atr:
                 feats = loads(r.get("features"), {}) or {}
                 atr_entry = float(feats.get("atr_pct") or 0.0) * float(r.get("entry") or 0.0)
-            sim = simulate_candidate(o, h, l, c, i, r["stop"], r["target"], r["strategy"], self.fee_rate, self.slip,
+            sim = simulate_candidate(o, h, l, c, i, r["stop"], r["target"], r["strategy"], self.cost_rate(symbol), self.slip,
                                      self.timeframe, atr_entry)
             if sim is None:
                 self.db.update("candidates", r["id"], {"outcome": "impossible", "resolved_at": self.clock()})
@@ -246,7 +250,7 @@ class TradingAgent:
     def _consider(self, symbol: str, row, names: list[str], bar_ts: int) -> None:
         cfg = self.settings_fn()
         ai = cfg["ai"]
-        fee, slip = self.fee_rate, self.slip
+        fee, slip = self.cost_rate(symbol), self.slip  # frais + conversion : le coût réel de ce compte
         model = self.model_fn()
         thr = ai.get("min_edge_r")
         if thr is None and model is not None:
@@ -321,17 +325,21 @@ class TradingAgent:
             if mode_used:
                 require_paper_broker(self.broker, "décision d'achat de l'IA sur un courtier non simulé", self.db)
                 equity, _cash = self.broker.equity()
+                fx = self.broker.fx_rate(symbol)  # taux vers la monnaie du compte (1 si c'est la même)
                 try:
                     market = self.broker.market_fn(symbol)
-                    rd = self.risk.evaluate_entry(
+                    rd = None if fx is None else self.risk.evaluate_entry(
                         symbol, close, c["stop"], c["target"], equity=equity,
                         cash=self.broker.available(self.broker.quote), market=market,
-                        fee_rate=fee, slip=slip, agent=self.name,
+                        fee_rate=self.fee_rate, slip=slip, agent=self.name,
                         budget=self.budget_fn() if self.budget_fn else None, risk_factor=risk_factor,
+                        fx=fx, fx_cost=self.broker.conversion_cost(symbol),
                     )
                 except KeyError:
-                    rd = None
-                if rd is None:
+                    rd, fx = None, 1.0
+                if fx is None:
+                    reason = "Taux de change indisponible : aucun ordre par prudence"
+                elif rd is None:
                     reason = "Paire indisponible"
                 elif not rd.approved:
                     reason = "Gestionnaire de risque : " + rd.reasons[0]
@@ -345,7 +353,8 @@ class TradingAgent:
                             strategy=c["name"], p_win=c["p"], expected_r=c["er"],
                             model_version=model.version if model is not None and mode_used in ("model", "essai") else None,
                             horizon_bars=st.horizon(self.timeframe), timeframe=self.timeframe, reason=explanation,
-                            data={"mode": mode_used, "risk_checks": rd.checks, "regime": regime, "atr_entry": a},
+                            data={"mode": mode_used, "risk_checks": rd.checks, "regime": regime, "atr_entry": a,
+                                  "min_order_bump": rd.bumped},
                         )
                         decision, reason, opened = "pris", explanation, True
                         self.stats["entries"] += 1

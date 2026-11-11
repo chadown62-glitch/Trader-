@@ -10,7 +10,7 @@ Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et tél�
 ## Ce que vous pouvez faire
 
 - **Trader vous-même** sur des graphiques en temps réel :
-  - en **argent fictif** sur les prix réels (comptes « papier ») ;
+  - en **argent fictif** sur les prix réels, avec un **portefeuille unique de 30 €** tenu en euros et partagé avec l'IA ([docs/PORTEFEUILLE.md](docs/PORTEFEUILLE.md)) ;
   - avec un **calculateur de taille selon le risque**, un stop-loss et un objectif visibles sur le graphique ;
   - avec **l'avis de l'IA** sur chaque crypto.
 - **Entraîner l'IA** :

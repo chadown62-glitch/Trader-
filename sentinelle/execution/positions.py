@@ -3,6 +3,12 @@
 Une position = un achat + ses protections (stop-loss et objectif, en OCO).
 Le gestionnaire écoute les exécutions du broker et tient à jour quantité,
 prix moyen, frais, résultat réalisé et résultat en R (multiple du risque).
+
+Monnaies : les prix (entrée, stop, objectif, sortie) restent ceux de la paire,
+dans sa monnaie de cotation. Les montants (frais, résultat, risque) sont tenus
+dans la **monnaie du compte**. Quand elles diffèrent (portefeuille en euros,
+paire en USDC), chaque exécution porte son taux de change : le résultat tient
+donc compte du taux à l'achat ET du taux à la vente.
 """
 
 from __future__ import annotations
@@ -16,6 +22,11 @@ from ..storage.db import Database, dumps
 from .base import OPEN_STATUSES, OrderError, fee_in_quote
 
 log = logging.getLogger("sentinelle.positions")
+
+def _fx(fill: dict) -> float:
+    """Taux de change appliqué à une exécution (1.0 quand le compte est tenu dans la monnaie de cotation)."""
+    return float(fill.get("fx_rate") or 1.0)
+
 
 CLOSE_REASONS = {
     "stop": "Stop-loss touché",
@@ -127,6 +138,7 @@ class PositionManager:
                 "timeframe": timeframe,
                 "reason_open": reason,
                 "entry_ts": now,
+                "currency": self.quote,
                 "data": dumps(data or {}),
             },
         )
@@ -169,15 +181,20 @@ class PositionManager:
         pos = self.get(pos_id)
         base, quote = pos["symbol"].split("/")
         amount = float(fill["amount"])
-        fee_q = fee_in_quote(fill["fee"], fill["fee_asset"], base, quote, fill["price"])
+        fx = _fx(fill)
+        fee_q = fee_in_quote(fill["fee"], fill["fee_asset"], base, quote, fill["price"]) * fx + float(fill.get("fx_cost") or 0.0)
         if fill.get("fee_asset") == base:
             amount -= float(fill["fee"])  # frais prélevés sur la crypto achetée
         new_qty = pos["qty"] + amount
         avg = ((pos["entry_price"] or 0) * pos["qty"] + fill["price"] * amount) / new_qty if new_qty > 0 else fill["price"]
+        # taux moyen d'entrée, pondéré par les montants achetés : coût en monnaie du compte = prix moyen × quantité × taux moyen
+        cost_before = (pos["entry_price"] or 0) * pos["qty"] * (pos.get("entry_fx") or 1.0)
+        entry_fx = (cost_before + fill["price"] * amount * fx) / (avg * new_qty) if avg * new_qty > 0 else fx
         upd = {
             "qty": new_qty,
             "initial_qty": new_qty,
             "entry_price": avg,
+            "entry_fx": entry_fx,
             "fees": pos["fees"] + fee_q,
             "entry_fees": pos["entry_fees"] + fee_q,
         }
@@ -185,8 +202,8 @@ class PositionManager:
         if fully:
             upd["status"] = "open"
             upd["entry_ts"] = fill["ts"]
-            if pos["stop_price"] and not pos["risk_amount"]:
-                upd["risk_amount"] = max(1e-9, (avg - pos["stop_price"]) * new_qty)
+            if pos["stop_price"]:  # risque réellement pris, au prix et au taux d'exécution
+                upd["risk_amount"] = max(1e-9, (avg - pos["stop_price"]) * new_qty * entry_fx)
         self.db.update("positions", pos_id, upd)
         if fully:
             self._publish("position_opened", self.get(pos_id))
@@ -237,10 +254,14 @@ class PositionManager:
             return
         base, quote = pos["symbol"].split("/")
         amount = float(fill["amount"])
-        fee_q = fee_in_quote(fill["fee"], fill["fee_asset"], base, quote, fill["price"])
+        fx = _fx(fill)
+        entry_fx = pos.get("entry_fx") or 1.0
+        fee_q = fee_in_quote(fill["fee"], fill["fee_asset"], base, quote, fill["price"]) * fx + float(fill.get("fx_cost") or 0.0)
         init = pos["initial_qty"] or amount
         entry_fee_share = pos["entry_fees"] * min(1.0, amount / init)
-        pnl = (fill["price"] - (pos["entry_price"] or fill["price"])) * amount - fee_q - entry_fee_share
+        entry_price = pos["entry_price"] or fill["price"]
+        # vente convertie au taux du jour de la vente, achat au taux du jour de l'achat
+        pnl = fill["price"] * amount * fx - entry_price * amount * entry_fx - fee_q - entry_fee_share
         qty = max(0.0, pos["qty"] - amount)
         upd = {
             "qty": qty,
@@ -316,7 +337,7 @@ class PositionManager:
         upd = {"stop_price": new_stop, "target_price": new_target}
         if pos["initial_stop"] is None and new_stop is not None:
             upd["initial_stop"] = new_stop
-            upd["risk_amount"] = max(1e-9, (pos["entry_price"] - new_stop) * pos["qty"])
+            upd["risk_amount"] = max(1e-9, (pos["entry_price"] - new_stop) * pos["qty"] * (pos.get("entry_fx") or 1.0))
         self.db.update("positions", position_id, upd)
         self._place_protections(self.get(position_id))
         p = self.get(position_id)
@@ -362,15 +383,20 @@ class PositionManager:
     def unrealized(self, pos: dict) -> dict:
         last = self.broker.price_fn(pos["symbol"])
         if not last or not pos["entry_price"] or pos["status"] != "open":
-            return {"price": last, "pnl": 0.0, "pnl_pct": 0.0, "r": None}
-        gross = (last - pos["entry_price"]) * pos["qty"]
-        est_exit_fee = last * pos["qty"] * getattr(self.broker, "fee_rate", 0.001)
-        pnl = gross - pos["entry_fees"] * (pos["qty"] / (pos["initial_qty"] or pos["qty"])) - est_exit_fee + pos["realized_pnl"]
+            return {"price": last, "pnl": 0.0, "pnl_pct": 0.0, "r": None, "value": 0.0}
+        entry_fx = pos.get("entry_fx") or 1.0
+        fx = self.broker.fx_rate(pos["symbol"]) or entry_fx  # taux inconnu : on garde celui de l'entrée
+        value = last * pos["qty"] * fx  # valeur actuelle dans la monnaie du compte
+        gross = value - pos["entry_price"] * pos["qty"] * entry_fx
+        est_exit_cost = value * (getattr(self.broker, "fee_rate", 0.001) + self.broker.conversion_cost(pos["symbol"]))
+        pnl = gross - pos["entry_fees"] * (pos["qty"] / (pos["initial_qty"] or pos["qty"])) - est_exit_cost + pos["realized_pnl"]
         return {
             "price": last,
             "pnl": pnl,
-            "pnl_pct": (last / pos["entry_price"] - 1) * 100,
+            "pnl_pct": ((last * fx) / (pos["entry_price"] * entry_fx) - 1) * 100,
             "r": pnl / pos["risk_amount"] if pos["risk_amount"] else None,
+            "value": value,
+            "fx": fx,
         }
 
     def _publish(self, topic: str, payload: dict) -> None:

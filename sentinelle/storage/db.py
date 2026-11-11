@@ -242,6 +242,36 @@ CREATE TABLE IF NOT EXISTS agents(
     started_at REAL,
     data TEXT
 );
+-- Grand livre : chaque variation d'un solde, avec le solde obtenu (historique complet des opérations)
+CREATE TABLE IF NOT EXISTS ledger(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id INTEGER NOT NULL,
+    ts REAL NOT NULL,
+    kind TEXT NOT NULL,
+    asset TEXT NOT NULL,
+    amount REAL NOT NULL,
+    balance_after REAL NOT NULL,
+    order_id INTEGER,
+    fill_id INTEGER,
+    position_id INTEGER,
+    symbol TEXT,
+    price REAL,
+    fx_rate REAL,
+    fx_source TEXT,
+    fx_ts REAL,
+    note TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_ledger_account ON ledger(account_id, id);
+-- Taux de change utilisés (monnaie du portefeuille / monnaie de cotation), avec leur source
+CREATE TABLE IF NOT EXISTS fx_rates(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts REAL NOT NULL,
+    base TEXT NOT NULL,
+    quote TEXT NOT NULL,
+    rate REAL NOT NULL,
+    source TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_fx_rates ON fx_rates(quote, ts);
 """
 
 
@@ -276,6 +306,12 @@ class Database:
             self.conn.execute("PRAGMA busy_timeout=5000")
             self.conn.executescript(SCHEMA)
             self._ensure_column("news", "cluster", "INTEGER")
+            # Portefeuille en euros : taux de change appliqué à chaque exécution et à chaque position
+            for column, decl in (("fx_rate", "REAL"), ("fx_source", "TEXT"), ("fx_ts", "REAL"),
+                                 ("fx_cost", "REAL NOT NULL DEFAULT 0"), ("cash_amount", "REAL"), ("cash_asset", "TEXT")):
+                self._ensure_column("fills", column, decl)
+            self._ensure_column("positions", "entry_fx", "REAL")
+            self._ensure_column("positions", "currency", "TEXT")
             self.conn.execute(
                 "INSERT OR IGNORE INTO meta(key, value) VALUES ('schema_version', ?)",
                 (str(SCHEMA_VERSION),),

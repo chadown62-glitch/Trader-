@@ -71,12 +71,17 @@ class OrderBody(BaseModel):
     side: Literal["buy", "sell"]
     type: Literal["market", "limit", "stop"] = "market"
     amount: float | None = Field(default=None, gt=0)
-    quote_amount: float | None = Field(default=None, gt=0)
+    quote_amount: float | None = Field(default=None, gt=0)  # montant dans la monnaie de la paire (USDC)
+    cash_amount: float | None = Field(default=None, gt=0)  # montant dans la monnaie du compte (euros), frais compris
     price: float | None = Field(default=None, gt=0)
     stop_price: float | None = Field(default=None, gt=0)
     stop_loss: float | None = Field(default=None, gt=0)
     take_profit: float | None = Field(default=None, gt=0)
     note: str | None = Field(default=None, max_length=200)
+    confirm: bool = False
+
+
+class ConfirmBody(BaseModel):
     confirm: bool = False
 
 
@@ -351,6 +356,20 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         rows = app.db.query("SELECT ts, equity FROM equity WHERE account_id = ? AND ts >= ? ORDER BY ts", (account_id, since))
         step = max(1, len(rows) // 600)
         return [[r["ts"], r["equity"]] for r in rows[::step]]
+
+    @api.get("/api/accounts/{account_id}/ledger")
+    async def ledger(account_id: int, limit: int = 200):
+        """Grand livre : chaque variation de solde, avec le solde obtenu et le contrôle comptable."""
+        return await app.acall(app.ledger, account_id, limit)
+
+    @api.get("/api/portfolio")
+    async def portfolio_status():
+        return await app.acall(app.portfolio_status)
+
+    @api.post("/api/portfolio/activate")
+    async def portfolio_activate(body: ConfirmBody):
+        """Passage explicite au portefeuille principal (anciens comptes conservés en lecture seule)."""
+        return await app.acall(app.activate_main_portfolio, body.confirm)
 
     @api.get("/api/accounts/{account_id}/fills")
     async def fills(account_id: int, limit: int = 100):

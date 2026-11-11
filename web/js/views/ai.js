@@ -25,7 +25,8 @@ export default {
     const lastTrain = ref(null);
     const agents = computed(() => store.overview?.agents || []);
     const training = computed(() => agents.value.find(a => a.name === 'ia_entrainement'));
-    const trainingAcc = computed(() => (store.overview?.accounts || []).find(a => a.role === 'ai_training'));
+    // compte de l'IA : le portefeuille principal (partagé avec le trading manuel), ou l'ancien compte avant la migration
+    const trainingAcc = computed(() => (store.overview?.accounts || []).find(a => a.id === training.value?.account_id));
     const jobs = computed(() => Object.values(store.jobs).sort((a, b) => b.started_at - a.started_at));
     const trainJob = computed(() => jobs.value.find(j => j.kind === 'train'));
     const btJob = computed(() => jobs.value.find(j => j.kind === 'backtest'));

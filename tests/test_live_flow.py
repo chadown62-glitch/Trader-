@@ -78,6 +78,14 @@ def test_agent_trades_end_to_end(flow):
     open_pos_ids = {p["id"] for p in app.db.query("SELECT id FROM positions WHERE status = 'open'")}
     for o in app.runtimes[acc_id].broker.open_orders():
         assert o["position_id"] in open_pos_ids
+    # l'IA trade sur le portefeuille principal de 30 €, tenu en euros et partagé avec le trading manuel
+    main = app.main_account()
+    assert acc_id == main["id"] and main["quote"] == "EUR" and main["initial_balance"] == 30.0
+    for p in app.db.query("SELECT * FROM positions WHERE account_id = ? AND status = 'closed'", (acc_id,)):
+        assert p["currency"] == "EUR" and 0.5 < p["entry_fx"] < 1.5
+        assert p["risk_amount"] <= 30.0 * 0.0101, "risque par trade : au plus 1 % du capital, même porté au minimum de la plateforme"
+    assert app.ledger(acc_id)["check"]["ok"] is True
+    assert 27.0 < app.account_summary(acc_id)["equity"] < 33.0
     # les situations observées sont enregistrées et se résolvent au fil du temps
     n_cand = app.db.scalar("SELECT COUNT(*) FROM candidates WHERE source = 'live'", (), 0)
     assert n_cand >= opened
