@@ -25,6 +25,7 @@ from .conftest import market_fn
 
 
 DENIAL = (OrderError, UserError, PermissionError, RuntimeError)
+SECURITY_REASON = r"(?i)(paper|fictif|simul|s.cur|interdit|d.sactiv|bloqu|live|r.el|security|disabled|prohibit|forbid|unknown|inconnu)"
 HEADERS = {"X-Sentinelle": "1"}
 
 
@@ -68,7 +69,7 @@ def assert_no_private(ex):
 
 
 def test_live_broker_constructor_refused(db, fake_exchange):
-    with pytest.raises(DENIAL):
+    with pytest.raises(DENIAL, match=SECURITY_REASON):
         LiveBroker(db, 42, "USDC", fake_exchange, market_fn, lambda _: 50000.0)
     assert_no_private(fake_exchange)
 
@@ -84,7 +85,7 @@ def test_direct_broker_methods_fail_closed_even_if_object_exists(db, fake_exchan
     if action == "cancel":
         db.insert("orders", {"id": 1, "account_id": 42, "symbol": "BTC/USDC", "side": "buy",
                              "type": "limit", "amount": 0.001, "status": "open", "exchange_id": "fake"})
-    with pytest.raises(DENIAL):
+    with pytest.raises(DENIAL, match=SECURITY_REASON):
         if action == "place":
             broker.place_order("BTC/USDC", "buy", "market", 0.001)
         else:
@@ -128,7 +129,7 @@ def legacy_runtime(app):
 
 def test_confirmed_manual_live_order_refused(app, legacy_runtime, monkeypatch):
     monkeypatch.setattr(app.shield, "check_entry", lambda *args: None)
-    with pytest.raises(DENIAL):
+    with pytest.raises(DENIAL, match=SECURITY_REASON):
         app.place_manual_order({"account_id": legacy_runtime.account["id"], "symbol": "BTC/USDC",
                                 "side": "buy", "type": "market", "amount": 0.001, "confirm": True})
     legacy_runtime.positions.open.assert_not_called()
@@ -141,7 +142,7 @@ def test_real_agent_refused_even_when_ready(app, legacy_runtime, monkeypatch, au
     monkeypatch.setattr(app, "readiness", lambda: {"unlocked": True, "criteria": []})
     submit = Mock()
     monkeypatch.setattr(app.jobs, "submit", submit)
-    with pytest.raises(DENIAL):
+    with pytest.raises(DENIAL, match=SECURITY_REASON):
         app.start_agent("ia_reel", confirm="JE COMPRENDS LES RISQUES", auto=auto)
     submit.assert_not_called()
     legacy_runtime.broker.place_order.assert_not_called()
@@ -207,7 +208,7 @@ def test_retained_live_runtime_cannot_trade_after_settings_change(app, legacy_ru
     monkeypatch.setattr(app.shield, "check_entry", lambda *args: None)
     # A previously connected runtime must not survive a settings transition.
     app.update_settings({"live": {"testnet": True}})
-    with pytest.raises(DENIAL):
+    with pytest.raises(DENIAL, match=SECURITY_REASON):
         app.place_manual_order({"account_id": legacy_runtime.account["id"], "symbol": "BTC/USDC",
                                 "side": "buy", "amount": 0.001, "confirm": True})
     legacy_runtime.positions.open.assert_not_called()
@@ -217,7 +218,7 @@ def test_retained_live_runtime_cannot_trade_after_settings_change(app, legacy_ru
 def test_unknown_execution_kind_fails_closed(app, legacy_runtime, monkeypatch):
     monkeypatch.setattr(app.shield, "check_entry", lambda *args: None)
     legacy_runtime.account["kind"] = "unknown"
-    with pytest.raises(DENIAL):
+    with pytest.raises(DENIAL, match=SECURITY_REASON):
         app.place_manual_order({"account_id": legacy_runtime.account["id"], "symbol": "BTC/USDC",
                                 "side": "buy", "amount": 0.001, "confirm": True})
     legacy_runtime.positions.open.assert_not_called()
@@ -272,7 +273,7 @@ def test_reconciliation_with_existing_position_refuses_private_access(db, fake_e
     pm.open_positions.return_value = [{"id": 1, "symbol": "BTC/USDC", "status": "open",
                                        "qty": 0.001, "stop_price": 45000.0}]
     pm.protective_orders.return_value = []
-    with pytest.raises(DENIAL):
+    with pytest.raises(DENIAL, match=SECURITY_REASON):
         broker.reconcile(pm)
     assert_no_private(fake_exchange)
     pm._place_protections.assert_not_called()
@@ -286,7 +287,7 @@ def test_virtual_target_cannot_cancel_stop_or_send_sell(db, fake_exchange):
                              "price": price, "stop_price": 45000.0 if purpose == "stop" else None,
                              "status": "open", "exchange_id": exchange_id, "oco_group": "fake-group",
                              "purpose": purpose, "created_at": 1.0, "origin": "ai"})
-    with pytest.raises(DENIAL):
+    with pytest.raises(DENIAL, match=SECURITY_REASON):
         broker.process_bar("BTC/USDC", 50000, 52000, 49000, 51000, 3000)
     assert_no_private(fake_exchange)
 
@@ -300,7 +301,7 @@ def test_stop_replacement_does_not_cancel_existing_live_stop(app, legacy_runtime
                                    "side": "sell", "type": "stop", "amount": 0.001,
                                    "status": "open", "purpose": "stop", "exchange_id": "fake-stop"})
     manager = PositionManager(app.db, legacy_runtime.broker)
-    with pytest.raises(DENIAL):
+    with pytest.raises(DENIAL, match=SECURITY_REASON):
         manager.modify(pid, stop=46000)
     legacy_runtime.broker.cancel_order.assert_not_called()
     legacy_runtime.broker.place_order.assert_not_called()
