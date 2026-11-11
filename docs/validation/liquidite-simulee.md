@@ -14,9 +14,11 @@ quantités positifs, et un horodatage non futur et suffisamment récent. Les
 valeurs des tests sont entièrement artificielles.
 
 Ce composant **n'est pas encore raccordé au broker ni au portefeuille**. Il ne
-réserve pas de soldes, ne persiste pas les fills et ne modifie pas le carnet.
-Un orchestrateur doit empêcher deux ordres de réutiliser la même liquidité,
-traiter les exécutions partielles avec les protections OCO et adapter le carnet
+réserve pas de soldes et ne persiste pas les fills. `LiquidityPool` consomme
+atomiquement les niveaux partagés en mémoire, y compris entre threads, et refuse
+une cotation de remplacement à date égale ou antérieure. Le calculateur pur
+`simulate_taker` ne consomme pas de carnet. Un orchestrateur doit coupler la
+consommation au registre, traiter les exécutions partielles avec les protections OCO et adapter le carnet
 au temps sans fuite d'information. Il ne simule ni délai, ni annulations,
 ni concurrence, ni file d'attente d'un ordre maker. Le résultat n'est donc
 pas une reproduction garantie d'un marché réel.

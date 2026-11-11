@@ -115,3 +115,41 @@ def simulate_taker(book, side, quantity, *, now, max_age, fee_rate=0, amount_ste
             'average_price': notional / filled if filled else None, 'notional': notional,
             'fee': fees, 'quote_change': -(notional + fees) if side == 'buy' else notional - fees,
             'fills': fills, 'book_timestamp': book.timestamp, 'source': book.source}
+
+
+class LiquidityPool:
+    """Atomically consume a shared snapshot; callers still own the cash ledger."""
+    def __init__(self, book):
+        import threading
+        if not isinstance(book, BookSnapshot):
+            raise LiquidityError('Carnet invalide')
+        self._lock = threading.RLock()
+        self._book = book
+        self._bids, self._asks = list(book.bids), list(book.asks)
+
+    def refresh(self, book):
+        if not isinstance(book, BookSnapshot):
+            raise LiquidityError('Carnet invalide')
+        with self._lock:
+            if book.source != self._book.source or book.timestamp <= self._book.timestamp:
+                raise LiquidityError('Actualisation non monotone ou source différente')
+            self._book = book
+            self._bids, self._asks = list(book.bids), list(book.asks)
+
+    def execute(self, side, quantity, **kwargs):
+        with self._lock:
+            if not self._bids or not self._asks:
+                raise LiquidityError('Carnet épuisé : nouvelle cotation nécessaire')
+            book = BookSnapshot(tuple(self._bids), tuple(self._asks), self._book.timestamp, self._book.source)
+            result = simulate_taker(book, side, quantity, **kwargs)
+            levels = self._asks if side == 'buy' else self._bids
+            for fill in result['fills']:
+                price, available = levels[0]
+                if price != fill['price'] or fill['quantity'] > available:
+                    raise LiquidityError('Incohérence de liquidité')
+                remaining = available - fill['quantity']
+                if remaining == 0:
+                    levels.pop(0)
+                else:
+                    levels[0] = (price, remaining)
+            return result

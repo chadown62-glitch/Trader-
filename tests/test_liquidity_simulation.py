@@ -46,3 +46,32 @@ def test_old_or_future_snapshot_is_refused(timestamp):
 def test_invalid_or_crossed_books_are_refused(bids, asks):
     with pytest.raises(LiquidityError):
         BookSnapshot(bids=bids, asks=asks, timestamp=100, source='fake')
+
+
+def test_shared_pool_prevents_double_consumption_even_with_concurrent_orders():
+    import threading
+    from sentinelle.execution.liquidity import LiquidityPool
+    pool = LiquidityPool(book())
+    barrier, results = threading.Barrier(2), []
+    def run():
+        barrier.wait()
+        results.append(pool.execute('buy', 4, now=105, max_age=10, amount_step=1))
+    workers = [threading.Thread(target=run) for _ in range(2)]
+    for worker in workers: worker.start()
+    for worker in workers: worker.join(timeout=5)
+    assert all(not worker.is_alive() for worker in workers)
+    assert sorted(result['filled'] for result in results) == [1, 4]
+    assert sum(result['filled'] for result in results) == 5
+    with pytest.raises(LiquidityError, match='épuisé'):
+        pool.execute('buy', 1, now=105, max_age=10, amount_step=1)
+
+
+def test_refresh_must_be_newer_and_from_same_source():
+    from sentinelle.execution.liquidity import LiquidityPool
+    pool = LiquidityPool(book())
+    with pytest.raises(LiquidityError, match='non monotone'):
+        pool.refresh(book())
+    with pytest.raises(LiquidityError, match='source différente'):
+        pool.refresh(BookSnapshot(bids=((99, 2),), asks=((101, 2),), timestamp=101, source='other'))
+    pool.refresh(book(101))
+    assert pool.execute('buy', 1, now=101, max_age=10, amount_step=1)['filled'] == 1
