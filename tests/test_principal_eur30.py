@@ -80,6 +80,65 @@ def test_polling_old_candle_does_not_refresh_an_expired_price(eur_app, monkeypat
         broker.place_order("BTC/EUR", "buy", "market", 0.0002)
 
 
+@pytest.mark.parametrize("action", ["close", "modify"])
+def test_stale_price_does_not_remove_position_protection(eur_app, action):
+    rt = eur_app.runtime(principal(eur_app)["id"])
+    position = rt.positions.open("BTC/EUR", 0.0002, origin="manual", stop=45000)
+    before = rt.positions.protective_orders(position["id"])
+    assert before and before[0]["type"] == "stop"
+    eur_app.hub.price_ts["BTC/EUR"] -= 500
+    with pytest.raises(OrderError, match="Prix indisponible"):
+        if action == "close":
+            rt.positions.close(position["id"])
+        else:
+            rt.positions.modify(position["id"], stop=44000)
+    assert rt.positions.get(position["id"])["status"] == "open"
+    assert rt.positions.protective_orders(position["id"]) == before
+
+
+def test_failed_stop_replacement_restores_previous_protection(eur_app, monkeypatch):
+    rt = eur_app.runtime(principal(eur_app)["id"])
+    position = rt.positions.open("BTC/EUR", 0.0002, origin="manual", stop=45000)
+    before = rt.positions.protective_orders(position["id"])
+    original = rt.broker.place_order
+    def broken(*args, **kwargs):
+        if kwargs.get("purpose") == "stop":
+            raise OrderError("Échec fictif de pose du stop")
+        return original(*args, **kwargs)
+    monkeypatch.setattr(rt.broker, "place_order", broken)
+    with pytest.raises(OrderError, match="stop"):
+        rt.positions.modify(position["id"], stop=44000)
+    assert rt.positions.get(position["id"])["stop_price"] == 45000
+    assert rt.positions.protective_orders(position["id"]) == before
+
+
+def test_failed_exit_preserves_open_position_and_stop(eur_app, monkeypatch):
+    rt = eur_app.runtime(principal(eur_app)["id"])
+    position = rt.positions.open("BTC/EUR", 0.0002, origin="manual", stop=45000)
+    before = rt.positions.protective_orders(position["id"])
+    original = rt.broker.place_order
+    def broken(*args, **kwargs):
+        if kwargs.get("purpose") == "exit":
+            raise OrderError("Échec fictif de vente")
+        return original(*args, **kwargs)
+    monkeypatch.setattr(rt.broker, "place_order", broken)
+    with pytest.raises(OrderError, match="vente"):
+        rt.positions.close(position["id"])
+    assert rt.positions.get(position["id"])["status"] == "open"
+    assert rt.positions.protective_orders(position["id"]) == before
+
+
+def test_unsellable_position_is_not_falsely_marked_closed(eur_app):
+    rt = eur_app.runtime(principal(eur_app)["id"])
+    position = rt.positions.open("BTC/EUR", 0.0002, origin="manual", stop=45000)
+    before = rt.positions.protective_orders(position["id"])
+    eur_app.hub.markets["BTC/EUR"] = MarketInfo("BTC/EUR", "BTC", "EUR", amount_step=0.00001, min_notional=100)
+    with pytest.raises(OrderError, match="minimum"):
+        rt.positions.close(position["id"])
+    assert rt.positions.get(position["id"])["status"] == "open"
+    assert rt.positions.protective_orders(position["id"]) == before
+
+
 def test_legacy_accounts_and_orders_are_preserved_and_inert(tmp_path):
     db = Database(tmp_path / "sentinelle.db")
     old = db.insert("accounts", {"name": "legacy", "kind": "paper", "role": "ai_training", "quote": "USDC", "initial_balance": 10000})

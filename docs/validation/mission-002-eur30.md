@@ -24,6 +24,10 @@ sur la PR #5. Rien n'a été fusionné dans `main`.
   minimums du marché connus du simulateur. Les cours expirés et les bougies
   périmées, futures ou incohérentes sont refusés. Une valorisation sans cours
   disponible est signalée comme indisponible et non évaluée à zéro.
+* Une demande de fermeture ou de modification est refusée si le cours est
+  indisponible. Le remplacement d'un stop et la fermeture sont transactionnels :
+  une erreur restaure les protections précédentes. Un montant sous le minimum
+  de vente ne fait plus déclarer une position fermée sans vente fictive.
 * Le backtest est isolé dans une base SQLite en mémoire et son capital par défaut
   est 30 unités de la monnaie sélectionnée. Il ne modifie pas le portefeuille.
 
@@ -52,6 +56,8 @@ sur la PR #5. Rien n'a été fusionné dans `main`.
 8. Les suites ont été exécutées sans réseau de sortie, sans compte réel et avec
    un paquet CCXT local partiel ; installer les dépendances complètes du projet
    dans un environnement isolé pour une nouvelle validation indépendante.
+9. Un stop simulé conservé en base ne peut être exécuté que si de nouvelles
+   données arrivent. Aucun prix ni exécution ne sont garantis pendant une panne.
 
 Le verdict de l'issue #6 reste **travail en cours / tests incomplets** : ni la
 simulation réaliste complète, ni la conversion multi-devises, ni l'apprentissage
