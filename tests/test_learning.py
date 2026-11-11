@@ -277,9 +277,9 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
         return np.where((ts // HOUR) % 24 < 12, 0.003, -0.003)
 
     series = {s: make_series(17_000, seed=10 + i, start=p, drift_fn=drift)
-              for i, (s, p) in enumerate((("BTC/USDC", 30_000), ("ETH/USDC", 2_000), ("SOL/USDC", 50)))}
+              for i, (s, p) in enumerate((("BTC/EUR", 30_000), ("ETH/EUR", 2_000), ("SOL/EUR", 50)))}
     app = App(tmp_path, source=HistorySource(series), start=False, settings_override={
-        "general": {"watchlist": list(series)}, "market": {"source": "synthetic"},
+        "general": {"quote": "EUR", "watchlist": list(series)}, "market": {"source": "synthetic"},
         "ai": {"timeframe": "1h", "strategies": {k: True for k in ("trend_breakout", "pullback", "mean_reversion", "momentum", "trend_follow")}}})
     try:
         steps = []
@@ -297,7 +297,7 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
             time.sleep(0.2)
         sheets = app.knowledge_list()["items"]
         assert [s["symbol"] for s in sheets] == list(series) and not any(s.get("missing") for s in sheets)
-        assert app.knowledge_get("BTC/USDC")["history"]["bars"] == 17_000
+        assert app.knowledge_get("BTC/EUR")["history"]["bars"] == 17_000
         assert app.refresh_knowledge_if_stale() is False  # fiches fraîches : rien à refaire
         mon = app.learning_monitor()
         assert mon["model"]["version"] == out["version"] and "mixte" in mon["model"]["level"]
