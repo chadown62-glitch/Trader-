@@ -186,7 +186,7 @@ class CcxtSource:
     def fetch_order_book(self, symbol: str, limit: int = 50) -> dict:
         with self._lock:
             ob = self._ex.fetch_order_book(symbol, limit=limit)
-        return {"bids": ob.get("bids") or [], "asks": ob.get("asks") or []}
+        return {"bids": ob.get("bids") or [], "asks": ob.get("asks") or [], "timestamp": ob.get("timestamp")}
 
     def fetch_trade_flow(self, symbol: str, minutes: int = 15) -> dict:
         """Volumes achetés et vendus « au marché » (acheteurs et vendeurs agressifs) sur les dernières minutes.
