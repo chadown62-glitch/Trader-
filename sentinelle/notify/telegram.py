@@ -5,7 +5,7 @@ Sécurité :
 - tant que l'identifiant n'est pas configuré, il se contente d'indiquer
   l'identifiant de la personne qui lui écrit (pour la configuration) ;
 - les commandes sensibles demandent une confirmation par bouton ;
-- l'IA en argent réel ne peut pas être démarrée depuis Telegram (panel seulement).
+- simulation uniquement : aucune commande ne peut toucher de l'argent réel (voir sentinelle/safety.py).
 """
 
 from __future__ import annotations
@@ -108,18 +108,15 @@ class TelegramService:
         d = event.get("data", {})
         try:
             if topic == "position_opened" and d.get("origin") == "ai":
-                acc = self.app.db.one("SELECT name, kind FROM accounts WHERE id = ?", (d.get("account_id"),)) or {}
-                tag = "💶 RÉEL" if acc.get("kind") == "live" else "🧪 Entraînement"
-                self.notify(f"{tag} — <b>Achat {esc(d.get('symbol'))}</b>\n{esc(d.get('reason_open') or '')}", "all" if acc.get("kind") != "live" else "important")
+                self.notify(f"🧪 Entraînement — <b>Achat {esc(d.get('symbol'))}</b>\n{esc(d.get('reason_open') or '')}", "all")
             elif topic == "trade_closed":
-                acc = self.app.db.one("SELECT name, kind FROM accounts WHERE id = ?", (d.get("account_id"),)) or {}
-                tag = "💶 RÉEL" if acc.get("kind") == "live" else ("🧪 Entraînement" if d.get("origin") == "ai" else "📝 Papier")
+                tag = "🧪 Entraînement" if d.get("origin") == "ai" else "📝 Papier"
                 pnl = d.get("realized_pnl") or 0.0
                 r = d.get("pnl_r")
                 emoji = "✅" if pnl > 0 else "❌"
                 txt = (f"{tag} — {emoji} <b>Vente {esc(d.get('symbol'))}</b> ({esc(d.get('reason_close') or '')})\n"
                        f"Résultat : {money(pnl)}" + (f" ({r:+.2f} R)" if r is not None else ""))
-                self.notify(txt, "important" if acc.get("kind") == "live" else "all")
+                self.notify(txt, "all")
             elif topic == "alert":
                 self.notify(f"⚠️ {esc(d.get('message'))}", "critical" if d.get("level") == "critical" else "important")
             elif topic == "training_done":
@@ -209,8 +206,7 @@ class TelegramService:
             lines = ["<b>État de Sentinelle</b>", f"Données de marché : {'✅' if app.hub.status.get('ok') else '⚠️'}"]
             for a in agents:
                 lines.append(f"{esc(a['label'])} : {esc(a.get('status'))}")
-            live = app.live_status
-            lines.append(f"Portefeuille réel : {'connecté' if live.get('connected') else 'non connecté'}")
+            lines.append("Mode : 🔒 simulation uniquement (argent fictif, aucun ordre réel possible)")
             sh = app.shield.status()
             pauses = [v["reason"] for v in sh["volatility"].values()] + ([sh["cascade"]["reason"]] if sh["cascade"] else [])
             pauses += [sh["news"]] if sh["news"] else []
@@ -265,7 +261,7 @@ class TelegramService:
         if cmd == "/reprendre":
             try:
                 app.call(app.start_agent, "ia_entrainement").result(timeout=60)
-                return "▶️ IA d'entraînement relancée (l'IA réelle ne se démarre que depuis le panel)."
+                return "▶️ IA d'entraînement relancée (argent fictif)."
             except Exception as exc:
                 return f"Impossible : {esc(exc)}"
         if cmd == "/urgence":

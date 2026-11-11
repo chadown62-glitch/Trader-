@@ -34,7 +34,7 @@ export default {
   template: `
   <div>
     <div class="page-head"><h1>Historique</h1><span class="spacer"></span>
-      <select v-model="accountId" style="width:auto"><option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.name }}{{ a.kind==='live' ? ' (réel)' : '' }}</option></select>
+      <select v-model="accountId" style="width:auto"><option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.name }}{{ a.kind==='paper' ? '' : ' (ancien compte réel)' }}</option></select>
       <div class="seg"><button :class="{on: origin===''}" @click="origin=''">Tous</button><button :class="{on: origin==='ai'}" @click="origin='ai'">IA</button><button :class="{on: origin==='manual'}" @click="origin='manual'">Manuels</button></div>
       <a class="btn" :href="csvUrl">⤓ Export CSV</a>
     </div>

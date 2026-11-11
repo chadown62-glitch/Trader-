@@ -199,10 +199,9 @@ const App = {
     applyTheme();
     const toggleTheme = () => { theme.value = theme.value === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('stn-theme', theme.value); } catch { /* ignoré */ } applyTheme(); };
     const logout = async () => { await safe(api.post('/api/auth/logout')); store.auth.authenticated = false; };
-    const liveConnected = computed(() => store.overview?.live?.connected);
     const marketOk = computed(() => store.overview?.market?.status?.ok);
     const more = ref(false);
-    return { store, route, view, NAV, logout, LOGO, liveConnected, marketOk, theme, toggleTheme, more };
+    return { store, route, view, NAV, logout, LOGO, marketOk, theme, toggleTheme, more };
   },
   template: `
   <div v-if="!store.auth.checked" class="boot">Connexion…</div>
@@ -212,7 +211,7 @@ const App = {
       <div class="brand"><span v-html="LOGO"></span><span class="name">Sentinelle</span></div>
       <span class="light hide-mobile" title="Données de marché"><span class="dot" :class="marketOk ? 'ok' : 'warn'"></span>Marché</span>
       <span class="light" title="Mises à jour en temps réel"><span class="dot" :class="store.ws ? 'ok' : 'err'"></span><span class="hide-mobile">Temps réel</span></span>
-      <span v-if="liveConnected" class="badge live hide-mobile">Réel connecté{{ store.overview.live.testnet ? ' (testnet)' : '' }}</span>
+      <span class="badge paper hide-mobile" title="Cette version ne peut passer aucun ordre réel">🔒 Simulation uniquement</span>
       <span class="spacer"></span>
       <button class="urgence" @click="store.emergencyOpen = true" title="Arrêt d'urgence">🛑 <span class="hide-mobile">Urgence</span></button>
       <button class="ghost small" @click="toggleTheme" :title="theme==='dark' ? 'Thème clair' : 'Thème sombre'">{{ theme==='dark' ? '☀' : '☾' }}</button>

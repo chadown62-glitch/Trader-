@@ -1,107 +1,111 @@
-"""Portefeuille réel : connexion à l'exchange, suivi des ordres, réconciliation."""
+"""Ancien « portefeuille réel » : désormais inerte (simulation uniquement).
+
+Ce module ne se connecte plus à aucun exchange. Il garde trois rôles :
+- décrire l'état du verrou pour le panel (`paper_only_status`) ;
+- écarter de la mémoire tout compte actif qui ne serait pas 100 % simulé ;
+- conserver les anciens points d'entrée (`_connect_live`, `_poll_live`…) sous forme
+  de coquilles vides, pour qu'aucun appel resté ailleurs ne puisse agir.
+
+Les anciens comptes réels, leurs positions, leurs ordres et les anciennes clés API
+restent dans les données locales : rien n'est effacé, mais rien n'est utilisé.
+"""
 
 from __future__ import annotations
 
-import time
+import logging
 
-from ..execution.base import OrderError
-from ..execution.live import LiveBroker, map_ccxt_error
-from ..execution.positions import PositionManager
-from ..market.sources import make_ccxt_exchange, market_from_ccxt
-from ..risk.manager import RiskManager
-from .common import AccountRuntime, LivePrices
+# Témoin de sécurité : cette fonction n'est PLUS appelée par ce module. Le nom est gardé ici
+# pour que les tests de sécurité puissent vérifier qu'aucun client d'exchange n'est créé
+# au démarrage, à la reconnexion ou lors d'un changement de réglages.
+from ..market.sources import make_ccxt_exchange  # noqa: F401
+from ..safety import LOCK_MESSAGE, forbid, is_paper_runtime
+from .common import AccountRuntime
+
+log = logging.getLogger("sentinelle.securite")
+
+LEGACY_KEYS = ("exchange_api_key", "exchange_secret", "exchange_password")
 
 
 class LiveMixin:
-    """Méthodes de l'application (portefeuille réel : connexion à l'exchange, suivi des ordres, réconciliation)."""
+    """Méthodes de l'application : état du verrou « simulation uniquement » et anciens comptes réels (inertes)."""
 
     # ======================================================================
-    # Compte réel
+    # État du verrou
     # ======================================================================
+    def legacy_accounts(self) -> list[dict]:
+        """Anciens comptes non simulés encore présents dans les données (conservés, jamais utilisés)."""
+        return self.db.query("SELECT id, name, kind, role, created_at FROM accounts WHERE kind != 'paper' AND archived = 0 ORDER BY id")
+
     def live_account(self) -> dict | None:
-        return self.db.one("SELECT * FROM accounts WHERE role = 'live' AND archived = 0")
+        return self.db.one("SELECT * FROM accounts WHERE kind != 'paper' AND archived = 0 ORDER BY id")
 
-    def _connect_live(self) -> dict:
-        cfg = self.settings["live"]
-        key, secret = self.secrets.get("exchange_api_key"), self.secrets.get("exchange_secret")
-        if not key or not secret:
-            self.live_status = {"connected": False, "error": "Clés API non renseignées"}
-            return self.live_status
+    def paper_only_status(self) -> dict:
+        legacy = []
+        for acc in self.legacy_accounts():
+            legacy.append({
+                **acc,
+                "open_positions": int(self.db.scalar(
+                    "SELECT COUNT(*) FROM positions WHERE account_id = ? AND status IN ('pending', 'open')", (acc["id"],), 0)),
+                "open_orders": int(self.db.scalar(
+                    "SELECT COUNT(*) FROM orders WHERE account_id = ? AND status IN ('new', 'open', 'partially_filled')", (acc["id"],), 0)),
+            })
+        return {
+            "paper_only": True,
+            "message": LOCK_MESSAGE,
+            "legacy_accounts": legacy,
+            "legacy_keys": self.secrets.has_any(LEGACY_KEYS),
+            "legacy_note": ("D'anciens ordres ou positions réels peuvent encore exister sur votre plateforme d'échange : "
+                            "Sentinelle ne les voit plus et ne les gère plus. Vérifiez-les directement sur le site de la plateforme."
+                            if legacy else None),
+        }
+
+    # ======================================================================
+    # Comptes actifs : uniquement simulés
+    # ======================================================================
+    def paper_runtimes(self) -> list[tuple[int, AccountRuntime]]:
+        """Comptes actifs vérifiés. Tout compte actif qui n'est pas 100 % simulé est écarté et journalisé."""
+        out = []
+        for aid, rt in list(self.runtimes.items()):
+            if is_paper_runtime(rt):
+                out.append((aid, rt))
+            else:
+                self._evict_runtime(aid, "compte actif non simulé écarté")
+        return out
+
+    def _evict_runtime(self, account_id, why: str) -> None:
+        rt = self.runtimes.pop(account_id, None)
+        self.snapshots.pop(account_id, None)
+        kind = broker = None
         try:
-            ex = make_ccxt_exchange(cfg["exchange"], api_key=key, secret=secret, password=self.secrets.get("exchange_password"), testnet=cfg["testnet"])
-            raw = ex.load_markets()
-            markets = {s: market_from_ccxt(m, ex.precisionMode) for s, m in raw.items() if m.get("spot")}
-            bal = ex.fetch_balance()
-        except Exception as exc:
-            err = map_ccxt_error(exc)
-            self.live_status = {"connected": False, "error": err.message, "exchange": cfg["exchange"], "testnet": cfg["testnet"]}
-            self.db.log("warning", "réel", f"Connexion à l'exchange impossible : {err.message}")
-            return self.live_status
-        quote = self.settings["general"]["quote"]
-        acc = self.live_account()
-        if acc is None:
-            aid = self.db.insert("accounts", {"name": "Portefeuille réel", "kind": "live", "role": "live", "quote": quote,
-                                              "created_at": time.time(), "data": "{}"})
-            acc = self.db.one("SELECT * FROM accounts WHERE id = ?", (aid,))
-        prices = LivePrices(ex)
-        self.live_prices = prices
+            kind = rt.account["kind"]
+            broker = type(rt.broker).__name__
+        except Exception:
+            pass
+        try:
+            log.warning("Sécurité : %s (compte %s, type %s, courtier %s)", why, account_id, kind, broker)
+            self.db.log("warning", "sécurité", f"Simulation uniquement : {why}",
+                        {"compte": account_id, "type_de_compte": kind, "courtier": broker})
+        except Exception:
+            pass
 
-        def market_fn(symbol: str):
-            if symbol not in markets:
-                raise KeyError(symbol)
-            return markets[symbol]
-
-        broker = LiveBroker(self.db, acc["id"], quote, ex, market_fn, prices)
-        rt = AccountRuntime(acc, broker, PositionManager(self.db, broker, self.bus), RiskManager(self.db, acc["id"], lambda: self.settings))
-        rt.positions.close_listeners.append(self._on_position_closed)
-        self.runtimes[acc["id"]] = rt
-        total = {k: v for k, v in (bal.get("total") or {}).items() if v}
-        self.live_status = {"connected": True, "error": None, "exchange": cfg["exchange"], "testnet": cfg["testnet"],
-                            "account_id": acc["id"], "assets": len(total), "connected_at": time.time()}
-        self.db.log("info", "réel", f"Connecté à {cfg['exchange']}{' (testnet)' if cfg['testnet'] else ''}")
-        issues = broker.reconcile(rt.positions)
-        if issues:
-            self.bus.publish("alert", {"level": "warning", "message": "Réconciliation : " + " ; ".join(issues)})
+    # ======================================================================
+    # Anciens points d'entrée : coquilles vides
+    # ======================================================================
+    def _connect_live(self) -> dict:
+        """Ne se connecte jamais. Renvoie l'état « verrouillé »."""
+        self.paper_runtimes()
+        self.live_status = {"connected": False, "locked": True, "error": LOCK_MESSAGE}
         return self.live_status
 
     def reconnect_live(self) -> dict:
-        acc = self.live_account()
-        if acc and acc["id"] in self.runtimes:
-            if "ia_reel" in self.agents:
-                self.stop_agent("ia_reel")
-            del self.runtimes[acc["id"]]
-        return self._connect_live()
+        self._connect_live()
+        forbid("connexion au portefeuille réel", db=self.db)
 
     def _poll_live(self) -> None:
-        acc = self.live_account()
-        rt = self.runtimes.get(acc["id"]) if acc else None
-        if rt is None or self.live_prices is None:
-            return
-        for sym in {o["symbol"] for o in rt.broker.open_orders() if o["exchange_id"] == "virtual"}:
-            prev = self.live_prices.cache.get(sym, (0, None))[1]
-            px = self.live_prices(sym)
-            if px and prev:
-                rt.broker.process_bar(sym, prev, max(prev, px), min(prev, px), px, int((time.time() - 1) * 1000))
+        self.paper_runtimes()
 
     def _sync_live(self) -> None:
-        acc = self.live_account()
-        rt = self.runtimes.get(acc["id"]) if acc else None
-        if rt is None:
-            return
-        try:
-            rt.broker.sync()
-            self.live_status["error"] = None
-        except OrderError as exc:
-            self.live_status["error"] = exc.message
+        self.paper_runtimes()
 
     def _reconcile_live(self) -> None:
-        acc = self.live_account()
-        rt = self.runtimes.get(acc["id"]) if acc else None
-        if rt is None:
-            return
-        try:
-            issues = rt.broker.reconcile(rt.positions)
-            if issues:
-                self.bus.publish("alert", {"level": "warning", "message": "Réconciliation : " + " ; ".join(issues)})
-        except OrderError as exc:
-            self.live_status["error"] = exc.message
+        self.paper_runtimes()

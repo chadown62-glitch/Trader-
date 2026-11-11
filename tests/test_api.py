@@ -67,7 +67,8 @@ def test_overview_and_accounts(client):
     roles = {a["role"] for a in ov["accounts"]}
     assert {"ai_training", "manual"} <= roles
     assert ov["engine_alive"] is True
-    assert {a["name"] for a in ov["agents"]} == {"ia_entrainement", "ia_reel"}
+    assert {a["name"] for a in ov["agents"]} == {"ia_entrainement"}  # simulation uniquement : plus d'IA « réelle »
+    assert ov["paper_only"]["paper_only"] is True and ov["live"] == {"connected": False, "locked": True}
     m = client.get("/api/markets").json()
     assert "BTC/USDC" in m["prices"]
 
@@ -123,10 +124,10 @@ def test_settings_validation_and_secrets(client):
     client.put("/api/secrets", json={"values": {"telegram_token": None}}, headers=H)
 
 
-def test_live_agent_locked_without_readiness(client):
+def test_live_agent_is_refused(client):
     _login(client)
     r = client.post("/api/agents/ia_reel/start", json={"confirm": "JE COMPRENDS LES RISQUES"}, headers=H)
-    assert r.status_code == 400
+    assert r.status_code == 403 and r.json()["code"] == "paper_only"
     rd = client.get("/api/ai/readiness").json()
     assert rd["unlocked"] is False and rd["criteria"]
 

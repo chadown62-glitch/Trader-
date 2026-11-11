@@ -1,4 +1,4 @@
-"""Gestion des positions (commune à la simulation et au réel).
+"""Gestion des positions (argent fictif uniquement).
 
 Une position = un achat + ses protections (stop-loss et objectif, en OCO).
 Le gestionnaire écoute les exécutions du broker et tient à jour quantité,
@@ -11,6 +11,7 @@ import logging
 import time
 from typing import Callable
 
+from ..safety import is_paper_broker, require_paper_broker
 from ..storage.db import Database, dumps
 from .base import OPEN_STATUSES, OrderError, fee_in_quote
 
@@ -30,10 +31,20 @@ class PositionManager:
         self.broker = broker
         self.bus = bus
         self.clock = clock
-        self.account_id = broker.account_id
-        self.quote = broker.quote
-        broker.listeners.append(self.on_fill)
+        self.account_id = getattr(broker, "account_id", None)
+        self.quote = getattr(broker, "quote", None)
         self.close_listeners: list[Callable[[dict], None]] = []
+        if is_paper_broker(broker):
+            broker.listeners.append(self.on_fill)
+        else:
+            # Sécurité : lié à un courtier non simulé, ce gestionnaire est INERTE. Il ne s'abonne pas à ce
+            # courtier, ignore ses exécutions et refuse chaque action (ouverture, fermeture, stop, objectif).
+            log.warning("Gestionnaire de positions créé sur un courtier non simulé (%s) : inerte", type(broker).__name__)
+            try:
+                db.log("warning", "sécurité", "Simulation uniquement : gestionnaire de positions sur un courtier non simulé, rendu inerte",
+                       {"courtier": type(broker).__name__, "compte": self.account_id})
+            except Exception:
+                pass
 
     # -- lecture ------------------------------------------------------------
     def get(self, position_id: int) -> dict:
@@ -85,6 +96,7 @@ class PositionManager:
         reason: str | None = None,
         data: dict | None = None,
     ) -> dict:
+        self._guard("ouverture de position")
         if stop is not None and limit_price is None and entry_type == "market":
             last = self.broker.price_fn(symbol) if hasattr(self.broker, "price_fn") else None
             if last and stop >= last:
@@ -138,6 +150,8 @@ class PositionManager:
 
     # -- exécutions -------------------------------------------------------------
     def on_fill(self, order: dict, fill: dict) -> None:
+        if not is_paper_broker(self.broker):
+            return  # sécurité : une exécution venue d'un courtier non simulé est ignorée
         purpose = order.get("purpose")
         pos_id = order.get("position_id")
         try:
@@ -178,7 +192,12 @@ class PositionManager:
             self._publish("position_opened", self.get(pos_id))
             self._place_protections(self.get(pos_id))
 
+    def _guard(self, operation: str) -> None:
+        """Sécurité : toute action passe par un courtier simulé, vérifié à chaque appel."""
+        require_paper_broker(self.broker, f"{operation} sur un courtier non simulé", self.db)
+
     def _place_protections(self, pos: dict) -> None:
+        self._guard("pose d'un stop ou d'un objectif")
         m = self.broker.market_fn(pos["symbol"])
         qty = m.floor_amount(pos["qty"])
         if qty <= 0:
@@ -267,6 +286,7 @@ class PositionManager:
             remaining -= take
 
     def _resize_protections(self, pos: dict) -> None:
+        self._guard("ajustement d'un stop ou d'un objectif")
         orders = self.protective_orders(pos["id"])
         if not orders:
             return
@@ -280,6 +300,7 @@ class PositionManager:
 
     # -- actions ----------------------------------------------------------------
     def modify(self, position_id: int, stop: float | None = None, target: float | None = None, clear_target: bool = False) -> dict:
+        self._guard("modification de position")
         pos = self.get(position_id)
         if pos["status"] != "open":
             raise OrderError("Seule une position ouverte peut être modifiée")
@@ -303,6 +324,7 @@ class PositionManager:
         return p
 
     def close(self, position_id: int, reason: str = "Clôture manuelle") -> dict:
+        self._guard("fermeture de position")
         pos = self.get(position_id)
         if pos["status"] == "pending":
             for o in self.db.query(

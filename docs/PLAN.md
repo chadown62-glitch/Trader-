@@ -8,7 +8,7 @@ Mis à jour le 10 novembre 2026. ✅ = fait · 🔲 = à faire · 👤 = c'est �
 |---|-------|------|
 | 1 | Passer le dépôt GitHub en **privé** (Settings → General → Danger Zone) | 👤 🔲 |
 | 2 | Sur votre PC : `diagnostic.bat`, puis `demo.bat`, puis `lancer.bat`, et me signaler tout problème | 👤 🔲 |
-| 3 | Clés **testnet** Binance : ordre manuel, stop posé, fermeture, arrêt d'urgence, redémarrage du PC | 👤 🔲 |
+| 3 | ~~Clés testnet Binance~~ : **sans objet**. Depuis le 11 novembre 2026, Sentinelle fonctionne en simulation uniquement (voir SECURITE.md). Si vous aviez créé des clés, révoquez-les sur le site de la plateforme. | — |
 | 4 | Bot Telegram (@BotFather) : alertes et commandes | 👤 🔲 |
 | 5 | Ollama + `ollama pull qwen2.5:7b`, puis activer les actualités | 👤 🔲 |
 | 6 | Laisser tourner l'IA d'entraînement **30 jours minimum** | 👤 🔲 |
@@ -67,7 +67,7 @@ Mis à jour le 10 novembre 2026. ✅ = fait · 🔲 = à faire · 👤 = c'est �
 
 ## 5. Pistes pour la suite
 
-- Après 30 jours d'entraînement : bilan chiffré. Si le bulletin est au vert : testnet, puis réel avec un petit budget.
+- Après 30 jours d'entraînement : bilan chiffré du bulletin de fiabilité, en argent fictif. Aucun passage au réel n'est prévu dans cette version.
 - Suivre le modèle « à l'essai » en direct : il faut environ 130 trades pour prouver (ou infirmer) à 95 % son avantage mesuré sur l'historique.
 - Flux acheteur/vendeur par bougie : petit effet mesuré sur 33 cryptos seulement. À revoir si la liste suivie s'élargit (demande de re-télécharger l'historique avec ces colonnes).
 - Activer un canal de signaux en trading **seulement** s'il est positif sur au moins 30 signaux mesurés (pas encore codé : à faire après observation).

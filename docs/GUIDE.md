@@ -2,7 +2,7 @@
 
 > **À lire d'abord.** Sentinelle ne garantit aucun gain. Aucun logiciel ne le peut.
 > Le trading comporte un risque de perte en capital, et les résultats passés (réels ou simulés) ne garantissent pas les résultats futurs.
-> Sentinelle est conçu pour **protéger** votre argent : simulation par défaut, limites de perte automatiques et mode réel verrouillé tant que l'IA n'a pas fait ses preuves.
+> Sentinelle est conçu pour **protéger** votre argent : argent fictif uniquement, limites de perte automatiques, et aucun ordre réel possible dans cette version (voir [SECURITE.md](SECURITE.md)).
 
 ---
 
@@ -38,12 +38,12 @@ Autre possibilité : ouvrez un terminal et tapez `winget install Python.Python.3
 
 | Page | Ce que vous y faites |
 |------|---------------------|
-| **Tableau de bord** | Capital de chaque compte, état des IA, préparation au mode réel, courbe de capital, décisions de l'IA en direct. |
+| **Tableau de bord** | Capital de chaque compte, état des IA, bulletin de fiabilité, courbe de capital, décisions de l'IA en direct. |
 | **Trader** | Graphique en temps réel, passage d'ordres, calculatrice de risque, avis de l'IA, positions et ordres. |
-| **IA** | Entraînement en direct, portefeuille réel (verrouillé), apprentissage sur l'historique, simulation accélérée, journal des décisions. |
+| **IA** | Entraînement en direct, bulletin de fiabilité, apprentissage sur l'historique, simulation accélérée, journal des décisions. |
 | **Historique** | Tous vos trades, leurs statistiques et l'export CSV (utile pour les impôts). |
 | **Actualités** | Fil d'actualités crypto analysé par l'IA locale. |
-| **Réglages** | Risque, IA, exchange réel, Telegram, actualités, comptes, mot de passe. |
+| **Réglages** | Risque, IA, verrou et fiabilité, Telegram, actualités, comptes, mot de passe. |
 | **Journal** | Tout ce qui se passe dans le système. |
 
 En haut à droite, le bouton rouge **🛑 Urgence** propose deux niveaux :
@@ -63,7 +63,7 @@ En haut à droite, le bouton rouge **🛑 Urgence** propose deux niveaux :
    - L'aperçu affiche la quantité, les frais estimés et la **perte maximale** si le stop est touché.
 4. Le stop et l'objectif apparaissent sur le graphique. Vous pouvez les modifier ou fermer la position à tout moment.
 
-> Conseil : entraînez-vous plusieurs semaines sur le compte papier avant de trader en réel.
+> Tout se passe en argent fictif : vous pouvez vous entraîner sans aucun risque.
 
 ---
 
@@ -76,7 +76,7 @@ Page **IA → Apprentissage sur l'historique → Lancer l'entraînement**. Compt
 3. L'IA apprend lesquelles valent la peine. Elle est ensuite testée sur une **période qu'elle n'a jamais vue** : c'est le seul test honnête.
 4. **Verdict :**
    - **validé** : gain moyen positif sur la période jamais vue, avec **95 % de confiance** que ce n'est pas dû au hasard. Le modèle devient actif.
-   - **non validé** : l'IA reste en argent fictif et ne pourra pas trader en réel. **C'est une protection, pas un bug.**
+   - **non validé** : l'IA n'a pas prouvé d'avantage. Elle observe, ou utilise un modèle « à l'essai » avec une taille réduite. **C'est une protection, pas un bug.**
      - Si le modèle est prometteur sans être prouvé, il est mis **« à l'essai »** : l'IA d'entraînement s'en sert en argent fictif, avec une taille réduite de moitié, pour le juger sur des données vraiment nouvelles.
      - Sinon, l'IA reste en « exploration » : elle prend les signaux de base, avec une taille réduite.
 
@@ -96,8 +96,8 @@ Page **IA → Entraînement en direct → Démarrer**. L'IA surveille le marché
 - chaque signal est suivi jusqu'à son issue, ce qui permet de vérifier si l'IA a eu raison de refuser ;
 - elle se ré-entraîne régulièrement avec les données récentes. Un nouveau modèle n'est activé que s'il est validé.
 
-### c) Bulletin de préparation
-Le mode réel de l'IA se déverrouille seulement quand **toutes** ces conditions sont remplies (seuils réglables) :
+### c) Bulletin de fiabilité
+Il indique si l'IA a fait ses preuves **en argent fictif**. Il est au vert quand **toutes** ces conditions sont remplies (seuils réglables dans **Réglages → Verrou et fiabilité**) :
 - un modèle validé ;
 - au moins 30 jours d'entraînement en direct ;
 - au moins 25 trades avec le modèle ;
@@ -105,10 +105,8 @@ Le mode réel de l'IA se déverrouille seulement quand **toutes** ces conditions
 - une baisse maximale inférieure à 10 % ;
 - aucune erreur critique sur 7 jours.
 
-### d) Passage au réel, progressivement
-1. **Testnet** d'abord : réglage « testnet » activé, avec des clés créées sur le site de test de l'exchange (argent fictif sur la vraie plateforme).
-2. Ensuite le réel, avec un **petit budget** : une somme dont la perte ne changerait rien à votre vie.
-3. Confirmez en tapant la phrase demandée. Vous pouvez tout arrêter à tout moment.
+### d) Et l'argent réel ?
+Cette version ne le permet pas. Un bulletin au vert ne déverrouille rien : il n'existe ni bouton, ni réglage, ni phrase de confirmation pour passer en réel. Le détail du verrou est dans [SECURITE.md](SECURITE.md).
 
 ---
 
@@ -125,18 +123,16 @@ Le mode réel de l'IA se déverrouille seulement quand **toutes** ces conditions
 
 ---
 
-## 6. Le mode réel en sécurité
+## 6. Simulation uniquement
 
-- **Clés API** :
-  - droits « lecture + trading » seulement, **retrait désactivé** ;
-  - si possible, limitées à l'adresse IP de votre box (elle doit être fixe) ;
-  - elles restent sur votre ordinateur (`data/secrets.json`) et ne vont jamais sur GitHub.
-- **Double authentification** sur l'exchange, votre e-mail et Telegram.
-- **Plateforme** agréée en Europe (MiCA) : vérifiez sur le registre de l'ESMA ou la liste blanche de l'AMF.
-- **Le stop-loss est posé chez l'exchange** : il protège même si votre PC s'éteint. L'objectif de gain, lui, est surveillé par Sentinelle.
-- **Budget IA** : l'IA n'utilise jamais plus que le budget fixé dans les réglages.
-- **Plafond des ordres manuels réels** : protection contre les erreurs de saisie.
+- Sentinelle ne peut **ni envoyer, ni modifier, ni annuler un ordre réel**. Les cours sont réels, l'argent est fictif.
+- **Aucune clé API de plateforme d'échange** n'est demandée, lue ou utilisée. N'en créez pas pour Sentinelle.
+- Si vous utilisiez une ancienne version avec de vraies clés :
+  - elles restent dans `data/secrets.json` mais ne sont plus jamais lues ;
+  - supprimez-les dans **Réglages → Verrou et fiabilité**, et **révoquez-les sur le site de la plateforme** ;
+  - vos éventuels ordres et positions réels existent toujours sur la plateforme : Sentinelle ne les gère plus, vérifiez-les là-bas.
 - Méfiez-vous des arnaques : personne de sérieux ne vous demandera une clé avec droit de retrait ni de l'argent « pour débloquer des gains ».
+- Les gains obtenus en simulation ne garantissent jamais des gains réels.
 
 ---
 
@@ -161,7 +157,7 @@ Commandes disponibles :
 | `/fiche BTC` | Ce que Sentinelle sait d'une crypto |
 | `/aide` | Liste des commandes |
 
-L'IA en argent réel ne se démarre que depuis le panel, jamais depuis Telegram.
+Aucune commande Telegram ne peut toucher de l'argent réel : cette version fonctionne en simulation uniquement.
 
 ---
 
@@ -261,8 +257,8 @@ Ne rendez **jamais** le panel accessible directement depuis internet.
 | Le panel ne s'ouvre pas | Allez sur http://127.0.0.1:8765. Lancez `diagnostic.bat`. |
 | « Données de marché » en orange | Vérifiez votre connexion internet. Sentinelle réessaie tout seul. |
 | L'IA ne fait aucun trade | Normal si le marché est baissier (l'IA reste à l'abri) ou si aucun signal n'est assez bon. Lisez le journal des décisions. |
-| Modèle « non validé » | L'IA n'a pas trouvé d'avantage fiable sur la période de contrôle. Elle ne tradera pas en réel. Réessayez avec plus d'historique, une autre unité de temps (4 h) ou d'autres cryptos. |
-| Clés API refusées | Vérifiez les droits (lecture + trading), l'adresse IP autorisée et le choix testnet / réel. |
+| Modèle « non validé » | L'IA n'a pas trouvé d'avantage fiable sur la période de contrôle. Réessayez avec plus d'historique, une autre unité de temps (4 h) ou d'autres cryptos. |
+| « Mode simulation uniquement » (erreur 403) | C'est le verrou de sécurité : l'opération demandée aurait touché de l'argent réel. Voir [SECURITE.md](SECURITE.md). |
 | Ollama injoignable | Lancez Ollama, puis vérifiez le modèle avec `ollama list`. |
 | Arrêt de sécurité (baisse max) | Réglages → Comptes → « Reprendre après arrêt de sécurité », après avoir compris ce qui s'est passé. |
 

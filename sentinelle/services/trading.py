@@ -10,7 +10,6 @@ from ..ai.features import REGIME_LABELS, compute_features, warmup_bars
 from ..ai.labeling import candidate_row
 from ..ai.strategies import STRATEGIES, levels
 from ..execution.base import OrderError
-from ..execution.paper import PaperBroker
 from .common import AccountRuntime, UserError
 
 
@@ -41,7 +40,7 @@ class TradingMixin:
         qty = m.floor_amount(self._order_qty(rt, symbol, req["side"], price, req.get("amount"), req.get("quote_amount")))
         fee_rate = getattr(rt.broker, "fee_rate", 0.001)
         value = qty * price
-        eq, _ = rt.broker.equity() if isinstance(rt.broker, PaperBroker) else (self.snapshots.get(rt.account["id"], {}).get("equity") or 0, 0)
+        eq, _ = rt.broker.equity()
         warnings = rt.risk.manual_warnings(symbol, qty, price, req.get("stop_loss"), eq or 0) if req["side"] == "buy" else []
         err = m.validate(qty, price)
         risk_amount = (price - req["stop_loss"]) * qty if req.get("stop_loss") and req["side"] == "buy" else None
@@ -49,15 +48,11 @@ class TradingMixin:
             "symbol": symbol, "qty": qty, "price": price, "value": value, "fee": value * fee_rate,
             "warnings": warnings, "error": err, "risk_amount": risk_amount,
             "risk_pct": (risk_amount / eq * 100) if risk_amount and eq else None,
-            "live": rt.account["kind"] == "live",
         }
         if req["side"] == "buy" and req.get("type", "market") == "market" and qty > 0:
             danger = self.shield.check_entry(symbol, value)
             if danger:
                 out["warnings"] = [*warnings, f"Bouclier temps réel : {danger}. Prudence."]
-        if out["live"] and value > self.settings["live"]["manual_max_order_value"]:
-            out["error"] = (f"Ordre supérieur au plafond de sécurité ({self.settings['live']['manual_max_order_value']:,.0f} "
-                            f"{rt.account['quote']}) défini dans les réglages")
         return out
 
     def place_manual_order(self, req: dict) -> dict:
@@ -65,8 +60,6 @@ class TradingMixin:
         if prev["error"]:
             raise UserError(prev["error"])
         rt = self.runtime(req["account_id"])
-        if prev["live"] and req.get("confirm") is not True:
-            raise UserError("Confirmation requise pour un ordre en argent réel")
         symbol, side, otype = req["symbol"], req["side"], req.get("type", "market")
         try:
             if side == "buy":

@@ -122,13 +122,18 @@ def test_agent_exploration_opens_reduced_risk_position(db, paper, pm, risk, sett
     assert db.one("SELECT * FROM decisions WHERE kind = 'pris'") is not None
 
 
-def test_agent_live_without_model_never_trades(db, paper, pm, risk, settings, prices, clock):
+def test_agent_without_model_and_exploration_never_trades(db, paper, pm, risk, settings, prices, clock):
+    from sentinelle.safety import RealTradingForbidden
+
     df, feat, idx = _feat_with_signal()
     i = idx[-1]
     sub = feat.iloc[: i + 1].reset_index(drop=True)
     prices["ETH/USDC"] = float(sub["close"].iloc[-1])
     settings["ai"]["regime_filter"] = False
-    agent = TradingAgent("ia-reel", "live", db, pm, risk, lambda: settings, lambda: None, timeframe="1h", clock=clock)
+    with pytest.raises(RealTradingForbidden):  # le mode réel n'existe plus
+        TradingAgent("ia-reel", "live", db, pm, risk, lambda: settings, lambda: None, timeframe="1h", clock=clock)
+    settings["ai"]["exploration"] = False
+    agent = TradingAgent("ia", "training", db, pm, risk, lambda: settings, lambda: None, timeframe="1h", clock=clock)
     agent.running = True
     agent.on_bar("ETH/USDC", sub)
     assert pm.open_positions() == []

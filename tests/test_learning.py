@@ -376,13 +376,20 @@ def test_trial_model_trades_in_paper_only(db, paper, pm, prices, clock):
     settings["risk"]["min_reward_to_fees"] = 1.0
     risk = RiskManager(db, paper.account_id, lambda: settings, clock)
     trial = StubModel("non validé")
-    # en réel : un modèle non validé n'est jamais utilisé
-    live = TradingAgent("ia-reel", "live", db, pm, risk, lambda: settings, lambda: trial, timeframe="1h", clock=clock)
-    live.running = True
-    live.on_bar("ETH/USDC", sub)
+    # le mode réel n'existe plus : créer un agent « live » est refusé
+    from sentinelle.safety import RealTradingForbidden
+
+    with pytest.raises(RealTradingForbidden):
+        TradingAgent("ia-reel", "live", db, pm, risk, lambda: settings, lambda: trial, timeframe="1h", clock=clock)
+    # exploration coupée : un modèle non validé n'est jamais utilisé, l'IA observe
+    settings["ai"]["exploration"] = False
+    watcher = TradingAgent("ia", "training", db, pm, risk, lambda: settings, lambda: trial, timeframe="1h", clock=clock)
+    watcher.running = True
+    watcher.on_bar("ETH/USDC", sub)
     assert pm.open_positions() == []
     assert "Aucun modèle validé" in db.one("SELECT decision_reason FROM candidates")["decision_reason"]
     db.execute("DELETE FROM candidates")
+    settings["ai"]["exploration"] = True
     # en entraînement : il est mis à l'essai, avec une taille réduite de moitié
     agent = TradingAgent("ia", "training", db, pm, risk, lambda: settings, lambda: trial, timeframe="1h", clock=clock)
     agent.running = True

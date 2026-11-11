@@ -92,7 +92,7 @@ export const STRATEGY_LABELS = {
   momentum: 'Élan haussier',
   trend_follow: 'Suivi de tendance',
 };
-export const ROLE_LABELS = { ai_training: 'Entraînement IA', manual: 'Papier', live: 'Réel', backtest: 'Backtest' };
+export const ROLE_LABELS = { ai_training: 'Entraînement IA', manual: 'Papier', live: 'Ancien compte réel (inerte)', backtest: 'Backtest' };
 export const REASON_ICONS = { pris: '🟢', refusé: '⚪', sortie: '🔵', stop_relevé: '🛡️', erreur: '🔴' };
 export const FEATURE_LABELS = {
   r1: 'Rendement 1 bougie', r3: 'Rendement 3 bougies', r6: 'Rendement 6 bougies', r12: 'Rendement 12 bougies',
@@ -109,5 +109,5 @@ export const FEATURE_LABELS = {
 
 export function accountLabel(a) {
   if (!a) return '';
-  return a.kind === 'live' ? `${a.name} (RÉEL)` : `${a.name}`;
+  return a.kind === 'paper' ? `${a.name}` : `${a.name} (ancien compte réel, inerte)`;
 }

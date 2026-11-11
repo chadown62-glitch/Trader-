@@ -102,13 +102,14 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "cooldown_minutes_after_loss": 240,
     },
     "live": {
+        # SIMULATION UNIQUEMENT. Les quatre réglages ci-dessous viennent de l'ancien « portefeuille réel ».
+        # Ils sont conservés pour que d'anciens réglages enregistrés restent lisibles, mais ils sont
+        # INERTES : aucun code ne les lit plus et aucune valeur ne peut activer le trading réel.
         "exchange": "binance",
-        # Testnet = plateforme de test officielle de l'exchange (argent fictif).
         "testnet": True,
-        # Budget maximal que l'IA peut utiliser en réel, même si le compte contient plus.
         "budget": 200.0,
-        # Protection contre les erreurs de saisie en trading manuel réel.
         "manual_max_order_value": 500.0,
+        # Seuils du bulletin de fiabilité de l'IA (preuves en argent fictif). Ils n'ouvrent aucun mode réel.
         "unlock_min_days": 30,
         "unlock_min_trades": 25,
         "unlock_max_drawdown": 0.10,

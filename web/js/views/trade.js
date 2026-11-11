@@ -19,7 +19,7 @@ export default {
     const coach = ref(null);
     const preview = ref(null);
     const busy = ref(false);
-    const accounts = computed(() => (store.overview?.accounts || []).filter(a => a.connected !== false));
+    const accounts = computed(() => (store.overview?.accounts || []).filter(a => a.connected !== false && a.kind === 'paper'));
     const accountId = ref(null);
     const account = computed(() => accounts.value.find(a => a.id === accountId.value));
     const t = reactive({ side: 'buy', type: 'market', mode: 'quote', amount: null, limit: null, sl: null, tp: null, useRisk: false, riskPct: 0.5 });
@@ -146,14 +146,7 @@ export default {
 
     const submit = async () => {
       const b = body();
-      const isLive = account.value?.kind === 'live';
-      const pv = preview.value;
-      if (isLive) {
-        const ok = await confirmBox({ title: 'Ordre en ARGENT RÉEL', danger: true, confirmLabel: 'Envoyer l’ordre réel',
-          message: `${t.side === 'buy' ? 'Achat' : 'Vente'} de ${qty(pv?.qty)} ${base.value} (≈ ${money(pv?.value, quoteCcy.value)}) sur votre portefeuille réel.\nCet ordre utilise votre vrai argent.` });
-        if (!ok) return;
-        b.confirm = true;
-      } else if (t.side === 'buy' && !t.sl) {
+      if (t.side === 'buy' && !t.sl) {
         const ok = await confirmBox({ title: 'Achat sans stop-loss', message: 'Sans stop-loss, votre perte n’est pas limitée. Continuer quand même ?', confirmLabel: 'Acheter sans stop' });
         if (!ok) return;
       }
@@ -167,7 +160,7 @@ export default {
       }
     };
     const closePos = async (p) => {
-      const ok = await confirmBox({ title: `Fermer la position ${p.symbol}`, message: `Vente de ${qty(p.qty)} au prix du marché (résultat latent ${signed(p.pnl)}).`, confirmLabel: 'Fermer', danger: account.value?.kind === 'live' });
+      const ok = await confirmBox({ title: `Fermer la position ${p.symbol}`, message: `Vente de ${qty(p.qty)} au prix du marché (résultat latent ${signed(p.pnl)}).`, confirmLabel: 'Fermer' });
       if (!ok) return;
       await safe(api.post(`/api/positions/${p.id}/close`), 'Position fermée');
       loadDetail(); loadTrades();
@@ -194,7 +187,7 @@ export default {
       <select v-model="accountId" style="width:auto;min-width:200px">
         <option v-for="a in accounts" :key="a.id" :value="a.id">{{ accountLabel(a) }}</option>
       </select>
-      <span v-if="account" class="badge" :class="account.kind==='live' ? 'live' : 'paper'">{{ account.kind==='live' ? 'ARGENT RÉEL' : 'ARGENT FICTIF' }}</span>
+      <span v-if="account" class="badge paper">ARGENT FICTIF</span>
     </div>
     <div class="trade-layout">
       <div class="col">
@@ -242,7 +235,7 @@ export default {
             <tbody>
               <tr v-for="o in (detail?.orders || [])" :key="o.id">
                 <td>{{ o.symbol }}</td><td>{{ o.side==='buy' ? 'Achat' : 'Vente' }} {{ o.type==='market' ? 'marché' : o.type==='limit' ? 'limite' : 'stop' }}</td>
-                <td>{{ PURPOSE[o.purpose] || o.purpose }}<span v-if="o.exchange_id==='virtual'" class="faint small"> (surveillé par le bot)</span></td>
+                <td>{{ PURPOSE[o.purpose] || o.purpose }}</td>
                 <td class="num">{{ qty(o.amount - o.filled) }}</td><td class="num">{{ price(o.price || o.stop_price) }}</td><td>{{ dt(o.created_at) }}</td>
                 <td><button class="small" @click="cancelOrder(o)">Annuler</button></td>
               </tr>
@@ -290,8 +283,8 @@ export default {
             </template>
           </div>
           <button class="block" :class="t.side==='buy' ? 'buy' : 'sell'" :disabled="busy || !preview || !!preview.error" @click="submit">
-            {{ t.side==='buy' ? 'Acheter' : 'Vendre' }} {{ base }}{{ account && account.kind==='live' ? ' (RÉEL)' : '' }}</button>
-          <p class="faint small center" style="margin-bottom:0">{{ account && account.kind==='live' ? 'Ordre envoyé à l’exchange avec votre argent réel.' : 'Argent fictif, prix réels : entraînez-vous sans risque.' }}</p>
+            {{ t.side==='buy' ? 'Acheter' : 'Vendre' }} {{ base }}</button>
+          <p class="faint small center" style="margin-bottom:0">Argent fictif, prix réels : entraînez-vous sans risque.</p>
         </div>
 
         <div class="card c-coach">
