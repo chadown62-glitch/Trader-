@@ -5,6 +5,7 @@ exchange objects and credentials below are fakes; no actual exchange is used.
 """
 
 import socket
+import re
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -14,6 +15,7 @@ from fastapi.testclient import TestClient
 from sentinelle.api.server import create_api
 from sentinelle.execution.base import OrderError
 from sentinelle.execution.live import LiveBroker
+from sentinelle.execution.positions import PositionManager
 from sentinelle.market.sources import SyntheticSource
 from sentinelle.notify.telegram import TelegramService
 from sentinelle.services.common import UserError
@@ -109,6 +111,7 @@ def legacy_runtime(app):
                                             "quote": "USDC", "created_at": 1})
     account = app.db.one("SELECT * FROM accounts WHERE id = ?", (account_id,))
     broker = Mock(name="legacy_broker")
+    broker.account_id, broker.quote, broker.listeners = account_id, "USDC", []
     broker.market_fn.side_effect = market_fn
     broker.price_fn.return_value = 50000.0
     broker.fee_rate = 0.001
@@ -154,7 +157,7 @@ def client(app):
 
 @pytest.mark.parametrize("method,path,body", [
     ("post", "/api/orders", {"symbol": "BTC/USDC", "side": "buy", "amount": 0.001, "confirm": True}),
-    ("delete", "/api/orders/123", None),
+    ("delete", "/api/orders/{order}", None),
     ("post", "/api/positions/{position}/close", None),
     ("patch", "/api/positions/{position}", {"stop": 40000}),
     ("post", "/api/emergency", {"action": "flatten", "scope": "all", "confirm": "URGENCE"}),
@@ -163,7 +166,14 @@ def test_api_does_not_operate_on_legacy_live_account(app, client, legacy_runtime
     monkeypatch.setattr(app.shield, "check_entry", lambda *args: None)
     aid = legacy_runtime.account["id"]
     pid = app.db.insert("positions", {"account_id": aid, "symbol": "BTC/USDC", "origin": "ai", "status": "open", "qty": 0.001})
-    path = path.format(position=pid)
+    oid = app.db.insert("orders", {"account_id": aid, "symbol": "BTC/USDC", "side": "sell",
+                                   "type": "stop", "amount": 0.001, "status": "open",
+                                   "exchange_id": "fake-existing-order", "position_id": pid, "purpose": "stop"})
+    existing = app.db.one("SELECT * FROM orders WHERE id = ?", (oid,))
+    assert existing and existing["account_id"] == aid and existing["exchange_id"]
+    legacy_runtime.broker.get_order.return_value = existing
+    legacy_runtime.broker.cancel_order.return_value = existing
+    path = path.format(position=pid, order=oid)
     if path == "/api/orders":
         body = {**body, "account_id": aid}
     if method == "delete":
@@ -171,7 +181,10 @@ def test_api_does_not_operate_on_legacy_live_account(app, client, legacy_runtime
     else:
         response = getattr(client, method)(path, json=body, headers=HEADERS)
     # Emergency may succeed for paper accounts while excluding the legacy one.
-    assert response.status_code in ((200, 400, 403, 404, 409) if path == "/api/emergency" else (400, 403, 404, 409))
+    assert response.status_code in ((200, 400, 403, 409) if path == "/api/emergency" else (400, 403, 409))
+    if response.status_code != 200:
+        detail = str(response.json().get("detail", "")).lower()
+        assert re.search(r"paper|fictif|simul|sécur|secur|interdit|désactiv|desactiv|bloqu|live|réel|reel", detail), detail
     legacy_runtime.positions.open.assert_not_called()
     legacy_runtime.positions.close.assert_not_called()
     legacy_runtime.positions.modify.assert_not_called()
@@ -241,3 +254,66 @@ def test_paper_order_still_updates_fictitious_balances(paper):
     assert order["status"] == "filled"
     assert after["BTC"] == pytest.approx(0.001)
     assert after["USDC"] < before["USDC"]
+
+
+def retained_live_broker(db, fake_exchange):
+    """Legacy object without calling a constructor that must itself be blocked."""
+    broker = object.__new__(LiveBroker)
+    broker.db, broker.account_id, broker.quote = db, 42, "USDC"
+    broker.ex, broker.market_fn, broker.price_fn = fake_exchange, market_fn, lambda _: 50000.0
+    broker.clock, broker.fee_rate, broker.listeners = lambda: 1700000000.0, 0.001, []
+    broker._balance, broker.last_error = (0.0, None), None
+    return broker
+
+
+def test_reconciliation_with_existing_position_refuses_private_access(db, fake_exchange):
+    broker = retained_live_broker(db, fake_exchange)
+    pm = Mock()
+    pm.open_positions.return_value = [{"id": 1, "symbol": "BTC/USDC", "status": "open",
+                                       "qty": 0.001, "stop_price": 45000.0}]
+    pm.protective_orders.return_value = []
+    with pytest.raises(DENIAL):
+        broker.reconcile(pm)
+    assert_no_private(fake_exchange)
+    pm._place_protections.assert_not_called()
+
+
+def test_virtual_target_cannot_cancel_stop_or_send_sell(db, fake_exchange):
+    broker = retained_live_broker(db, fake_exchange)
+    for exchange_id, purpose, price in [("virtual", "target", 51000.0), ("fake-stop", "stop", None)]:
+        db.insert("orders", {"account_id": 42, "symbol": "BTC/USDC", "side": "sell",
+                             "type": "limit" if purpose == "target" else "stop", "amount": 0.001,
+                             "price": price, "stop_price": 45000.0 if purpose == "stop" else None,
+                             "status": "open", "exchange_id": exchange_id, "oco_group": "fake-group",
+                             "purpose": purpose, "created_at": 1.0, "origin": "ai"})
+    with pytest.raises(DENIAL):
+        broker.process_bar("BTC/USDC", 50000, 52000, 49000, 51000, 3000)
+    assert_no_private(fake_exchange)
+
+
+def test_stop_replacement_does_not_cancel_existing_live_stop(app, legacy_runtime):
+    aid = legacy_runtime.account["id"]
+    pid = app.db.insert("positions", {"account_id": aid, "symbol": "BTC/USDC", "origin": "ai",
+                                     "status": "open", "qty": 0.001, "entry_price": 50000,
+                                     "stop_price": 45000})
+    oid = app.db.insert("orders", {"account_id": aid, "position_id": pid, "symbol": "BTC/USDC",
+                                   "side": "sell", "type": "stop", "amount": 0.001,
+                                   "status": "open", "purpose": "stop", "exchange_id": "fake-stop"})
+    manager = PositionManager(app.db, legacy_runtime.broker)
+    with pytest.raises(DENIAL):
+        manager.modify(pid, stop=46000)
+    legacy_runtime.broker.cancel_order.assert_not_called()
+    legacy_runtime.broker.place_order.assert_not_called()
+    assert app.db.one("SELECT status FROM orders WHERE id = ?", (oid,))["status"] == "open"
+
+
+def test_runtime_lookup_failure_does_not_fall_back_to_trading(app, legacy_runtime, monkeypatch):
+    def broken_lookup(_account_id):
+        raise RuntimeError("injected security lookup failure")
+
+    monkeypatch.setattr(app, "runtime", broken_lookup)
+    with pytest.raises(RuntimeError, match="security lookup failure"):
+        app.place_manual_order({"account_id": legacy_runtime.account["id"], "symbol": "BTC/USDC",
+                                "side": "buy", "amount": 0.001, "confirm": True})
+    legacy_runtime.positions.open.assert_not_called()
+    legacy_runtime.broker.place_order.assert_not_called()
