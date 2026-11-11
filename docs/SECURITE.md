@@ -24,7 +24,7 @@ Chaque couche refuse seule. Une erreur future dans l'une est arrêtée par les a
 | **Client de marché** | `sentinelle/market/sources.py` | `make_ccxt_exchange` n'accepte **aucun identifiant** : impossible de lui passer une clé. Le client est enveloppé dans une façade (`PublicExchange`) qui ne laisse passer que neuf lectures publiques (cours, carnet, transactions…). Tout le reste est refusé. Si un identifiant apparaissait sur le client, même les lectures seraient refusées. |
 | **Coffre des secrets** | `sentinelle/services/secrets.py` | `get()` ne renvoie **jamais** une clé d'exchange : la valeur ne sort pas du fichier. Les anciennes clés restent dans `data/secrets.json` tant que vous ne les supprimez pas. |
 | **Comptes** | `sentinelle/services/core.py`, `live_ops.py` | `runtime()` n'accepte qu'un compte « papier » dont le courtier est exactement le courtier simulé. Tout autre compte actif est écarté de la mémoire et journalisé, à chaque utilisation et toutes les 10 secondes. Aucune connexion à un exchange n'est tentée au démarrage, à la reconnexion ou lors d'un changement de réglages. |
-| **Positions** | `sentinelle/execution/positions.py` | Le gestionnaire de positions refuse de se construire sur un autre courtier, et revérifie avant chaque ouverture, fermeture, modification, pose ou ajustement d'un stop ou d'un objectif. |
+| **Positions** | `sentinelle/execution/positions.py` | Lié à un autre courtier que le courtier simulé, le gestionnaire de positions est inerte : il ne s'y abonne pas, ignore ses exécutions et refuse chaque ouverture, fermeture, modification, pose ou ajustement d'un stop ou d'un objectif. Le courtier est revérifié à chaque action. |
 | **Agents IA** | `sentinelle/agent/agent.py`, `services/agents.py` | Le mode « live » n'existe plus. L'agent « IA — Portefeuille réel » a été retiré : le démarrer est refusé, même avec la phrase de confirmation, un bulletin favorable ou un redémarrage automatique. |
 | **API et Telegram** | `sentinelle/api/server.py`, `notify/telegram.py` | Toute demande visant un ancien compte réel reçoit une erreur **403** avec le code `paper_only` (à ne pas confondre avec « introuvable »). Enregistrer une clé d'exchange est refusé ; effacer les anciennes est permis. L'urgence Telegram n'agit que sur les comptes fictifs. |
 
@@ -59,9 +59,9 @@ Rien n'est effacé automatiquement.
 
 | Vérification | Résultat |
 |--------------|----------|
-| Tests de Codex (PR n° 2, `tests/test_paper_only_security.py`), exécutés sans modification sur une branche de validation locale | 20 réussis sur 20 (19 échouaient avant le verrou) |
+| Tests de Codex (PR n° 2, `tests/test_paper_only_security.py`, version du commit `9d71bba`), exécutés sans modification sur une branche de validation locale | 24 réussis sur 24 (19 des 20 tests de la première version échouaient avant le verrou) |
 | Tests du verrou (`tests/test_lockdown.py`) | 27 réussis sur 27 |
-| Suite complète du dépôt, tests de Codex compris | 172 réussis sur 172 (152 tests du dépôt + 20 tests de Codex), le 11 novembre 2026 |
+| Suite complète du dépôt, tests de Codex compris | 176 réussis sur 176 (152 tests du dépôt + 24 tests de Codex), le 11 novembre 2026 |
 
 Ce que vérifient les tests du verrou, en plus de ceux de Codex :
 - **analyse du code source** : aucun appel privé d'exchange (`create_order`, `fetch_balance`, `withdraw`…) dans tout le programme ; CCXT n'est importé que par le module des données publiques ; aucun fichier ne manipule de champ d'identification ;

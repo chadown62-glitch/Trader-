@@ -226,20 +226,34 @@ def test_every_method_of_a_retained_live_broker_refuses(db):
 def test_position_manager_only_accepts_the_paper_broker(db, paper, clock):
     stranger = Mock(name="courtier_inconnu")
     stranger.account_id, stranger.quote, stranger.listeners, stranger.kind = 1, "USDC", [], "paper"
-    with pytest.raises(RealTradingForbidden):
-        PositionManager(db, stranger)
 
     class Lookalike(PaperBroker):  # une sous-classe pourrait rediriger les ordres : refusée
         pass
 
-    with pytest.raises(RealTradingForbidden):
-        PositionManager(db, Lookalike(db, paper.account_id, "USDC", market_fn, paper.price_fn))
-    with pytest.raises(RealTradingForbidden):
-        PositionManager(db, Mock(spec=PaperBroker))
-
     pm = PositionManager(db, paper, clock=clock)
     pos = pm.open("BTC/USDC", 0.01, origin="manual", stop=49_000.0, target=52_000.0)
     assert pos["status"] == "open"
+    orders_before = db.query("SELECT id, status FROM orders ORDER BY id")
+
+    # Lié à un courtier non simulé, un gestionnaire est inerte : il ne s'abonne pas, ignore les exécutions, refuse tout.
+    lookalike = Lookalike(db, paper.account_id, "USDC", market_fn, paper.price_fn)
+    spec = Mock(spec=PaperBroker)
+    spec.listeners = []
+    for other in (stranger, lookalike, spec):
+        inert = PositionManager(db, other, clock=clock)
+        assert other.listeners == []
+        for name, args, kwargs in (("open", ("BTC/USDC", 0.01), {"origin": "manual"}), ("close", (pos["id"],), {}),
+                                   ("modify", (pos["id"],), {"stop": 48_000.0}), ("_place_protections", (pos,), {}),
+                                   ("_resize_protections", (pos,), {})):
+            with pytest.raises(RealTradingForbidden):
+                getattr(inert, name)(*args, **kwargs)
+        inert.on_fill({"purpose": "exit", "position_id": pos["id"], "side": "sell", "status": "filled"},
+                      {"amount": 0.01, "price": 1.0, "fee": 0.0, "fee_asset": "USDC", "ts": clock()})
+        assert pm.get(pos["id"])["status"] == "open"  # fausse exécution ignorée
+    assert db.query("SELECT id, status FROM orders ORDER BY id") == orders_before
+    assert db.scalar("SELECT COUNT(*) FROM logs WHERE category = 'sécurité' AND message LIKE '%inerte%'") == 3
+    stranger.place_order.assert_not_called()
+    stranger.cancel_order.assert_not_called()
     pm.broker = stranger  # le courtier est remplacé après coup
     for action in (lambda: pm.open("BTC/USDC", 0.01, origin="manual"), lambda: pm.close(pos["id"]),
                    lambda: pm.modify(pos["id"], stop=48_000.0), lambda: pm._place_protections(pos), lambda: pm._resize_protections(pos)):

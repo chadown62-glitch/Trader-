@@ -11,7 +11,7 @@ import logging
 import time
 from typing import Callable
 
-from ..safety import require_paper_broker
+from ..safety import is_paper_broker, require_paper_broker
 from ..storage.db import Database, dumps
 from .base import OPEN_STATUSES, OrderError, fee_in_quote
 
@@ -27,15 +27,24 @@ CLOSE_REASONS = {
 
 class PositionManager:
     def __init__(self, db: Database, broker, bus=None, clock: Callable[[], float] = time.time):
-        require_paper_broker(broker, "gestion de positions sur un courtier non simulé", db)
         self.db = db
         self.broker = broker
         self.bus = bus
         self.clock = clock
-        self.account_id = broker.account_id
-        self.quote = broker.quote
-        broker.listeners.append(self.on_fill)
+        self.account_id = getattr(broker, "account_id", None)
+        self.quote = getattr(broker, "quote", None)
         self.close_listeners: list[Callable[[dict], None]] = []
+        if is_paper_broker(broker):
+            broker.listeners.append(self.on_fill)
+        else:
+            # Sécurité : lié à un courtier non simulé, ce gestionnaire est INERTE. Il ne s'abonne pas à ce
+            # courtier, ignore ses exécutions et refuse chaque action (ouverture, fermeture, stop, objectif).
+            log.warning("Gestionnaire de positions créé sur un courtier non simulé (%s) : inerte", type(broker).__name__)
+            try:
+                db.log("warning", "sécurité", "Simulation uniquement : gestionnaire de positions sur un courtier non simulé, rendu inerte",
+                       {"courtier": type(broker).__name__, "compte": self.account_id})
+            except Exception:
+                pass
 
     # -- lecture ------------------------------------------------------------
     def get(self, position_id: int) -> dict:
@@ -141,6 +150,8 @@ class PositionManager:
 
     # -- exécutions -------------------------------------------------------------
     def on_fill(self, order: dict, fill: dict) -> None:
+        if not is_paper_broker(self.broker):
+            return  # sécurité : une exécution venue d'un courtier non simulé est ignorée
         purpose = order.get("purpose")
         pos_id = order.get("position_id")
         try:
