@@ -63,6 +63,12 @@ class PublicExchange:
         object.__setattr__(self, "_ex", ex)
         self._assert_no_credentials("création d'un client de marché avec identifiants")
 
+    def __getattribute__(self, name):
+        # Do not expose the underlying CCXT client through normal access.
+        if name == "_ex":
+            forbid("accès au client interne de marché")
+        return object.__getattribute__(self, name)
+
     def _assert_no_credentials(self, operation: str) -> None:
         try:
             ex = object.__getattribute__(self, "_ex")
@@ -75,7 +81,16 @@ class PublicExchange:
     def __getattr__(self, name: str):
         if name.startswith("__") and name.endswith("__"):
             raise AttributeError(name)  # protocoles internes de Python (copie, etc.) : rien à exposer
-        if name in PUBLIC_METHODS or name in PUBLIC_ATTRIBUTES:
+        if name in PUBLIC_METHODS:
+            self._assert_no_credentials(f"lecture de marché « {name} » avec identifiants")
+            # Never return CCXT's bound method: __self__ would reveal the client.
+            # Recheck on invocation too, in case this callable was retained.
+            def public_call(*args, **kwargs):
+                self._assert_no_credentials(f"lecture de marché « {name} » avec identifiants")
+                ex = object.__getattribute__(self, "_ex")
+                return getattr(ex, name)(*args, **kwargs)
+            return public_call
+        if name in PUBLIC_ATTRIBUTES:
             self._assert_no_credentials(f"lecture de marché « {name} » avec identifiants")
             return getattr(object.__getattribute__(self, "_ex"), name)
         forbid(f"appel non public à l'exchange « {name} »")
