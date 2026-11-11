@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import time
 import uuid
+import math
 from collections import defaultdict
 from typing import Callable
 
@@ -118,12 +119,24 @@ class PaperBroker:
             if asset == self.quote or abs(qty) < EPS:
                 continue
             px = self.price_fn(f"{asset}/{self.quote}")
-            if px:
-                total += qty * px
+            if px is None or not math.isfinite(px) or px <= 0:
+                raise OrderError(f"Valorisation impossible : cours {asset}/{self.quote} indisponible.", "no_price")
+            total += qty * px
         return total, cash
 
     # -- ordres ---------------------------------------------------------------
     def place_order(
+        self, symbol, side, type, amount, price=None, stop_price=None, *, origin="manual", agent=None,
+        purpose="manual", position_id=None, oco_group=None, reason=None,
+    ) -> dict:
+        # Reservation checks, insertions and immediate fills must be serialized
+        # together, including across broker instances sharing the database.
+        with self.db.transaction():
+            return self._place_order_locked(symbol, side, type, amount, price, stop_price,
+                                            origin=origin, agent=agent, purpose=purpose,
+                                            position_id=position_id, oco_group=oco_group, reason=reason)
+
+    def _place_order_locked(
         self,
         symbol,
         side,
@@ -139,6 +152,12 @@ class PaperBroker:
         oco_group=None,
         reason=None,
     ) -> dict:
+        if not isinstance(symbol, str) or symbol.count("/") != 1 or symbol.split("/")[1] != self.quote:
+            raise OrderError(f"Paire incompatible avec le portefeuille {self.quote} : conversion indisponible.", "quote_mismatch")
+        if not math.isfinite(float(amount)) or float(amount) <= 0:
+            raise OrderError("Quantité invalide", "invalid")
+        if any(value is not None and (not math.isfinite(float(value)) or float(value) <= 0) for value in (price, stop_price)):
+            raise OrderError("Prix d'ordre invalide", "invalid")
         if side not in ("buy", "sell"):
             raise OrderError("Sens d'ordre invalide")
         if type not in ("market", "limit", "stop"):
@@ -148,6 +167,8 @@ class PaperBroker:
         except KeyError:
             raise OrderError(f"Paire inconnue : {symbol}") from None
         last = self.price_fn(symbol)
+        if last is not None and (not math.isfinite(last) or last <= 0):
+            raise OrderError("Cours invalide ou indisponible", "no_price")
         amount = m.floor_amount(float(amount))
         if type == "limit":
             if not price or price <= 0:
@@ -234,33 +255,40 @@ class PaperBroker:
         return o
 
     def cancel_order(self, order_id: int, reason: str | None = None) -> dict:
-        o = self.get_order(order_id)
-        if o["status"] not in OPEN_STATUSES:
-            return o
-        self.db.update(
-            "orders",
-            order_id,
-            {"status": "cancelled", "updated_at": self.clock(), "error": reason},
-        )
-        return self.get_order(order_id)
+        with self.db.transaction():
+            o = self.get_order(order_id)
+            if o["status"] not in OPEN_STATUSES:
+                return o
+            self.db.update(
+                "orders",
+                order_id,
+                {"status": "cancelled", "updated_at": self.clock(), "error": reason},
+            )
+            return self.get_order(order_id)
 
     def _fill(self, order: dict, price: float, maker: bool) -> dict:
-        base, quote = order["symbol"].split("/")
-        amount = order["amount"] - order["filled"]
         fee_rate = self.fee_rate  # hypothèse prudente : même taux maker/taker
         now = self.clock()
         with self.db.transaction():
+            # Another market poll or cancellation may have completed this order
+            # since the caller read it. Recheck under the same write lock as the
+            # balance update so a stale snapshot can never be filled twice.
+            order = self.get_order(order["id"])
+            if order["status"] not in OPEN_STATUSES:
+                raise OrderError("Ordre déjà exécuté ou annulé", "not_open")
+            base, quote = order["symbol"].split("/")
+            amount = order["amount"] - order["filled"]
+            if amount <= 0 or not math.isfinite(amount) or not math.isfinite(price) or price <= 0:
+                raise OrderError("Exécution invalide", "invalid")
             if order["side"] == "buy":
                 cost = amount * price
                 fee = cost * fee_rate
                 if self._total(quote) + 1e-6 < cost + fee:
-                    self.db.update("orders", order["id"], {"status": "rejected", "error": "Fonds insuffisants à l'exécution", "updated_at": now})
                     raise OrderError("Fonds insuffisants à l'exécution", "insufficient_funds")
                 self._adjust(quote, -(cost + fee))
                 self._adjust(base, amount)
             else:
                 if self._total(base) + 1e-12 < amount:
-                    self.db.update("orders", order["id"], {"status": "rejected", "error": "Quantité insuffisante à l'exécution", "updated_at": now})
                     raise OrderError("Quantité insuffisante à l'exécution", "insufficient_funds")
                 proceeds = amount * price
                 fee = proceeds * fee_rate
@@ -305,6 +333,8 @@ class PaperBroker:
     # -- passage du temps -----------------------------------------------------
     def process_bar(self, symbol: str, o: float, h: float, l: float, c: float, start_ms: int, end_ms: int | None = None) -> int:
         """Déclenche les ordres en attente touchés pendant la période. Renvoie le nombre d'exécutions."""
+        if not all(math.isfinite(x) and x > 0 for x in (o, h, l, c)) or not (l <= min(o, c) <= max(o, c) <= h):
+            raise OrderError("Bougie incohérente", "invalid")
         orders = [x for x in self.open_orders(symbol) if x["created_at"] * 1000 <= start_ms + 1e-6]
         if not orders:
             return 0
@@ -333,7 +363,14 @@ class PaperBroker:
             try:
                 self._fill(current, px, maker=od["type"] == "limit")
                 count += 1
-            except OrderError:
+            except OrderError as exc:
+                # The failed fill transaction was rolled back. Persist the
+                # rejection separately so a gapped order does not stay open
+                # forever, but never overwrite a concurrent fill/cancellation.
+                if exc.code == "insufficient_funds":
+                    with self.db.transaction():
+                        if self.get_order(od["id"])["status"] in OPEN_STATUSES:
+                            self.db.update("orders", od["id"], {"status": "rejected", "error": exc.message, "updated_at": self.clock()})
                 continue
         return count
 

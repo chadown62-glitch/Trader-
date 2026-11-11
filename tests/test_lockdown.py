@@ -274,8 +274,8 @@ def make_app(tmp_path, monkeypatch, **overrides):
     factory = Mock(name="make_ccxt_exchange", return_value=fake_exchange())
     monkeypatch.setattr(live_ops, "make_ccxt_exchange", factory)
     monkeypatch.setattr(sources, "make_ccxt_exchange", factory)
-    app = App(tmp_path, source=SyntheticSource(["BTC/USDC", "ETH/USDC"], days=5), start=False, settings_override={
-        "market": {"source": "synthetic"}, "general": {"watchlist": ["BTC/USDC", "ETH/USDC"]}, **overrides})
+    app = App(tmp_path, source=SyntheticSource(["BTC/EUR", "ETH/EUR"], days=5), start=False, settings_override={
+        "market": {"source": "synthetic"}, "general": {"watchlist": ["BTC/EUR", "ETH/EUR"]}, **overrides})
     return app, factory
 
 
@@ -410,8 +410,8 @@ def test_retained_non_paper_runtime_is_evicted_and_never_used(app, kind, account
     """Un compte actif n'est accepté que si le compte ET le courtier sont réellement simulés."""
     boot(app)
     aid, rt = injected_runtime(app, kind, account_kind)
-    paper_id = app.db.one("SELECT id FROM accounts WHERE role = 'manual' AND kind = 'paper'")["id"]
-    bought = app.place_manual_order({"account_id": paper_id, "symbol": "BTC/USDC", "side": "buy", "amount": 0.001})
+    paper_id = app.db.one("SELECT id FROM accounts WHERE role = 'principal' AND kind = 'paper'")["id"]
+    bought = app.place_manual_order({"account_id": paper_id, "symbol": "BTC/EUR", "side": "buy", "amount": 0.0002})
     assert bought["position"]["status"] == "open"
 
     with pytest.raises(RealTradingForbidden):
@@ -438,8 +438,8 @@ def test_retained_non_paper_runtime_is_evicted_and_never_used(app, kind, account
 def test_broken_guard_refuses_instead_of_allowing(app, monkeypatch):
     """Si un contrôle de sécurité tombe en panne, l'opération est refusée (jamais autorisée par défaut)."""
     boot(app)
-    paper_id = app.db.one("SELECT id FROM accounts WHERE role = 'manual' AND kind = 'paper'")["id"]
-    order = {"account_id": paper_id, "symbol": "BTC/USDC", "side": "buy", "amount": 0.001}
+    paper_id = app.db.one("SELECT id FROM accounts WHERE role = 'principal' AND kind = 'paper'")["id"]
+    order = {"account_id": paper_id, "symbol": "BTC/EUR", "side": "buy", "amount": 0.0002}
     before = app.db.scalar("SELECT COUNT(*) FROM orders")
 
     def boom(*args, **kwargs):
@@ -572,8 +572,8 @@ def test_api_settings_cannot_enable_anything_real(app, client):
 
 
 def test_paper_trading_still_works_through_the_api(app, client):
-    acc = next(a for a in client.get("/api/accounts").json() if a["role"] == "manual")
-    r = client.post("/api/orders", json={"account_id": acc["id"], "symbol": "BTC/USDC", "side": "buy", "quote_amount": 200,
+    acc = next(a for a in client.get("/api/accounts").json() if a["role"] == "principal")
+    r = client.post("/api/orders", json={"account_id": acc["id"], "symbol": "BTC/EUR", "side": "buy", "quote_amount": 15,
                                          "stop_loss": 1.0}, headers=H)
     assert r.status_code == 200, r.text
     pos = r.json()["position"]

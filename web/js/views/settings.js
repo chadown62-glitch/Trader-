@@ -27,7 +27,6 @@ const SECTIONS = {
     { key: 'min_new_samples', label: 'Nouvelles situations minimum avant ré-entraînement', kind: 'int' },
     { key: 'regime_filter', label: 'Rester à l’abri en marché baissier', kind: 'bool', help: 'Aucun achat quand le BTC est sous ses moyennes de fond (recommandé en spot).' },
     { key: 'use_news', label: 'Veto des actualités', kind: 'bool', help: 'Bloque les achats si une actualité très négative et confirmée concerne la crypto.' },
-    { key: 'extended_history', label: 'Historique étendu pour l\u2019apprentissage', kind: 'bool', help: 'Ajoute l\u2019historique plus ancien des paires USDT (mêmes cryptos) : plusieurs années de plus pour apprendre.' },
     { key: 'recipe', label: 'Recette du modèle', kind: 'select', options: [['mixte', 'Mixte : arbres simples + modèle linéaire (recommandé)'], ['auto', 'Choisie automatiquement à chaque entraînement'], ['prudent', 'Arbres simples'], ['lineaire', 'Linéaire seul'], ['moyen', 'Arbres intermédiaires'], ['riche', 'Arbres fins (ancien modèle)'], ['comite', 'Comité de trois modèles d\u2019arbres']], help: 'La recette mixte est celle qui apprend le mieux, sur le banc d\u2019essai (page IA → Capacités d\u2019apprentissage) comme sur les données réelles. S\u2019applique au prochain entraînement.' },
     { key: 'half_life_days', label: 'Oubli progressif : demi-vie (jours, vide = désactivé)', kind: 'num', step: 30, help: 'Donne plus de poids aux situations récentes. Mesuré : effet neutre à légèrement positif sur données réelles ; désactivé par défaut.' },
     { key: 'rules_fallback', label: 'Validation « règles seules »', kind: 'bool', help: 'Si le filtre IA n\u2019apporte rien mais que les règles des stratégies sont prouvées sur des données jamais vues, elles sont validées telles quelles.' },
@@ -65,7 +64,6 @@ const SECTIONS = {
   paper: { title: 'Simulation (argent fictif)', fields: [
     { key: 'fee_rate', label: 'Frais par ordre', kind: 'pct', step: 0.01, help: 'Hypothèse prudente : 0,1 %.' },
     { key: 'slippage_bps', label: 'Glissement de prix (points de base)', kind: 'num', step: 1, help: '5 = 0,05 % de prix moins favorable à chaque exécution.' },
-    { key: 'initial_balance', label: 'Capital fictif de départ', kind: 'num', step: 100 },
   ] },
   live: { title: 'Bulletin de fiabilité (argent fictif)', fields: [
     { key: 'unlock_min_days', label: 'Preuve : jours d’entraînement en direct minimum', kind: 'int', help: 'Ces seuils servent au bulletin de fiabilité de l’IA. Ils ne déverrouillent aucun mode réel.' },
@@ -107,7 +105,6 @@ export default {
       toast(perm === 'granted' ? 'Notifications activées (quand le panel est en arrière-plan)' : 'Notifications refusées par le navigateur', perm === 'granted' ? 'success' : 'warn');
     };
     const disableNotif = () => { try { localStorage.setItem('stn-notif', '0'); } catch { /* ignoré */ } notifState.value = 'granted-off'; };
-    const newAcc = reactive({ name: 'Mon deuxième compte', initial_balance: 1000 });
     const pwd = reactive({ current: '', new: '', new2: '' });
     const newsStatus = ref(null);
     const totp = reactive({ enabled: false, setup: null, code: '', qr: '', disablePwd: '', disableCode: '' });
@@ -183,9 +180,8 @@ export default {
       if (ok) secrets.value = await safe(api.put('/api/secrets', { values: { exchange_api_key: null, exchange_secret: null, exchange_password: null } }), 'Anciennes clés supprimées');
     };
     const testTelegram = async () => { await safe(api.post('/api/telegram/test'), 'Message de test envoyé'); };
-    const createAccount = async () => { if (await safe(api.post('/api/accounts', newAcc), 'Compte papier créé')) store.overview = await api.get('/api/overview'); };
     const resetAccount = async (a) => {
-      const ok = await confirmBox({ title: `Réinitialiser « ${a.name} »`, message: 'Positions, ordres et courbe de capital seront effacés. L’historique des trades est conservé.', confirmLabel: 'Réinitialiser', danger: true });
+      const ok = await confirmBox({ title: `Réinitialiser « ${a.name} »`, message: 'Le solde sera réinitialisé à 30 EUR fictifs. Les positions et les ordres ouverts seront annulés et la courbe de capital effacée. L’historique des trades est conservé.', confirmLabel: 'Réinitialiser', danger: true });
       if (ok) await safe(api.post(`/api/accounts/${a.id}/reset`, {}), 'Compte réinitialisé');
     };
     const resumeAccount = async (a) => { await safe(api.post(`/api/accounts/${a.id}/resume`), 'Reprise autorisée'); };
@@ -195,8 +191,8 @@ export default {
     };
     const TABS = [['general', 'Général'], ['risk', 'Risque'], ['ai', 'IA'], ['market', 'Données'], ['macro', 'Calendrier macro'], ['shield', 'Bouclier'], ['paper', 'Simulation'], ['live', 'Verrou et fiabilité'], ['telegram', 'Telegram'], ['news', 'Actualités'], ['monitoring', 'Surveillance'], ['accounts', 'Comptes'], ['security', 'Sécurité'], ['about', 'À propos']];
     const STRATS = { trend_follow: 'Suivi de tendance (recommandé)', trend_breakout: 'Cassure de tendance (recommandé)', pullback: 'Repli en tendance', mean_reversion: 'Retour à la moyenne', momentum: 'Élan haussier' };
-    return { store, tab, form, secrets, secretInputs, addPair, feedsText, eventsText, tgText, notifState, enableNotif, disableNotif, newAcc, pwd, accounts, paperOnly, newsStatus, SECTIONS, TABS, STRATS,
-      display, setValue, save, saveGeneral, addSymbol, removeSymbol, saveSecrets, clearSecret, clearLegacyKeys, testTelegram, createAccount,
+    return { store, tab, form, secrets, secretInputs, addPair, feedsText, eventsText, tgText, notifState, enableNotif, disableNotif, pwd, accounts, paperOnly, newsStatus, SECTIONS, TABS, STRATS,
+      display, setValue, save, saveGeneral, addSymbol, removeSymbol, saveSecrets, clearSecret, clearLegacyKeys, testTelegram,
       resetAccount, resumeAccount, changePassword, totp, startTotp, enableTotp, disableTotp, money, dt };
   },
   template: `
@@ -208,8 +204,9 @@ export default {
       <div class="card">
         <h2>Cryptos suivies</h2>
         <p class="muted small">Cotées en {{ form.general.quote }}. Restez sur des cryptos très liquides (moins de manipulation, moins de glissement).</p>
+        <p v-if="form.general.quote !== 'EUR'" class="small danger">Le portefeuille principal est en EUR : configurez des paires EUR pour trader. La conversion automatique n'est pas encore disponible.</p>
         <div class="chips" style="margin-bottom:10px"><span v-for="s in form.general.watchlist" :key="s" class="chip">{{ s }}<button @click="removeSymbol(s)" title="Retirer">✕</button></span></div>
-        <div class="row"><input v-model="addPair" list="pairs" placeholder="ex. XRP/USDC"><button @click="addSymbol">Ajouter</button></div>
+        <div class="row"><input v-model="addPair" list="pairs" placeholder="ex. XRP/EUR"><button @click="addSymbol">Ajouter</button></div>
         <datalist id="pairs"><option v-for="p in store.markets.available" :key="p" :value="p"></option></datalist>
         <h3 style="margin-top:16px">Stratégies de l'IA</h3>
         <label v-for="(label, k) in STRATS" :key="k" class="check"><input type="checkbox" v-model="form.ai.strategies[k]"> {{ label }}</label>
@@ -292,14 +289,12 @@ export default {
         <div class="table-wrap"><table><thead><tr><th>Nom</th><th>Type</th><th class="num">Capital</th><th></th></tr></thead>
           <tbody><tr v-for="a in accounts" :key="a.id"><td>{{ a.name }}</td><td><span class="badge" :class="a.kind==='paper' ? 'paper' : ''">{{ a.kind==='paper' ? 'papier' : 'ancien compte réel (inerte)' }}</span></td>
             <td class="num">{{ money(a.equity) }}</td>
-            <td class="nowrap"><button v-if="a.kind==='paper'" class="small" @click="resetAccount(a)">Réinitialiser</button>
+            <td class="nowrap"><button v-if="a.role==='principal'" class="small" @click="resetAccount(a)">Réinitialiser</button>
               <button v-if="a.risk && a.risk.halted" class="small danger" @click="resumeAccount(a)">Reprendre après arrêt de sécurité</button></td></tr></tbody></table></div>
       </div>
       <div class="card">
-        <h2>Nouveau compte papier</h2>
-        <div class="field"><label>Nom</label><input v-model="newAcc.name"></div>
-        <div class="field"><label>Capital fictif</label><input type="number" v-model.number="newAcc.initial_balance" min="10"></div>
-        <button class="primary" @click="createAccount">Créer</button>
+        <h2>Portefeuille principal</h2>
+        <p class="small muted">Les opérations manuelles et l'IA partagent le portefeuille fictif en EUR. Les anciens comptes sont conservés en lecture seule.</p>
       </div>
     </div>
 

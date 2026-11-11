@@ -177,7 +177,7 @@ def test_daily_frame_drops_incomplete_days():
 @pytest.fixture
 def app(tmp_path):
     a = App(tmp_path, source=SyntheticSource(["BTC/USDC", "ETH/USDC"], days=5), start=False,
-            settings_override={"general": {"watchlist": ["BTC/USDC", "ETH/USDC"]}, "market": {"source": "synthetic"}})
+            settings_override={"general": {"quote": "USDC", "watchlist": ["BTC/USDC", "ETH/USDC"]}, "market": {"source": "synthetic"}})
     yield a
     a.db.close()
 
@@ -279,7 +279,7 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
     series = {s: make_series(17_000, seed=10 + i, start=p, drift_fn=drift)
               for i, (s, p) in enumerate((("BTC/USDC", 30_000), ("ETH/USDC", 2_000), ("SOL/USDC", 50)))}
     app = App(tmp_path, source=HistorySource(series), start=False, settings_override={
-        "general": {"watchlist": list(series)}, "market": {"source": "synthetic"},
+        "general": {"quote": "USDC", "watchlist": list(series)}, "market": {"source": "synthetic"},
         "ai": {"timeframe": "1h", "strategies": {k: True for k in ("trend_breakout", "pullback", "mean_reversion", "momentum", "trend_follow")}}})
     try:
         steps = []

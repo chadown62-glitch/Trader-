@@ -217,7 +217,7 @@ def test_calendar_parsing_and_blackout(tmp_path):
     assert events[0]["ts"] == pytest.approx(1894714200)  # 13 h 30 UTC
     assert events[0]["forecast"] == "0.3%"
     app = App(tmp_path, source=SyntheticSource(["BTC/USDC"], days=3), start=False,
-              settings_override={"general": {"watchlist": ["BTC/USDC"]}, "market": {"source": "synthetic"}})
+              settings_override={"general": {"quote": "USDC", "watchlist": ["BTC/USDC"]}, "market": {"source": "synthetic"}})
     ctx = ContextService(app, transport=transport)
     with httpx.Client(transport=transport) as c:
         assert ctx.refresh_calendar(c) == 2
@@ -243,7 +243,7 @@ def test_title_similarity():
 @pytest.fixture
 def news_app(tmp_path):
     a = App(tmp_path, source=SyntheticSource(["BTC/USDC", "ETH/USDC"], days=3), start=False,
-            settings_override={"general": {"watchlist": ["BTC/USDC", "ETH/USDC"]}, "market": {"source": "synthetic"},
+            settings_override={"general": {"quote": "USDC", "watchlist": ["BTC/USDC", "ETH/USDC"]}, "market": {"source": "synthetic"},
                                "news": {"enabled": True, "telegram_channels": ["@flashs"]}})
     yield a
     a.db.close()
@@ -343,7 +343,7 @@ def test_existing_settings_receive_official_feeds_once(tmp_path):
     from sentinelle.config import OFFICIAL_FEEDS
     from sentinelle.storage.db import Database, dumps
 
-    old = apply_update(DEFAULT_SETTINGS, {"general": {"watchlist": ["BTC/USDC"]}, "market": {"source": "synthetic"}})
+    old = apply_update(DEFAULT_SETTINGS, {"general": {"quote": "USDC", "watchlist": ["BTC/USDC"]}, "market": {"source": "synthetic"}})
     old["news"]["feeds"] = ["https://cointelegraph.com/rss", "https://mon-flux.example/rss"]  # réglages d'une version précédente
     db = Database(tmp_path / "sentinelle.db")
     db.execute("INSERT INTO settings(id, data, updated_at) VALUES (1, ?, ?)", (dumps(old), time.time()))

@@ -141,6 +141,7 @@ def test_agent_without_model_and_exploration_never_trades(db, paper, pm, risk, s
 
 
 def test_backtest_runs_and_respects_limits(settings):
+    settings["general"]["quote"] = "USDC"  # synthetic history in USDC
     hist = {"BTC/USDC": make_series(9000, seed=31, start=30_000), "ETH/USDC": make_series(9000, seed=32, start=2_000)}
     settings["risk"]["min_reward_to_fees"] = 1.0
     settings["ai"]["regime_filter"] = False

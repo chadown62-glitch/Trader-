@@ -41,7 +41,7 @@ def run_backtest(
     *,
     start_ts: int | None = None,
     end_ts: int | None = None,
-    initial: float = 10_000.0,
+    initial: float = 30.0,
     exploration: bool = False,
     markets: dict[str, MarketInfo] | None = None,
     btc: pd.DataFrame | None = None,

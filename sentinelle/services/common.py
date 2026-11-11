@@ -15,7 +15,7 @@ EMERGENCY_CONFIRM = "URGENCE"
 # Seule l'IA d'entraînement (argent fictif) existe. L'ancienne « IA — Portefeuille réel »
 # a été retirée : toute tentative de la démarrer est refusée (voir sentinelle/safety.py).
 AGENTS = {
-    "ia_entrainement": {"mode": "training", "role": "ai_training", "label": "IA — Entraînement (argent fictif)"},
+    "ia_entrainement": {"mode": "training", "role": "principal", "label": "IA — Portefeuille principal fictif"},
 }
 RETIRED_AGENTS = {"ia_reel": "IA — Portefeuille réel"}
 
