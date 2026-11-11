@@ -314,7 +314,24 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
         clock = self.market_clock
         def fresh_price(symbol):
             return self.hub.price(symbol) if self.hub.is_fresh(symbol, 180) else None
-        broker = PaperBroker(self.db, acc["id"], acc["quote"], self.hub.market, fresh_price, p["fee_rate"], p["slippage_bps"], clock)
+        def fx_value(base, quote, quantity):
+            from ..market.fx import FXError
+            from ..market.fx_provider import PublicFXProvider
+            provider = PublicFXProvider(self.source, self.hub.markets, clock)
+            # A missing or stale quote must never turn an asset into zero value.
+            for via in (None, 'USD', 'USDC', 'USDT'):
+                if via in (base, quote):
+                    continue
+                try:
+                    book = provider.snapshot(base, quote, via=via)
+                    out = book.convert(quantity, base, quote, now=clock(), max_age=60,
+                                       via=via, require_depth=True)
+                    return float(out['amount'])
+                except FXError:
+                    continue
+            raise OrderError(f"Valorisation impossible : taux {base}/{quote} indisponible ou périmé.", "no_price")
+        broker = PaperBroker(self.db, acc["id"], acc["quote"], self.hub.market, fresh_price, p["fee_rate"], p["slippage_bps"], clock,
+                             fx_value_fn=fx_value)
         rt = AccountRuntime(acc, broker, PositionManager(self.db, broker, self.bus, clock),
                             RiskManager(self.db, acc["id"], lambda: self.settings, clock))
         rt.positions.close_listeners.append(self._on_position_closed)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import csv
+from decimal import Decimal
 import io
 import ipaddress
 import json
@@ -17,7 +18,7 @@ from typing import Any, Literal
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .. import __version__
 from ..config import SettingsError
@@ -63,6 +64,15 @@ class AccountBody(BaseModel):
 
 class ResetBody(BaseModel):
     initial_balance: float | None = Field(default=None, gt=0, le=10_000_000)
+
+
+class FXBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    base: Literal['EUR', 'USD', 'USDC', 'USDT']
+    target: Literal['EUR', 'USD', 'USDC', 'USDT']
+    amount: Decimal = Field(gt=0, le=10_000_000, max_digits=16, decimal_places=8, allow_inf_nan=False)
+    via: Literal['EUR', 'USD', 'USDC', 'USDT'] | None = None
+    request_id: str = Field(min_length=16, max_length=80, pattern=r'^[A-Za-z0-9_-]+$')
 
 
 class OrderBody(BaseModel):
@@ -355,6 +365,14 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
     @api.get("/api/accounts/{account_id}/fills")
     async def fills(account_id: int, limit: int = 100):
         return app.db.query("SELECT * FROM fills WHERE account_id = ? ORDER BY ts DESC LIMIT ?", (account_id, min(limit, 1000)))
+
+    @api.post("/api/accounts/{account_id}/fx")
+    async def convert_fx(account_id: int, body: FXBody):
+        return await app.acall(app.convert_paper_currency, account_id, body.base, body.target, body.amount, body.via, body.request_id)
+
+    @api.get("/api/accounts/{account_id}/fx")
+    async def fx_history(account_id: int):
+        return await app.acall(app.paper_fx_history, account_id)
 
     # -- ordres et positions ----------------------------------------------------------
     @api.post("/api/orders/preview")

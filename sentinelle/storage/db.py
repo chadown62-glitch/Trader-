@@ -49,6 +49,20 @@ CREATE TABLE IF NOT EXISTS balances(
     total REAL NOT NULL DEFAULT 0,
     PRIMARY KEY (account_id, asset)
 );
+CREATE TABLE IF NOT EXISTS fx_operations(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id INTEGER NOT NULL,
+    ts REAL NOT NULL,
+    source_currency TEXT NOT NULL,
+    target_currency TEXT NOT NULL,
+    amount_in TEXT NOT NULL,
+    amount_out TEXT NOT NULL,
+    fee_rate TEXT NOT NULL,
+    via TEXT,
+    request_id TEXT,
+    legs TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_fx_operations_account ON fx_operations(account_id, ts);
 CREATE TABLE IF NOT EXISTS orders(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     account_id INTEGER NOT NULL,
@@ -276,6 +290,9 @@ class Database:
             self.conn.execute("PRAGMA busy_timeout=5000")
             self.conn.executescript(SCHEMA)
             self._ensure_column("news", "cluster", "INTEGER")
+            self._ensure_column("fx_operations", "via", "TEXT")
+            self._ensure_column("fx_operations", "request_id", "TEXT")
+            self.conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_fx_request ON fx_operations(account_id, request_id)")
             self.conn.execute(
                 "INSERT OR IGNORE INTO meta(key, value) VALUES ('schema_version', ?)",
                 (str(SCHEMA_VERSION),),
