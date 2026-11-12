@@ -46,8 +46,13 @@ export default {
     const modelBars = computed(() => (d.value?.by_model || []).filter(g => g.mean_r !== null).map(g => ({ value: g.mean_r, title: g.label + ' — ' + g.n + ' trade(s)' })));
     const TABLES = [['by_strategy', 'Par stratégie'], ['by_symbol', 'Par crypto'], ['by_origin', 'Par origine'], ['by_regime', 'Par climat de marché à l’entrée'], ['by_horizon', 'Par durée de détention']];
     const gapOk = computed(() => Math.abs(rep.value?.result?.check_gap ?? 0) < 0.005);
+    const priceSource = computed(() => {
+      const src = store.overview?.settings_summary?.source;
+      if (!src) return 'source inconnue';
+      return src === 'synthetic' ? 'marché simulé (démonstration)' : `${src}, données publiques réelles`;
+    });
     return { store, accounts, accountId, period, rep, loading, cur, d, s, t, pc, plain, hours, equitySeries, ddSeries, dailyBars, tradeBars,
-      strategyBars, modelBars, TABLES, PERIODS, gapOk, money, signed, cls, dt, rr, nf };
+      strategyBars, modelBars, TABLES, PERIODS, gapOk, priceSource, money, signed, cls, dt, rr, nf };
   },
   template: `
   <div>
@@ -58,6 +63,8 @@ export default {
     <div v-if="!rep" class="card empty">{{ loading ? 'Chargement…' : 'Aucune donnée.' }}</div>
     <template v-else>
       <div v-for="c in rep.caution" :key="c" class="note small" :class="c.startsWith('Marché simulé') ? 'danger' : c.startsWith('Argent fictif') ? 'info' : 'warn'" style="margin-bottom:8px">{{ c }}</div>
+      <p class="faint small" data-nature style="margin:4px 0 0">Nature des chiffres : {{ rep.account.name }}, argent fictif ({{ money(rep.capital.initial, cur) }} au départ) ·
+        prix : {{ priceSource }} · ce ne sont ni des simulations sur l’historique (page IA) ni l’observation prospective gelée (page Préparation).</p>
 
       <div class="card" style="margin:14px 0">
         <div class="card-head"><h2>{{ rep.account.name }}</h2><span class="badge paper">ARGENT FICTIF</span><span class="spacer"></span>

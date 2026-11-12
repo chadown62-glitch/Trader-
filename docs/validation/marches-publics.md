@@ -60,11 +60,11 @@ préenregistrer le collecteur et le modèle réellement déployé avant observat
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m tools.diagnose_windows
+.\.venv\Scripts\python.exe -m tools.diagnose_windows --reseau --rapport
 .\.venv\Scripts\python.exe -m sentinelle --demo --no-browser --data "$env:TEMP\sentinelle-validation" --port 8765
 ```
 
-Le diagnostic utilise un dossier temporaire, contrôle SQLite et le portefeuille
+Procédure complète et rejouable (installation neuve en dossier temporaire, diagnostic, tests rapides) : [docs/WINDOWS.md](../WINDOWS.md) et `tools/diagnostic_windows.ps1`. Le diagnostic utilise un dossier temporaire, contrôle SQLite et le portefeuille
 après réouverture, l'API de performances et le refus du broker réel. Il n'exige
 aucun GPU. Un diagnostic exécuté sous Linux **ne prouve pas** la compatibilité
 Windows. Les tests complets, navigateur, installation et entraînement sous

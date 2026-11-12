@@ -25,6 +25,12 @@ export default {
     const t = reactive({ side: 'buy', type: 'market', mode: 'quote', amount: null, limit: null, sl: null, tp: null, useRisk: false, riskPct: 0.5 });
 
     const last = computed(() => store.markets.prices[symbol.value] ?? (candles.value.length ? candles.value[candles.value.length - 1][4] : null));
+    // Prix périmé : la source n'a pas donné de prix récent pour cette crypto (réseau coupé, maintenance…)
+    const isStale = (s) => {
+      const fresh = store.overview?.market?.fresh;
+      return !!fresh && Object.prototype.hasOwnProperty.call(fresh, s) && fresh[s] === false;
+    };
+    const stale = computed(() => isStale(symbol.value));
     const dayChange = computed(() => {
       const c = candles.value;
       if (!c.length || !last.value) return null;
@@ -179,7 +185,7 @@ export default {
     const cancelOrder = async (o) => { await safe(api.del(`/api/orders/${o.id}?account_id=${accountId.value}`), 'Ordre annulé'); loadDetail(); };
     const PURPOSE = { entry: 'Achat', stop: 'Stop-loss', target: 'Objectif', exit: 'Sortie', manual: 'Manuel' };
 
-    return { store, chart, symbol, tf, candles, loading, detail, coach, preview, busy, accounts, accountId, account, t, last, dayChange,
+    return { store, chart, symbol, tf, candles, loading, detail, coach, preview, busy, accounts, accountId, account, t, last, dayChange, stale, isStale,
       lines, markers, base, quoteCcy, cashCcy, cash, holding, fxLine, setSl, setTp, setPortion, riskComputed, submit, closePos, editing, editPos, saveEdit,
       cancelOrder, positionsHere, PURPOSE, money, signed, price, qty, pct, cls, dt, rr, STRATEGY_LABELS, accountLabel };
   },
@@ -197,7 +203,8 @@ export default {
       <div class="col">
         <div class="card c-chart" style="margin-bottom:14px">
           <div class="card-head">
-            <div class="ticker"><h2 style="margin:0">{{ symbol }}</h2><span class="px">{{ price(last) }}</span>
+            <div class="ticker"><h2 style="margin:0">{{ symbol }}</h2><span class="px" :class="{faint: stale}">{{ price(last) }}</span>
+              <span v-if="stale" class="badge warn stale-badge" title="Aucun prix reçu depuis plus de 2 minutes pour cette crypto : le dernier prix connu est affiché. Au-delà de 3 minutes, les ordres au marché sont refusés.">prix périmé</span>
               <span v-if="dayChange !== null" class="num" :class="cls(dayChange)">{{ pct(dayChange) }} <span class="faint small">24 h</span></span></div>
             <span class="spacer"></span>
             <div class="seg"><button v-for="x in ['1m','5m','15m','1h','4h','1d']" :key="x" :class="{on: tf===x}" @click="tf=x">{{ x }}</button></div>
@@ -208,18 +215,18 @@ export default {
 
         <div class="card c-pos" style="margin-bottom:14px">
           <div class="card-head"><h2>Positions ouvertes</h2><span class="spacer"></span><span class="muted small" v-if="detail">Capital {{ money(detail.equity, detail.quote) }} · disponible {{ money(detail.available ?? detail.cash, detail.quote) }}</span></div>
-          <div class="table-wrap"><table>
+          <div v-if="!positionsHere.length" class="empty">Aucune position ouverte sur ce compte.</div>
+          <div v-else class="table-wrap"><table>
             <thead><tr><th>Crypto</th><th>Origine</th><th class="num">Quantité</th><th class="num">Entrée</th><th class="num">Prix</th><th class="num">Résultat</th><th class="num">Stop</th><th class="num">Objectif</th><th></th></tr></thead>
             <tbody>
               <tr v-for="p in positionsHere" :key="p.id">
                 <td><b>{{ p.symbol }}</b><div class="faint small" v-if="p.strategy">{{ STRATEGY_LABELS[p.strategy] }}</div></td>
                 <td><span class="badge" :class="p.origin==='ai' ? 'paper' : ''">{{ p.origin==='ai' ? 'IA' : 'Manuel' }}</span><div class="faint small" v-if="p.status==='pending'">en attente</div></td>
-                <td class="num">{{ qty(p.qty) }}</td><td class="num">{{ price(p.entry_price) }}</td><td class="num">{{ price(p.price) }}</td>
+                <td class="num">{{ qty(p.qty) }}</td><td class="num">{{ price(p.entry_price) }}</td><td class="num">{{ price(p.price) }}<div v-if="isStale(p.symbol)" class="small" style="color:#f59e0b" title="Aucun prix récent : résultat latent calculé au dernier prix connu">prix périmé</div></td>
                 <td class="num" :class="cls(p.pnl)">{{ signed(p.pnl) }}<div class="small">{{ p.r !== null && p.r !== undefined ? rr(p.r) : pct(p.pnl_pct/100) }}</div></td>
                 <td class="num">{{ price(p.stop_price) }}</td><td class="num">{{ price(p.target_price) }}</td>
                 <td class="nowrap"><button class="small" @click="editPos(p)" :disabled="p.status!=='open'">Modifier</button> <button class="small danger" @click="closePos(p)">Fermer</button></td>
               </tr>
-              <tr v-if="!positionsHere.length"><td colspan="9" class="empty">Aucune position ouverte sur ce compte.</td></tr>
             </tbody>
           </table></div>
           <div v-if="editing" class="card tight" style="margin-top:10px;background:var(--bg-2)">
@@ -234,7 +241,8 @@ export default {
 
         <div class="card c-orders">
           <div class="card-head"><h2>Ordres en attente</h2></div>
-          <div class="table-wrap"><table>
+          <div v-if="!(detail?.orders || []).length" class="empty">Aucun ordre en attente.</div>
+          <div v-else class="table-wrap"><table>
             <thead><tr><th>Crypto</th><th>Type</th><th>Rôle</th><th class="num">Quantité</th><th class="num">Prix</th><th>Créé</th><th></th></tr></thead>
             <tbody>
               <tr v-for="o in (detail?.orders || [])" :key="o.id">
@@ -243,7 +251,6 @@ export default {
                 <td class="num">{{ qty(o.amount - o.filled) }}</td><td class="num">{{ price(o.price || o.stop_price) }}</td><td>{{ dt(o.created_at) }}</td>
                 <td><button class="small" @click="cancelOrder(o)">Annuler</button></td>
               </tr>
-              <tr v-if="!(detail?.orders || []).length"><td colspan="7" class="empty">Aucun ordre en attente.</td></tr>
             </tbody>
           </table></div>
         </div>
@@ -291,6 +298,7 @@ export default {
           </div>
           <button class="block" :class="t.side==='buy' ? 'buy' : 'sell'" :disabled="busy || !preview || !!preview.error" @click="submit">
             {{ t.side==='buy' ? 'Acheter' : 'Vendre' }} {{ base }}</button>
+          <p v-if="stale" class="note warn small" style="margin:8px 0">Prix périmé pour {{ symbol }} : le dernier prix connu est affiché. Au-delà de 3 minutes sans prix, les ordres au marché sont refusés ; attendez le retour des données de marché.</p>
           <p class="faint small center" style="margin-bottom:0">Argent fictif, prix réels : entraînez-vous sans risque.</p>
         </div>
 

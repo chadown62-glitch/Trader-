@@ -702,6 +702,13 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
             raise UserError("Date de contexte invalide")
         return await app.acall(macro_shadow.dashboard, as_of)
 
+    # Préparation de l'observation prospective : lecture seule (aucun réseau, aucune écriture, aucun démarrage).
+    @api.get("/api/observation/preflight")
+    async def observation_preflight():
+        from ..preflight import observation_preflight as run_preflight
+
+        return await app.acall(run_preflight, app)
+
     # -- temps réel --------------------------------------------------------------------------------
     @api.websocket("/api/ws")
     async def ws(websocket: WebSocket):

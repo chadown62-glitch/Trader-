@@ -18,6 +18,7 @@ Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et tél�
   - **vérifier qu'elle sait apprendre** : un banc d'essai lui cache des règles dans des marchés artificiels et mesure ce qu'elle retrouve ;
   - puis **en direct, 24 h/24, avec de l'argent fictif**. Chaque décision, prise ou refusée, est expliquée, et chaque signal est suivi jusqu'à son issue.
 - **Suivre le bulletin de fiabilité** de l'IA : modèle validé, 30 jours de résultats en direct, gains nets, baisse contenue. Il mesure des preuves en argent fictif et n'ouvre aucun mode réel.
+- **Page « Préparation »** : en lecture seule, dit si l'observation prospective gelée (30 € fictifs) peut commencer, avec chaque raison de blocage (protocoles gelés et leurs empreintes, réglages, prix publics, historique, Windows 11). Aucun bouton de démarrage.
 - **Page « Performances »** : résultat net par trade et par jour (jours sans trade compris), réalisé et latent séparés, baisse maximale, résultats par stratégie, signaux refusés et leurs raisons. Aucune projection, aucun chiffre « annualisé ».
 - **Simulation accélérée** : rejouer des mois de marché en quelques secondes, avec exactement les mêmes règles que l'apprentissage et le trading fictif, dans les conditions de votre portefeuille ([docs/EXECUTION.md](docs/EXECUTION.md)).
 - **Fiches cryptos** : tout ce que Sentinelle sait de chaque crypto suivie (ampleur normale des mouvements, pires chutes, lien avec le Bitcoin, liquidité, résultats passés de chaque stratégie).
@@ -50,7 +51,7 @@ Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et tél�
 
 Autres lanceurs :
 - **`demo.bat`** : démo hors-ligne sur un marché simulé.
-- **`diagnostic.bat`** : vérification de l'installation.
+- **`diagnostic.bat`** : vérification de l'installation, puis diagnostic complet avec verdict READY / BLOCKED pour l'observation ([docs/WINDOWS.md](docs/WINDOWS.md)).
 - Mac et Linux : `./lancer.sh`.
 
 Mode d'emploi complet : **[docs/GUIDE.md](docs/GUIDE.md)**. Ce qu'il reste à faire : **[docs/PLAN.md](docs/PLAN.md)**. Sources d'information retenues et écartées : **[docs/SOURCES.md](docs/SOURCES.md)**.
