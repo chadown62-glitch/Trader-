@@ -1,0 +1,8 @@
+{"scope": "Connectivity only; not prospective observations or model input", "utc": "2026-11-12T15:48:07.474961+00:00"}
+{"source": "fed", "url": "https://www.federalreserve.gov/feeds/press_all.xml", "status": 200, "bytes": 14754, "sha256": "d5573cf95f376d9cf91b0c7ebf375650d330523752e990fd5da38ff2cc50f91d", "parsed_observations": 20}
+{"source": "bls", "url": "https://www.bls.gov/feed/bls_latest.rss", "status": 200, "bytes": 5331, "sha256": "215d3f83fe83275019a163ea9f48a7a6e68c9090c05ce8e39fb1d0307481c81e", "parsed_observations": 1}
+{"source": "bea", "url": "https://apps.bea.gov/rss/rss.xml", "status": 200, "bytes": 90464, "sha256": "7d1a27f0e5d246892f47fcaac7775dc3b87d9e3f9d428ee5684ebf3ce81cd5d7", "parsed_observations": 49}
+{"source": "ecb", "url": "https://www.ecb.europa.eu/rss/press.html", "status": 200, "bytes": 5918, "sha256": "f18a121a5f4f767bc7635fd2ba0d6b90b97a5c200b736abf3d858a6bdfc300bf", "parsed_observations": 15}
+{"source": "eurostat", "url": "https://ec.europa.eu/eurostat/api/dissemination/catalogue/rss/en/statistics-update.rss", "status": 200, "bytes": 231441, "sha256": "9efa329e5d8e11ce0b815f73f1fddaf3d701e6d6b7ad6be0b3c687f9edcabaa7", "parsed_observations": 100}
+{"source": "bls_cpi_index", "url": "https://api.bls.gov/publicAPI/v2/timeseries/data/CUUR0000SA0", "status": 200, "bytes": 3203, "sha256": "69fcb3e6b15c1cce5f224c571feaf486ff8b992fba647b632396b942dab1f0d6", "parse_error": "Invalid BLS index"}
+{"scope": "connectivity only, not prospective input", "utc": "2026-11-12T15:52:05.076338+00:00", "source": "bls_cpi_index", "status": 200, "sha256": "2051cca9df9cabbce117c43b970fea678761052addb9f5837f084d04228e4931", "parsed_observations": 34, "missing_actuals": 1}

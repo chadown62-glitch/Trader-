@@ -676,6 +676,20 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         if hasattr(ext, "register_routes"):
             ext.register_routes(api)
 
+    # Read-only shadow view: no fetch, no mutation of the frozen trading protocol.
+    from ..news.shadow.service import MacroShadow
+    if not hasattr(app, "macro_shadow"):
+        app.macro_shadow = MacroShadow(app.data_dir)
+        app.extensions.append(app.macro_shadow)
+    macro_shadow = app.macro_shadow
+
+    @api.get("/api/macro-shadow")
+    async def macro_shadow_context(as_of: float | None = None):
+        import math
+        if as_of is not None and (not math.isfinite(as_of) or as_of > time.time()):
+            raise UserError("Date de contexte invalide")
+        return await app.acall(macro_shadow.dashboard, as_of)
+
     # -- temps réel --------------------------------------------------------------------------------
     @api.websocket("/api/ws")
     async def ws(websocket: WebSocket):
