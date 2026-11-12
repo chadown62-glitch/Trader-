@@ -181,6 +181,10 @@ CREATE TABLE IF NOT EXISTS equity(
     cash REAL NOT NULL,
     PRIMARY KEY (account_id, ts)
 );
+CREATE TABLE IF NOT EXISTS prospective_bars(
+    account_id INTEGER NOT NULL, symbol TEXT NOT NULL, timeframe TEXT NOT NULL, ts INTEGER NOT NULL,
+    agent TEXT NOT NULL, PRIMARY KEY(account_id,symbol,timeframe,ts)
+);
 CREATE TABLE IF NOT EXISTS candidates(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     symbol TEXT NOT NULL,

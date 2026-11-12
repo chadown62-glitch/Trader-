@@ -112,7 +112,12 @@ class AgentsMixin:
             for sym in symbols:  # ne pas rejouer la dernière bougie déjà clôturée
                 s = self.hub.series(sym, tf)
                 if len(s):
-                    agent.last_bar[sym] = int(s["ts"].iloc[-1])
+                    latest = int(s["ts"].iloc[-1])
+                    self.db.execute("UPDATE candidates SET decision='refusé', decision_reason='Reprise après interruption : signal expiré, aucun ordre' WHERE account_id=? AND symbol=? AND timeframe=? AND decision='préparé' AND ts<?",
+                                    (account_id, sym, tf, latest))
+                    pending = self.db.one("SELECT 1 FROM candidates WHERE account_id=? AND symbol=? AND timeframe=? AND ts=? AND decision='préparé'",
+                                          (account_id, sym, tf, latest))
+                    agent.last_bar[sym] = latest - 1 if pending else latest
                 if sym in self.settings["general"]["watchlist"]:
                     feat = self._features_for(sym, tf)
                     if feat is not None:
