@@ -11,6 +11,7 @@ import Logs from './views/logs.js';
 import Signals from './views/signals.js';
 import Knowledge from './views/knowledge.js';
 import Performance from './views/performance.js';
+import Macro from './views/macro.js';
 
 const { createApp, ref, computed, onMounted, onBeforeUnmount, watch } = Vue;
 
@@ -21,12 +22,13 @@ const NAV = [
   { id: 'ai', label: 'IA', ico: '✦' },
   { id: 'history', label: 'Historique', ico: '☰' },
   { id: 'knowledge', label: 'Fiches cryptos', ico: '❖' },
+  { id: 'macro', label: 'Contexte macro', short: 'Macro', ico: '◷' },
   { id: 'news', label: 'Actualités', ico: '✉' },
   { id: 'signals', label: 'Signaux', ico: '⌁' },
   { id: 'settings', label: 'Réglages', ico: '⚙' },
   { id: 'logs', label: 'Journal', ico: '≡' },
 ];
-const VIEWS = { dashboard: Dashboard, trade: Trade, ai: AI, history: History, news: News, signals: Signals, settings: Settings, logs: Logs, knowledge: Knowledge, performance: Performance };
+const VIEWS = { dashboard: Dashboard, trade: Trade, ai: AI, history: History, news: News, signals: Signals, settings: Settings, logs: Logs, knowledge: Knowledge, performance: Performance, macro: Macro };
 const LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#3b82f6" d="M32 4 8 14v16c0 15 10 26 24 30 14-4 24-15 24-30V14z"/><path fill="#fff" d="m20 36 8-10 7 7 9-12 4 3-13 16-7-7-5 6z"/></svg>`;
 
 const Login = {
