@@ -67,7 +67,7 @@ export default {
           <div class="stat"><span class="label">Capital actuel</span><span class="value">{{ money(rep.capital.current, cur) }}</span>
             <span class="sub muted" v-if="rep.capital.available !== null">disponible {{ money(rep.capital.available, cur) }} · investi {{ money(rep.capital.invested, cur) }}</span></div>
           <div class="stat"><span class="label">Résultat net depuis le lancement</span><span class="value" :class="cls(rep.result.net)">{{ signed(rep.result.net, cur) }}</span><span class="sub" :class="cls(rep.result.net)">{{ pc(rep.result.net_pct) }}</span></div>
-          <div class="stat"><span class="label">dont réalisé (trades clôturés)</span><span class="value" :class="cls(rep.result.realized)">{{ signed(rep.result.realized, cur) }}</span></div>
+          <div class="stat"><span class="label">dont réalisé (ventes exécutées)</span><span class="value" :class="cls(rep.result.realized)">{{ signed(rep.result.realized, cur) }}</span></div>
           <div class="stat"><span class="label">dont latent (positions ouvertes)</span><span class="value" :class="cls(rep.result.latent)">{{ signed(rep.result.latent, cur) }}</span><span class="sub muted">{{ rep.open_positions.length }} position(s), au dernier prix</span></div>
           <div class="stat"><span class="label">Frais cumulés</span><span class="value">{{ money(rep.result.fees, cur) }}</span><span class="sub muted">plateforme et conversion, déjà déduits</span></div>
         </div>

@@ -218,6 +218,8 @@ def run_backtest(
     }
     if research_trace:
         result["equity"] = equity_curve
+        result["refusal_reasons"] = dict(agent.refusal_reasons)
+        result["equity_cash"] = [[int(r["ts"] * 1000), r["equity"], r["cash"]] for r in db.query("SELECT ts,equity,cash FROM equity WHERE account_id=? ORDER BY ts", (acc,))]
         result["closed_positions"] = closed
         result["fills"] = db.query("SELECT * FROM fills ORDER BY id")
         result["unrealized_positions"] = open_left

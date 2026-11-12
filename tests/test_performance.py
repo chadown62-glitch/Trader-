@@ -292,3 +292,16 @@ def test_stale_prices_do_not_create_a_new_observation(story):
     assert report["detail"]["daily"][-1]["observed"] is False
     assert report["validation"] and "model_history" in report
     json.dumps(report, allow_nan=False)
+
+
+def test_partial_exit_is_realized_while_remaining_position_is_latent(story):
+    app, main, clock, pos = story
+    rt=app.runtimes[main]
+    rt.broker.place_order(pos['symbol'],'sell','market',pos['qty']/2,
+                          position_id=pos['id'],purpose='exit')
+    remaining=rt.positions.get(pos['id'])
+    assert remaining['status']=='open' and remaining['realized_pnl']!=0
+    report=app.performance()
+    assert report['result']['realized']==pytest.approx(-.05+remaining['realized_pnl'])
+    assert report['result']['latent']==pytest.approx(rt.positions.unrealized(remaining)['pnl']-remaining['realized_pnl'])
+    assert report['result']['check_gap']==pytest.approx(0,abs=1e-9)

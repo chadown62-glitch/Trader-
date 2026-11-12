@@ -51,7 +51,7 @@ def forecast(model, examples):
             "brier": float(np.mean((prob-y)**2)), "average_probability": float(prob.mean()), "observed_rate": float(y.mean())}
 
 
-def evaluate(scenario, seed, *, bars=7200, test_bars=600, sizes=SIZES, trial_count=1):
+def evaluate(scenario, seed, *, bars=7200, test_bars=600, sizes=SIZES, trial_count=1, frozen_history=None):
     if not 0 < test_bars < bars or not sizes or min(sizes) < 1:
         raise ValueError("Périodes ou tailles invalides")
     frame, fee = market_frame(scenario, seed, bars)
@@ -60,6 +60,13 @@ def evaluate(scenario, seed, *, bars=7200, test_bars=600, sizes=SIZES, trial_cou
     history = {SYMBOL: frame}
     for index, offset in enumerate(ASSET_SEED_OFFSETS[1:], 2):
         history[f"LAB{index}/EUR"] = market_frame(scenario, seed + offset, bars)[0]
+    if frozen_history is not None:
+        if set(frozen_history) != set(history) or any(len(f) != bars for f in frozen_history.values()):
+            raise ValueError("Les entrées archivées ne correspondent pas au protocole")
+        history = {s: f.copy() for s, f in frozen_history.items()}
+        for f in history.values():
+            if f.ts.tolist() != frame.ts.tolist():
+                raise ValueError("Chronologie archivée incompatible")
     cfg = deepcopy(DEFAULT_SETTINGS)
     cfg["general"].update(quote="EUR", watchlist=list(history))
     cfg["ai"].update(timeframe=TF, exploration_risk_factor=1.)

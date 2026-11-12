@@ -256,7 +256,7 @@ class PerformanceMixin:
                     if u["pnl"] is None:
                         valuation_error = u.get("error") or "Prix ou change indisponible"
                         continue
-                    latent += u["pnl"]  # déjà net des frais de sortie estimés (prudent)
+                    latent += u["pnl"] - p["realized_pnl"]  # exclude already settled partial exits
                     exit_costs += (u.get("value") or 0.0) * (rt.broker.fee_rate + rt.broker.conversion_cost(p["symbol"]))
                     open_positions.append({"id": p["id"], "symbol": p["symbol"], "origin": p["origin"], "strategy": p["strategy"],
                                            "entry_ts": p["entry_ts"], "value": u.get("value"), "pnl": u["pnl"], "r": u["r"]})
@@ -306,7 +306,7 @@ class PerformanceMixin:
             peak = max(peak, eq)
             dd.append([ts_ms, (eq / peak - 1.0) * 100 if peak > 0 else 0.0])
 
-        realized_all = float(sum(t["pnl"] for t in trades))
+        realized_all = float(sum(t["pnl"] for t in trades)) + float(sum(p["realized_pnl"] for p in rt.positions.open_positions()) if rt else 0)
         strategy_labels = {name: st.label for name, st in STRATEGIES.items()}
         strategy_labels[None] = "trade manuel"
         models = grouped([t for t in sub if t["origin"] == "ai"], "model_version")
