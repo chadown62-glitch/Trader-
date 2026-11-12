@@ -38,6 +38,7 @@ from .jobs import JobManager
 from .learning import LearningMixin
 from .live_ops import LiveMixin
 from .models import ModelStore
+from .performance import PerformanceMixin
 from .portfolio import PortfolioMixin
 from .secrets import SecretStore
 from .trading import TradingMixin
@@ -139,7 +140,7 @@ class Engine(threading.Thread):
             self.drain(timeout=0.0)
 
 
-class App(LiveMixin, PortfolioMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
+class App(LiveMixin, PortfolioMixin, PerformanceMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
     """Application complète. Les méthodes sont réparties par thème dans les modules *Mixin."""
 
     def __init__(self, data_dir: Path, *, source=None, start: bool = True, settings_override: dict | None = None):
