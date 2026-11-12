@@ -83,3 +83,13 @@ ordinateur/mobile n'est revendiqué. Windows 11 n'est pas disponible : conserver
 la procédure de `marches-publics.md`. Aucun test Windows n'a été annoncé.
 
 La préparation v1 est conservée mais explicitement invalide : elle contenait un intervalle de réentraînement à zéro, rejeté par la configuration. v2 conserve le même modèle et désactive uniquement `learning`, avec un intervalle valide. Aucune observation n’a utilisé v1.
+
+## Validation finale exécutée
+
+377 tests réussis, aucun échec, skip ou xfail, en 147,74 secondes. CPython 3.12,
+CCXT complet, environnement vidé et tests sous seccomp sans connexions réseau.
+Un avertissement Starlette/TestClient. Les tests comptables de Performances sont
+inclus. Les trois archives ont été relues hors réseau avec leurs empreintes
+précédentes inchangées. Le modèle v2 et ses réglages passent le contrôle
+d'intégrité et le test de construction du runtime papier ; aucune observation
+publique n'a été exécutée.
