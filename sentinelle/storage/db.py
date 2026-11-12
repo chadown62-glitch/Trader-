@@ -223,6 +223,40 @@ CREATE TABLE IF NOT EXISTS models(
     path TEXT,
     notes TEXT
 );
+CREATE TABLE IF NOT EXISTS model_events(
+    id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL NOT NULL, version TEXT NOT NULL,
+    timeframe TEXT, event TEXT NOT NULL, reason TEXT, data TEXT
+);
+CREATE TABLE IF NOT EXISTS model_policy_locks(
+    protocol_sha TEXT PRIMARY KEY, start REAL NOT NULL, end REAL NOT NULL, reason TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS experiments(
+    id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL NOT NULL, kind TEXT NOT NULL,
+    config_hash TEXT NOT NULL, params TEXT NOT NULL, result TEXT
+);
+CREATE TABLE IF NOT EXISTS learning_protocols(
+    sha256 TEXT PRIMARY KEY, registered_at REAL NOT NULL, document TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS paired_predictions(
+    key TEXT PRIMARY KEY, protocol_sha TEXT NOT NULL, candidate_id INTEGER NOT NULL,
+    account_id INTEGER NOT NULL, decision_ts REAL NOT NULL, available_at REAL NOT NULL,
+    recorded_at REAL NOT NULL, payload TEXT NOT NULL,
+    UNIQUE(protocol_sha,candidate_id)
+);
+CREATE TABLE IF NOT EXISTS paired_outcomes(
+    prediction_key TEXT PRIMARY KEY, available_at REAL NOT NULL, recorded_at REAL NOT NULL, payload TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_pair_protocol ON paired_predictions(protocol_sha,decision_ts);
+CREATE TRIGGER IF NOT EXISTS immutable_pair_update BEFORE UPDATE ON paired_predictions BEGIN SELECT RAISE(ABORT,'immutable prediction'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_pair_delete BEFORE DELETE ON paired_predictions BEGIN SELECT RAISE(ABORT,'immutable prediction'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_outcome_update BEFORE UPDATE ON paired_outcomes BEGIN SELECT RAISE(ABORT,'immutable outcome'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_outcome_delete BEFORE DELETE ON paired_outcomes BEGIN SELECT RAISE(ABORT,'immutable outcome'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_protocol_update BEFORE UPDATE ON learning_protocols BEGIN SELECT RAISE(ABORT,'immutable protocol'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_protocol_delete BEFORE DELETE ON learning_protocols BEGIN SELECT RAISE(ABORT,'immutable protocol'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_event_update BEFORE UPDATE ON model_events BEGIN SELECT RAISE(ABORT,'immutable model event'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_event_delete BEFORE DELETE ON model_events BEGIN SELECT RAISE(ABORT,'immutable model event'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_lock_update BEFORE UPDATE ON model_policy_locks BEGIN SELECT RAISE(ABORT,'immutable policy lock'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_lock_delete BEFORE DELETE ON model_policy_locks BEGIN SELECT RAISE(ABORT,'immutable policy lock'); END;
 CREATE TABLE IF NOT EXISTS news(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     uid TEXT UNIQUE,
@@ -378,6 +412,10 @@ class Database:
             self.conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_fx_request ON fx_operations(account_id, request_id)")
             self._ensure_column("positions", "entry_fx", "REAL")
             self._ensure_column("positions", "currency", "TEXT")
+            for column, decl in (("sha256", "TEXT"), ("params", "TEXT"), ("promoted_at", "REAL")):
+                self._ensure_column("models", column, decl)
+            self.conn.execute("CREATE TRIGGER IF NOT EXISTS immutable_model_identity BEFORE UPDATE OF version,timeframe,path,metrics,sha256,params "
+                              "ON models BEGIN SELECT RAISE(ABORT,'immutable model identity'); END")
             self.conn.execute(
                 "INSERT OR IGNORE INTO meta(key, value) VALUES ('schema_version', ?)",
                 (str(SCHEMA_VERSION),),

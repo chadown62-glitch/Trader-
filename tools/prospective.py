@@ -72,6 +72,8 @@ class SupervisedObserver:
         rt=app.runtime(account['id'])
         model=MetaModel.load(self.root/'model.joblib')  # trusted, locally prepared artifact only
         self.app=app
+        app.models.lock_policy(self.protocol_sha,begin_timestamp(self.protocol['start']),begin_timestamp(self.protocol['end']),
+                               'prospective-v2: modèle et politique gelés')
         self.agent=TradingAgent('prospective-frozen','training',app.db,rt.positions,rt.risk,
                                lambda:self.settings,lambda:model,timeframe=self.settings['ai']['timeframe'],
                                clock=app.market_clock,fresh_fn=lambda s:app.hub.is_fresh(s,180))
@@ -92,3 +94,7 @@ class SupervisedObserver:
         if not 0<=self.app.market_clock()-available<=180:
             raise ValueError('Unclosed or stale observation')
         self.agent.on_bar(symbol,features)
+
+
+def begin_timestamp(value):
+    return datetime.fromisoformat(value).timestamp()

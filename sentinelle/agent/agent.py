@@ -29,12 +29,13 @@ from ..ai.features import FEATURE_COLUMNS, REGIME_LABELS
 from ..ai.labeling import candidate_row, simulate_candidate
 from ..ai.model import MetaModel
 from ..ai.strategies import STRATEGIES, levels
-from ..config import timeframe_ms
+from ..config import timeframe_minutes, timeframe_ms
 from ..execution.base import OrderError
 from ..execution.positions import PositionManager
 from ..risk.manager import RiskManager
 from ..safety import forbid, require_paper_broker
 from ..storage.db import Database, dumps, loads
+from .plan import build_plan
 
 log = logging.getLogger("sentinelle.agent")
 
@@ -67,6 +68,7 @@ class TradingAgent:
         price_check_fn: Callable[[str, float], str | None] | None = None,
         shield_fn: Callable[[str, float], str | None] | None = None,
         context_fn: Callable[[str], dict] | None = None,
+        shadow_fn: Callable[[dict], None] | None = None,
         bus=None,
         clock: Callable[[], float] = time.time,
         record: bool = True,
@@ -90,6 +92,7 @@ class TradingAgent:
         self.price_check_fn = price_check_fn
         self.shield_fn = shield_fn
         self.context_fn = context_fn
+        self.shadow_fn = shadow_fn  # optional preregistered observer; never supplies a trading decision
         self.bus = bus
         self.clock = clock
         self.record = record
@@ -342,16 +345,29 @@ class TradingAgent:
         for c in cands:
             st = c["st"]
             if self.record and self.mode != "backtest":
+                plan = build_plan(
+                    symbol=symbol, strategy=st, close=close, stop=c["stop"], target=c["target"],
+                    atr_pct=float(row["atr_pct"]) if np.isfinite(row.get("atr_pct", np.nan)) else None,
+                    p_win=c["p"], expected_r=c["er"], threshold=thr, model=model, mode=None,
+                    regime=regime, btc_regime=btc_regime, cost_r=float(c["row"]["cost_r"]),
+                    horizon_bars=st.horizon(self.timeframe), timeframe_minutes=timeframe_minutes(self.timeframe),
+                    currency=self.broker.quote, decision="préparé", reason="Avant exécution ; le risque reste à vérifier")
                 self.db.execute(
                     "INSERT OR IGNORE INTO candidates(symbol, timeframe, ts, strategy, source, entry, stop, target, horizon_bars, "
                     "features, p_win, expected_r, model_version, decision, decision_reason, account_id) "
                     "VALUES (?, ?, ?, ?, 'live', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (symbol, self.timeframe, bar_ts, c["name"], close, c["stop"], c["target"], st.horizon(self.timeframe),
-                     dumps({**{k: c["row"][k] for k in FEATURE_COLUMNS + ["cost_r"]}, "contexte": context, "policy_sha256": hashlib.sha256(dumps(cfg).encode()).hexdigest(), "threshold": thr, "prediction_recorded_at": self.clock(), "signal_available_ms": bar_ts + self.tf_ms}), c["p"], c["er"],
+                     dumps({**{k: c["row"][k] for k in FEATURE_COLUMNS + ["cost_r"]}, "contexte": context, "policy_sha256": hashlib.sha256(dumps(cfg).encode()).hexdigest(), "threshold": thr, "prediction_recorded_at": self.clock(), "signal_available_ms": bar_ts + self.tf_ms,
+                            "plan": plan, "fee_rate": fee, "slippage": slip, "regime": regime, "btc_regime": btc_regime}), c["p"], c["er"],
                      model.version if model is not None else None, "préparé", "Décision en cours", self.account_id),
                 )
             st = c["st"]
             if prepare_only:
+                if self.shadow_fn is not None:
+                    # In the same durable intent transaction. Failure prevents an unjournaled order.
+                    saved = self.db.one("SELECT * FROM candidates WHERE symbol=? AND timeframe=? AND ts=? AND strategy=? AND source='live'",
+                                        (symbol, self.timeframe, bar_ts, c["name"]))
+                    self.shadow_fn(saved)
                 continue
             if self.record and self.mode != "backtest":
                 saved = self.db.one("SELECT * FROM candidates WHERE symbol=? AND timeframe=? AND ts=? AND strategy=? AND source='live'",
@@ -410,6 +426,7 @@ class TradingAgent:
                     try:
                         self.positions.open(
                             symbol, rd.qty, origin="ai", agent=self.name, stop=c["stop"], target=c["target"],
+                            candidate_id=saved["id"] if self.record and self.mode != "backtest" else None,
                             strategy=c["name"], p_win=c["p"], expected_r=c["er"],
                             model_version=model.version if model is not None and mode_used in ("model", "essai") else None,
                             horizon_bars=st.horizon(self.timeframe), timeframe=self.timeframe, reason=explanation,
