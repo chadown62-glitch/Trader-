@@ -427,6 +427,31 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
     async def models():
         return app.models.list()
 
+    @api.get("/api/ai/champion")
+    async def champion_status():
+        """Champion, challenger, comparaison en cours, surveillance, historique des promotions, règles."""
+        return await app.acall(app.learning_status)
+
+    @api.get("/api/ai/journal")
+    async def decision_journal(limit: int = 50, decision: str | None = None, symbol: str | None = None):
+        """Journal des décisions : plan écrit avant l'issue, issue réelle, cause probable, décision du modèle actuel."""
+        return await app.acall(app.decision_journal, limit, decision, symbol)
+
+    @api.post("/api/ai/proof")
+    async def learning_proof_start(body: TrainBody):
+        """Lance la mesure « modèle figé contre modèle ré-entraîné » sur l'historique."""
+        return await app.acall(app.start_learning_proof, body.days)
+
+    @api.post("/api/ai/rollback")
+    async def model_rollback(body: ConfirmBody):
+        """Retour au champion précédent (rien n'est effacé)."""
+        return await app.acall(app.rollback_model, body.confirm)
+
+    @api.get("/api/ai/experiments")
+    async def experiments(limit: int = 100):
+        """Journal des expériences : entraînements, bancs d'essai, simulations, avec leurs paramètres."""
+        return app.experiments(limit)
+
     @api.get("/api/ai/models/{version}/report")
     async def model_report(version: str):
         rep = app.models.report(version)

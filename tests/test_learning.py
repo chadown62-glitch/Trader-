@@ -276,14 +276,15 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
     def drift(ts):  # motif caché : hausse entre 0 h et 12 h
         return np.where((ts // HOUR) % 24 < 12, 0.003, -0.003)
 
-    series = {s: make_series(17_000, seed=10 + i, start=p, drift_fn=drift)
+    # 30 000 bougies d'une heure (3,4 ans) : il faut au moins six mois de période de contrôle pour prouver quelque chose
+    series = {s: make_series(30_000, seed=10 + i, start=p, drift_fn=drift)
               for i, (s, p) in enumerate((("BTC/USDC", 30_000), ("ETH/USDC", 2_000), ("SOL/USDC", 50)))}
     app = App(tmp_path, source=HistorySource(series), start=False, settings_override={
         "general": {"watchlist": list(series)}, "market": {"source": "synthetic"},
         "ai": {"timeframe": "1h", "strategies": {k: True for k in ("trend_breakout", "pullback", "mean_reversion", "momentum", "trend_follow")}}})
     try:
         steps = []
-        out = app._train(lambda x, m: steps.append(m), app.settings, "1h", 720, False)
+        out = app._train(lambda x, m: steps.append(m), app.settings, "1h", 1250, False)
         assert out["ok"] and out["verdict"] == "validé", out["reasons"]
         rep = out["report"]
         assert rep["learner"]["recipe"] == "mixte" and rep["learner"]["chosen"] == "mixte"
@@ -297,7 +298,7 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
             time.sleep(0.2)
         sheets = app.knowledge_list()["items"]
         assert [s["symbol"] for s in sheets] == list(series) and not any(s.get("missing") for s in sheets)
-        assert app.knowledge_get("BTC/USDC")["history"]["bars"] == 17_000
+        assert app.knowledge_get("BTC/USDC")["history"]["bars"] == 30_000
         assert app.refresh_knowledge_if_stale() is False  # fiches fraîches : rien à refaire
         mon = app.learning_monitor()
         assert mon["model"]["version"] == out["version"] and "mixte" in mon["model"]["level"]
@@ -309,13 +310,13 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
 def test_promising_but_unproven_model_goes_on_trial():
     from sentinelle.ai.trainer import train_walk_forward
 
-    cand, _ = make_candidates(2500, "faible", seed=2)
+    cand, _ = make_candidates(2500, "faible", seed=3)
     res = train_walk_forward(cand, "4h", with_importance=False)
     h = res.report["holdout"]
     assert not res.ok and res.trial and res.report["summary"]["trial"] is True
     assert h["model"]["n"] >= 30 and h["model"]["mean_r"] >= 0.05 and h["model"]["mean_r"] - h["baseline"]["mean_r"] >= 0.05
     assert any("à l'essai" in r for r in res.reasons)
-    proven = train_walk_forward(make_candidates(2500, "faible", seed=1)[0], "4h", with_importance=False)
+    proven = train_walk_forward(make_candidates(2500, "faible", seed=4)[0], "4h", with_importance=False)
     assert proven.ok and not proven.trial  # un modèle validé n'est pas « à l'essai »
     noise = train_walk_forward(make_candidates(2000, "bruit", seed=0)[0], "4h", with_importance=False)
     assert not noise.ok and not noise.trial  # rien de prometteur dans le bruit

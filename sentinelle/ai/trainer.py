@@ -4,14 +4,21 @@ Principe (« walk-forward ») : on ne teste jamais l'IA sur des données qu'elle
 vues pendant son apprentissage.
 
 1. Les candidats sont triés dans le temps. Les 20 % les plus récents sont mis
-   de côté (« holdout ») et ne servent qu'à l'évaluation finale.
+   de côté (« période de contrôle ») et ne servent qu'à l'évaluation finale.
+   Un candidat décidé avant cette période mais dénoué pendant elle est écarté
+   de tout le reste : son résultat dépend de prix de la période de contrôle.
 2. Sur le reste, on entraîne sur le passé et on teste sur la période suivante,
    plusieurs fois de suite. Les candidats dont le résultat n'était pas encore
    connu au début de la période de test sont retirés de l'apprentissage
    (« purge ») : sinon l'IA tricherait sans le savoir.
-3. Ces prédictions hors échantillon servent à calibrer les probabilités et à
-   choisir le seuil d'espérance minimal.
-4. Évaluation finale sur le holdout, comparée à « prendre tous les signaux ».
+3. Ces prédictions hors échantillon sont coupées en deux dans le temps : la
+   première moitié sert à calibrer les probabilités, la seconde à choisir le
+   seuil d'espérance minimal. Le seuil n'est donc pas choisi sur les exemples
+   qui ont servi à la calibration.
+4. Évaluation finale sur la période de contrôle, comparée à « prendre tous les
+   signaux ». L'incertitude est calculée par blocs de temps (les trades proches
+   ne sont pas supposés indépendants), et l'exigence monte quand plusieurs
+   configurations ont été essayées sur la même période.
 5. Le modèle déployé est ré-entraîné sur toutes les données.
 """
 
@@ -28,7 +35,7 @@ from sklearn.metrics import roc_auc_score
 
 from .features import compute_features
 from .labeling import MODEL_COLUMNS, label_candidates, model_matrix, non_overlapping
-from .metrics import lower_bound, proven_positive, trade_metrics
+from .metrics import MIN_BLOCKS, lower_bound, proven_positive, trade_metrics
 from .model import DEFAULT_RECIPE, MetaModel, payoff_table
 from .strategies import STRATEGIES
 
@@ -127,6 +134,45 @@ def permutation_importance(model: MetaModel, data: pd.DataFrame, y: np.ndarray, 
     return sorted(out, key=lambda d: -d["value"])
 
 
+def feature_bins(data: pd.DataFrame, columns: list[str], bins: int = 10) -> dict[str, list[float]]:
+    """Bornes des déciles de chaque caractéristique sur les données d'apprentissage.
+
+    Elles servent plus tard à mesurer si le marché « ne ressemble plus » à ce que le modèle a appris."""
+    out = {}
+    for col in columns:
+        if col not in data.columns:
+            continue
+        x = pd.to_numeric(data[col], errors="coerce").to_numpy(dtype=float)
+        x = x[np.isfinite(x)]
+        if len(x) < 50 or len(np.unique(x)) < 5:
+            continue
+        edges = np.unique(np.quantile(x, np.linspace(0, 1, bins + 1))[1:-1])
+        if len(edges) >= 2:
+            out[col] = [float(e) for e in edges]
+    return out
+
+
+def outcome_mix(res: pd.DataFrame) -> dict[str, dict]:
+    """Par stratégie : comment se sont terminés les exemples passés (sert à décrire les scénarios d'un trade)."""
+    out = {}
+    for name, sub in res.groupby("strategy"):
+        r = sub["outcome_r"].to_numpy(dtype=float)
+        outcome = sub["outcome"].to_numpy()
+        wins, losses = r[r > 0], r[r <= 0]
+        stop = np.isin(outcome, ["stop"])
+        out[str(name)] = {
+            "n": int(len(sub)),
+            "win_rate": float(len(wins) / len(r)) if len(r) else None,
+            "mean_win": float(wins.mean()) if len(wins) else None,
+            "mean_loss": float(losses.mean()) if len(losses) else None,
+            "best": float(np.percentile(wins, 90)) if len(wins) else None,
+            # parmi les pertes : part de stops francs ; le reste = sorties proches de zéro (point mort, durée maximale)
+            "stop_share_of_losses": float(np.mean(stop[r <= 0])) if len(losses) else None,
+            "shares": {str(k): float(v) for k, v in pd.Series(outcome).value_counts(normalize=True).items()},
+        }
+    return out
+
+
 def select_threshold(oos: pd.DataFrame, er: np.ndarray, forced: float | None = None) -> tuple[float, list[dict]]:
     base_take = non_overlapping(oos)
     n_base = int(base_take.sum())
@@ -157,7 +203,10 @@ def train_walk_forward(
     recipe: str = DEFAULT_RECIPE,
     half_life_days: float | None = None,
     with_importance: bool = True,
+    alpha: float = 0.05,
 ) -> TrainResult:
+    """`alpha` : risque d'erreur accepté pour déclarer l'espérance positive (5 % par défaut ; abaissé quand
+    plusieurs configurations ont été essayées sur la même période de contrôle)."""
     t_start = time.time()
 
     def new_model() -> MetaModel:
@@ -182,9 +231,14 @@ def train_walk_forward(
     y_all = (res["outcome_r"].to_numpy() > 0).astype(int)
     t0, t1 = int(res["decision_ts"].min()), int(res["decision_ts"].max())
     hold_start = int(t0 + (t1 - t0) * (1 - holdout_frac))
-    dev = res[res["decision_ts"] < hold_start]
+    before = res[res["decision_ts"] < hold_start]
+    # Un candidat décidé avant la période de contrôle mais dénoué pendant elle dépend de prix de cette période :
+    # il est écarté de l'apprentissage, de la calibration et du choix du seuil (pas de fuite d'information).
+    dev = before[before["exit_ts"] < hold_start]
     hold = res[res["decision_ts"] >= hold_start].reset_index(drop=True)
     report["period"] = {"start": t0, "end": t1, "holdout_start": hold_start}
+    report["purged_at_boundary"] = int(len(before) - len(dev))
+    report["alpha"] = alpha
 
     # -- validation croisée chronologique avec purge ---------------------------
     edges = np.linspace(dev["decision_ts"].min(), hold_start, n_folds + 2)
@@ -216,14 +270,24 @@ def train_walk_forward(
 
     # -- calibration et seuil ----------------------------------------------------
     prog(0.65, "Calibration des probabilités")
+    # Calibration sur la première moitié (dans le temps) des prédictions hors échantillon, seuil choisi sur la
+    # seconde : le seuil n'est pas choisi sur les exemples qui ont servi à calibrer.
+    split_ts = int(oos["decision_ts"].iloc[len(oos) // 2])
+    cal = oos[oos["exit_ts"] < split_ts]
+    sel = oos[oos["decision_ts"] >= split_ts].reset_index(drop=True)
+    y_cal = (cal["outcome_r"].to_numpy() > 0).astype(int)
+    independent = len(cal) >= 100 and len(sel) >= 100 and len(np.unique(y_cal)) == 2
+    if not independent:  # trop peu d'exemples pour séparer : même jeu pour les deux (signalé dans le rapport)
+        cal, y_cal, sel = oos, y_oos, oos
     calib_model = new_model()
-    calib_model.fit_calibration(oos["p_raw"].to_numpy(), y_oos)
-    calib_model.payoffs = payoff_table(dev)
+    calib_model.fit_calibration(cal["p_raw"].to_numpy(), y_cal)
+    calib_model.payoffs = payoff_table(dev[dev["exit_ts"] < split_ts] if independent else dev)
     p_oos = calib_model.calibrate(oos["p_raw"].to_numpy())
-    er_oos = calib_model.expected_r(p_oos, oos["strategy"].to_numpy())
-    thr, thr_table = select_threshold(oos, er_oos, min_edge)
+    er_sel = calib_model.expected_r(calib_model.calibrate(sel["p_raw"].to_numpy()), sel["strategy"].to_numpy())
+    thr, thr_table = select_threshold(sel, er_sel, min_edge)
     report["threshold"] = thr
     report["threshold_table"] = thr_table
+    report["selection"] = {"independent": bool(independent), "split_ts": split_ts, "n_calibration": int(len(cal)), "n_threshold": int(len(sel))}
     report["oos_auc"] = _auc(y_oos, p_oos)
     report["calibration_oos"] = _calibration_table(p_oos, y_oos)
 
@@ -237,11 +301,16 @@ def train_walk_forward(
     y_h = (hold["outcome_r"].to_numpy() > 0).astype(int)
     take_h = non_overlapping(hold, er_h >= thr)
     base_h = non_overlapping(hold)
-    m_model = trade_metrics(hold.loc[take_h, "outcome_r"].to_numpy())
-    m_base = trade_metrics(hold.loc[base_h, "outcome_r"].to_numpy())
+    # incertitude par blocs de temps : les trades proches ne sont pas supposés indépendants
+    m_model = trade_metrics(hold.loc[take_h, "outcome_r"].to_numpy(), ts=hold.loc[take_h, "decision_ts"].to_numpy())
+    m_base = trade_metrics(hold.loc[base_h, "outcome_r"].to_numpy(), ts=hold.loc[base_h, "decision_ts"].to_numpy())
+    brier = float(np.mean((p_h - y_h) ** 2)) if len(y_h) else None
+    brier_ref = float(np.mean((y_h.mean() - y_h) ** 2)) if len(y_h) else None  # prévision « toujours le taux moyen »
     report["holdout"] = {
         "n_candidates": int(len(hold)),
         "auc": _auc(y_h, p_h),
+        "brier": brier,
+        "brier_reference": brier_ref,
         "model": m_model,
         "baseline": m_base,
         "calibration": _calibration_table(p_h, y_h),
@@ -273,9 +342,15 @@ def train_walk_forward(
     if m_model["mean_r"] is None or m_model["mean_r"] <= 0:
         ok = False
         reasons.append("Espérance négative ou nulle après frais sur des données jamais vues.")
-    elif not proven_positive(m_model):
+    elif not proven_positive(m_model, alpha):
         ok = False
-        reasons.append("Résultat positif mais trop incertain statistiquement : il pourrait être dû au hasard (confiance inférieure à 95 %).")
+        if (m_model.get("blocks") or 0) < MIN_BLOCKS:
+            reasons.append(f"Période de contrôle trop courte pour prouver quoi que ce soit : {m_model.get('blocks') or 0} mois de trades "
+                           f"(minimum {MIN_BLOCKS}).")
+        else:
+            level = f"{100 * (1 - alpha):.4g}".replace(".", ",")
+            reasons.append("Résultat positif mais trop incertain statistiquement : il pourrait être dû au hasard "
+                           f"(confiance inférieure à {level} %, trades proches dans le temps non supposés indépendants).")
     if m_base["mean_r"] is not None and m_model["mean_r"] is not None and m_model["n"] >= 30:
         if m_model["mean_r"] > m_base["mean_r"]:
             reasons.append(f"L'IA fait mieux que « prendre tous les signaux » ({_r(m_model['mean_r'])} R contre {_r(m_base['mean_r'])} R par trade).")
@@ -284,7 +359,7 @@ def train_walk_forward(
     if ok:
         reasons.insert(0, f"Espérance positive sur des données jamais vues : {_r(m_model['mean_r'])} R par trade sur {m_model['n']} trades.")
     mode = "ia"
-    if not ok and rules_fallback and m_base["n"] >= 30 and proven_positive(m_base):
+    if not ok and rules_fallback and m_base["n"] >= 30 and proven_positive(m_base, alpha):
         # Le filtre IA n'apporte pas de preuve, mais les règles seules en apportent : on les valide telles quelles.
         ok, mode, thr = True, "règles seules", -1e9
         reasons.insert(0, f"Validé en « règles seules » : prendre tous les signaux donne {_r(m_base['mean_r'])} R par trade "
@@ -320,7 +395,17 @@ def train_walk_forward(
     }
     final.metrics = summary
     eval_model.metrics = summary
+    # Fiche d'identité : ce que le modèle a vu, et comment il a été fabriqué (sert aux comparaisons entre versions)
+    known = {"recipe": recipe, "half_life_days": half_life_days, "timeframe": timeframe, "threshold": thr, "alpha": alpha,
+             "strategies": sorted(res["strategy"].unique().tolist()), "symbols": report["symbols"], "holdout_start": hold_start}
+    # calibration mesurée sur la période de contrôle : sert à annoncer la marge d'erreur des probabilités
+    known["calibration"] = report["holdout"]["calibration"]
+    final.meta = {**known, "train_start": t0, "train_end": int(res["exit_ts"].max()), "n_train": int(len(res))}
+    eval_model.meta = {**known, "train_start": t0, "train_end": hold_start, "n_train": int(len(eval_train))}
+    final.feature_bins = feature_bins(res, final.feature_names)
+    final.outcome_mix = eval_model.outcome_mix = outcome_mix(res)
     report["summary"] = summary
+    report["meta"] = final.meta
     report["learner"] = {"recipe": recipe, "chosen": final.chosen, "selection": final.selection, "half_life_days": half_life_days}
     report["duration_s"] = round(time.time() - t_start, 1)
     report["base_rate"] = float(y_all.mean())

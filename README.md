@@ -18,6 +18,7 @@ Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et tél�
   - **vérifier qu'elle sait apprendre** : un banc d'essai lui cache des règles dans des marchés artificiels et mesure ce qu'elle retrouve ;
   - puis **en direct, 24 h/24, avec de l'argent fictif**. Chaque décision, prise ou refusée, est expliquée, et chaque signal est suivi jusqu'à son issue.
 - **Suivre le bulletin de fiabilité** de l'IA : modèle validé, 30 jours de résultats en direct, gains nets, baisse contenue. Il mesure des preuves en argent fictif et n'ouvre aucun mode réel.
+- **Page « Apprentissage »** : modèle champion, challenger comparé sur les mêmes situations, historique des promotions avec retour en arrière, plan écrit avant chaque trade, journal des décisions et de leurs causes, journal des expériences ([docs/APPRENTISSAGE.md](docs/APPRENTISSAGE.md)).
 - **Page « Performances »** : résultat net par trade et par jour (jours sans trade compris), réalisé et latent séparés, baisse maximale, résultats par stratégie, signaux refusés et leurs raisons. Aucune projection, aucun chiffre « annualisé ».
 - **Simulation accélérée** : rejouer des mois de marché en quelques secondes, avec exactement les mêmes règles que l'apprentissage et le trading fictif, dans les conditions de votre portefeuille ([docs/EXECUTION.md](docs/EXECUTION.md)).
 - **Fiches cryptos** : tout ce que Sentinelle sait de chaque crypto suivie (ampleur normale des mouvements, pires chutes, lien avec le Bitcoin, liquidité, résultats passés de chaque stratégie).

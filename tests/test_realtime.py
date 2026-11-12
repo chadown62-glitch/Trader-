@@ -316,7 +316,8 @@ def test_agent_refuses_entry_when_shield_blocks(db, paper, pm, settings, prices,
     assert pm.open_positions() == []
     cand = db.one("SELECT * FROM candidates")
     assert "Bouclier" in cand["decision_reason"]
-    assert json.loads(cand["features"])["contexte"] == {"spread_bps": 1.2}
+    # le contexte enregistré avec la décision contient aussi le climat de marché du moment (mémoire par climat)
+    assert json.loads(cand["features"])["contexte"] == {"spread_bps": 1.2, "regime": sub["regime"].iloc[-1], "btc_regime": sub["btc_regime"].iloc[-1]}
 
 
 def test_news_api_groups_events_and_drops_unsafe_links(news_app):

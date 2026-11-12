@@ -33,6 +33,8 @@ from ..safety import is_paper_runtime, require_paper_account, require_paper_runt
 from ..storage.db import Database, dumps, loads
 from .agents import AgentsMixin
 from .bus import EventBus
+from .champion import ChampionMixin
+from .journal import JournalMixin
 from .common import AGENTS, EMERGENCY_CONFIRM, RETIRED_AGENTS, AccountRuntime, UserError  # noqa: F401
 from .jobs import JobManager
 from .learning import LearningMixin
@@ -133,6 +135,7 @@ class Engine(threading.Thread):
                     nxt["heartbeat"] = now + 300
                 if now >= nxt["learn"]:
                     app._maybe_retrain()
+                    app.review_models()  # champion / challenger : promotion, rejet ou retour en arrière selon les règles fixées
                     nxt["learn"] = now + 600
             except Exception:
                 log.exception("Erreur dans la boucle du moteur")
@@ -140,7 +143,7 @@ class Engine(threading.Thread):
             self.drain(timeout=0.0)
 
 
-class App(LiveMixin, PortfolioMixin, PerformanceMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
+class App(LiveMixin, PortfolioMixin, PerformanceMixin, ChampionMixin, JournalMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
     """Application complète. Les méthodes sont réparties par thème dans les modules *Mixin."""
 
     def __init__(self, data_dir: Path, *, source=None, start: bool = True, settings_override: dict | None = None):

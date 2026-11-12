@@ -25,7 +25,7 @@ def _drift(mu, split=12):
 
 
 def test_random_market_is_not_validated():
-    hist = {s: make_series(17_000, seed=1 + i, start=p) for i, (s, p) in enumerate(SYMBOLS)}
+    hist = {s: make_series(30_000, seed=1 + i, start=p) for i, (s, p) in enumerate(SYMBOLS)}  # 3,4 ans : 8 mois de contrôle
     cand, _ = build_dataset(hist, "1h")
     res = train_walk_forward(cand, "1h")
     assert res.verdict == "non validé"
@@ -33,11 +33,13 @@ def test_random_market_is_not_validated():
     hold = res.report["holdout"]
     # sans avantage réel, prendre les signaux coûte de l'argent (frais)
     assert hold["baseline"]["mean_r"] < 0
-    assert hold["model"]["n"] == 0 or hold["model"]["mean_r"] < 0.1
+    # une poignée de trades peut gagner par hasard : l'essentiel est que l'IA ne prétende rien (ni validée, ni même « à l'essai »)
+    assert hold["model"]["n"] < 30 or hold["model"]["mean_r"] < 0.1
+    assert res.trial is False and res.report["summary"]["verdict"] == "non validé"
 
 
 def test_planted_pattern_is_learned_out_of_sample():
-    hist = {s: make_series(17_000, seed=10 + i, start=p, drift_fn=_drift(0.003)) for i, (s, p) in enumerate(SYMBOLS)}
+    hist = {s: make_series(30_000, seed=10 + i, start=p, drift_fn=_drift(0.003)) for i, (s, p) in enumerate(SYMBOLS)}
     cand, _ = build_dataset(hist, "1h")
     res = train_walk_forward(cand, "1h")
     hold = res.report["holdout"]

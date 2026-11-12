@@ -82,10 +82,14 @@ class MetaModel:
     members: list = field(default_factory=list)
     chosen: str | None = None  # niveau de complexité réellement retenu
     selection: dict = field(default_factory=dict)  # scores de validation interne de chaque recette
+    meta: dict = field(default_factory=dict)  # fiche d'identité : période vue, recette, seuil, stratégies…
+    feature_bins: dict = field(default_factory=dict)  # déciles des caractéristiques à l'apprentissage (détection de dérive)
+    outcome_mix: dict = field(default_factory=dict)  # issues passées par stratégie (scénarios d'un trade)
 
     def __setstate__(self, state: dict) -> None:
         # modèles enregistrés par une version précédente : un seul modèle « riche »
-        self.__dict__.update({"recipe": "riche", "half_life_days": None, "members": [], "chosen": "riche", "selection": {}})
+        self.__dict__.update({"recipe": "riche", "half_life_days": None, "members": [], "chosen": "riche", "selection": {},
+                              "meta": {}, "feature_bins": {}, "outcome_mix": {}})
         self.__dict__.update(state)
 
     @staticmethod

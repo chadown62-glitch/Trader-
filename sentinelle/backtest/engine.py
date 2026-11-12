@@ -59,13 +59,18 @@ def run_backtest(
     btc: pd.DataFrame | None = None,
     progress: Callable[[float, str], None] | None = None,
     extra_cost: float = 0.0,
+    exploration_risk_factor: float | None = None,
 ) -> dict:
     """`initial` : capital de départ, dans la monnaie de cotation. `extra_cost` : coût supplémentaire par
-    opération (fraction), par exemple la conversion en euros du portefeuille principal."""
+    opération (fraction), par exemple la conversion en euros du portefeuille principal.
+    `exploration_risk_factor` : taille des trades « tous les signaux » (1.0 = même taille qu'avec un modèle,
+    indispensable pour comparer deux simulations à risque égal)."""
     t_run = time.time()
     tf = timeframe_ms(timeframe)
     cfg = copy.deepcopy(settings)
     cfg["ai"]["exploration"] = exploration
+    if exploration_risk_factor is not None:
+        cfg["ai"]["exploration_risk_factor"] = float(exploration_risk_factor)
     cfg["paper"]["fee_rate"] = cfg["paper"]["fee_rate"] + max(0.0, extra_cost)
     quote = cfg["general"]["quote"]
     db = Database(":memory:")
