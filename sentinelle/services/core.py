@@ -149,7 +149,7 @@ class App(LiveMixin, PortfolioMixin, PerformanceMixin, ChampionMixin, JournalMix
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.db = Database(self.data_dir / "sentinelle.db")
-        self.bus = EventBus()
+        self.bus = EventBus(self.db)
         self.secrets = SecretStore(self.data_dir / "secrets.json")
         self.settings = self._load_settings(settings_override)
         self.source = source or build_source(self.settings)

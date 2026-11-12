@@ -69,6 +69,7 @@ class TradingAgent:
         shield_fn: Callable[[str, float], str | None] | None = None,
         context_fn: Callable[[str], dict] | None = None,
         shadow_fn: Callable[[dict], None] | None = None,
+        entry_gate=None,
         bus=None,
         clock: Callable[[], float] = time.time,
         record: bool = True,
@@ -93,6 +94,9 @@ class TradingAgent:
         self.shield_fn = shield_fn
         self.context_fn = context_fn
         self.shadow_fn = shadow_fn  # optional preregistered observer; never supplies a trading decision
+        if entry_gate is not None and mode != 'backtest':
+            raise ValueError('Contrefactual gates are restricted to isolated backtests')
+        self.entry_gate = entry_gate
         self.bus = bus
         self.clock = clock
         self.record = record
@@ -128,9 +132,20 @@ class TradingAgent:
         if self.last_bar.get(symbol, -1) >= bar_ts:
             return  # bougie déjà traitée
         self.last_bar[symbol] = bar_ts
-        self._manage_positions(symbol, feat, i, bar_ts + self.tf_ms)
-        if self.mode != "backtest":
-            self._resolve_shadows(symbol, feat)
+        try:
+            if self.mode != 'backtest' and self.record:
+                with self.db.transaction():
+                    key=(self.account_id,self.name,symbol,self.timeframe,bar_ts)
+                    if not self.db.one('SELECT 1 FROM position_management_bars WHERE account_id=? AND agent=? AND symbol=? AND timeframe=? AND ts=?',key):
+                        self._manage_positions(symbol,feat,i,bar_ts+self.tf_ms)
+                        self._resolve_shadows(symbol,feat)
+                        self.db.execute('INSERT INTO position_management_bars VALUES(?,?,?,?,?)',key)
+            else:
+                self._manage_positions(symbol, feat, i, bar_ts + self.tf_ms)
+                if self.mode != 'backtest':self._resolve_shadows(symbol,feat)
+        except BaseException:
+            self.last_bar.pop(symbol,None)
+            raise
         enabled = [n for n, on in self.settings_fn()["ai"]["strategies"].items() if on and n in STRATEGIES]
         if sig_at is None:
             sig_at = {n: bool(STRATEGIES[n].signal(feat).iloc[i]) for n in enabled}
@@ -317,6 +332,8 @@ class TradingAgent:
             block = "Climat baissier sur le marché (BTC sous ses moyennes de fond) : l'IA reste à l'abri"
         if block is None and self.fresh_fn is not None and not self.fresh_fn(symbol):
             block = "Données de marché périmées : aucune nouvelle position par prudence"
+        if block is None and self.entry_gate is not None:
+            block = self.entry_gate(symbol,self.clock())
         if block is None and self.price_check_fn is not None and any(
             (c["er"] is None or thr is None or c["er"] >= thr) for c in cands
         ):
@@ -468,7 +485,7 @@ class TradingAgent:
     def _journal(self, symbol: str, kind: str, message: str, data: dict | None = None) -> None:
         if self.mode == "backtest":
             return
-        self.db.decision(self.account_id, self.name, symbol, kind, message, data)
+        self.db.decision(self.account_id, self.name, symbol, kind, message, data, ts=self.clock())
         if self.bus:
             self.bus.publish("decision", {"agent": self.name, "account_id": self.account_id, "symbol": symbol, "kind": kind, "message": message})
 
