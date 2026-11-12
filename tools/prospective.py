@@ -76,7 +76,7 @@ class SupervisedObserver:
                                'prospective-v2: modèle et politique gelés')
         self.agent=TradingAgent('prospective-frozen','training',app.db,rt.positions,rt.risk,
                                lambda:self.settings,lambda:model,timeframe=self.settings['ai']['timeframe'],
-                               clock=app.market_clock,fresh_fn=lambda s:app.hub.is_fresh(s,180))
+                               clock=app.market_clock,fresh_fn=lambda s:app.hub.is_fresh(s,180),bus=app.bus)
         self.agent.running=True
 
     def on_bar(self, symbol, features):

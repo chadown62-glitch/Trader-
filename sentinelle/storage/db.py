@@ -8,6 +8,7 @@ journal et décisions expliquées.
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import threading
 import time
@@ -28,6 +29,14 @@ def atomic(fn):
 SCHEMA_VERSION = 1
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS event_outbox(
+    id TEXT PRIMARY KEY, topic TEXT NOT NULL, event TEXT NOT NULL, created_at REAL NOT NULL,
+    dispatched_at REAL, attempts INTEGER NOT NULL DEFAULT 0, error TEXT
+);
+CREATE TABLE IF NOT EXISTS position_management_bars(
+    account_id INTEGER NOT NULL, agent TEXT NOT NULL, symbol TEXT NOT NULL, timeframe TEXT NOT NULL,
+    ts INTEGER NOT NULL, PRIMARY KEY(account_id,agent,symbol,timeframe,ts)
+);
 CREATE TABLE IF NOT EXISTS meta(
     key TEXT PRIMARY KEY,
     value TEXT
@@ -388,12 +397,13 @@ class Database:
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
         self._depth = 0
+        self._commit_callbacks = []
         self.conn = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None)
         self.conn.row_factory = sqlite3.Row
         with self._lock:
             if self.path != ":memory:":
                 self.conn.execute("PRAGMA journal_mode=WAL")
-            self.conn.execute("PRAGMA synchronous=NORMAL")
+            self.conn.execute("PRAGMA synchronous=FULL")
             self.conn.execute("PRAGMA busy_timeout=5000")
             self.conn.executescript(SCHEMA)
             self._ensure_column("news", "cluster", "INTEGER")
@@ -468,6 +478,8 @@ class Database:
     def transaction(self) -> Iterator["Database"]:
         """Transaction atomique (réentrante)."""
         with self._lock:
+            callbacks = []
+            callback_start = len(self._commit_callbacks)
             if self._depth == 0:
                 self.conn.execute("BEGIN IMMEDIATE")
             else:
@@ -476,6 +488,7 @@ class Database:
             try:
                 yield self
             except BaseException:
+                del self._commit_callbacks[callback_start:]
                 self._depth -= 1
                 if self._depth == 0:
                     self.conn.execute("ROLLBACK")
@@ -487,8 +500,21 @@ class Database:
                 self._depth -= 1
                 if self._depth == 0:
                     self.conn.execute("COMMIT")
+                    callbacks, self._commit_callbacks = self._commit_callbacks, []
                 else:
                     self.conn.execute(f"RELEASE nested_{self._depth}")
+        # External effects are never part of an uncommitted transaction.
+        for fn in callbacks:
+            try:
+                fn()
+            except Exception:
+                logging.getLogger("sentinelle.db").exception("Échec après commit ; événement durable à reprendre")
+
+    def after_commit(self, fn):
+        with self._lock:
+            if not self._depth:
+                raise RuntimeError("Callback requires a transaction")
+            self._commit_callbacks.append(fn)
 
     def backup(self, dest: str | Path) -> None:
         """Copie cohérente de la base (même pendant son utilisation)."""

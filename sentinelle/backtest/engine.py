@@ -64,6 +64,9 @@ def run_backtest(
     historical_fx=None,
     research_trace: bool = False,
     reference_policy: str | None = None,
+    entry_gate=None,
+    book_provider=None,
+    book_events=None,
 ) -> dict:
     """`initial` : capital de départ, dans la monnaie de cotation. `extra_cost` : coût supplémentaire par
     opération (fraction), par exemple la conversion en euros du portefeuille principal."""
@@ -90,11 +93,13 @@ def run_backtest(
 
     broker = PaperBroker(db, acc, currency, market_fn, prices.get, cfg["paper"]["fee_rate"], cfg["paper"]["slippage_bps"], clock,
                          trade_quote=quote, fx_cost_bps=extra_cost * 10000 if account_currency else 0,
-                         fx_fn=(lambda cur, _trading: historical_fx(cur, clock())) if historical_fx else None)
+                         fx_fn=(lambda cur, _trading: historical_fx(cur, clock())) if historical_fx else None,
+                         book_fn=(lambda symbol: book_provider(symbol,clock())) if book_provider else None)
     broker.set_balance(currency, initial)
     pm = PositionManager(db, broker, clock=clock)
     risk = RiskManager(db, acc, lambda: cfg, clock)
-    agent = TradingAgent("backtest", "backtest", db, pm, risk, lambda: cfg, lambda: model, timeframe=timeframe, clock=clock, record=False)
+    agent = TradingAgent("backtest", "backtest", db, pm, risk, lambda: cfg, lambda: model, timeframe=timeframe, clock=clock, record=False,
+                         entry_gate=entry_gate)
     agent.running = True
 
     # Pré-calcul (sans fuite d'information : chaque valeur n'utilise que le passé)
@@ -172,6 +177,14 @@ def run_backtest(
                 continue
             broker.process_bar(sym, o, h, l, c, ts)
             prices[sym] = c
+        if book_events is not None:
+            # Recorded L2 events only; do not invent intrabar depth from OHLC extremes.
+            for stamp,sym,book in sorted(book_events(ts/1000,(ts+tf)/1000),key=lambda e:(e[0],e[1])):
+                if not ts/1000 < stamp <= (ts+tf)/1000 or book.timestamp != stamp:
+                    raise ValueError('Future or unordered L2 replay event')
+                clock.t=stamp
+                prices[sym]=(float(book.bids[0][0])+float(book.asks[0][0]))/2
+                broker.process_book(sym,book)
         # 3) clôture : relevé du capital
         clock.t = (ts + tf) / 1000
         eq, cash = broker.equity()

@@ -1,0 +1,36 @@
+{
+  "scope": "connectivity preflight only, no v2/v3 observation and no order",
+  "results": [
+    {
+      "endpoint": "time",
+      "http": 200,
+      "elapsed_seconds": 9.039994375000106,
+      "sha256": "53544ac4dc64d7173f3a263c1a3c85ff4c07b8d65ae4fc62e2e32fc26c27d597",
+      "bytes": 28,
+      "symbols": [],
+      "book_has_source_timestamp": null
+    },
+    {
+      "endpoint": "exchangeInfo",
+      "http": 200,
+      "elapsed_seconds": 0.14785871100002623,
+      "sha256": "9d9ae27681b901c27d0cdc46044b43b7718c51e19c75f842853f89053cbc7683",
+      "bytes": 16532,
+      "symbols": [
+        "BTCEUR",
+        "ETHEUR",
+        "SOLEUR"
+      ],
+      "book_has_source_timestamp": null
+    },
+    {
+      "endpoint": "depth",
+      "http": 200,
+      "elapsed_seconds": 0.14858088999994834,
+      "sha256": "29be58f70ea400b36640a4330ecbf3d708ed5cd352073c235a337c6415ae6d35",
+      "bytes": 1326,
+      "symbols": [],
+      "book_has_source_timestamp": false
+    }
+  ]
+}
