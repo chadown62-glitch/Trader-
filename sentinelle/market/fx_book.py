@@ -36,7 +36,7 @@ class FXQuote:
         bid, ask = _decimal(self.bid), _decimal(self.ask)
         if bid <= 0 or ask < bid:
             raise FXError('Fourchette de cours invalide')
-        if not isinstance(self.timestamp, (int, float)) or not isfinite(self.timestamp) or not isinstance(self.source, str) or not self.source.strip():
+        if isinstance(self.timestamp, bool) or not isinstance(self.timestamp, (int, float)) or not isfinite(self.timestamp) or not isinstance(self.source, str) or not self.source.strip():
             raise FXError('Date ou source manquante')
         object.__setattr__(self, 'bid', bid)
         object.__setattr__(self, 'ask', ask)

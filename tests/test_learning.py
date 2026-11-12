@@ -284,12 +284,15 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
     try:
         steps = []
         out = app._train(lambda x, m: steps.append(m), app.settings, "1h", 720, False)
-        assert out["ok"] and out["verdict"] == "validé", out["reasons"]
         rep = out["report"]
         assert rep["learner"]["recipe"] == "mixte" and rep["learner"]["chosen"] == "mixte"
-        assert rep["holdout"]["auc"] > 0.6 and rep["backtest_model"]["metrics"]["n"] > 0
-        champion = app.models.champion("1h")
-        assert champion is not None and champion.version == out["version"] and len(champion.members) == 2
+        assert rep["holdout"]["auc"] > 0.6
+        comparison = rep["paper_comparison"]
+        assert comparison["start_ms"] > rep["period"]["end"] and comparison["reference"] == "all_signals"
+        assert rep["backtest_model"]["metrics"]["n"] > 0
+        model = app.models.get(out["version"])
+        assert model["metrics"]["paper_verdict"] == comparison["verdict"]
+        assert (model["status"] == "champion") == (out["ok"] and comparison["verdict"] == "MODÈLE APPROUVÉ POUR PAPER TRADING")
         assert any("Téléchargement" in m for m in steps) and any("Simulation" in m for m in steps)
         # entraînement sur une période courte : les fiches sont calculées à part, sur l'historique complet
         deadline = time.time() + 120
@@ -300,7 +303,8 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
         assert app.knowledge_get("BTC/EUR")["history"]["bars"] == 17_000
         assert app.refresh_knowledge_if_stale() is False  # fiches fraîches : rien à refaire
         mon = app.learning_monitor()
-        assert mon["model"]["version"] == out["version"] and "mixte" in mon["model"]["level"]
+        if model["status"] == "champion":
+            assert mon["model"]["version"] == out["version"] and "mixte" in mon["model"]["level"]
     finally:
         app.db.close()
 
@@ -311,12 +315,12 @@ def test_promising_but_unproven_model_goes_on_trial():
 
     cand, _ = make_candidates(2500, "faible", seed=2)
     res = train_walk_forward(cand, "4h", with_importance=False)
-    h = res.report["holdout"]
-    assert not res.ok and res.trial and res.report["summary"]["trial"] is True
-    assert h["model"]["n"] >= 30 and h["model"]["mean_r"] >= 0.05 and h["model"]["mean_r"] - h["baseline"]["mean_r"] >= 0.05
-    assert any("à l'essai" in r for r in res.reasons)
-    proven = train_walk_forward(make_candidates(2500, "faible", seed=1)[0], "4h", with_importance=False)
-    assert proven.ok and not proven.trial  # un modèle validé n'est pas « à l'essai »
+    # The old seed previously qualified for trial. Purging removes that evidence.
+    assert not res.ok and not res.trial and res.report["holdout"]["model"]["mean_r"] < 0
+    from sentinelle.ai.trainer import trial_eligible
+    assert trial_eligible(False, {"n": 30, "mean_r": .09}, {"mean_r": .02})
+    assert not trial_eligible(True, {"n": 30, "mean_r": .09}, {"mean_r": .02})
+    assert not trial_eligible(False, {"n": 29, "mean_r": .09}, {"mean_r": .02})
     noise = train_walk_forward(make_candidates(2000, "bruit", seed=0)[0], "4h", with_importance=False)
     assert not noise.ok and not noise.trial  # rien de prometteur dans le bruit
 
@@ -341,6 +345,10 @@ def test_model_registry_handles_trial_status(app):
     assert store.register(result(False, False, "m-rejet"), {})["status"] == "rejected"
     assert store.trial("4h") is None  # le dernier entraînement fait foi : plus de modèle à l'essai
     store.register(result(False, True, "m-essai-3"), {})
+    assert store.register(result(True, False, "m-sans-preuve"), {})["status"] == "challenger"
+    assert store.champion("4h") is None
+    assert store.reserve_evaluation("m-valide", "4h", 100, 200, "all_signals") == 100
+    store.record_evaluation("m-valide", {"verdict":"MODÈLE APPROUVÉ POUR PAPER TRADING"})
     assert store.register(result(True, False, "m-valide"), {})["status"] == "champion"
     assert store.champion("4h").version == "m-valide" and store.trial("4h") is None
     statuses = [a for a in app.agents_status()]

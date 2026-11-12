@@ -108,10 +108,14 @@ class TradingMixin:
         return out
 
     def place_manual_order(self, req: dict) -> dict:
-        prev = self.preview_order(req)
-        if prev["error"]:
-            raise UserError(prev["error"])
         rt = self.runtime(req["account_id"])
+        try:
+            prev = self.preview_order(req)
+            if prev["error"]:
+                raise UserError(prev["error"])
+        except UserError as exc:
+            rt.broker.record_refusal(req.get("symbol"), "preview", str(exc))
+            raise
         symbol, side, otype = req["symbol"], req["side"], req.get("type", "market")
         try:
             if side == "buy":

@@ -30,6 +30,7 @@ from ..ai.model import MetaModel
 from ..ai.strategies import STRATEGIES
 from ..config import timeframe_ms
 from ..execution.contract import valid_bar
+from ..execution.base import OrderError
 from ..execution.paper import PaperBroker
 from ..execution.positions import PositionManager
 from ..market.markets import MarketInfo, generic_market
@@ -62,9 +63,12 @@ def run_backtest(
     account_currency: str | None = None,
     historical_fx=None,
     research_trace: bool = False,
+    reference_policy: str | None = None,
 ) -> dict:
     """`initial` : capital de départ, dans la monnaie de cotation. `extra_cost` : coût supplémentaire par
     opération (fraction), par exemple la conversion en euros du portefeuille principal."""
+    if reference_policy not in (None, "cash", "passive"):
+        raise ValueError("Référence de portefeuille inconnue")
     t_run = time.time()
     tf = timeframe_ms(timeframe)
     cfg = copy.deepcopy(settings)
@@ -113,6 +117,13 @@ def run_backtest(
 
     equity_curve: list[list[float]] = []
     bh_start: dict[str, float] = {}
+    # A six-way split of 30 EUR would fall below typical minimums. Predetermine
+    # the basket by symbol, allocating up to the identical portfolio/asset caps.
+    limits = cfg["risk"]
+    count = max(1, int(np.ceil(limits["max_exposure"] / limits["max_exposure_per_asset"])))
+    count = min(count, limits["max_positions"])
+    passive_basket = set(sorted(data)[:count])
+    passive_attempted = set()
     observed_valid = {}
     skipped = 0
     n = len(all_ts)
@@ -136,6 +147,19 @@ def run_backtest(
                 prices[sym] = o
                 bh_start.setdefault(sym, o)
         for sym, k, o, *_ in bars:
+            if reference_policy == "cash":
+                continue
+            if reference_policy == "passive":
+                if sym in passive_basket and sym not in passive_attempted and np.isfinite(o) and o > 0:
+                    passive_attempted.add(sym)
+                    allocation = min(cfg["risk"]["max_exposure"] / len(passive_basket), cfg["risk"]["max_exposure_per_asset"])
+                    rate = broker.fx(sym.split("/")[1]).cash_leg(1, "buy", clock())[0]
+                    qty = initial * allocation / (o * float(rate) * (1 + broker.slip) * (1 + broker.fee_rate))
+                    try:
+                        pm.open(sym, qty, origin="benchmark", strategy="passive")
+                    except OrderError:
+                        agent.stats["refused"] += 1
+                continue
             # At the open, only the preceding completed bar can qualify the signal.
             if k >= 1 and np.isfinite(o) and o > 0 and observed_valid.get(sym, True):
                 feat, sig = data[sym]

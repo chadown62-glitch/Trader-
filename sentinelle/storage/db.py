@@ -84,6 +84,9 @@ CREATE TABLE IF NOT EXISTS fx_liquidity_used(
     consumed TEXT NOT NULL,
     PRIMARY KEY (source, market_base, market_quote, market_ts, side)
 );
+CREATE TABLE IF NOT EXISTS paper_refusals(
+    id INTEGER PRIMARY KEY, account_id INTEGER NOT NULL, ts REAL NOT NULL, symbol TEXT, code TEXT NOT NULL, reason TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS paper_books(
     symbol TEXT NOT NULL, source TEXT NOT NULL, ts REAL NOT NULL, original TEXT NOT NULL, consumed TEXT NOT NULL,
     PRIMARY KEY (symbol, source)
@@ -203,6 +206,10 @@ CREATE TABLE IF NOT EXISTS candidates(
     UNIQUE (symbol, timeframe, ts, strategy, source)
 );
 CREATE INDEX IF NOT EXISTS idx_candidates_unresolved ON candidates(outcome, symbol);
+CREATE TABLE IF NOT EXISTS evaluation_windows(
+    version TEXT PRIMARY KEY, timeframe TEXT NOT NULL, start_ms INTEGER NOT NULL, end_ms INTEGER NOT NULL,
+    reference TEXT NOT NULL, evidence TEXT
+);
 CREATE TABLE IF NOT EXISTS models(
     version TEXT PRIMARY KEY,
     created_at REAL,
@@ -356,6 +363,7 @@ class Database:
             for column, decl in (("fx_rate", "REAL"), ("fx_source", "TEXT"), ("fx_ts", "REAL"),
                                  ("fx_cost", "REAL NOT NULL DEFAULT 0"), ("cash_amount", "REAL"), ("cash_asset", "TEXT")):
                 self._ensure_column("fills", column, decl)
+            self._ensure_column("equity", "unrealized", "REAL")
             self._ensure_column("orders", "expires_at", "REAL")
             self._ensure_column("orders", "triggered", "INTEGER NOT NULL DEFAULT 0")
             self._ensure_column("fills", "price_source", "TEXT")

@@ -371,7 +371,20 @@ class App(LiveMixin, PortfolioMixin, TradingMixin, AgentsMixin, TrainingMixin, L
                 continue
             except Exception:
                 continue
-            self.db.execute("INSERT OR REPLACE INTO equity(account_id, ts, equity, cash) VALUES (?, ?, ?, ?)", (aid, now, eq, cash))
+            remaining = 0.0
+            for pos in rt.positions.open_positions():
+                if not pos["qty"]:
+                    continue
+                if rt.broker.price_fn(pos["symbol"]) is None or rt.broker.fx_rate(pos["symbol"]) is None:
+                    remaining = None
+                    break
+                pnl = rt.positions.unrealized(pos)["pnl"]
+                if pnl is None:
+                    remaining = None
+                    break
+                remaining += pnl - pos["realized_pnl"]
+            self.db.execute("INSERT OR REPLACE INTO equity(account_id, ts, equity, cash, unrealized) VALUES (?, ?, ?, ?, ?)",
+                            (aid, now, eq, cash, remaining))
             self.snapshots[aid] = {"equity": eq, "cash": cash, "ts": now, "error": None}
             self.bus.publish("equity", {"account_id": aid, "equity": eq, "cash": cash, "ts": now})
 
@@ -532,7 +545,7 @@ class App(LiveMixin, PortfolioMixin, TradingMixin, AgentsMixin, TrainingMixin, L
                    day_pnl=day_pnl, total_pnl=total_pnl, error=snap.get("error"),
                    available=parts["available"], reserved=parts["reserved"], invested=parts["invested"],
                    trade_quote=rt.broker.trade_quote)
-        if rt.broker.fx_fn is not None:
+        if rt.broker.fx_fn is not None and rt.broker.trade_quote != rt.broker.quote:
             q = self.fx.latest(rt.broker.trade_quote)
             out["fx"] = q.to_dict(self.market_clock()) if q else None
         return out

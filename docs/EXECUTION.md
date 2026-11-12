@@ -34,8 +34,8 @@ C'est corrigé : les trois moteurs exécutent au premier prix disponible **aprè
 | 5 | **Frais et glissement** | Frais sur le montant de chaque ordre (0,10 % par défaut). Glissement sur les ordres au marché et sur les stops (0,05 % par défaut). |
 | 6 | **Trous de cotation et stops** | Un stop s'exécute au **pire** du prix du stop et de l'ouverture, glissement compris. Un trou de cotation coûte donc plus que le risque prévu. |
 | 7 | **Stop et objectif dans la même bougie** | Le stop est supposé touché **en premier** (hypothèse défavorable). |
-| 8 | **Exécution partielle ou refus** | Un ordre est exécuté en entier ou refusé. Si le premier prix disponible est déjà au niveau du stop ou en dessous, l'entrée est **abandonnée**. |
-| 9 | **Données manquantes, anciennes ou incohérentes** | Une bougie incohérente (prix nul ou absent, plus haut sous la clôture…) ne déclenche ni décision ni exécution, et elle est comptée. En direct, aucune entrée sur des prix périmés. L'historique d'apprentissage ne contient jamais de trou de cotation de plus de trois jours. |
+| 8 | **Exécution partielle ou refus** | Le replay OHLC exécute la quantité admissible en entier. Sur carnet, le courtier remplit les niveaux disponibles et réserve le reliquat. Si le premier prix disponible est déjà au niveau du stop ou en dessous, l'entrée est **abandonnée**. |
+| 9 | **Données manquantes, anciennes ou incohérentes** | Une ouverture valide peut exécuter la décision précédente. Une incohérence découverte ensuite dans le haut, le bas ou la clôture est comptée et invalide les déclenchements intrabougie et le signal de clôture. En direct, aucune entrée sur des prix périmés. L'historique d'apprentissage ne contient jamais de trou de cotation de plus de trois jours. |
 
 Deux précisions :
 - **Sortie à la durée maximale** : décidée à la clôture d'une bougie, exécutée à l'ouverture de la suivante.
@@ -51,9 +51,9 @@ Elles viennent de la finesse des données, pas des règles.
 |-------|-------------------------------------------|---------------------------|
 | Premier prix après la décision | Ouverture de la bougie suivante | Dernier prix relevé (toutes les 5 secondes par défaut), au plus quelques secondes autour de la clôture |
 | Ordre des événements dans une bougie | Inconnu : stop d'abord, par prudence | Connu : les relevés arrivent dans l'ordre réel |
-| Écart achat/vente | Non disponible : seul le glissement s'applique | Demi-écart lu sur le carnet d'ordres, en plus du glissement |
+| Écart achat/vente | Non disponible : seul le glissement s'applique | Prix des niveaux bid ou ask effectivement traversés |
 | Date d'une sortie | Clôture de la bougie où elle a lieu (prudent pour séparer apprentissage et contrôle) | Instant du relevé |
-| Monnaie | Monnaie de cotation, coût de conversion ajouté aux frais | Euros, taux de change réel à chaque exécution |
+| Monnaie | EUR pour le portefeuille du panel, avec cotation FX à la date simulée, ou monnaie de cotation explicitement choisie pour un calcul isolé | Euros, taux de change réel à chaque exécution |
 | Limites de risque (perte du jour, série de pertes, exposition) | Appliquées dans la simulation ; absentes de l'étiquetage, qui juge chaque signal isolément | Appliquées |
 
 La dernière ligne explique pourquoi la simulation prend **moins** de trades que l'étiquetage n'en compte : une seule position à la fois par crypto, et les limites de risque.
@@ -78,13 +78,13 @@ Les nombres ci-dessus sont ceux du test ; ils ne mesurent aucune rentabilité.
 
 ## Simulation accélérée lancée depuis le panel
 
-Elle tourne maintenant dans les **conditions de votre portefeuille** : son capital (30 € par défaut, converti une fois au taux du moment), les minimums réels de la plateforme et le coût de conversion ajouté aux frais. Vous pouvez saisir un autre capital. Les signaux refusés faute de taille suffisante sont comptés.
+Elle tourne maintenant dans les **conditions de votre portefeuille** : son capital initial en euros (30 € par défaut), les minimums du marché et un carnet FX applicable à la date de chaque exécution en devise étrangère. Vous pouvez saisir un autre capital. Les signaux refusés faute de taille suffisante sont comptés.
 
 Les deux simulations de référence d'un rapport d'entraînement (avec et sans le tri de l'IA) gardent un capital de 10 000 : elles mesurent la qualité des décisions, sans la contrainte des petits montants.
 
 ## Limites connues
 
-- Les exécutions partielles ne sont pas simulées.
+- Les replays OHLC ne disposent pas de profondeur historique. Le courtier alimenté par des carnets gère les exécutions partielles et conserve les niveaux consommés.
 - L'ordre réel des prix à l'intérieur d'une bougie d'historique est inconnu ; l'hypothèse « stop d'abord » est défavorable, pas exacte.
 - Un historique où il manque quelques bougies (moins de trois jours) est traité comme continu : l'entrée se fait à la bougie suivante disponible.
 - Les résultats mesurés avant cette version par la simulation accélérée (docs/RESULTATS.md) utilisaient l'ancienne règle d'entrée. Ils n'ont pas été refaits ici ; les résultats « en R » issus de l'étiquetage, eux, utilisaient déjà la bonne règle.

@@ -20,15 +20,9 @@ Sentinelle n'a plus qu'**un seul portefeuille d'argent fictif**, de **30 €** p
 
 ### D'où vient le taux de change
 
-Dans l'ordre :
-1. la paire EUR/USDC de la source de marché (Binance, cotée 24 h/24) ;
-2. à défaut, EUR/USDT, en supposant 1 USDC ≈ 1 USDT (le taux est alors marqué « approximation ») ;
-3. à défaut, le taux de référence quotidien de la Banque centrale européenne (marqué « approximation ») ;
-4. en démonstration : un taux simulé.
+Le courtier utilise les deux côtés d’un carnet public daté de la paire exacte. Pour un achat il calcule le coût d’acquisition de la devise, pour une vente le produit de sa cession. Il vérifie la profondeur disponible lors de l’écriture du fill. Les conversions explicites peuvent utiliser deux paires avec un intermédiaire nommé et des horodatages compatibles.
 
-Vérifié sur le réseau réel le 11 novembre 2026 : Binance EUR/USDC donnait 1 € = 1,1139 USDC ; la BCE (taux de la veille) 1 € = 1,1214 dollar.
-
-**Sans taux assez récent, aucun ordre n'est passé** (30 minutes par défaut pour le taux lu sur le marché, 4 jours pour celui de la BCE, qui n'est pas publié le week-end). Sentinelle n'invente jamais un taux. Pour le simple affichage, le dernier taux connu est utilisé et signalé comme ancien.
+Un carnet futur, absent, trop ancien ou incohérent entraîne un refus. Le cache garde sa date de marché. Un replay EUR consulte les carnets archivés antérieurs ou égaux à l’événement. Le mode démonstration génère ses propres cotations datées et les identifie comme synthétiques. Les anciennes estimations BCE et les parités supposées sont exclues de l’exécution.
 
 ### Les coûts appliqués
 
@@ -36,16 +30,16 @@ Vérifié sur le réseau réel le 11 novembre 2026 : Binance EUR/USDC donnait 1 
 |------|-------------------|---------|
 | Frais de la plateforme | 0,10 % par ordre | Réglages → Simulation |
 | Glissement de prix | 0,05 % par ordre au marché | Réglages → Simulation |
-| Écart achat/vente | Demi-écart lu sur le carnet d'ordres au moment de l'ordre (en direct seulement) | — |
+| Écart achat/vente | Prix des niveaux réellement traversés dans le carnet observé | — |
 | Conversion euro ↔ USDC | 0,05 % par opération (hypothèse prudente) | Réglages → Portefeuille |
 
-Un aller-retour coûte donc environ 0,4 % du montant, avant tout gain ou perte.
+Sur carnet, le coût de l’aller-retour dépend aussi des niveaux traversés dans chaque sens.
 
 ---
 
 ## 2. Ce que 30 € permettent, et ne permettent pas
 
-La plateforme refuse tout ordre inférieur à **5 USDC** (environ 4,50 €). Ce minimum s'applique aussi au **stop** : au prix du stop, la position doit encore valoir 5 USDC, sinon le stop serait refusé et la position resterait sans protection.
+Pour l’exemple ci-dessous, le marché impose un minimum de **5 USDC** (4,50 € au taux de l’exemple). Ce minimum s'applique aussi au **stop** : au prix du stop, la position doit encore valoir 5 USDC, sinon le stop serait refusé et la position resterait sans protection.
 
 Avec la règle de prudence (0,5 % du capital risqué par trade, soit 0,15 €), pour un bitcoin à 50 000 USDC et 1 USDC = 0,90 € :
 
@@ -73,24 +67,13 @@ Les simulations accélérées et les entraînements sur l'historique utilisent l
 
 Rien n'est remplacé en silence.
 
-1. Au premier démarrage de cette version, vos **anciens comptes papier (10 000 USDC)** sont conservés tels quels et continuent de fonctionner.
-2. Le tableau de bord propose le **passage au portefeuille principal**. Rien ne change tant que vous n'avez pas confirmé.
-3. Quand vous confirmez :
-   - l'IA est arrêtée (vous la relancez ensuite) ;
-   - les positions encore ouvertes des anciens comptes sont vendues au prix simulé du moment ;
-   - le portefeuille principal de 30 € est créé ;
-   - les anciens comptes restent **consultables** (historique, courbes, grand livre), mais on n'y trade plus.
+Le démarrage conserve les anciens comptes, soldes, ordres, positions et courbes en lecture seule. Il ouvre le portefeuille principal de 30 € ou reprend son identifiant et ses soldes s’il existait déjà sous le rôle `main` ou `principal`. Aucune liquidation de migration n’est simulée. La reprise des soldes antérieurs au grand livre porte un libellé distinct.
 
-Leurs soldes, leur historique et leur capital de départ ne sont ni effacés, ni remis à zéro. Le passage n'est pas réversible depuis le panel.
-
-Sur une **nouvelle installation**, seul le portefeuille principal existe.
-
----
 
 ## 5. Limites connues
 
 - Le coût de conversion de 0,05 % est une hypothèse, pas une mesure. Il se règle.
 - Le demi-écart achat/vente n'est appliqué qu'en direct (le carnet d'ordres n'existe pas dans l'historique). En simulation accélérée, seul le glissement s'applique.
-- Les exécutions partielles ne sont pas simulées : un ordre est exécuté en entier ou pas du tout. Pour des ordres de quelques euros sur des paires très liquides, c'est réaliste.
-- Le taux de change est supposé le même à l'achat et à la vente (taux moyen), le coût de conversion tenant lieu d'écart.
+- Le courtier sur carnet enregistre les fills partiels, les frais payés et la quantité restante. Les historiques OHLC utilisent le modèle par bougie.
+- Le change utilise les côtés acheteur et vendeur avec leur profondeur. Le coût paramétré s’ajoute à cet écart.
 - Seul l'euro est proposé comme monnaie du portefeuille.

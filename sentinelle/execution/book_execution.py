@@ -2,7 +2,7 @@
 from decimal import Decimal
 import json
 
-from .base import OPEN_STATUSES, OrderError
+from .base import OPEN_STATUSES
 from .liquidity import BookSnapshot, LiquidityError, simulate_taker
 
 

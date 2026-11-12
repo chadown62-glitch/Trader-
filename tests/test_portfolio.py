@@ -545,3 +545,14 @@ def test_portfolio_api(tmp_path):
             assert mine["quote"] == "EUR" and mine["available"] < 30 and mine["invested"] > 0 and mine["fx"]["rate"] > 0
     finally:
         app.db.close()
+
+
+def test_corrupt_cross_currency_position_cannot_close_at_an_invented_rate(db, euro, fx, clock):
+    manager = PositionManager(db, euro, clock=clock)
+    position = manager.open("BTC/USDC", .0003, origin="manual", stop=45000.)
+    db.update("positions", position["id"], {"entry_fx":None})
+    before = euro.balances(), manager.protective_orders(position["id"]), db.scalar("SELECT COUNT(*) FROM fills")
+    with pytest.raises(OrderError, match="Taux historique"):
+        manager.close(position["id"])
+    assert manager.get(position["id"])["status"] == "open"
+    assert (euro.balances(), manager.protective_orders(position["id"]), db.scalar("SELECT COUNT(*) FROM fills")) == before

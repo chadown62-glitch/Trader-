@@ -214,3 +214,23 @@ def test_two_factor_login(client, app):
     # on désactive pour ne pas gêner les autres tests
     app.db.set_meta("totp_last_step", "0")
     assert client.post("/api/auth/2fa/disable", json={"password": PASSWORD, "code": totp(setup["secret"])}, headers=H).status_code == 200
+
+
+def test_evaluation_endpoint_requires_login_and_reads_the_main_wallet(tmp_path):
+    app = App(tmp_path, source=SyntheticSource(["BTC/EUR"], days=2), start=False,
+              settings_override={"market": {"source": "synthetic"}, "general": {"quote": "EUR", "watchlist": ["BTC/EUR"]}})
+    try:
+        app._startup()
+        with TestClient(create_api(app)) as client:
+            assert client.get("/api/portfolio/evaluation").status_code in (401, 403)
+            assert client.post("/api/auth/setup", json={"password": PASSWORD}, headers=H).status_code == 200
+            app._snapshot_equity()
+            overview = client.get("/api/overview")
+            assert overview.status_code == 200 and overview.json()["accounts"][0]["quote"] == "EUR"
+            rep = client.get("/api/portfolio/evaluation")
+            assert rep.status_code == 200
+            values = rep.json()
+            assert values["currency"] == "EUR" and values["equity"] == 30.
+            assert values["as_of"] and values["trades"] == [] and values["verdict"] == "NON TESTÉ"
+    finally:
+        app.close()

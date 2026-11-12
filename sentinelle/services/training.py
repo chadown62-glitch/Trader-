@@ -6,8 +6,10 @@ import copy
 import time
 from typing import Any
 
+from ..ai.evaluation import compare_portfolios, portfolio_metrics
 from ..ai.trainer import build_dataset, train_walk_forward
 from ..backtest.engine import run_backtest
+from ..config import timeframe_ms
 from ..execution.base import OrderError
 from ..market.history import last_continuous
 from ..storage.db import dumps
@@ -66,7 +68,11 @@ class TrainingMixin:
         def sub(x, msg):
             progress(0.3 + 0.45 * x, msg)
 
-        res = train_walk_forward(cand, tf, min_edge=settings["ai"]["min_edge_r"], progress=sub,
+        timeline = sorted({int(t) for frame in hist.values() for t in frame.ts})
+        external_start = timeline[int(.85 * len(timeline))] if timeline else 0
+        external_end = timeline[-1] + timeframe_ms(tf) if timeline else 0
+        development = cand[(cand.decision_ts < external_start) & (cand.exit_ts < external_start)]
+        res = train_walk_forward(development, tf, min_edge=settings["ai"]["min_edge_r"], progress=sub,
                                  rules_fallback=settings["ai"].get("rules_fallback", True),
                                  recipe=settings["ai"]["recipe"], half_life_days=settings["ai"]["half_life_days"])
         try:
@@ -78,17 +84,41 @@ class TrainingMixin:
             self.db.log("warning", "ia", f"Fiches par crypto non mises à jour : {str(exc)[:150]}")
         report = dict(res.report)
         report.update(verdict=res.verdict, reasons=res.reasons, days=days, auto=auto, trained_at=time.time())
-        if res.eval_model is not None and res.holdout_start:
-            progress(0.8, "Simulation du portefeuille sur la période de contrôle (avec l'IA)")
+        if res.eval_model is not None and external_start:
+            progress(0.8, "Simulation appariée sur la période finale réservée")
             markets = {s: self.hub.markets[s] for s in hist if s in self.hub.markets}
             cond = self.backtest_conditions()
-            replay = dict(initial=cond["initial"], account_currency=cond["currency"], extra_cost=cond["extra_cost"],
-                          historical_fx=self._historical_fx)
-            bt = run_backtest(hist, tf, settings, res.eval_model, start_ts=res.holdout_start, btc=btc, markets=markets, **replay)
-            progress(0.9, "Simulation de référence (tous les signaux, sans l'IA)")
-            base = run_backtest(hist, tf, settings, None, exploration=True, start_ts=res.holdout_start, btc=btc, markets=markets, **replay)
-            report["backtest_model"] = {k: bt[k] for k in ("metrics", "equity_metrics", "equity", "buy_hold_pct", "final_equity", "initial", "fees_paid", "start", "end", "halted")}
-            report["backtest_baseline"] = {k: base[k] for k in ("metrics", "equity_metrics", "equity", "buy_hold_pct", "final_equity", "initial", "fees_paid", "halted")}
+            existing = self.db.scalar("SELECT version FROM models WHERE timeframe=? AND status='champion'", (tf,))
+            incumbent = self.models.champion(tf)
+            reference = existing or "all_signals"
+            version = res.final_model.version
+            start = self.models.reserve_evaluation(version, tf, external_start, external_end, reference)
+            evidence = {"verdict": "TESTS INCOMPLETS", "reason": "Fenêtre finale déjà évaluée"}
+            if start is not None:
+                evidence = {"verdict": "TESTS INCOMPLETS", "reason": "Version de référence indisponible ou postérieure"}
+                if (not existing or (incumbent and incumbent.version == existing and incumbent.trained_until is not None
+                                     and incumbent.trained_until < start)):
+                    options = dict(start_ts=start, btc=btc, markets=markets, research_trace=True,
+                                   initial=cond["initial"], account_currency=cond["currency"],
+                                   extra_cost=cond["extra_cost"], historical_fx=self._historical_fx)
+                    # Exploration uses the same risk budget as the filtered policies.
+                    compare_cfg = copy.deepcopy(settings)
+                    compare_cfg["ai"]["exploration_risk_factor"] = 1.0
+                    try:
+                        bt = run_backtest(hist, tf, compare_cfg, res.eval_model, **options)
+                        base = run_backtest(hist, tf, compare_cfg, incumbent, exploration=not existing, **options)
+                        measured, baseline = portfolio_metrics(bt), portfolio_metrics(base)
+                        evidence = compare_portfolios(measured, baseline)
+                        evidence.update(candidate=version, reference=reference, start_ms=start, end_ms=external_end,
+                                        candidate_metrics=measured, reference_metrics=baseline)
+                        fields = ("metrics","equity_metrics","equity","buy_hold_pct","final_equity","initial","fees_paid","start","end","halted")
+                        report["backtest_model"] = {k: bt[k] for k in fields}
+                        report["backtest_baseline"] = {k: base[k] for k in fields}
+                    except OrderError as exc:
+                        evidence = {"verdict": "TESTS INCOMPLETS", "reason": exc.message}
+                self.models.record_evaluation(version, evidence)
+            report["paper_comparison"] = evidence
+            res.final_model.metrics["paper_verdict"] = evidence["verdict"]
         version = None
         if res.final_model is not None:
             row = self.models.register(res, report)

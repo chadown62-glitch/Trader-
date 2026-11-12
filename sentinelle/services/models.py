@@ -62,6 +62,30 @@ class ModelStore:
         with self._lock:
             self._cache.clear()
 
+    def reserve_evaluation(self, version, timeframe, start_ms, end_ms, reference):
+        """A terminal observation can contribute to only one promotion attempt per horizon."""
+        with self.db.transaction():
+            last = self.db.scalar("SELECT MAX(end_ms) FROM evaluation_windows WHERE timeframe=?", (timeframe,))
+            start_ms = max(start_ms, last or start_ms)
+            if start_ms >= end_ms:
+                return None
+            self.db.insert("evaluation_windows", {"version": version, "timeframe": timeframe, "start_ms": start_ms,
+                                                 "end_ms": end_ms, "reference": reference})
+            return start_ms
+
+    def record_evaluation(self, version, evidence):
+        changed = self.db.execute("UPDATE evaluation_windows SET evidence=? WHERE version=? AND evidence IS NULL",
+                                  (dumps(evidence), version)).rowcount
+        if changed != 1:
+            raise ValueError("Fenêtre de validation absente ou déjà utilisée")
+
+    def _approval(self, version):
+        row = self.db.one("SELECT * FROM evaluation_windows WHERE version=?", (version,))
+        if not row:
+            return None
+        evidence = loads(row["evidence"], {}) or {}
+        return row if evidence.get("verdict") == "MODÈLE APPROUVÉ POUR PAPER TRADING" else None
+
     def register(self, result, report: dict) -> dict:
         """Enregistre le résultat d'un entraînement ; promeut le modèle s'il est validé."""
         model = result.final_model
@@ -78,8 +102,10 @@ class ModelStore:
         )
         # le dernier entraînement fait foi : un ancien modèle à l'essai est retiré dans tous les cas
         self.db.execute("UPDATE models SET status = 'retired' WHERE status = 'trial' AND timeframe = ? AND version != ?", (model.timeframe, version))
-        if result.ok:
+        if result.ok and self._approval(version):
             self.promote(version)
+        elif result.ok:
+            self.db.log("info", "models", f"{version} reste challenger en attente de preuve appariée")
         elif getattr(result, "trial", False):
             self.db.update("models", version, {"status": "trial"}, key="version")
             self.db.log("info", "models", f"Modèle {version} mis à l'essai en argent fictif (prometteur, pas encore prouvé)")
@@ -95,6 +121,11 @@ class ModelStore:
         if (row["metrics"] or {}).get("verdict") != "validé":
             raise ValueError("Seul un modèle validé sur des données jamais vues peut devenir le modèle actif")
         with self.db.transaction():
+            approval = self._approval(version)
+            current = self.db.scalar("SELECT version FROM models WHERE timeframe=? AND status='champion'", (row["timeframe"],))
+            # A previously approved champion may be explicitly restored after retirement.
+            if not approval or (row["status"] != "retired" and approval["reference"] != (current or "all_signals")):
+                raise ValueError("Validation appariée indépendante absente ou champion de référence modifié")
             self.db.execute(
                 "UPDATE models SET status = 'retired' WHERE status = 'champion' AND timeframe = ?", (row["timeframe"],)
             )

@@ -5,7 +5,7 @@ import { ContextCard } from './context.js';
 import { ShieldCard } from './shield.js';
 import { store, money, signed, cls, pct, dt, ago, fxLine, confirmBox, ROLE_LABELS, REASON_ICONS } from '../store.js';
 
-const { ref, computed, onMounted, watch } = Vue;
+const { ref, computed, onMounted, onUnmounted, watch } = Vue;
 
 export default {
   components: { LineChart, ContextCard, ShieldCard },
@@ -15,6 +15,11 @@ export default {
     const days = ref(7);
     const decisions = ref([]);
     const readiness = ref(null);
+    const evaluation = ref(null);
+    let evaluationTimer;
+    const loadEvaluation = async () => {
+      evaluation.value = await safe(api.get('/api/portfolio/evaluation'));
+    };
     const accounts = computed(() => store.overview?.accounts || []);
     const agents = computed(() => store.overview?.agents || []);
     const current = computed(() => accounts.value.find(a => a.id === selected.value) || accounts.value[0]);
@@ -26,7 +31,11 @@ export default {
     };
     const loadDecisions = async () => { decisions.value = (await safe(api.get('/api/decisions?limit=40'))) || []; };
     const loadReadiness = async () => { readiness.value = await safe(api.get('/api/ai/readiness')); };
-    onMounted(() => { loadDecisions(); loadReadiness(); });
+    onMounted(() => {
+      loadDecisions(); loadReadiness(); loadEvaluation();
+      evaluationTimer = setInterval(loadEvaluation, 60000);
+    });
+    onUnmounted(() => clearInterval(evaluationTimer));
     watch(() => current.value?.id, loadEquity, { immediate: true });
     watch(days, loadEquity);
     const feed = computed(() => {
@@ -62,7 +71,7 @@ export default {
         { label: 'Bouclier', ok: o.shield?.enabled && !shieldPaused(o.shield), warn: o.shield?.enabled && shieldPaused(o.shield), off: !o.shield?.enabled },
       ];
     });
-    return { store, accounts, agents, current, selected, equity, days, feed, readiness, lights, startAgent, stopAgent, portfolio, activateMain, fxLine,
+    return { store, evaluation, accounts, agents, current, selected, equity, days, feed, readiness, lights, startAgent, stopAgent, portfolio, activateMain, fxLine,
       money, signed, cls, pct, dt, ago, ROLE_LABELS, REASON_ICONS };
   },
   template: `
@@ -100,6 +109,32 @@ export default {
         </div>
       </div>
 
+      <section v-if="evaluation" class="card" style="margin-bottom:14px">
+        <h2>Résultats du portefeuille fictif</h2>
+        <p v-if="evaluation.as_of" class="muted small">Dernière valorisation {{ dt(evaluation.as_of) }}</p>
+        <div class="grid cols-2">
+          <div>Résultat réalisé <b>{{ money(evaluation.realized, 'EUR') }}</b></div>
+          <div>Résultat latent estimé <b>{{ money(evaluation.unrealized, 'EUR') }}</b></div>
+          <div>Frais enregistrés en EUR <b>{{ money(evaluation.fees_eur, 'EUR') }}</b></div>
+          <div>Baisse maximale observée <b>{{ pct(evaluation.max_drawdown) }}</b></div>
+          <div>Tentatives d’ordre refusées <b>{{ evaluation.rejected }}</b></div>
+        </div>
+        <details v-if="evaluation.days.length"><summary>Rendements quotidiens observés</summary>
+          <div v-for="d in evaluation.days" :key="d.ts">{{ dt(d.ts) }} · {{ money(d.equity, 'EUR') }} · {{ pct(d.net_return) }}</div>
+        </details>
+        <details v-if="evaluation.trades.length"><summary>Derniers trades clôturés</summary>
+          <div v-for="t in evaluation.trades" :key="t.id">{{ t.symbol }} · {{ dt(t.exit_ts) }} · {{ signed(t.realized_pnl, 'EUR') }} · {{ pct(t.net_return) }}</div>
+        </details>
+        <h3>Validation des modèles</h3>
+        <p>{{ evaluation.verdict }}</p>
+        <div v-for="r in evaluation.comparisons" :key="r.version">
+          {{ r.version }} / {{ r.reference }} · {{ r.verdict }}
+          <span v-if="r.interval"> · écart quotidien de {{ pct(r.interval[0]) }} à {{ pct(r.interval[1]) }}</span>
+        </div>
+        <details v-if="evaluation.models.length"><summary>Versions enregistrées</summary>
+          <div v-for="m in evaluation.models" :key="m.version">{{ m.version }} · {{ m.status }}</div>
+        </details>
+      </section>
       <div class="grid cols-2" style="margin-bottom:14px">
         <div class="card">
           <div class="card-head"><h2>Intelligence artificielle</h2><span class="spacer"></span><a href="#/ai" class="small">Détails →</a></div>

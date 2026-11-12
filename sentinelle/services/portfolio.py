@@ -1,9 +1,9 @@
 """One active EUR paper wallet, with immutable legacy accounts and opening ledger entries."""
 from __future__ import annotations
 
+import math
 import time
 
-from ..execution.base import OrderError
 from ..market.fx import FxService, FxUnavailable, market_fetcher, synthetic_fetcher
 from .common import UserError
 
@@ -185,17 +185,66 @@ class PortfolioMixin:
 
     def ledger_check(self, account_id: int) -> dict:
         """Contrôle comptable : pour chaque actif, la somme des écritures doit égaler le solde, et aucun solde n'est négatif."""
-        sums = {r["asset"]: r["total"] for r in self.db.query(
-            "SELECT asset, SUM(amount) AS total FROM ledger WHERE account_id = ? GROUP BY asset", (account_id,))}
+        sums, invalid_entries = {}, []
+        rows = self.db.query("SELECT id,asset,amount,balance_after FROM ledger WHERE account_id=? ORDER BY id", (account_id,))
+        for row in rows:
+            asset = row["asset"]
+            sums[asset] = sums.get(asset, 0.) + row["amount"]
+            if not math.isclose(sums[asset], row["balance_after"], rel_tol=1e-12, abs_tol=1e-9) or row["balance_after"] < 0:
+                invalid_entries.append(row["id"])
         balances = {r["asset"]: r["total"] for r in self.db.query("SELECT asset, total FROM balances WHERE account_id = ?", (account_id,))}
         gaps = {}
         for asset in set(sums) | set(balances):
             gap = balances.get(asset, 0.0) - sums.get(asset, 0.0)
-            if abs(gap) > 1e-6 * max(1.0, abs(balances.get(asset, 0.0))):
+            if not math.isclose(sums.get(asset, 0.), balances.get(asset, 0.), rel_tol=1e-12, abs_tol=1e-9):
                 gaps[asset] = gap
         negative = [a for a, v in balances.items() if v < 0]
-        return {"ok": not gaps and not negative, "gaps": gaps, "negative": negative, "entries": int(self.db.scalar(
-            "SELECT COUNT(*) FROM ledger WHERE account_id = ?", (account_id,), 0))}
+        return {"ok": not gaps and not negative and not invalid_entries, "gaps": gaps, "negative": negative,
+                "entries": len(rows), **({"invalid_entries": invalid_entries} if invalid_entries else {})}
+
+    def evaluation_dashboard(self) -> dict:
+        """Read only committed simulation observations and registered model comparisons."""
+        from ..storage.db import loads
+        account = self.main_account()
+        aid = account["id"]
+        with self.db.transaction():
+            rows = self.db.query("SELECT ts, equity, unrealized FROM equity WHERE account_id=? ORDER BY ts", (aid,))
+            day_marks = {}
+            peak, drawdown = account["initial_balance"], 0.
+            for point in rows:
+                value = point["equity"]
+                peak = max(peak, value)
+                drawdown = max(drawdown, 1 - value / peak)
+                day_marks[int(point["ts"] // 86400)] = value
+            days = []
+            previous_day = None
+            for day, value in day_marks.items():
+                measurable = previous_day is not None and day == previous_day + 1 and day_marks[previous_day] > 0
+                days.append({"ts": day * 86400, "equity": value,
+                             "net_return": value / day_marks[previous_day] - 1 if measurable else None})
+                previous_day = day
+            trades = self.db.query("SELECT id,symbol,exit_ts,realized_pnl,initial_qty,entry_price,entry_fx,entry_fees "
+                                   "FROM positions WHERE account_id=? AND status='closed' ORDER BY exit_ts DESC LIMIT 30", (aid,))
+            for trade in trades:
+                rate = trade["entry_fx"]
+                if rate is None and trade["symbol"].split("/")[1] == account["quote"]:
+                    rate = 1.
+                basis = ((trade["initial_qty"] or 0)*(trade["entry_price"] or 0)*rate + trade["entry_fees"]) if rate else 0.
+                trade["net_return"] = trade["realized_pnl"]/basis if basis > 0 else None
+            fees = -self.db.scalar("SELECT SUM(amount) FROM ledger WHERE account_id=? AND asset='EUR' "
+                                   "AND kind IN ('frais','conversion')", (aid,), 0)
+            comparisons = []
+            for row in self.db.query("SELECT version,reference,start_ms,end_ms,evidence FROM evaluation_windows ORDER BY end_ms DESC LIMIT 10"):
+                evidence = loads(row.pop("evidence"), {}) or {}
+                comparisons.append({**row, "verdict": evidence.get("verdict","TESTS INCOMPLETS"),
+                                    "interval": evidence.get("paired_daily_interval"), "days": evidence.get("days")})
+            return {"currency": account["quote"], "as_of": rows[-1]["ts"] if rows else None,
+                    "equity": rows[-1]["equity"] if rows else None, "unrealized": rows[-1]["unrealized"] if rows else None,
+                    "realized": self.db.scalar("SELECT SUM(realized_pnl) FROM positions WHERE account_id=?", (aid,), 0),
+                    "fees_eur": fees, "max_drawdown": drawdown if rows else None, "days": days[-30:], "trades": trades,
+                    "rejected": self.db.scalar("SELECT COUNT(*) FROM paper_refusals WHERE account_id=?", (aid,), 0),
+                    "models": [{"version":r["version"],"status":r["status"]} for r in self.models.list(10)],
+                    "comparisons": comparisons, "verdict": comparisons[0]["verdict"] if comparisons else "NON TESTÉ"}
 
     def fx_or_error(self, symbol: str) -> dict:
         """Taux applicable à un ordre sur cette paire, pour un compte en euros (détail affiché avant l'ordre)."""
