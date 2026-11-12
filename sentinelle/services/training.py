@@ -6,6 +6,7 @@ import copy
 import time
 from typing import Any
 
+from ..ai.compare import compare_models
 from ..ai.trainer import build_dataset, train_walk_forward
 from ..backtest.engine import run_backtest
 from ..execution.base import OrderError
@@ -74,9 +75,16 @@ class TrainingMixin:
         def sub(x, msg):
             progress(0.3 + 0.45 * x, msg)
 
+        # Plus on a essayé de configurations différentes, plus la preuve exigée est forte (journal des expériences).
+        config = self.training_config(settings, tf)
+        alpha, n_configs = self.training_alpha(settings, tf)
         res = train_walk_forward(cand, tf, min_edge=settings["ai"]["min_edge_r"], progress=sub,
                                  rules_fallback=settings["ai"].get("rules_fallback", True),
-                                 recipe=settings["ai"]["recipe"], half_life_days=settings["ai"]["half_life_days"])
+                                 recipe=settings["ai"]["recipe"], half_life_days=settings["ai"]["half_life_days"], alpha=alpha)
+        res.report["experiments"] = {"distinct_configs": n_configs, "alpha": alpha, "confidence_pct": (1 - alpha) * 100}
+        if n_configs > 1:
+            res.reasons.append(f"{n_configs} configurations différentes ont été essayées récemment : la confiance exigée a été portée de 95 % à "
+                               + f"{(1 - alpha) * 100:.2f}".replace(".", ",") + " %.")
         try:
             if days >= KNOWLEDGE_DAYS:  # les fiches par crypto profitent de l'historique complet déjà chargé
                 self.update_knowledge(hist, btc, tf, settings)
@@ -91,20 +99,39 @@ class TrainingMixin:
             markets = {s: self.hub.markets[s] for s in hist if s in self.hub.markets}
             bt = run_backtest(hist, tf, settings, res.eval_model, start_ts=res.holdout_start, btc=btc, markets=markets)
             progress(0.9, "Simulation de référence (tous les signaux, sans l'IA)")
-            base = run_backtest(hist, tf, settings, None, exploration=True, start_ts=res.holdout_start, btc=btc, markets=markets)
+            # même taille de risque que la simulation avec l'IA : sinon les deux résultats ne sont pas comparables
+            base = run_backtest(hist, tf, settings, None, exploration=True, start_ts=res.holdout_start, btc=btc, markets=markets,
+                                exploration_risk_factor=1.0)
             report["backtest_model"] = {k: bt[k] for k in ("metrics", "equity_metrics", "equity", "buy_hold_pct", "final_equity", "initial", "fees_paid", "start", "end", "halted")}
             report["backtest_baseline"] = {k: base[k] for k in ("metrics", "equity_metrics", "equity", "buy_hold_pct", "final_equity", "initial", "fees_paid", "halted")}
-        version = None
+        version, comparison, status = None, None, None
         if res.final_model is not None:
-            row = self.models.register(res, report)
-            version = row["version"]
+            champion = self.models.champion(tf)
+            if champion is not None and res.ok and res.eval_model is not None and res.holdout_start:
+                # Champion contre nouveau modèle, sur la période de contrôle du nouveau. Seules comptent les
+                # situations que le champion n'a pas vues pendant son propre apprentissage.
+                progress(0.95, "Comparaison avec le champion sur les mêmes situations")
+                hold = cand[cand["decision_ts"] >= res.holdout_start]
+                comparison = compare_models(hold, champion, res.eval_model, challenger_seen_until=res.holdout_start)
+            row = self.models.register(res, report, comparison)
+            version, status = row["version"], row["status"]
+            if comparison is not None:
+                res.reasons.append("Face au champion : " + comparison["explanation"])
+        self.log_experiment("train", config, {
+            "verdict": res.verdict, "version": version, "status": status, "days": days, "auto": auto, "alpha": alpha,
+            "distinct_configs": n_configs, "summary": report.get("summary"), "n_resolved": report.get("n_resolved"),
+            "comparison": {k: comparison.get(k) for k in ("verdict", "explanation", "champion", "champion_knew_share")} if comparison else None})
+        try:
+            self.review_models()
+        except Exception as exc:
+            self.db.log("warning", "ia", f"Revue des modèles impossible : {str(exc)[:150]}")
         self.db.set_meta("last_train_ts", str(time.time()))
         self.db.set_meta("last_train_report", dumps({k: report.get(k) for k in ("verdict", "reasons", "summary", "n_resolved", "trained_at")}))
         level = "info" if res.ok else "warning"
         self.db.log(level, "ia", f"Entraînement terminé : modèle {res.verdict}" + (f" ({version})" if version else ""), {"reasons": res.reasons})
         self.bus.publish("training_done", {"verdict": res.verdict, "version": version, "reasons": res.reasons})
-        return {"verdict": res.verdict, "ok": res.ok, "reasons": res.reasons, "version": version, "summary": report.get("summary"),
-                "report": report}
+        return {"verdict": res.verdict, "ok": res.ok, "reasons": res.reasons, "version": version, "status": status,
+                "summary": report.get("summary"), "comparison": comparison, "report": report}
 
     def _maybe_retrain(self) -> None:
         ai = self.settings["ai"]
@@ -161,6 +188,10 @@ class TrainingMixin:
                                progress=lambda x, m: progress(0.3 + 0.7 * x, m),
                                initial=cond["initial"], extra_cost=cond["extra_cost"])
             res["conditions"] = {**cond, "quote": settings["general"]["quote"]}
+            self.log_experiment("backtest", {"days": days, "use_model": use_model, "model": model.version if model else None, "timeframe": tf,
+                                             "capital": cond["capital"], "currency": cond["currency"]},
+                                {"return_pct": res["equity_metrics"]["return_pct"], "max_dd_pct": res["equity_metrics"]["max_dd_pct"],
+                                 "trades": res["metrics"]["n"], "mean_r": res["metrics"]["mean_r"]})
             res["use_model"] = use_model
             res["model"] = model.version if model else None
             res["days"] = days

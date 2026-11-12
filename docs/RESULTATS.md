@@ -249,6 +249,20 @@ L'avantage du suivi de tendance est concentré sur les plus grandes cryptos. Or 
 - **Suivi des prévisions** : pour chaque situation vue en direct, ce que l'IA annonçait est comparé à ce qui s'est passé. Un écart net est signalé.
 - **Ré-entraînement automatique** : toutes les 24 heures dès 25 nouvelles situations dénouées. Un nouveau modèle ne devient actif que s'il est validé.
 
+## 10 bis. Ré-apprendre aide-t-il ? (12 novembre 2026)
+
+Mesure « modèle figé contre modèle ré-entraîné » sur l'historique Binance (8 cryptos, 4 heures, environ 8 ans, 3 898 situations dénouées, six périodes que ni l'un ni l'autre n'avait vues). Détail : [APPRENTISSAGE.md](APPRENTISSAGE.md), §7.
+
+| Mesure | Modèle figé | Modèle ré-entraîné |
+|--------|-------------|--------------------|
+| Situations prises | 689 | 386 |
+| Résultat moyen d'une situation prise | +0,037 R | +0,056 R |
+| Score de tri (AUC) | 0,435 | 0,519 |
+
+Différence par situation : **−0,002 R**, intervalle à 90 % de −0,032 à +0,028 R, sur 34 semaines. **Non départagés.** Le modèle figé trie moins bien que le hasard sur les périodes récentes (le marché a changé), mais le ré-entraînement ne se traduit pas par un meilleur résultat démontrable.
+
+**Note sur les simulations accélérées de ce document.** Depuis le contrat d'exécution unique ([EXECUTION.md](EXECUTION.md)), la simulation accélérée achète à l'ouverture de la bougie qui suit le signal (avant : à la clôture de la bougie du signal). Les rendements de portefeuille simulés des §4 à §7 ont été mesurés avec l'ancienne règle et n'ont pas été refaits. Les résultats en R issus de l'étiquetage utilisaient déjà la bonne règle.
+
 ## 11. Ce qui pourrait améliorer les résultats (pistes, non prouvées)
 
 1. ✅ *Fait* : historique étendu via les paires USDT (voir §6).

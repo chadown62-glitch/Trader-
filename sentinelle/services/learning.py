@@ -36,6 +36,10 @@ class LearningMixin:
             rep["recipe"] = ai["recipe"]
             rep["half_life_days"] = ai["half_life_days"]
             self.db.set_meta("bench_report", dumps(rep))
+            self.log_experiment("bench", {"sizes": list(BENCH_SIZES), "seeds": BENCH_SEEDS, "timeframe": ai["timeframe"], "recipe": ai["recipe"],
+                                          "half_life_days": ai["half_life_days"]},
+                                {"score": rep["score"], "adaptation": rep["adaptation"], "false_discoveries": rep["false_discoveries"],
+                                 "noise_runs": rep["noise_runs"]})
             score = "—" if rep["score"] is None else f"{rep['score'] * 100:.0f} %"
             self.db.log("info", "ia", f"Test des capacités d'apprentissage terminé : taux d'apprentissage {score}")
             return rep

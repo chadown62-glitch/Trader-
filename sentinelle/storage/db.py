@@ -262,6 +262,42 @@ CREATE TABLE IF NOT EXISTS ledger(
     note TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_ledger_account ON ledger(account_id, id);
+-- Vie des modèles : enregistrement, mise à l'épreuve, promotion, rejet, retour en arrière (jamais effacé)
+CREATE TABLE IF NOT EXISTS model_events(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts REAL NOT NULL,
+    version TEXT NOT NULL,
+    timeframe TEXT,
+    event TEXT NOT NULL,
+    reason TEXT,
+    data TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_model_events ON model_events(timeframe, id);
+-- Prédictions enregistrées AVANT de connaître le résultat, pour chaque modèle suivi (champion, challenger, précédent)
+CREATE TABLE IF NOT EXISTS shadow_predictions(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT NOT NULL,
+    timeframe TEXT NOT NULL,
+    ts INTEGER NOT NULL,
+    strategy TEXT NOT NULL,
+    model_version TEXT NOT NULL,
+    p_win REAL,
+    expected_r REAL,
+    take INTEGER NOT NULL DEFAULT 0,
+    created_at REAL,
+    UNIQUE (symbol, timeframe, ts, strategy, model_version)
+);
+CREATE INDEX IF NOT EXISTS idx_shadow_model ON shadow_predictions(model_version, ts);
+-- Journal des expériences : chaque entraînement, banc d'essai ou simulation, avec ses paramètres et son résultat
+CREATE TABLE IF NOT EXISTS experiments(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts REAL NOT NULL,
+    kind TEXT NOT NULL,
+    config_hash TEXT,
+    params TEXT,
+    result TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_experiments ON experiments(kind, ts);
 -- Taux de change utilisés (monnaie du portefeuille / monnaie de cotation), avec leur source
 CREATE TABLE IF NOT EXISTS fx_rates(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -312,6 +348,9 @@ class Database:
                 self._ensure_column("fills", column, decl)
             self._ensure_column("positions", "entry_fx", "REAL")
             self._ensure_column("positions", "currency", "TEXT")
+            # registre des modèles : empreinte du fichier (version immuable), fiche d'identité, date de promotion
+            for column, decl in (("sha256", "TEXT"), ("params", "TEXT"), ("promoted_at", "REAL")):
+                self._ensure_column("models", column, decl)
             self.conn.execute(
                 "INSERT OR IGNORE INTO meta(key, value) VALUES ('schema_version', ?)",
                 (str(SCHEMA_VERSION),),

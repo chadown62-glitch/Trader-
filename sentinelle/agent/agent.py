@@ -27,12 +27,13 @@ from ..ai.features import FEATURE_COLUMNS, REGIME_LABELS
 from ..ai.labeling import candidate_row, simulate_candidate
 from ..ai.model import MetaModel
 from ..ai.strategies import STRATEGIES, levels
-from ..config import timeframe_ms
+from ..config import timeframe_minutes, timeframe_ms
 from ..execution.base import OrderError
 from ..execution.positions import PositionManager
 from ..risk.manager import RiskManager
 from ..safety import forbid, require_paper_broker
 from ..storage.db import Database, dumps, loads
+from .plan import build_plan
 
 log = logging.getLogger("sentinelle.agent")
 
@@ -65,6 +66,7 @@ class TradingAgent:
         price_check_fn: Callable[[str, float], str | None] | None = None,
         shield_fn: Callable[[str, float], str | None] | None = None,
         context_fn: Callable[[str], dict] | None = None,
+        shadow_fn: Callable[[str, str, int, list], int] | None = None,
         bus=None,
         clock: Callable[[], float] = time.time,
         record: bool = True,
@@ -88,6 +90,7 @@ class TradingAgent:
         self.price_check_fn = price_check_fn
         self.shield_fn = shield_fn
         self.context_fn = context_fn
+        self.shadow_fn = shadow_fn  # enregistre les prédictions des modèles suivis, avant que l'issue soit connue
         self.bus = bus
         self.clock = clock
         self.record = record
@@ -270,6 +273,14 @@ class TradingAgent:
             for c in cands:
                 c["p"] = c["er"] = None
 
+        # Prédictions « à blanc » du champion, du challenger et de l'ancien champion suivi : écrites maintenant,
+        # avant toute issue, pour pouvoir les comparer plus tard sur exactement les mêmes situations.
+        if self.shadow_fn is not None and self.mode == "training":
+            try:
+                self.shadow_fn(symbol, self.timeframe, bar_ts, [c["row"] for c in cands])
+            except Exception:
+                log.exception("Prédictions à blanc non enregistrées (%s)", symbol)
+
         block = None
         regime = row["regime"]
         btc_regime = row.get("btc_regime", regime)
@@ -306,7 +317,7 @@ class TradingAgent:
         on_trial = model is not None and not validated and self.mode == "training" and ai.get("exploration", True)
         for c in cands:
             st = c["st"]
-            mode_used, risk_factor, decision, reason = None, 1.0, "refusé", ""
+            mode_used, risk_factor, decision, reason, rd, equity = None, 1.0, "refusé", "", None, None
             if block:
                 reason = block
             elif validated or on_trial:
@@ -354,7 +365,7 @@ class TradingAgent:
                             model_version=model.version if model is not None and mode_used in ("model", "essai") else None,
                             horizon_bars=st.horizon(self.timeframe), timeframe=self.timeframe, reason=explanation,
                             data={"mode": mode_used, "risk_checks": rd.checks, "regime": regime, "atr_entry": a,
-                                  "min_order_bump": rd.bumped},
+                                  "min_order_bump": rd.bumped, "bar_ts": bar_ts},
                         )
                         decision, reason, opened = "pris", explanation, True
                         self.stats["entries"] += 1
@@ -366,13 +377,22 @@ class TradingAgent:
             if self.mode == "backtest":
                 continue
             msg = reason if decision == "pris" else f"Signal « {st.label} » sur {symbol} non suivi : {reason}."
+            # Plan écrit avant l'issue : raisons, scénarios, stop, objectif, frais, taille. Enregistré même en cas de refus.
+            plan = build_plan(
+                symbol=symbol, strategy=st, close=close, stop=c["stop"], target=c["target"],
+                atr_pct=float(row["atr_pct"]) if np.isfinite(row.get("atr_pct", np.nan)) else None,
+                p_win=c["p"], expected_r=c["er"], threshold=thr, model=model, mode=mode_used, regime=regime, btc_regime=btc_regime,
+                cost_r=float(c["row"]["cost_r"]), horizon_bars=st.horizon(self.timeframe), timeframe_minutes=timeframe_minutes(self.timeframe),
+                rd=rd if (rd is not None and rd.approved) else None, equity=equity, currency=self.broker.quote,
+                decision=decision, reason=reason)
             if self.record:
                 self.db.execute(
                     "INSERT OR IGNORE INTO candidates(symbol, timeframe, ts, strategy, source, entry, stop, target, horizon_bars, "
                     "features, p_win, expected_r, model_version, decision, decision_reason, account_id) "
                     "VALUES (?, ?, ?, ?, 'live', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (symbol, self.timeframe, bar_ts, c["name"], close, c["stop"], c["target"], st.horizon(self.timeframe),
-                     dumps({**{k: c["row"][k] for k in FEATURE_COLUMNS + ["cost_r"]}, "contexte": context}), c["p"], c["er"],
+                     dumps({**{k: c["row"][k] for k in FEATURE_COLUMNS + ["cost_r"]},
+                            "contexte": {**context, "regime": regime, "btc_regime": btc_regime}, "plan": plan}), c["p"], c["er"],
                      model.version if model is not None else None, decision, reason, self.account_id),
                 )
             self._journal(symbol, decision, msg, {"strategy": c["name"], "p_win": c["p"], "expected_r": c["er"]})

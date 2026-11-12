@@ -106,6 +106,7 @@ class AgentsMixin:
                 price_check_fn=self._price_check,
                 shield_fn=self.shield.check_entry,
                 context_fn=self.decision_context,
+                shadow_fn=self.record_shadow_predictions,
                 clock=self.market_clock,
             )
             agent.running = True
