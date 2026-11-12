@@ -378,6 +378,11 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
     async def evaluation_dashboard():
         return await app.acall(app.evaluation_dashboard)
 
+    @api.get("/api/performance")
+    async def performance(account_id: int | None = None, period: str = "all"):
+        """Tableau de rentabilité : capital, résultats nets, rendements par trade et par jour, refus."""
+        return await app.acall(app.performance, account_id, period)
+
     @api.get("/api/portfolio")
     async def portfolio_status():
         return await app.acall(app.portfolio_status)

@@ -101,7 +101,7 @@ class PortfolioMixin:
         if acc is not None:
             return acc
         cfg = self.settings["portfolio"]
-        now = time.time()
+        now = self.market_clock()  # même horloge que les relevés de capital et le grand livre
         with self.db.transaction():
             aid = self.db.insert("accounts", {"name": MAIN_NAME, "kind": "paper", "role": MAIN_ROLE, "quote": cfg["currency"],
                                               "initial_balance": 30.0, "created_at": now, "data": "{}"})
