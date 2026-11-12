@@ -39,6 +39,7 @@ Autre possibilité : ouvrez un terminal et tapez `winget install Python.Python.3
 | Page | Ce que vous y faites |
 |------|---------------------|
 | **Tableau de bord** | Capital de chaque compte, état des IA, bulletin de fiabilité, courbe de capital, décisions de l'IA en direct. |
+| **Performances** | Ce que le portefeuille a réellement rapporté, net de tous les frais : capital, résultat réalisé et latent, rendement par trade et par jour, baisse maximale, résultats par stratégie, signaux refusés et leurs raisons. |
 | **Trader** | Graphique en temps réel, passage d'ordres, calculatrice de risque, avis de l'IA, positions et ordres. |
 | **IA** | Entraînement en direct, bulletin de fiabilité, apprentissage sur l'historique, simulation accélérée, journal des décisions. |
 | **Historique** | Tous vos trades, leurs statistiques et l'export CSV (utile pour les impôts). |
@@ -120,6 +121,29 @@ Cette version ne le permet pas. Un bulletin au vert ne déverrouille rien : il n
 | **Intervalle 95 %** | Marge d'incertitude. S'il contient des valeurs négatives, le résultat n'est pas prouvé. |
 | **Profit factor** | Gains totaux ÷ pertes totales. Au-dessus de 1, on gagne. |
 | **Acheter et garder** | Référence : ce qu'aurait rapporté le simple fait d'acheter et de garder. Battre cette référence est difficile. |
+
+---
+
+## 5 bis. Lire la page « Performances »
+
+Tout y est **net** : frais de la plateforme, glissement de prix et conversion en euros sont déjà déduits.
+
+| Élément | Ce qu'il dit |
+|---------|--------------|
+| **Capital de départ / actuel / disponible / investi** | D'où l'on part, où l'on en est, ce qui est libre et ce qui est placé en cryptos. |
+| **Résultat net** | Capital actuel moins capital de départ. Il se décompose en **réalisé** (trades clôturés) et **latent** (positions encore ouvertes, au dernier prix). Le badge « comptes vérifiés » confirme que la somme tombe juste. |
+| **Par période** | Aujourd'hui, 7, 30, 90 jours et depuis le lancement. Le lancement est la dernière réinitialisation du portefeuille. |
+| **Rendement net par trade** | Résultat du trade divisé par le montant engagé. La **contribution** le rapporte au portefeuille entier. |
+| **Rendement de chaque jour** | Une valeur par jour, **y compris les jours sans aucun trade** (0 %). Les jours où Sentinelle était éteint sont signalés. |
+| **Rendement quotidien géométrique** | Le rendement constant par jour qui aurait donné le même capital. Il n'est jamais « annualisé ». |
+| **Baisse maximale** | Plus forte baisse depuis un plus haut. |
+| **Exposition maximale** | Plus grande part du capital placée en même temps. |
+| **Versions successives du modèle** | Les trades de l'IA regroupés par version du modèle : utile seulement avec assez de trades par version. |
+| **Signaux refusés** | Combien de signaux l'IA a refusés, pourquoi, et **ce qu'ils auraient donné**. C'est ainsi qu'on vérifie si elle a eu raison de refuser. |
+
+Deux avertissements s'affichent tout seuls :
+- **moins de 30 trades** : les moyennes ne prouvent rien, un bon chiffre peut venir du hasard ;
+- **marché simulé** (mode démonstration) : les chiffres ne sont pas une performance.
 
 ---
 

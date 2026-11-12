@@ -363,6 +363,11 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         """Grand livre : chaque variation de solde, avec le solde obtenu et le contrôle comptable."""
         return await app.acall(app.ledger, account_id, limit)
 
+    @api.get("/api/performance")
+    async def performance(account_id: int | None = None, period: str = "all"):
+        """Tableau de rentabilité : capital, résultats nets, rendements par trade et par jour, refus."""
+        return await app.acall(app.performance, account_id, period)
+
     @api.get("/api/portfolio")
     async def portfolio_status():
         return await app.acall(app.portfolio_status)

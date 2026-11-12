@@ -292,3 +292,18 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .toasts { bottom: 76px; }
   .big { font-size: 1.35rem; }
 }
+
+/* Histogramme (page Performances) */
+.barchart { display: flex; gap: 8px; width: 100%; }
+.barchart .axis { display: flex; flex-direction: column; justify-content: space-between; color: var(--faint); font-size: .72rem; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; min-width: 52px; }
+.barchart .plot { position: relative; flex: 1; display: flex; gap: 1px; min-width: 0; border-left: 1px solid var(--border); }
+.barchart .zero { position: absolute; left: 0; right: 0; height: 1px; background: var(--border-2); }
+.barchart .col { position: relative; flex: 1; min-width: 0; height: 100%; }
+.barchart .col:hover { background: rgba(147, 160, 184, .12); }
+.barchart .bar { position: absolute; left: 12%; right: 12%; border-radius: 2px; min-width: 1px; }
+.barchart .bar.pos { background: var(--up); }
+.barchart .bar.neg { background: var(--down); }
+.barchart .bar.muted { opacity: .35; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 18px; }
+.legend-inline { display: inline-flex; align-items: center; gap: 6px; margin-right: 12px; }
+.legend-inline i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
