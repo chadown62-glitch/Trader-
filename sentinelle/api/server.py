@@ -450,6 +450,18 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
     async def models():
         return app.models.list()
 
+    @api.get("/api/ai/champion")
+    async def champion_status():
+        return await app.acall(app.learning_status)
+
+    @api.get("/api/ai/journal")
+    async def decision_journal(limit: int = 50, decision: str | None = None, symbol: str | None = None):
+        return await app.acall(app.decision_journal, limit, decision, symbol)
+
+    @api.get("/api/ai/experiments")
+    async def experiments(limit: int = 100):
+        return await app.acall(app.experiments, limit)
+
     @api.get("/api/ai/models/{version}/report")
     async def model_report(version: str):
         rep = app.models.report(version)

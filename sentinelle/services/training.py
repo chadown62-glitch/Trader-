@@ -59,6 +59,17 @@ class TrainingMixin:
         return {s: hist[s] for s in wl if s in hist}, btc
 
     def _train(self, progress, settings: dict, tf: str, days: int, auto: bool) -> dict:
+        experiment = self.log_experiment("train", {"settings": settings, "timeframe": tf, "days": days, "auto": auto})
+        try:
+            result = self._train_impl(progress, settings, tf, days, auto)
+        except BaseException as exc:
+            self.db.execute("UPDATE experiments SET result=? WHERE id=?", (dumps({"status": "failed", "error": type(exc).__name__}), experiment))
+            raise
+        self.db.execute("UPDATE experiments SET result=? WHERE id=?", (dumps({"status": "complete", "version": result["version"],
+                        "verdict": result["verdict"], "paper_comparison": result["report"].get("paper_comparison")}), experiment))
+        return result
+
+    def _train_impl(self, progress, settings: dict, tf: str, days: int, auto: bool) -> dict:
         hist, btc = self._histories(settings, tf, days, progress)
         enabled = [n for n, on in settings["ai"]["strategies"].items() if on]
         fee, slip = settings["paper"]["fee_rate"], settings["paper"]["slippage_bps"] / 10_000
