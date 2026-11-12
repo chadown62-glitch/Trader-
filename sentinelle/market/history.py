@@ -83,9 +83,11 @@ class HistoryStore:
             df = pd.read_csv(p, compression="gzip")
             df["ts"] = df["ts"].astype("int64")
             return clean_frame(df[COLUMNS])[0]
-        except Exception:  # fichier corrompu : on repart de zéro
-            log.exception("Cache d'historique illisible, il sera reconstruit : %s", p)
-            return to_frame([])
+        except Exception as exc:
+            # Returning an empty frame would let update() overwrite user data.
+            # Recovery must be explicit; preserve the original bytes for inspection.
+            log.exception("Cache d'historique illisible, fichier conservé : %s", p)
+            raise ValueError(f"Historique illisible : {p}. Fichier conservé ; restauration explicite nécessaire.") from exc
 
     def save(self, symbol: str, timeframe: str, df: pd.DataFrame) -> None:
         p = self.path(symbol, timeframe)
