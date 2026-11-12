@@ -95,6 +95,7 @@ class TradingAgent:
         self.last_bar: dict[str, int] = {}
         self.last_scan: dict[str, dict] = {}
         self.stats = {"decisions": 0, "entries": 0, "refused": 0}
+        self.refusal_reasons: dict[str, int] = {}
 
     @property
     def account_id(self) -> int:
@@ -363,6 +364,7 @@ class TradingAgent:
             self.stats["decisions"] += 1
             if decision != "pris":
                 self.stats["refused"] += 1
+                self.refusal_reasons[reason] = self.refusal_reasons.get(reason, 0) + 1
             if self.mode == "backtest":
                 continue
             msg = reason if decision == "pris" else f"Signal « {st.label} » sur {symbol} non suivi : {reason}."
