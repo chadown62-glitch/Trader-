@@ -30,7 +30,7 @@ Autre possibilité : ouvrez un terminal et tapez `winget install Python.Python.3
 |---------|------|
 | `lancer.bat` | Démarre Sentinelle. Pour l'arrêter, fermez la fenêtre noire. |
 | `demo.bat` | Démo **hors-ligne** sur un marché simulé, pour découvrir sans connexion. |
-| `diagnostic.bat` | Vérifie l'installation : Python, internet, données de marché, Ollama, carte graphique. |
+| `diagnostic.bat` | Vérifie l'installation : Python, internet, données de marché, Ollama, carte graphique ; puis diagnostic complet (panel démarré et arrêté dans un dossier temporaire, modèles gelés, verdict READY / BLOCKED). Voir [WINDOWS.md](WINDOWS.md). |
 
 ---
 

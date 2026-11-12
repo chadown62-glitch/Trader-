@@ -286,7 +286,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .bottom-nav .ico { font-size: 1.1rem; }
   .hide-mobile { display: none !important; }
   .more-sheet { display: block; position: fixed; inset: 0; z-index: 29; background: rgba(3, 6, 12, .5); }
-  .more-sheet .card { position: absolute; left: 10px; right: 10px; bottom: 74px; display: flex; flex-direction: column; gap: 4px; }
+  .more-sheet .card { position: absolute; left: 10px; right: 10px; bottom: 74px; display: flex; flex-direction: column; gap: 4px;
+    max-height: calc(100vh - 140px); overflow-y: auto; }
   .more-sheet a { padding: 12px; border-radius: 8px; color: var(--text); font-weight: 600; }
   .more-sheet a:hover { background: var(--panel-2); text-decoration: none; }
   .toasts { bottom: 76px; }
@@ -307,3 +308,29 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 18px; }
 .legend-inline { display: inline-flex; align-items: center; gap: 6px; margin-right: 12px; }
 .legend-inline i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+
+/* Pages d'audit (Apprentissage, Contexte macro, Préparation) */
+.wrap-anywhere { overflow-wrap: anywhere; }
+.page-stack > .card, .page-stack > .note, .page-stack > .grid { margin-bottom: 14px; }
+.meta-line { margin: 10px 0; }
+.news-item { border-bottom: 1px solid var(--border); padding: 12px 0; }
+.news-item:last-child { border-bottom: 0; }
+.verdict { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+.verdict .big-badge { font-size: 1.05rem; font-weight: 800; letter-spacing: .04em; padding: 6px 14px; border-radius: 999px; border: 1px solid; }
+.verdict .big-badge.ready { color: #bbf7d0; border-color: rgba(34, 197, 94, .6); background: rgba(34, 197, 94, .14); }
+.verdict .big-badge.blocked { color: #fecdd3; border-color: rgba(244, 63, 94, .6); background: rgba(244, 63, 94, .14); }
+:root[data-theme="light"] .verdict .big-badge.ready { color: #15803d; }
+:root[data-theme="light"] .verdict .big-badge.blocked { color: #b91c1c; }
+.checklist { list-style: none; margin: 0; padding: 0; }
+.checklist li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.checklist li:last-child { border-bottom: 0; }
+.checklist .mark { font-weight: 800; text-align: center; }
+.checklist .ok .mark { color: var(--up, #22c55e); }
+.checklist .blocked .mark { color: var(--down, #f43f5e); }
+.checklist .untested .mark, .checklist .warning .mark { color: #f59e0b; }
+.hash { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .78rem; overflow-wrap: anywhere; }
+.stale-badge { margin-left: 8px; }
+/* Dans les tableaux, pas de coupure au milieu des mots : le tableau défile dans son cadre */
+.wrap-anywhere .table-wrap th, .wrap-anywhere .table-wrap td { overflow-wrap: normal; word-break: normal; }
+.wrap-anywhere .table-wrap td:first-child { min-width: 9rem; }
+.wrap-anywhere .table-wrap .hash { overflow-wrap: anywhere; }

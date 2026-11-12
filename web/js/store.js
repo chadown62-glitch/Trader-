@@ -75,6 +75,17 @@ export function cls(x) { return x > 0 ? 'up' : x < 0 ? 'down' : ''; }
 const dtf = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 const df = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 export function dt(tsSeconds) { return tsSeconds ? dtf.format(new Date(tsSeconds * 1000)) : '—'; }
+// Date complète en temps universel, pour les journaux d'audit (« 12/11/2026 20:24 UTC »)
+const utcf = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+export function utc(tsSeconds, missing = 'Inconnue') {
+  if (tsSeconds === null || tsSeconds === undefined || !Number.isFinite(Number(tsSeconds))) return missing;
+  return utcf.format(new Date(Number(tsSeconds) * 1000)).replace(',', '') + ' UTC';
+}
+// Libellé lisible d'un code interne ; le code brut reste visible s'il n'est pas connu
+export function label(map, code, fallback = 'Non disponible') {
+  if (code === null || code === undefined || code === '') return fallback;
+  return map[code] ?? String(code);
+}
 export function dtMs(ms) { return ms ? dtf.format(new Date(ms)) : '—'; }
 export function date(tsSeconds) { return tsSeconds ? df.format(new Date(tsSeconds * 1000)) : '—'; }
 export function ago(tsSeconds) {
