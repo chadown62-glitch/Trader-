@@ -15,6 +15,8 @@ Il n'existe pas de mode réel : l'agent refuse tout courtier qui n'est pas simul
 
 from __future__ import annotations
 
+import hashlib
+import copy
 import logging
 import time
 from typing import Callable
@@ -133,7 +135,11 @@ class TradingAgent:
         if self.mode != "backtest":
             self.record_scan(symbol, feat, i, names)
         if names and np.isfinite(row["atr"]) and row["atr"] > 0:
-            self._consider(symbol, row, names, bar_ts)
+            try:
+                self._consider(symbol, row, names, bar_ts)
+            except BaseException:
+                self.last_bar.pop(symbol, None)  # permit retry after rollback in this process
+                raise
 
     def record_scan(self, symbol: str, feat: pd.DataFrame, i: int | None = None, names: list[str] | None = None) -> None:
         """Mémorise ce que l'IA « voit » sur une crypto (affiché dans le panel, même sans trade)."""
@@ -249,6 +255,34 @@ class TradingAgent:
 
     # -- décision d'entrée ----------------------------------------------------------------
     def _consider(self, symbol: str, row, names: list[str], bar_ts: int) -> None:
+        if self.mode == "backtest" or not self.record:
+            return self._consider_impl(symbol, row, names, bar_ts)
+        stats, refusals = copy.deepcopy(self.stats), dict(self.refusal_reasons)
+        try:
+            # Forecast intent is durable before any simulated order can be submitted.
+            with self.db.transaction():
+                eligible = [n for n in names if not self.db.one(
+                    "SELECT 1 FROM candidates WHERE symbol=? AND timeframe=? AND ts=? AND strategy=? AND source='live' AND decision != 'préparé'",
+                    (symbol, self.timeframe, bar_ts, n))]
+                if not eligible:
+                    return
+                self._consider_impl(symbol, row, eligible, bar_ts, prepare_only=True)
+            with self.db.transaction():
+                if self.db.one("SELECT 1 FROM prospective_bars WHERE account_id=? AND symbol=? AND timeframe=? AND ts=?",
+                               (self.account_id, symbol, self.timeframe, bar_ts)):
+                    return
+                # Legacy candidate uniqueness is global: never repeat a previously journaled signal.
+                names = [n for n in names if not self.db.one(
+                    "SELECT 1 FROM candidates WHERE symbol=? AND timeframe=? AND ts=? AND strategy=? AND source='live' AND decision != 'préparé'",
+                    (symbol, self.timeframe, bar_ts, n))]
+                self._consider_impl(symbol, row, names, bar_ts)
+                self.db.execute("INSERT INTO prospective_bars VALUES(?,?,?,?,?)",
+                                (self.account_id, symbol, self.timeframe, bar_ts, self.name))
+        except BaseException:
+            self.stats, self.refusal_reasons = stats, refusals
+            raise
+
+    def _consider_impl(self, symbol: str, row, names: list[str], bar_ts: int, prepare_only=False) -> None:
         cfg = self.settings_fn()
         ai = cfg["ai"]
         fee, slip = self.cost_rate(symbol), self.slip  # frais + conversion : le coût réel de ce compte
@@ -307,6 +341,31 @@ class TradingAgent:
         on_trial = model is not None and not validated and self.mode == "training" and ai.get("exploration", True)
         for c in cands:
             st = c["st"]
+            if self.record and self.mode != "backtest":
+                self.db.execute(
+                    "INSERT OR IGNORE INTO candidates(symbol, timeframe, ts, strategy, source, entry, stop, target, horizon_bars, "
+                    "features, p_win, expected_r, model_version, decision, decision_reason, account_id) "
+                    "VALUES (?, ?, ?, ?, 'live', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (symbol, self.timeframe, bar_ts, c["name"], close, c["stop"], c["target"], st.horizon(self.timeframe),
+                     dumps({**{k: c["row"][k] for k in FEATURE_COLUMNS + ["cost_r"]}, "contexte": context, "policy_sha256": hashlib.sha256(dumps(cfg).encode()).hexdigest(), "threshold": thr, "prediction_recorded_at": self.clock(), "signal_available_ms": bar_ts + self.tf_ms}), c["p"], c["er"],
+                     model.version if model is not None else None, "préparé", "Décision en cours", self.account_id),
+                )
+            st = c["st"]
+            if prepare_only:
+                continue
+            if self.record and self.mode != "backtest":
+                saved = self.db.one("SELECT * FROM candidates WHERE symbol=? AND timeframe=? AND ts=? AND strategy=? AND source='live'",
+                                    (symbol, self.timeframe, bar_ts, c["name"]))
+                if saved["account_id"] != self.account_id or saved["model_version"] != (model.version if model is not None else None):
+                    raise ValueError("Modèle modifié après enregistrement de la prédiction")
+                saved_features = loads(saved["features"], {})
+                if (saved_features.get("policy_sha256") != hashlib.sha256(dumps(cfg).encode()).hexdigest()
+                        or saved_features.get("threshold") != thr
+                        or any(not ((saved_features.get(k) == c["row"][k]) or
+                                    ((saved_features.get(k) is None or not np.isfinite(saved_features[k])) and not np.isfinite(c["row"][k])))
+                               for k in FEATURE_COLUMNS + ["cost_r"])):
+                    raise ValueError("Paramètres ou données modifiés depuis la prédiction")
+                c["p"], c["er"] = saved["p_win"], saved["expected_r"]
             mode_used, risk_factor, decision, reason = None, 1.0, "refusé", ""
             if block:
                 reason = block
@@ -355,7 +414,7 @@ class TradingAgent:
                             model_version=model.version if model is not None and mode_used in ("model", "essai") else None,
                             horizon_bars=st.horizon(self.timeframe), timeframe=self.timeframe, reason=explanation,
                             data={"mode": mode_used, "risk_checks": rd.checks, "regime": regime, "atr_entry": a,
-                                  "min_order_bump": rd.bumped},
+                                  "min_order_bump": rd.bumped, "prediction_key": f"{self.timeframe}:{bar_ts}:{c['name']}"},
                         )
                         decision, reason, opened = "pris", explanation, True
                         self.stats["entries"] += 1
@@ -369,14 +428,8 @@ class TradingAgent:
                 continue
             msg = reason if decision == "pris" else f"Signal « {st.label} » sur {symbol} non suivi : {reason}."
             if self.record:
-                self.db.execute(
-                    "INSERT OR IGNORE INTO candidates(symbol, timeframe, ts, strategy, source, entry, stop, target, horizon_bars, "
-                    "features, p_win, expected_r, model_version, decision, decision_reason, account_id) "
-                    "VALUES (?, ?, ?, ?, 'live', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (symbol, self.timeframe, bar_ts, c["name"], close, c["stop"], c["target"], st.horizon(self.timeframe),
-                     dumps({**{k: c["row"][k] for k in FEATURE_COLUMNS + ["cost_r"]}, "contexte": context}), c["p"], c["er"],
-                     model.version if model is not None else None, decision, reason, self.account_id),
-                )
+                self.db.execute("UPDATE candidates SET decision=?,decision_reason=? WHERE symbol=? AND timeframe=? AND ts=? AND strategy=? AND source='live'",
+                                (decision, reason, symbol, self.timeframe, bar_ts, c["name"]))
             self._journal(symbol, decision, msg, {"strategy": c["name"], "p_win": c["p"], "expected_r": c["er"]})
 
     def _explain(self, symbol, c, row, thr, mode_used, rd) -> str:

@@ -397,6 +397,7 @@ def test_trial_model_trades_in_paper_only(db, paper, pm, prices, clock):
     assert pm.open_positions() == []
     assert "Aucun modèle validé" in db.one("SELECT decision_reason FROM candidates")["decision_reason"]
     db.execute("DELETE FROM candidates")
+    db.execute("DELETE FROM prospective_bars")  # independent trial scenario; replay suppression is tested separately
     settings["ai"]["exploration"] = True
     # en entraînement : il est mis à l'essai, avec une taille réduite de moitié
     agent = TradingAgent("ia", "training", db, pm, risk, lambda: settings, lambda: trial, timeframe="1h", clock=clock)
