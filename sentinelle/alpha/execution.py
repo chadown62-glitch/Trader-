@@ -78,8 +78,13 @@ class Outcome:
 
 
 def simulate_trade(b: Bars, ind: Indicators, i: int, plan: Plan, cost: CostModel,
-                   exit_signal: np.ndarray | None = None, *, horizon_end: int | None = None) -> Outcome:
-    """Issue du plan décidé à la clôture de ``i``. Ne lit les bougies ``> i`` que pour l'issue (étiquette)."""
+                   exit_signal: np.ndarray | None = None, *, horizon_end: int | None = None,
+                   entry_fill: float | None = None) -> Outcome:
+    """Issue du plan décidé à la clôture de ``i``. Ne lit les bougies ``> i`` que pour l'issue (étiquette).
+
+    ``entry_fill`` : prix d'entrée réellement observable après la décision (carnet horodaté), frais
+    non compris ; il remplace alors l'ouverture aggravée du demi-écart et du glissement modélisés.
+    """
     n = len(b) if horizon_end is None else min(len(b), horizon_end)
     decided = b.close_time(i)
     if i + 1 >= n:
@@ -89,7 +94,7 @@ def simulate_trade(b: Bars, ind: Indicators, i: int, plan: Plan, cost: CostModel
         return Outcome("invalid", decided)
     if not entry_possible(o, plan.stop_price):
         return Outcome("abandoned", decided, available_at=int(b.ts[i + 1]), exit_reason="ouverture déjà sous le stop", net_r=0.0, net_return=0.0)
-    fill = market_fill(o, "buy", cost.slip, cost.half_spread(b, i + 1))
+    fill = market_fill(o, "buy", cost.slip, cost.half_spread(b, i + 1)) if entry_fill is None else float(entry_fill)
     risk = fill - plan.stop_price
     if risk <= 0:
         return Outcome("abandoned", decided, available_at=int(b.ts[i + 1]), exit_reason="glissement au-delà du stop", net_r=0.0, net_return=0.0)
