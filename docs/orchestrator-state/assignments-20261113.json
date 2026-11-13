@@ -87,14 +87,26 @@
       ],
       "next_after_verified": "DecisionEvidenceV1, OutcomeEnvelopeV1, ObservationExportV1: time-stamped read-only exports of evidence and mature outcomes, with EUR30 paper ledgers and crash-safe provenance; blueprint issue #42",
       "next_requires_verified_current_pr": true,
-      "status": "AWAITING_CURRENT_DELIVERY",
+      "status": "NEEDS_CHANGES",
       "resume_branch": "work/mission-control-v1-resume",
       "resume_head_sha": "fbe8e63cabc3da3686c39237b33121bff91af8de",
       "recovery_report": "docs/validation/mission-control-resume.md",
-      "recovery_state": "LOCAL_CODE_UNPUBLISHED_ENV_UNAVAILABLE",
-      "recovery_note": "Handoff-only; latest changes not tested; 549 passed +1 skipped is an older tree. Never mark PR #39 delivered before the code is pushed and verified.",
+      "recovery_state": "RECONSTRUCTED_PR_DELIVERED",
+      "recovery_note": "PR46 reconstructs missing local artifacts; old 549-test assertion not reused. Independent review: 541 passed, 1 skipped plus 1 local-socket pass; two financial evidence defects reproduced. Await corrected final delivery, no automatic restart of manually launched #39.",
       "start_status": "RECOVERY_REQUEST_PUBLISHED_NOT_DISPATCHED",
-      "channel_status": "VERIFIED_SANDBOX_DEVELOPMENT_ROUTE"
+      "channel_status": "VERIFIED_SANDBOX_DEVELOPMENT_ROUTE",
+      "delivery_state": "PR_DELIVERED_REVIEWED_NEEDS_CHANGES",
+      "current_pr": 46,
+      "current_branch": "work/mission-control-v1",
+      "current_head_sha": "f272bef227602a6e33eea764a2d9f39ea7e36721",
+      "review": {
+        "review_id": 5898567496,
+        "url": "https://github.com/chadown62-glitch/Trader-/pull/46#pullrequestreview-5898567496",
+        "confirmed": true
+      },
+      "correction_cycle": 1,
+      "correction_request_state": "PUBLISHED_NOT_ACKNOWLEDGED",
+      "next_mission_blocked": true
     }
   },
   "integration": {
