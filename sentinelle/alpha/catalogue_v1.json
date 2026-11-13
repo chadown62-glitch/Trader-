@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "name": "alpha-factory-catalogue",
+  "version": "1.0.0",
+  "updated": "2026-11-13",
+  "policy": [
+    "Seules des règles générales publiées sont réimplémentées ; aucun texte, aucune donnée, aucun historique de trader n'est copié ni téléchargé.",
+    "Aucun contenu payant n'est extrait ; aucune liste de « meilleurs traders » n'est construite à partir de vidéos ou de publicités.",
+    "Un résultat déclaré (livre, interview, marketing) reste au niveau claimed_result : il ne sert JAMAIS d'étiquette de gain.",
+    "Le niveau d'une entrée ne monte qu'avec un audit archivé (empreintes SHA-256, auditeur, date) ; un champ verified ne suffit jamais."
+  ],
+  "levels": {
+    "claimed_result": "Résultat seulement déclaré par l'auteur ou un tiers ; aucune preuve d'exécution.",
+    "public_heuristic": "Idée générale de trading, du domaine public ; aucune performance attachée.",
+    "documented_method": "Règles publiées et reproductibles ; la performance publiée concerne d'autres marchés/périodes et n'est pas transférée.",
+    "timestamped_decision": "Décision d'un individu horodatée au moment où elle a été prise, preuve archivée.",
+    "verified_fill": "Exécution réelle de l'expert vérifiée (relevé de courtier audité, heure, prix, frais).",
+    "counterfactual": "Issue simulée par ce laboratoire (« ce qui se serait passé ») : jamais un gain réalisé."
+  },
+  "entries": [
+    {
+      "id": "tsmom-moskowitz-2012",
+      "title": "Time series momentum (momentum de série temporelle)",
+      "kind": "academic_paper",
+      "citation": "Moskowitz, T. J., Ooi, Y. H., Pedersen, L. H. (2012). Time series momentum. Journal of Financial Economics, 104(2), 228-250.",
+      "level": "documented_method",
+      "rights": "Idée de recherche publiée ; réimplémentation indépendante de la règle générale (tendance passée positive -> exposition).",
+      "used_by": ["trend"],
+      "limits": "Étudié sur contrats à terme 1985-2009, pas sur les cryptomonnaies ni sur bougies de 4 h ; aucun résultat transféré."
+    },
+    {
+      "id": "donchian-channel",
+      "title": "Cassure de canal de Donchian",
+      "kind": "public_method",
+      "citation": "Règle attribuée à Richard Donchian (années 1960), décrite dans de nombreux ouvrages d'analyse technique.",
+      "level": "documented_method",
+      "rights": "Méthode du domaine public.",
+      "used_by": ["breakout"],
+      "limits": "Aucune performance attachée ; paramètres (20 / 10 bougies) choisis avant tout test."
+    },
+    {
+      "id": "turtle-rules-faith-2007",
+      "title": "Règles des « Turtles » (système de cassure, sortie sur plus bas, stop en ATR)",
+      "kind": "book",
+      "citation": "Faith, C. (2007). Way of the Turtle. McGraw-Hill.",
+      "level": "documented_method",
+      "rights": "Règles décrites publiquement ; seule la structure (entrée sur cassure, sortie sur plus bas de 10, stop 2 ATR) est réimplémentée.",
+      "used_by": ["breakout"],
+      "limits": "Les performances des « Turtles » sont des résultats déclarés (claimed_result), non vérifiables ici et non utilisés."
+    },
+    {
+      "id": "turtle-performance-claims",
+      "title": "Performances attribuées aux « Turtles »",
+      "kind": "claim",
+      "citation": "Récits et ouvrages grand public sur l'expérience des Turtles (années 1980).",
+      "level": "claimed_result",
+      "rights": "Non utilisé.",
+      "used_by": [],
+      "limits": "Biais du survivant possible, pas de relevés d'exécution : interdit comme étiquette de gain."
+    },
+    {
+      "id": "wilder-1978",
+      "title": "ATR et RSI de Wilder",
+      "kind": "book",
+      "citation": "Wilder, J. W. (1978). New Concepts in Technical Trading Systems. Trend Research.",
+      "level": "documented_method",
+      "rights": "Formules d'indicateurs publiques, réimplémentées.",
+      "used_by": ["trend", "breakout", "pullback", "mean_reversion", "abstention"],
+      "limits": "Indicateurs seulement ; aucune stratégie rentable n'est sous-entendue."
+    },
+    {
+      "id": "connors-rsi2-2008",
+      "title": "Retour à la moyenne RSI(2) au-dessus de la moyenne 200",
+      "kind": "book",
+      "citation": "Connors, L., Alvarez, C. (2008). Short Term Trading Strategies That Work. TradingMarkets.",
+      "level": "documented_method",
+      "rights": "Structure de règle publique réimplémentée (RSI 2 bas, filtre de tendance, sortie au-dessus de la moyenne 5).",
+      "used_by": ["mean_reversion"],
+      "limits": "Publié pour des actions américaines ; le stop en ATR est un ajout de prudence de ce laboratoire."
+    },
+    {
+      "id": "pullback-in-trend",
+      "title": "Achat d'un repli dans une tendance haussière",
+      "kind": "heuristic",
+      "citation": "Heuristique courante de l'analyse technique (achat d'un repli vers une moyenne courte dans une tendance longue).",
+      "level": "public_heuristic",
+      "rights": "Domaine public.",
+      "used_by": ["pullback"],
+      "limits": "Aucune performance attachée."
+    },
+    {
+      "id": "amihud-2002-illiquidity",
+      "title": "Illiquidité et coût d'exécution",
+      "kind": "academic_paper",
+      "citation": "Amihud, Y. (2002). Illiquidity and stock returns: cross-section and time-series effects. Journal of Financial Markets, 5(1), 31-56.",
+      "level": "documented_method",
+      "rights": "Concept publié ; ici seulement l'idée qu'un marché mince coûte cher (écart, volume), mesurée sur nos propres données.",
+      "used_by": ["abstention"],
+      "limits": "Mesure d'illiquidité différente de celle de l'article ; sert à s'abstenir, jamais à prédire un gain."
+    },
+    {
+      "id": "fixed-fractional-risk",
+      "title": "Risque fixe par trade et résultats en multiples de R",
+      "kind": "heuristic",
+      "citation": "Pratique de gestion du risque largement décrite (risque fixe en pourcentage du capital, résultats exprimés en R).",
+      "level": "public_heuristic",
+      "rights": "Domaine public.",
+      "used_by": ["trend", "breakout", "pullback", "mean_reversion"],
+      "limits": "Taille simulée sur 30 € fictifs ; minimum de la plateforme et plafond de risque de 1 % appliqués."
+    },
+    {
+      "id": "marketing-clip-trader",
+      "title": "Vidéo « je fais x5 en un mois »",
+      "kind": "marketing",
+      "citation": "Exemple type, volontairement non nommé : contenu promotionnel sans relevé d'exécution.",
+      "level": "claimed_result",
+      "rights": "Non utilisé.",
+      "used_by": [],
+      "limits": "Sélection des gagnants, aucune preuve : refusé par la porte de preuve (test adversarial)."
+    }
+  ]
+}
