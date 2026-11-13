@@ -1,0 +1,48 @@
+{
+  "coordinator": "[TRADER-AI-COORDINATOR]",
+  "key": "PR44:4c9c5e9a7491d1aedc8b62a0cf8b0458c17881e6:triage",
+  "run_id": "github-b526e180-dfa8-11f1-8260-2c2fc9d363f6",
+  "repository": "chadown62-glitch/Trader-",
+  "delivery_id": "b526e180-dfa8-11f1-8260-2c2fc9d363f6",
+  "pr": 44,
+  "head": {
+    "branch": "automation/claude-github-dispatch-v1",
+    "sha": "4c9c5e9a7491d1aedc8b62a0cf8b0458c17881e6"
+  },
+  "base": {
+    "branch": "main",
+    "sha": "5fa6b3656fdd132080f76e716c08003659843db0"
+  },
+  "state": "WAITING",
+  "reason": "Preparation-only proposal, no final delivery declaration or mission #39/#41 ownership. automation/* branch is not attributed to Claude or Work from shared author.",
+  "evidence": {
+    "author": "chadown62-glitch",
+    "same_repository": true,
+    "draft": true,
+    "comments_read": 0,
+    "changed_files_read": [
+      ".github/workflows/trader-ai-claude-dispatch.yml",
+      "docs/coordination/agent-dispatch-setup.md"
+    ],
+    "check_runs": 0,
+    "commit_statuses": 0,
+    "combined_status": "pending (zero statuses; not an identified running test)",
+    "logs_read": 0,
+    "tests_rerun": 0,
+    "assignment_blob_sha": "d06f6b409b810c38530be178135d37bc5a8a1244",
+    "mission39_base_unchanged": true,
+    "mission41_base_unchanged": true,
+    "current_mission_delivery_pr_found": false
+  },
+  "review_performed": false,
+  "verified": false,
+  "actions": {
+    "public_comments": 0,
+    "missions_created": 0,
+    "dispatches": 0,
+    "workflow_activated": false,
+    "main_modified": false
+  },
+  "channels": "AWAITING_AGENT_CONNECTION (already known; no new diagnostic ACK)",
+  "next": "Await explicit final mission delivery; do not interrupt #39/#41 or infer dispatch readiness from this proposal."
+}
