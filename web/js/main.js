@@ -13,24 +13,26 @@ import Knowledge from './views/knowledge.js';
 import Performance from './views/performance.js';
 import Macro from './views/macro.js';
 import Apprentissage from './views/apprentissage.js';
+import Preparation from './views/preparation.js';
 
 const { createApp, ref, computed, onMounted, onBeforeUnmount, watch } = Vue;
 
 const NAV = [
   { id: 'dashboard', label: 'Tableau de bord', ico: '◫' },
-  { id: 'performance', label: 'Performances', short: 'Résultats', ico: '◔' },
+  { id: 'performance', label: 'Performances', short: 'Résultats', ico: '%' },
   { id: 'trade', label: 'Trader', ico: '↗' },
   { id: 'ai', label: 'IA', ico: '✦' },
   { id: 'history', label: 'Historique', ico: '☰' },
   { id: 'knowledge', label: 'Fiches cryptos', ico: '❖' },
   { id: 'apprentissage', label: 'Apprentissage', ico: '◉' },
   { id: 'macro', label: 'Contexte macro', short: 'Macro', ico: '◷' },
+  { id: 'preparation', label: 'Préparation', ico: '✓' },
   { id: 'news', label: 'Actualités', ico: '✉' },
-  { id: 'signals', label: 'Signaux', ico: '⌁' },
+  { id: 'signals', label: 'Signaux', ico: '≈' },
   { id: 'settings', label: 'Réglages', ico: '⚙' },
   { id: 'logs', label: 'Journal', ico: '≡' },
 ];
-const VIEWS = { dashboard: Dashboard, trade: Trade, ai: AI, history: History, news: News, signals: Signals, settings: Settings, logs: Logs, knowledge: Knowledge, performance: Performance, macro: Macro, apprentissage: Apprentissage };
+const VIEWS = { dashboard: Dashboard, trade: Trade, ai: AI, history: History, news: News, signals: Signals, settings: Settings, logs: Logs, knowledge: Knowledge, performance: Performance, macro: Macro, apprentissage: Apprentissage, preparation: Preparation };
 const LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#3b82f6" d="M32 4 8 14v16c0 15 10 26 24 30 14-4 24-15 24-30V14z"/><path fill="#fff" d="m20 36 8-10 7 7 9-12 4 3-13 16-7-7-5 6z"/></svg>`;
 
 const Login = {
@@ -65,7 +67,7 @@ const Login = {
   <div class="login">
     <form class="card" @submit.prevent="submit">
       <div class="brand"><span v-html="LOGO"></span><span>Sentinelle</span></div>
-      <p class="center muted small">Bot de trading crypto prudent — simulation par défaut</p>
+      <p class="center muted small">Bot de trading crypto prudent — simulation uniquement, aucun ordre réel possible</p>
       <template v-if="store.auth.setupRequired">
         <div class="note info" style="margin:12px 0">Premier lancement : choisissez le mot de passe qui protégera votre panel (10 caractères minimum).</div>
         <div v-if="!store.auth.setupAllowed" class="note warn" style="margin-bottom:12px">Pour des raisons de sécurité, le premier mot de passe doit être créé depuis l'ordinateur où tourne Sentinelle (adresse http://127.0.0.1).</div>
@@ -230,7 +232,7 @@ const App = {
     <main class="main"><component :is="view" :key="route" /></main>
     <nav class="bottom-nav">
       <a v-for="n in NAV.slice(0,4)" :key="n.id" :href="'#/' + n.id" :class="{active: route===n.id}" @click="more=false"><span class="ico">{{ n.ico }}</span>{{ n.short || n.label.split(' ')[0] }}</a>
-      <a href="javascript:void 0" :class="{active: more || NAV.slice(4).some(n => n.id === route)}" @click="more = !more"><span class="ico">⋯</span>Plus</a>
+      <a href="#" role="button" :aria-expanded="more" :class="{active: more || NAV.slice(4).some(n => n.id === route)}" @click.prevent="more = !more"><span class="ico">⋯</span>Plus</a>
     </nav>
     <div v-if="more" class="more-sheet" @click.self="more=false">
       <div class="card"><a v-for="n in NAV.slice(4)" :key="n.id" :href="'#/' + n.id" @click="more=false"><span class="ico">{{ n.ico }}</span> {{ n.label }}</a></div>

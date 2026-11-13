@@ -178,7 +178,7 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         if path.startswith("/api/"):
             if request.method not in ("GET", "HEAD", "OPTIONS") and request.headers.get(CSRF_HEADER) != "1":
                 return JSONResponse({"detail": "Requête refusée (protection CSRF)"}, status_code=403)
-            if path not in PUBLIC and not auth.valid(request.cookies.get(COOKIE)):
+            if path not in PUBLIC and not auth.valid(request.cookies.get(COOKIE), refresh=path != "/api/observation/preflight"):
                 return JSONResponse({"detail": "Connexion requise"}, status_code=401)
         response = await call_next(request)
         response.headers["X-Frame-Options"] = "DENY"
@@ -701,6 +701,13 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         if as_of is not None and (not math.isfinite(as_of) or as_of > time.time()):
             raise UserError("Date de contexte invalide")
         return await app.acall(macro_shadow.dashboard, as_of)
+
+    # Préparation de l'observation prospective : lecture seule (aucun réseau, aucune écriture, aucun démarrage).
+    @api.get("/api/observation/preflight")
+    async def observation_preflight():
+        from ..preflight import observation_preflight as run_preflight
+
+        return await app.acall(run_preflight, app)
 
     # -- temps réel --------------------------------------------------------------------------------
     @api.websocket("/api/ws")

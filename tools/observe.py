@@ -6,7 +6,7 @@ import math
 from pathlib import Path
 import sqlite3
 import time
-from urllib.parse import quote
+import tempfile
 
 import httpx
 
@@ -24,17 +24,24 @@ from tools.validation.archive import digest, encoded, immutable, STEP_MS
 def existing_installation(data,settings):
     path=Path(data)/'sentinelle.db'
     if not path.is_file():raise ValueError('Existing installation required; no wallet creation')
-    with sqlite3.connect('file:'+quote(str(path.resolve()),safe='/:')+'?mode=ro',uri=True) as db:
-        db.row_factory=sqlite3.Row
-        accounts=db.execute("SELECT * FROM accounts WHERE role='main' AND kind='paper' AND archived=0").fetchall()
-        if len(accounts)!=1 or (accounts[0]['quote'],accounts[0]['initial_balance'])!=('EUR',30):
-            raise ValueError('Existing single main EUR30 wallet required')
-        row=db.execute('SELECT data FROM settings WHERE id=1').fetchone()
-        if not row or json.loads(row[0])!=settings:raise ValueError('Existing settings differ from frozen protocol')
-        if db.execute('SELECT COUNT(*) FROM agents WHERE enabled=1').fetchone()[0]:
-            raise ValueError('Stop existing autonomous agents before supervised observation')
-        return dict(accounts[0])
+    from sentinelle.preflight import _read_only
+    with tempfile.TemporaryDirectory(prefix='sentinelle-preflight-') as scratch:
+        db=_read_only(path,Path(scratch))
+        try:
+            return _check_installation(db,settings)
+        finally:db.close()
 
+
+def _check_installation(db,settings):
+    db.row_factory=sqlite3.Row
+    accounts=db.execute("SELECT * FROM accounts WHERE role='main' AND kind='paper' AND archived=0").fetchall()
+    if len(accounts)!=1 or (accounts[0]['quote'],accounts[0]['initial_balance'])!=('EUR',30):
+        raise ValueError('Existing single main EUR30 wallet required')
+    row=db.execute('SELECT data FROM settings WHERE id=1').fetchone()
+    if not row or json.loads(row[0])!=settings:raise ValueError('Existing settings differ from frozen protocol')
+    if db.execute('SELECT COUNT(*) FROM agents WHERE enabled=1').fetchone()[0]:
+        raise ValueError('Stop existing autonomous agents before supervised observation')
+    return dict(accounts[0])
 
 def preflight(data,root,capture,*,now=None):
     now=time.time() if now is None else now
@@ -102,6 +109,7 @@ def step(data,root,capture,*,execute=False,clock=time.time,macro=None,macro_prot
             app.db.execute('INSERT OR IGNORE INTO observation_steps VALUES(?,?,?,?,?)',
                            (key,report['protocol_sha256'],report['capture_sha256'],'prepared',dumps(report)))
         observer=SupervisedObserver(app,root)
+        expire_intents(app,clock())
         btc=histories.get('BTC/EUR')
         for symbol,frame in sorted(histories.items()):
             # Process outstanding orders/stops only on a fresh captured L2 book.
@@ -123,6 +131,43 @@ def step(data,root,capture,*,execute=False,clock=time.time,macro=None,macro_prot
         return report
     finally:
         app.close()
+
+
+def protect(data,root,quotes,*,clock=time.time):
+    """Fresh public L2 maintenance only. Never calls an agent, predicts or creates an entry."""
+    check(root)
+    settings=json.loads((Path(root)/'settings.json').read_bytes())
+    existing_installation(data,settings)
+    now=clock()
+    if set(quotes['books'])!=set(settings['general']['watchlist']):raise ValueError('Incomplete quotes')
+    for raw in quotes['books'].values():
+        if not 0<=now-raw['timestamp']/1000<=30:raise ValueError('Stale or future protective quote')
+        BookSnapshot(raw['bids'],raw['asks'],raw['timestamp']/1000,'binance-rest-receipt')
+    source=CaptureSource(quotes,{},clock)
+    app=App(Path(data),source=source,start=False)
+    try:
+        app.hub.load_markets()
+        for symbol,raw in quotes['books'].items():
+            app.hub.prices[symbol]=(float(raw['bids'][0][0])+float(raw['asks'][0][0]))/2
+            app.hub.price_ts[symbol]=app.hub.price_source_ts[symbol]=raw['timestamp']/1000
+        broker=app.runtime(app.main_account()['id']).broker
+        expire_intents(app,now)
+        for symbol in sorted(quotes['books']):broker.process_book(symbol)
+        app._snapshot_equity()
+        return {'origin':quotes['origin'],'maintenance_only':True,'performance':app.performance()}
+    finally:app.close()
+
+
+def expire_intents(app,now):
+    """Preserve the forecast, finalize a missed entry as refused; never replay an old order."""
+    from sentinelle.config import timeframe_ms
+    with app.db.transaction():
+        for c in app.db.query("SELECT * FROM candidates WHERE source='live' AND decision='préparé' AND account_id=?",(app.main_account()['id'],)):
+            if (c['ts']+timeframe_ms(c['timeframe']))/1000>=now-180:continue
+            reason='Reprise : prédiction conservée, signal expiré, aucun ordre tardif'
+            app.db.update('candidates',c['id'],{'decision':'refusé','decision_reason':reason})
+            app.db.decision(c['account_id'],'prospective-frozen',c['symbol'],'refusé',reason,{'candidate_id':c['id']},ts=now)
+            app.bus.publish('decision',{'candidate_id':c['id'],'kind':'refusé','reason':reason})
 
 
 def main():
