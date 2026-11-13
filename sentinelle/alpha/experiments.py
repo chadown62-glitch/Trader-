@@ -145,7 +145,8 @@ def tournament(velocity_markets: list[dict], ablations: list[dict]) -> dict:
     """Classement sur la SÉLECTION, jugement du seul vainqueur sur l'ÉVALUATION."""
     out = []
     for vm in velocity_markets:
-        ab = next((a for a in ablations if (a["kind"], a["seed"]) == (vm["kind"], vm["seed"])), None)
+        # clé complète : deux intensités d'un même type de marché partagent la graine (bug corrigé en v1.1)
+        ab = next((a for a in ablations if (a["kind"], a["edge"], a["seed"]) == (vm["kind"], vm["edge"], vm["seed"])), None)
         cands = []
         for r in vm["runs"]:
             sel = r["_daily_selection"]

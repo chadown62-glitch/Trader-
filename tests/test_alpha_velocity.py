@@ -142,3 +142,22 @@ def test_doing_nothing_against_a_losing_reference_is_not_called_an_improvement()
     real = strict_verdict([0.001, 0.002, -0.1], [0.0005, 0.001, 0.002])
     assert real["verdict"].startswith("amélioration répliquée")
     assert strict_verdict([0.001, -0.1, -0.1], [0.1, 0.1, 0.1])["verdict"] == "non démontré"
+
+
+def test_tournament_never_mixes_markets_that_share_a_seed():
+    days = list(range(100, 140))
+    flat = {d: 0.0 for d in days}
+
+    def vm(edge):
+        return {"kind": "hidden_rule", "edge": edge, "seed": 1, "_baseline_daily": flat, "runs": [
+            {"learner": "a", "budget_label": "tout", "_daily_selection": flat, "_daily": flat, "financial": {"net_pnl_eur": 0.0}}]}
+
+    def ab(edge, pnl):
+        res = {n: {"net_pnl_eur": pnl, "_daily": {d: 0.01 for d in days}} for n in ("council_full", "vote")}
+        res.update({n + "@selection": {"_daily": {d: 0.01 if edge == 1.0 else -0.01 for d in days}} for n in ("council_full", "vote")})
+        return {"kind": "hidden_rule", "edge": edge, "seed": 1, "results": res}
+
+    t = tournament([vm(1.0), vm(0.5)], [ab(1.0, 30.0), ab(0.5, 13.0)])
+    by_edge = {m["edge"]: m for m in t["markets"]}
+    assert by_edge[1.0]["winner"] in ("council_full", "vote") and by_edge[1.0]["winner_evaluation_pnl_eur"] == 30.0
+    assert by_edge[0.5]["winner"] == "a|tout"  # le conseil du marché 0,5 perd en sélection : il ne gagne pas
