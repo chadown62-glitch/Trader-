@@ -20,11 +20,19 @@
       "test_run_ack": false
     },
     "GPT_Work": {
-      "status": "DEVELOPER_RUNTIME_CAPABILITY_CHECK_PENDING",
+      "status": "VERIFIED_SANDBOX_DEVELOPMENT_ROUTE",
       "ack_required": true,
       "test_comment_id": 6865420048,
-      "developer_run_ack": false,
-      "review_watcher_enabled": true
+      "developer_run_ack": true,
+      "review_watcher_enabled": true,
+      "capability_test_pr": 45,
+      "capability_test_sha": "2d82c19fb807645d4a0ee8d2317588e8511132d4",
+      "capability_test_run_id": "135e3071-1c8c-8325-95f7-c70f6892c58d",
+      "capability_test_comment_id": 6865476788,
+      "can_execute_python": true,
+      "can_create_draft_pr": true,
+      "full_research_mission_verified": false,
+      "do_not_duplicate_manually_started_issue": 39
     }
   },
   "max_correction_cycles": 2,
@@ -49,6 +57,8 @@
     "enabled_workflow": false,
     "real_trading_authorized": false,
     "automatic_main_merge_authorized": false,
-    "notes": "Only dispatch workflow and setup docs added to main with one-time authorization. Missing Anthropic OAuth secret + explicit repo variable. Work developer capability check is pending; dispatch requires ACK for both routes."
+    "notes": "Only dispatch workflow and setup docs added to main with one-time authorization. Missing Anthropic OAuth secret + explicit repo variable. Work developer capability check is pending; dispatch requires ACK for both routes.",
+    "work_smoke_pr": 45,
+    "work_smoke_result": "DEV_ROUTE_SMOKE_VERIFIED_ONLY"
   }
 }
