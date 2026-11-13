@@ -175,3 +175,63 @@ Le compte principal existant doit être EUR/30 € fictifs ; les anciens comptes
 Rapports à retourner : diagnostic JSON + transcript + éventuel échec navigateur + `status`, puis
 bilans `data/supervisor/daily/` du lancement autorisé. Ces fichiers peuvent contenir des chemins
 locaux ; aucune clé financière n'est requise ni chargée.
+
+## Pilot packet Mission Control #39 (prioritaire sur les anciennes commandes stop)
+
+**Préparé, non démarré. Windows/PowerShell NON TESTÉS dans cette livraison.**
+Lancer depuis un terminal PowerShell dans le dossier du projet, code revu et
+aucun autre agent actif. Le diagnostic ne réinitialise pas votre portefeuille.
+Prévoir Python 3.12, au moins 2 Go libres pour l'environnement et les tests,
+puis le budget d'archives configuré (3 Go maximum). Les exigences CPU/RAM
+exactes ne sont pas attestées sur votre PC ; surveiller l'essai borné.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\diagnostic_windows.ps1
+```
+
+Le script copie le code dans TEMP, installe ses dépendances dans un venv jetable,
+lit votre dossier data, teste un panel démo temporaire, l'arrête, exécute toute
+la suite avec JUnit dans rapports/. Il scelle le JSON seulement si diagnostic
+et tests sont réussis, sans skip. Un diagnostic `-SansTests` reste informatif,
+inutilisable pour autoriser le lancement. Les logs/rapports/JUnit restent sur
+le PC ; la clé de sceau locale `~/.sentinelle/diagnostic.key` n'est pas financière
+et ne doit pas être publiée.
+
+L'accord vérifie le même hôte, la version/binaire Python et les mêmes versions
+de dépendances : il faut exécuter le pilote dans un environnement correspondant.
+Si les versions diffèrent, le lancement est refusé : refaire le diagnostic avec
+les dépendances correspondantes, ne pas éditer le rapport pour contourner le refus.
+Le sceau n'est pas une attestation matérielle. Le rendu 1440/390 est à tester
+séparément sur ce PC avec `python tests/e2e/run.py` et Playwright/Chromium installé.
+Ne pas donner l'accord avant revue de ces preuves et des blocages Préparation.
+
+Conditions : code/modèle/protocoles/SHA vérifiés, portefeuille principal EUR30
+fictifs existant, aucun concurrent, UTC/skew <5s, >=1500 bougies closes par paire,
+clôture fraîche <180s, carnets <30s, chaque latence HTTP <=5s, période gelée
+ouverte, reprise/panne et arrêt testés. Un HTTP 200 seul ne suffit pas.
+
+Après validation PC et **autorisation utilisateur explicite distincte seulement** :
+
+```powershell
+python -m tools.supervise prepare --data data --output rapports\pilot-plan.json
+python -m tools.supervise approve --plan rapports\pilot-plan.json --windows-report rapports\diagnostic-REMPLACER.json --output rapports\pilot-approval.json --confirm "AUTORISER OBSERVATION PAPIER CONTINUE"
+python -m tools.supervise run --plan rapports\pilot-plan.json --approval rapports\pilot-approval.json --ticks 1 --max-seconds 120
+```
+
+`--max-seconds` est vérifié entre callbacks ; il ne tue pas une transaction
+synchrone. Par défaut un seul tick, aucun service ni tâche Windows installé.
+Le passage à `--continuous` nécessite l'autorisation distincte ; aucune commande
+continue n'a été exécutée ici. Prévoir arrêt de l'essai et revue du journal avant
+la décision de passer en continu. Consultation en lecture seule :
+
+```powershell
+python -m tools.supervise status --data data
+python -m tools.mission_control --data data --output rapports\evidence-NOUVELLE-DATE.json
+python -m tools.supervise stop --data data
+```
+
+L'arrêt dépose un STOP indépendant de l'intégrité du plan. Il sera lu au prochain
+tick (ou Ctrl+C interrompt l'attente). Il ne clôture pas les positions à prix
+périmé. Après arrêt, rétablir des prix récents et revoir le risque ; la machine
+éteinte n'offre aucune garantie de protection des positions fictives. Pour
+réarmer seulement, sans démarrer : `python -m tools.supervise resume --plan rapports\pilot-plan.json`. Un changement de plan/code/runtime invalide l'accord.

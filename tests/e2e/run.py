@@ -25,7 +25,7 @@ sys.path.insert(0, str(ROOT))
 
 from tools.diagnose_windows import _free_port, _start_panel, _stop_panel, _wait_health  # noqa: E402
 
-SCRIPTS = ["phase_h_check.js", "performance_check.js", "champion_check.js", "macro_check.js"]
+SCRIPTS = ["mission_control_check.js", "phase_h_check.js", "performance_check.js", "champion_check.js", "macro_check.js"]
 TIMEOUT = 300
 
 

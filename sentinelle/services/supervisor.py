@@ -24,6 +24,7 @@ CODE = (
     "tools/public_capture.py",
     "tools/prospective.py",
     "tools/diagnose_windows.py",
+    "tools/diagnostic_windows.ps1",
     "tools/collect_public.py",
     "tools/macro_shadow.py",
 )
@@ -32,7 +33,7 @@ CONFIRM = "AUTORISER OBSERVATION PAPIER CONTINUE"
 
 def code_hashes():
     paths = set(CODE)
-    for folder, pattern in (("sentinelle", "*.py"), ("tools/validation", "*.py"), ("web", "*.js"), ("web", "*.css")):
+    for folder, pattern in (("sentinelle", "*.py"), ("tools/validation", "*.py"), ("web", "*.js"), ("web", "*.css"), ("tests", "*.py"), ("tests/e2e", "*.js")):
         paths.update(p.relative_to(PROJECT).as_posix() for p in (PROJECT / folder).rglob(pattern))
     return {p: digest((PROJECT / p).read_bytes()) for p in sorted(paths)}
 
@@ -147,6 +148,8 @@ def approve(plan_path, diagnostic_path, output, confirmation):
         or Path(d.get("data_dir", "")).resolve() != Path(p["data"]).resolve()
     ):
         raise ValueError("Windows report does not validate this code and installation")
+    from .platform_validation import verify
+    verify(d)
     receipt = {
         "schema": 1,
         "plan_sha": digest(Path(plan_path).read_bytes()),
@@ -180,6 +183,8 @@ def authorize(plan_path, approval_path):
         or Path(d.get("data_dir", "")).resolve() != Path(p["data"]).resolve()
     ):
         raise ValueError("Launch report no longer applicable")
+    from .platform_validation import verify
+    verify(d)
     return p
 
 
@@ -255,7 +260,11 @@ class Supervisor:
         self.stop_event = threading.Event()
 
     def tick(self):
-        p, s, now = self.p, self.state, self.clock()
+        p, s = self.p, self.state
+        if (s.folder / "STOP").exists() or s.get("stop_requested", False) or self.stop_event.is_set():
+            s.set("status", "stopped")
+            return False
+        now = self.clock()
         if not math.isfinite(now):
             raise ValueError("Invalid UTC clock")
         previous = s.get("last_clock")
@@ -264,9 +273,6 @@ class Supervisor:
             raise ValueError("UTC clock moved backwards")
         s.set("last_clock", now)
         s.set("heartbeat", now)
-        if s.get("stop_requested", False) or self.stop_event.is_set():
-            s.set("status", "stopped")
-            return False
         if now >= p["end"]:
             s.set("status", "period_ended")
             return False
@@ -297,7 +303,7 @@ class Supervisor:
                     if manifest["end_ms"] != bucket:
                         raise ValueError("Capture belongs to another UTC close")
                     age = self.clock() - bucket / 1000
-                    if 3 <= age <= 180:
+                    if 3 <= age <= 180 and int(self.clock()*1000)//STEP_MS*STEP_MS == bucket:
                         report = self.backend.observe(Path(capture))
                         if not report.get("steps_complete"):
                             raise ValueError("Observation not executable: " + str(report.get("reasons")))
@@ -333,22 +339,40 @@ class Supervisor:
             s.event(self.clock(), "optional_macro_error", {"error": type(exc).__name__})
         return True
 
-    def run(self, *, max_ticks=1):
+    def run(self, *, max_ticks=1, max_seconds=None, locked=False):
         if max_ticks is not None and not 1 <= max_ticks <= 10000:
             raise ValueError("Invalid finite tick limit")
+        if max_seconds is not None and (not math.isfinite(max_seconds) or not 0 < max_seconds <= 86400):
+            raise ValueError("Invalid finite duration")
+        from contextlib import nullcontext
         count = 0
-        with instance_lock(self.state.folder):
+        started = time.monotonic()
+        def safe_stamp():
+            value = self.clock()
+            return value if math.isfinite(value) else time.time()
+        with nullcontext() if locked else instance_lock(self.state.folder):
             self.state.set("status", "starting")
             try:
                 while max_ticks is None or count < max_ticks:
+                    if max_seconds is not None and time.monotonic() - started >= max_seconds:
+                        break
+                    wall, cpu = time.monotonic(), time.process_time()
                     if not self.tick():
                         break
+                    self.state.event(self.clock(), "tick_measured", {"wall_seconds": time.monotonic()-wall, "cpu_seconds": time.process_time()-cpu})
                     count += 1
                     if max_ticks is None or count < max_ticks:
-                        self.stop_event.wait(self.p["poll_seconds"])
+                        remaining = self.p["poll_seconds"] if max_seconds is None else max(0, min(self.p["poll_seconds"], max_seconds-(time.monotonic()-started)))
+                        self.stop_event.wait(remaining)
+            except BaseException as exc:
+                self.state.set("status", "failed_closed")
+                self.state.set("failure", {"type": type(exc).__name__, "at": safe_stamp()})
+                raise
+            else:
+                if self.state.get("status") not in ("period_ended", "disk_limit"):
+                    self.state.set("status", "stopped")
             finally:
-                self.state.set("status", "stopped")
-                self.state.set("heartbeat", self.clock())
+                self.state.set("heartbeat", safe_stamp())
         return count
 
 

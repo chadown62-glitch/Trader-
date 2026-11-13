@@ -32,8 +32,11 @@ class BookSnapshot:
     asks: tuple
     timestamp: float
     source: str
+    identity: int | None = None
 
     def __post_init__(self):
+        if self.identity is not None and (isinstance(self.identity, bool) or not isinstance(self.identity, int) or self.identity <= 0):
+            raise LiquidityError("Invalid book identity")
         if not isinstance(self.timestamp, (int, float)) or isinstance(self.timestamp, bool) or not isfinite(self.timestamp):
             raise LiquidityError('Horodatage invalide')
         if not isinstance(self.source, str) or not self.source.strip():

@@ -173,3 +173,21 @@ def test_application_manual_orders_use_the_public_book_adapter(tmp_path):
         assert app.runtime(account).broker.balances() == before and app.ledger_check(account)["ok"]
     finally:
         app.close()
+
+
+def test_exchange_identity_preserves_consumed_depth_after_new_receipt_and_restart(tmp_path):
+    path=tmp_path/'book.db'
+    db,b,pm,t,books=wallet(path)
+    books[0]=BookSnapshot(((95,'.2'),),((100,'.07'),),t[0],'public-l2',42)
+    pos=pm.open('ABC/EUR',.2,origin='manual',entry_type='limit',limit_price=106,stop=80)
+    assert pm.get(pos['id'])['qty']==pytest.approx(.07)
+    n=db.scalar('SELECT COUNT(*) FROM fills');db.close()
+    db,b,pm,t,books=wallet(path)
+    t[0]+=1
+    books[0]=BookSnapshot(((95,'.2'),),((100,'.07'),),t[0],'public-l2',42)
+    assert b.process_book('ABC/EUR')==0
+    assert db.scalar('SELECT COUNT(*) FROM fills')==n
+    books[0]=BookSnapshot(((95,'.2'),),((100,'.07'),),t[0]+1,'public-l2',43)
+    t[0]+=1
+    assert b.process_book('ABC/EUR')==1
+    check_ledger(db,b);db.close()

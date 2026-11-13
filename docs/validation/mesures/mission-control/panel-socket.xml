@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="12.588" timestamp="2026-11-13T22:37:52.667316+01:00" hostname="d9053dac753d"><testcase classname="tests.test_diagnostic" name="test_real_panel_starts_answers_stops_and_restarts_in_a_temporary_folder" time="10.368" /></testsuite></testsuites>

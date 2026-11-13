@@ -109,3 +109,13 @@ Dossier de conception : [docs/CONCEPTION.md](docs/CONCEPTION.md).
 Graphiques : TradingView Lightweight Charts™ (Apache 2.0), Copyright © TradingView, Inc. — [tradingview.com](https://www.tradingview.com/).
 
 Superviseur #34 préparé, non démarré : [intégration et reprises](docs/validation/autonomous-supervisor.md), [validation PC et accord distinct](docs/WINDOWS.md#6-plan-de-lancement-reproductible--à-utiliser-après-revue-et-accord). Aucun service permanent lancé.
+
+
+## Mission Control — préparé, non démarré
+
+Observatoire authentifié en lecture seule, exports `sentinelle.evidence/v1`,
+grand livre EUR30 fictifs et comparaisons historiques séparées.
+[Audit, tests et limites](docs/validation/mission-control.md) ·
+[Procédure Windows et essai borné après accord distinct](docs/WINDOWS.md) ·
+[Contrat de fusion futur avec Claude](docs/contracts/mission-control-alpha-factory.md).
+Windows et rendu navigateur restent non validés ; aucun service permanent démarré.

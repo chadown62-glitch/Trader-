@@ -14,13 +14,14 @@ import uuid
 
 import httpx
 
-from sentinelle.services.supervisor import State, Supervisor, prepare, load_plan, approve, authorize, read_status
+from sentinelle.services.supervisor import State, Supervisor, prepare, load_plan, approve, authorize, read_status, instance_lock
 from tools.validation.archive import encoded, immutable
 
 
 class PublicBackend:
-    def __init__(self, plan_path, state):
+    def __init__(self, plan_path, state, approval_path=None):
         self.plan_path, self.state = Path(plan_path), state
+        self.approval_path = approval_path
         self.plan = load_plan(plan_path)
         self.client = httpx.Client()
         self.macro_index = 0
@@ -29,6 +30,8 @@ class PublicBackend:
         self.client.close()
 
     def validate(self):
+        if self.approval_path is not None:
+            authorize(self.plan_path, self.approval_path)
         if load_plan(self.plan_path) != self.plan:
             raise ValueError("Launch plan changed during supervision; review a new approval")
 
@@ -70,7 +73,7 @@ class PublicBackend:
             for symbol in m["markets"]:
                 book, stamp = c.get("depth", {"symbol": symbol.replace("/", ""), "limit": 20})
                 books[symbol] = {**book, "timestamp": stamp * 1000, "received_at": stamp, "source_event_time": None}
-            evidence = [dict(r) for r in c.db.execute("SELECT key,raw_path,sha,received,latency FROM requests WHERE sha IS NOT NULL")]
+            evidence = [dict(r) for r in c.db.execute("SELECT key,path,params,raw_path,sha,received,latency FROM requests WHERE sha IS NOT NULL")]
             if any(r["latency"] > 5 for r in evidence):
                 raise ValueError("Quote latency >5 seconds")
             quotes = {
@@ -81,6 +84,8 @@ class PublicBackend:
                 "http_evidence": evidence,
             }
             immutable(directory / "quotes.json", encoded(quotes))
+            from tools.public_capture import verify_books
+            verify_books(directory, books, evidence)
             result = protect(self.plan["data"], self.plan["root"], quotes)
             self.state.set(
                 "last_quotes",
@@ -133,6 +138,7 @@ def main(argv=None):
     p.add_argument("--confirm")
     p.add_argument("--ticks", type=int, default=1)
     p.add_argument("--continuous", action="store_true")
+    p.add_argument("--max-seconds", type=float, help="Finite wall budget, tested between synchronous callbacks")
     a = p.parse_args(argv)
     if a.action == "prepare":
         if not a.data or not a.output:
@@ -146,6 +152,13 @@ def main(argv=None):
         if not all((a.plan, a.windows_report, a.output)):
             p.error("Plan, Windows report and output required")
         result = approve(a.plan, a.windows_report, a.output, a.confirm)
+    elif a.action == "stop":
+        if not a.data:
+            p.error("--data required for emergency stop (independent of plan integrity)")
+        folder = a.data / "supervisor"
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "STOP").touch()
+        result = {"stop_requested": True}
     else:
         if not a.plan:
             p.error("--plan required")
@@ -154,32 +167,39 @@ def main(argv=None):
             if not a.approval:
                 p.error("Explicit bound approval required; no service has been started")
             plan = authorize(a.plan, a.approval)
-            state = State(Path(plan["data"]) / "supervisor")
-            state.set("plan", plan)
-            state.set("plan_file", str(a.plan.resolve()))
-            state.set("approval_file", str(a.approval.resolve()))
-            backend = PublicBackend(a.plan, state)
-            supervisor = Supervisor(plan, state, backend)
-
-            def stop(*_):
-                supervisor.stop_event.set()
-
-            signal.signal(signal.SIGINT, stop)
-            if hasattr(signal, "SIGTERM"):
-                signal.signal(signal.SIGTERM, stop)
-            try:
-                ticks = supervisor.run(max_ticks=None if a.continuous else a.ticks)
-                result = {"ticks": ticks, "status": "stopped", "permanent_service_installed": False}
-            finally:
-                backend.close()
-                state.close()
+            with instance_lock(Path(plan["data"]) / "supervisor"):
+                state = State(Path(plan["data"]) / "supervisor")
+                state.set("plan", plan)
+                state.set("plan_file", str(a.plan.resolve()))
+                state.set("approval_file", str(a.approval.resolve()))
+                backend = None
+                try:
+                    backend = PublicBackend(a.plan, state, a.approval)
+                    supervisor = Supervisor(plan, state, backend)
+                    def stop(*_):
+                        supervisor.stop_event.set()
+                    signal.signal(signal.SIGINT, stop)
+                    if hasattr(signal, "SIGTERM"):
+                        signal.signal(signal.SIGTERM, stop)
+                    ticks = supervisor.run(max_ticks=None if a.continuous else a.ticks, max_seconds=a.max_seconds, locked=True)
+                    result = {"ticks": ticks, "status": state.get("status"), "permanent_service_installed": False}
+                except BaseException as exc:
+                    state.set("status", "failed_closed")
+                    state.set("failure", {"type": type(exc).__name__, "at": time.time()})
+                    raise
+                finally:
+                    if backend is not None:
+                        backend.close()
+                    state.close()
         else:
-            state = State(Path(plan["data"]) / "supervisor")
-            try:
-                state.set("stop_requested", a.action == "stop")
-                result = {"stop_requested": a.action == "stop", "resume_starts_nothing": True}
-            finally:
-                state.close()
+            with instance_lock(Path(plan["data"]) / "supervisor"):
+                state = State(Path(plan["data"]) / "supervisor")
+                try:
+                    (state.folder / "STOP").unlink(missing_ok=True)
+                    state.set("stop_requested", False)
+                    result = {"stop_requested": a.action == "stop", "resume_starts_nothing": True}
+                finally:
+                    state.close()
     print(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False))
     return 0
 

@@ -108,6 +108,12 @@ def step(data,root,capture,*,execute=False,clock=time.time,macro=None,macro_prot
                 raise ValueError('Conflicting capture or protocol for reserved observation')
             app.db.execute('INSERT OR IGNORE INTO observation_steps VALUES(?,?,?,?,?)',
                            (key,report['protocol_sha256'],report['capture_sha256'],'prepared',dumps(report)))
+        app.db.execute('CREATE TABLE IF NOT EXISTS observation_provenance(account_id INTEGER,bar_close_ms INTEGER,origin TEXT,capture_sha TEXT,protocol_sha TEXT,available_at REAL,recorded_at REAL,model_sha TEXT,settings_sha TEXT,PRIMARY KEY(account_id,bar_close_ms))')
+        app.db.execute("CREATE TRIGGER IF NOT EXISTS immutable_observation_provenance BEFORE UPDATE ON observation_provenance BEGIN SELECT RAISE(ABORT,'immutable provenance'); END")
+        app.db.execute("CREATE TRIGGER IF NOT EXISTS retain_observation_provenance BEFORE DELETE ON observation_provenance BEGIN SELECT RAISE(ABORT,'immutable provenance'); END")
+        app.db.execute('INSERT OR IGNORE INTO observation_provenance VALUES(?,?,?,?,?,?,?,?,?)',
+                       (report['account_id'], manifest['end_ms'], manifest['origin'], report['capture_sha256'], report['protocol_sha256'],
+                        manifest['created_at'], clock(), check(root)['model_sha256'], check(root)['settings_sha256']))
         observer=SupervisedObserver(app,root)
         expire_intents(app,clock())
         btc=histories.get('BTC/EUR')
