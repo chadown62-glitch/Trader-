@@ -138,7 +138,7 @@ def test_doing_nothing_against_a_losing_reference_is_not_called_an_improvement()
 
     cash = strict_verdict([0.001, 0.002, 0.001], [None, None, None])  # bat la référence perdante, ne gagne rien
     assert cash["verdict_preregistered"].startswith("amélioration")
-    assert cash["verdict"] == "pertes réduites face à la référence ; gain absolu non démontré"
+    assert cash["verdict"] == "avantage relatif seulement ; gain absolu non démontré sur les mêmes marchés"
     real = strict_verdict([0.001, 0.002, -0.1], [0.0005, 0.001, 0.002])
     assert real["verdict"].startswith("amélioration répliquée")
     assert strict_verdict([0.001, -0.1, -0.1], [0.1, 0.1, 0.1])["verdict"] == "non démontré"

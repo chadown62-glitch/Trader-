@@ -237,8 +237,9 @@ def summarize(markets: list[dict], cfg: ChallengeConfig) -> dict:
                 "mean_ece": _mean([p.get("ece") for p in pred]),
                 "cpu_s": float(np.mean([r["cpu_s"] for r in rows])), "peak_mb": float(mb),
                 "delta_eur_per_100_obs": float(np.mean(delta) / obs * 100),
-                "delta_eur_per_cpu_minute": float(np.mean(delta) / cpu_min) if cpu_min > 0 else None,
-                "delta_eur_per_mb": float(np.mean(delta) / mb) if mb > 0 else None,
+                # sous 6 ms de calcul (références sans apprentissage), un rapport par minute CPU n'a pas de sens
+                "delta_eur_per_cpu_minute": float(np.mean(delta) / cpu_min) if cpu_min > 1e-4 else None,
+                "delta_eur_per_mb": float(np.mean(delta) / mb) if mb > 0.05 else None,
                 **strict_verdict(lows, abs_lows),
             }
         out[fam] = table
@@ -258,7 +259,7 @@ def strict_verdict(relative_lows: list, absolute_lows: list) -> dict:
     if strict["verdict"].startswith("amélioration"):
         verdict = "amélioration répliquée hors échantillon (gain absolu et relatif)"
     elif pre["verdict"].startswith("amélioration"):
-        verdict = "pertes réduites face à la référence ; gain absolu non démontré"
+        verdict = "avantage relatif seulement ; gain absolu non démontré sur les mêmes marchés"
     else:
         verdict = "non démontré"
     return {**pre, "verdict_preregistered": pre["verdict"], "positive_absolute_and_relative": strict["positive_lower_bounds"],
