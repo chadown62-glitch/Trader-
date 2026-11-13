@@ -82,7 +82,7 @@ def markdown(summary: dict, *, budgets=("50", "tout")) -> str:
            f"confiance par intervalle {_fmt(summary['confidence_per_interval'] * 100, 2, False)} % · durée {summary.get('duration_s')} s", ""]
     for fam, table in summary["velocity"].items():
         out += [f"#### {fam}", "", "| Concurrent | Budget | P&L net moyen (€) | Écart vs toutes les entrées (€) | Trades | Baisse max. | "
-                "Brier vs taux enseignant | AUC | CPU (s) | Mo | Écart €/100 obs. | Réplications > 0 | Verdict |",
+                "Brier vs taux enseignant | AUC (réf. enseignant) | CPU (s) | Mo | Écart €/100 obs. | Réplications > 0 | Verdict |",
                 "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
         for row in table.values():
             if row["budget"] not in budgets and row["learner"] not in ("take_all",):
@@ -91,7 +91,7 @@ def markdown(summary: dict, *, budgets=("50", "tout")) -> str:
                 continue
             out.append(f"| {row['learner']} | {row['budget']} | {_fmt(row['mean_net_pnl_eur'])} | {_fmt(row['mean_delta_vs_take_all_eur'])} | "
                        f"{_fmt(row['mean_trades'], 1, False)} | {_fmt(row['mean_max_drawdown'] * 100, 1, False)} % | "
-                       f"{_fmt(row['mean_brier_skill'], 3)} | {_fmt(row['mean_auc'], 3, False)} | {_fmt(row['cpu_s'], 2, False)} | "
+                       f"{_fmt(row['mean_brier_skill'], 3)} | {_fmt(row['mean_auc'], 3, False)} ({_fmt(row.get('mean_auc_teacher_rate'), 3, False)}) | {_fmt(row['cpu_s'], 2, False)} | "
                        f"{_fmt(row['peak_mb'], 1, False)} | {_fmt(row['delta_eur_per_100_obs'])} | "
                        f"{row['positive_lower_bounds']}/{row['replications']} | {row['verdict']} |")
         out.append("")

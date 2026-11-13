@@ -5,6 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from sentinelle.alpha.bars import indicators
@@ -211,3 +212,11 @@ def test_ledger_refuses_hindsight_and_detects_tampering(tmp_path):
     (tmp_path / "l.jsonl").write_text("\n".join([lines[0].replace("ENTER", "ABSTAIN"), lines[1]]) + "\n")
     with pytest.raises(LedgerError):
         ShadowLedger(tmp_path / "l.jsonl")
+
+
+def test_vectorized_entry_exit_estimates_equal_row_by_row_estimates():
+    council = build_council(P["train"], P["calibration"], COST, RULES, eval_situations=EV)
+    ee = council.entry_exit
+    for k in [k for k in range(len(EV)) if not EV.vetoed[k]][:15]:
+        one = EV.take(np.isin(np.arange(len(EV)), [k]))
+        assert abs(float(ee.model.proba(one)[0]) - float(ee._p[k])) < 1e-12  # arrondi flottant lot / ligne seulement

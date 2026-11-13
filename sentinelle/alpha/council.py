@@ -120,6 +120,9 @@ class EntryExitAgent(Agent):
                  situations_lookup: Callable[[str, int, str], int | None] | None = None, eval_situations: Situations | None = None):
         self.model, self.payoffs, self.rates, self.exits = model, payoffs, rates, exits
         self.lookup, self.s = situations_lookup, eval_situations
+        # Pré-calcul vectorisé : égal au calcul ligne par ligne à l'arrondi flottant près (écart mesuré < 1e-15)
+        self._p = model.proba(eval_situations) if (model is not None and eval_situations is not None and len(eval_situations)) else None
+        self._climate = climate(eval_situations) if (eval_situations is not None and len(eval_situations)) else None
 
     def propose(self, ctx):
         out = []
@@ -128,8 +131,7 @@ class EntryExitAgent(Agent):
         for c in ctx.candidates:
             k = self.lookup(ctx.symbol, ctx.i, c.teacher) if self.lookup else None
             if self.model is not None and k is not None:
-                sub = self.s.take(np.isin(np.arange(len(self.s)), [k]))
-                p = float(self.model.proba(sub)[0])
+                p = float(self._p[k])
                 src = "modèle « mixte » calibré sur la fenêtre de calibration"
             else:
                 p, src = self.rates.get(c.teacher), "taux de gain historique de l'enseignant (non conditionnel)"
@@ -137,7 +139,7 @@ class EntryExitAgent(Agent):
             ev = None if p is None else p * w + (1 - p) * lo
             variant = "teacher"
             if self.exits is not None and k is not None:
-                variant = self.exits.choice.get((c.teacher, int(climate(self.s.take(np.isin(np.arange(len(self.s)), [k])))[0])), "teacher")
+                variant = self.exits.choice.get((c.teacher, int(self._climate[k])), "teacher")
             plan = replace(c.plan, exit_variant=variant)
             why_exit = teacher(c.teacher).invalidation() if variant == "teacher" else {
                 "tight": "stop suiveur serré à 1,5 ATR (sorties plus rapides apprises dans ce climat)",

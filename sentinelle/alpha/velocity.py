@@ -119,6 +119,8 @@ def run_learner(learner: Learner, train: Situations, cal: Situations, sel: Situa
         b_ref = brier(y[m], ref)
         pred["brier_teacher_rate"] = b_ref
         pred["brier_skill_vs_teacher_rate"] = (1 - pred["brier"] / b_ref) if b_ref else None
+        from .stats import auc
+        pred["auc_teacher_rate"] = auc(y[m], ref)  # ce qu'obtient la seule identité de l'enseignant
     return {"cpu_s": cpu, "peak_mb": peak / 2**20, "predictive": pred, "params": learner.describe()}, enter, variant
 
 
@@ -228,6 +230,7 @@ def summarize(markets: list[dict], cfg: ChallengeConfig) -> dict:
                 "mean_max_drawdown": float(np.mean([r["financial"]["max_drawdown"] for r in rows])),
                 "mean_brier_skill": _mean([p.get("brier_skill_vs_teacher_rate") for p in pred]),
                 "mean_auc": _mean([p.get("auc") for p in pred]),
+                "mean_auc_teacher_rate": _mean([p.get("auc_teacher_rate") for p in pred]),
                 "mean_logloss": _mean([p.get("logloss") for p in pred]),
                 "mean_ece": _mean([p.get("ece") for p in pred]),
                 "cpu_s": float(np.mean([r["cpu_s"] for r in rows])), "peak_mb": float(mb),
