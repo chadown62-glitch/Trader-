@@ -54,11 +54,17 @@ def run(cfg: ChallengeConfig, output: Path, *, extra=None, label="synthétique")
     output.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     report = run_challenge(cfg, output=output, extra_markets=extra)  # préenregistrement écrit en premier
+    # séries journalières brutes : permettent de rejouer ablations et tournoi sans réapprendre
+    _dump(output / "markets_raw.json", [{"kind": m["kind"], "edge": m["edge"], "seed": m["seed"],
+                                         "baseline_daily": m["_baseline_daily"],
+                                         "runs": [{"learner": r["learner"], "budget_label": r["budget_label"],
+                                                   "daily": r["_daily"], "daily_selection": r["_daily_selection"]}
+                                                  for r in m["runs"]]} for m in report["_markets_raw"]])
     ablations = []
     for m in report["_markets_raw"]:
         universe = dict(extra or []).get(m["kind"]) if m["seed"] == -1 else None
         ablations.append(council_ablation(m["kind"], m["edge"], m["seed"], cfg, universe=universe,
-                                          ledger_path=output / f"ledger-{m['kind']}-{m['seed']}.jsonl",
+                                          ledger_path=output / f"ledger-{m['kind']}-{m['edge']}-{m['seed']}.jsonl",
                                           confidence=report["confidence_per_interval"]))
     ab_summary = summarize_ablation(ablations)
     tour = tournament(report["_markets_raw"], ablations)

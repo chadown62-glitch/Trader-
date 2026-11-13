@@ -53,3 +53,10 @@ def test_official_configuration_uses_seeds_never_run_during_development():
     assert set(alpha_factory.OFFICIAL.seeds).isdisjoint({1, 2, 3, 4, 5, 7, 9, 11, 21, 41, 42, 43, 101, 202})
     assert ("noise", 0.0) in alpha_factory.OFFICIAL.markets  # témoin négatif
     assert any(k == "hidden_rule" for k, _ in alpha_factory.OFFICIAL.markets)  # témoin positif
+
+
+def test_ledger_names_cannot_collide_between_market_strengths():
+    import inspect
+
+    src = inspect.getsource(alpha_factory.run)
+    assert "{m['kind']}-{m['edge']}-{m['seed']}" in src  # deux intensités d'un même marché : deux registres

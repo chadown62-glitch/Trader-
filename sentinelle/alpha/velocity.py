@@ -167,6 +167,7 @@ def preregister(cfg: ChallengeConfig, output: Path | None, learners: list[str]) 
             "learners": learners, "trials_per_market": trials, "registered_at": time.time(),
             "primary_comparison": "rendement quotidien apparié vs take_all, fenêtre d'évaluation, mode figé",
             "decision_rule": "borne basse > 0 (Bonferroni sur les essais) sur >= 2/3 des marchés indépendants d'une famille",
+            "decision_rule_v1_1": "règle stricte : en plus, borne basse du rendement quotidien ABSOLU > 0 sur les mêmes marchés",
             "can_trade": CAN_TRADE}
     if output is not None:
         output.mkdir(parents=True, exist_ok=True)
@@ -217,6 +218,7 @@ def summarize(markets: list[dict], cfg: ChallengeConfig) -> dict:
             rows = [r for m in ms for r in m["runs"] if r["learner"] == learner and r["budget_label"] == budget]
             base = [m["baseline"]["net_pnl_eur"] for m in ms for r in m["runs"] if r["learner"] == learner and r["budget_label"] == budget]
             lows = [r["vs_take_all"]["ci_low"] for r in rows]
+            abs_lows = [r["absolute"]["ci_low"] for r in rows]
             pred = [r["predictive"] for r in rows if r["predictive"]]
             delta = [r["financial"]["net_pnl_eur"] - b for r, b in zip(rows, base)]
             cpu_min = np.mean([r["cpu_s"] for r in rows]) / 60
@@ -237,10 +239,30 @@ def summarize(markets: list[dict], cfg: ChallengeConfig) -> dict:
                 "delta_eur_per_100_obs": float(np.mean(delta) / obs * 100),
                 "delta_eur_per_cpu_minute": float(np.mean(delta) / cpu_min) if cpu_min > 0 else None,
                 "delta_eur_per_mb": float(np.mean(delta) / mb) if mb > 0 else None,
-                **replication_verdict(lows),
+                **strict_verdict(lows, abs_lows),
             }
         out[fam] = table
     return out
+
+
+def strict_verdict(relative_lows: list, absolute_lows: list) -> dict:
+    """Verdict strict (v1.1) : battre la référence ET gagner en absolu, sur >= 2/3 des réplications.
+
+    La règle préenregistrée (``verdict_preregistered``) ne regardait que l'écart à la référence :
+    sur un marché où toutes les entrées perdent, « ne rien faire » passait pour une amélioration.
+    La règle stricte ne peut que retirer des verdicts positifs ; les deux sont publiés.
+    """
+    pre = replication_verdict(relative_lows)
+    both = [a if (a is not None and b is not None and a > 0 and b > 0) else None for a, b in zip(relative_lows, absolute_lows)]
+    strict = replication_verdict(both)
+    if strict["verdict"].startswith("amélioration"):
+        verdict = "amélioration répliquée hors échantillon (gain absolu et relatif)"
+    elif pre["verdict"].startswith("amélioration"):
+        verdict = "pertes réduites face à la référence ; gain absolu non démontré"
+    else:
+        verdict = "non démontré"
+    return {**pre, "verdict_preregistered": pre["verdict"], "positive_absolute_and_relative": strict["positive_lower_bounds"],
+            "verdict": verdict}
 
 
 def _bud(label: str) -> float:

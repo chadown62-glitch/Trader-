@@ -131,3 +131,14 @@ def test_default_competitors_cover_simple_project_and_new_methods():
     names = {lr.name for lr in default_learners()}
     assert {"cash", "take_all", "project_mixte", "error_replay", "regime_router", "exit_learner", "router_with_exits"} <= names
     assert {f"teacher:{t}" for t in ("trend", "breakout", "pullback", "mean_reversion")} <= names
+
+
+def test_doing_nothing_against_a_losing_reference_is_not_called_an_improvement():
+    from sentinelle.alpha.velocity import strict_verdict
+
+    cash = strict_verdict([0.001, 0.002, 0.001], [None, None, None])  # bat la référence perdante, ne gagne rien
+    assert cash["verdict_preregistered"].startswith("amélioration")
+    assert cash["verdict"] == "pertes réduites face à la référence ; gain absolu non démontré"
+    real = strict_verdict([0.001, 0.002, -0.1], [0.0005, 0.001, 0.002])
+    assert real["verdict"].startswith("amélioration répliquée")
+    assert strict_verdict([0.001, -0.1, -0.1], [0.1, 0.1, 0.1])["verdict"] == "non démontré"

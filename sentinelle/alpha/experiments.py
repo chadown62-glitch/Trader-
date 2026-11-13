@@ -162,14 +162,18 @@ def tournament(velocity_markets: list[dict], ablations: list[dict]) -> dict:
         sel_means = [c["selection"] for c in cands]
         rank_corr = _spearman(sel_means, ev_means)
         paired = paired_daily_interval(win["_eval_daily"], vm["_baseline_daily"])
+        absolute = paired_daily_interval(win["_eval_daily"], {d: 0.0 for d in win["_eval_daily"]})
         out.append({"kind": vm["kind"], "edge": vm["edge"], "seed": vm["seed"], "candidates": len(cands), "winner": win["name"],
                     "winner_selection_mean_daily": win["selection"], "winner_evaluation_mean_daily": ev_means[0],
                     "winner_curse": win["selection"] - ev_means[0], "winner_evaluation_pnl_eur": win["evaluation_pnl"],
-                    "winner_vs_take_all": paired, "selection_vs_evaluation_rank_correlation": rank_corr})
+                    "winner_vs_take_all": paired, "winner_absolute": absolute,
+                    "selection_vs_evaluation_rank_correlation": rank_corr})
     fams: dict[str, list[dict]] = {}
     for t in out:
         fams.setdefault(f"{t['kind']}@{t['edge']}", []).append(t)
-    verdicts = {f: replication_verdict([t["winner_vs_take_all"]["ci_low"] for t in ts]) for f, ts in fams.items()}
+    from .velocity import strict_verdict
+    verdicts = {f: strict_verdict([t["winner_vs_take_all"]["ci_low"] for t in ts], [t["winner_absolute"]["ci_low"] for t in ts])
+                for f, ts in fams.items()}
     return {"markets": out, "verdicts": verdicts}
 
 
