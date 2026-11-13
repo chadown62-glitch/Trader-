@@ -1,0 +1,37 @@
+{
+  "schema": "trader-ai-orchestrator/v1",
+  "enabled": true,
+  "allowed_pr_authors": [
+    "chadown62-glitch"
+  ],
+  "roadmaps": [
+    36,
+    42,
+    43
+  ],
+  "agent_channels": {
+    "Claude": {
+      "status": "AWAITING_AGENT_CONNECTION",
+      "ack_required": true
+    },
+    "GPT_Work": {
+      "status": "AWAITING_AGENT_CONNECTION",
+      "ack_required": true
+    }
+  },
+  "max_correction_cycles": 2,
+  "max_active_per_agent": 1,
+  "baseline_known_heads": {
+    "35": "2078aa671bb0b87f9773de462686c41da0a30fb3",
+    "40": "529f4c5e7de1f948af4125d3801b796229e025b7"
+  },
+  "baseline_note": "Known HEADs are not review approvals. Drafts require explicit delivery evidence; do not interrupt ongoing agents.",
+  "safety": {
+    "paper_only": true,
+    "initial_eur": 30,
+    "main_writes": false,
+    "frozen_protocol_changes": false,
+    "automatic_promotion": false,
+    "permanent_service_launch": false
+  }
+}
