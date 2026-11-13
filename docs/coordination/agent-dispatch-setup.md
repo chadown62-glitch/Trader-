@@ -4,13 +4,13 @@
 
 The ChatGPT coordinator already watches GitHub with the two existing tasks: **Coordinateur TRADER AI** (hourly) and **Livraisons TRADER AI** (PR events). That does not start Claude Code or a GPT Work development run. A GitHub issue, a comment, a scheduled watch, and a successful GitHub webhook are not execution acknowledgements.
 
-This branch proposes the **Claude Code GitHub Action** in `.github/workflows/trader-ai-claude-dispatch.yml`. A draft PR is not an active workflow. GitHub will only use the workflow for `issue_comment` events after a human-reviewed merge to the repo's **default branch**. No modification to `main` has been authorized. The existing user-launched Claude session is distinct from a future GitHub Action execution.
+This branch proposes the **Claude Code GitHub Action** in `.github/workflows/trader-ai-claude-dispatch.yml`. A draft PR is not an active workflow. GitHub will only use the workflow for `issue_comment` events after a human-reviewed merge to the repo's **default branch**. The owner has now explicitly authorized the one-time Claude/Work integration setup, including review of the workflow for activation. The workflow is **fail-closed** until the repository variable `TRADER_AI_CLAUDE_DISPATCH_ENABLED` equals `true`. No credential has been installed or verified; deployment of this config is not the launch of any developer session. The existing user-launched Claude session is distinct from a future GitHub Action execution.
 
 ## One-time connection gate — requires repository owner's authorization
 
 1. Owner reviews the draft PR, the GitHub Action permissions, price/usage implications, and the official setup documentation: https://github.com/anthropics/claude-code-action/blob/main/docs/setup.md .
 2. If approved, install the [Claude GitHub App](https://github.com/apps/claude) restricted to this repository. Configure **`CLAUDE_CODE_OAUTH_TOKEN`** in repo Actions Secrets from Claude Code setup-token according to Anthropic's official directions. Never paste the token in an issue, PR, chat, log, source file or prompt. This is a different authentication path from the user opening an existing Claude chat.
-3. The owner explicitly approves merging only the workflow PR into `main`. Without that approval, stay blocked.
+3. The owner authorized setup in the conversation on 13 November 2026, but the workflow must be safety-reviewed before the one-time merge. Do not enable the dispatch variable until GitHub App, credential, and non-code smoke-test are ready.
 4. Verify a first **no-code** dispatch event on a throwaway `[CLAUDE]` issue: one owner-authored comment containing `[TRADER-AI-DISPATCH:CLAUDE]`. Require a real GitHub workflow run id, successful auth and safe diagnostic response; confirm the run has no code changes. Check quotas and billing.
 5. Independently test a single small paper-only test-only task that creates a new branch and draft PR on a non-main base, with the coordinator reviewing exact HEAD, test results, changed-file ownership and idempotence. Only then mark `agent_channels.Claude.status = VERIFIED`.
 
@@ -20,12 +20,12 @@ The coordinator must check before adding the trigger comment:
 - A mission from the owner (e.g. `[CLAUDE] ...`) is final, reviewed, authorized and assigned to Claude; source HEAD and base ref match; the previous mission has a verified PR and no active Claude job.
 - The existing claims/lock on `coordination/trader-ai-orchestrator` are acquired and stable; claim once with `repo + issue + base SHA + mission fingerprint` before sending. Replays of the same mission are forbidden.
 - No *pending* GitHub Action run for the same agent and no unacknowledged dispatch; prevent comment loops.
-- The coordinator comment includes `[TRADER-AI-DISPATCH:CLAUDE]` and the exact task ID, base branch, commit SHA, allowed files, and safety requirements; **only after** the channel has passed both smoke tests.
+- The repository variable `TRADER_AI_CLAUDE_DISPATCH_ENABLED` must stay absent or `false` until **both** smoke tests are planned and the developer route is explicitly unblocked. Once the owner has configured authentication, enable only for a read-only smoke test first. The coordinator comment includes `[TRADER-AI-DISPATCH:CLAUDE]` and the exact task ID, base branch, commit SHA, allowed files, and safety requirements; **only after** the channel has passed both smoke tests.
 - Read actual GitHub workflow run id and eventual PR to mark `RECEIVED / RUNNING / FINISHED`. Lack of ACK is a blocker; a GITHUB comment merely published is not an ACK.
 
 The Workflow additionally accepts only (a) an authorized owner comment, (b) on an authorized owner-created issue in this repository, (c) with a title starting `[CLAUDE]`, (d) with the explicit marker. It prevents ordinary reviews and comments from starting Claude. A global GitHub Actions concurrency group prevents parallel Claude jobs. The action is bounded at 60 minutes and 35 turns, but usage can still be billable; establish quota approvals.
 
-**Limitations**: GitHub issues are untrusted text and a source of prompt injection. The Action has write permissions only because development requires draft PRs; do not grant broad additional rights. The workflow's verification gates are necessary but not sufficient to guarantee safe or correct code: the independent coordinator checks and test cases remain compulsory. If default branch is public, request review of workflow security before merge.
+**Limitations**: GitHub issues are untrusted text and a source of prompt injection. The Action has write permissions only because development requires draft PRs; do not grant broad additional rights. The workflow's verification gates are necessary but not sufficient to guarantee safe or correct code: GitHub Actions carries `contents:write` and could technically target protected branches. Configure default-branch rules and require PR review to disallow unauthorized direct pushes, the independent coordinator checks and test cases remain compulsory. If default branch is public, request review of workflow security before merge.
 
 ## GPT Work developer dispatch — separate route, NOT covered by this workflow
 
@@ -50,8 +50,8 @@ If the Work user account's trigger UI cannot filter by PR comment marker or star
 
 ## Verification checklist
 
-- [ ] Workflow draft PR reviewed for security.
-- [ ] Explicit permission to merge workflow to default branch (NOT granted).
+- [x] Workflow reviewed for owner-only issue/comment gates and fail-closed variable; authentication and execution still unverified.
+- [x] Owner authorized one-time setup (13 November 2026); workflow merge only after safety review, not an authorization for code missions or new charges.
 - [ ] Claude GitHub App restricted to this repository and one credential configured securely.
 - [ ] Read-only Claude smoke-test: real run id/ACK, no code change.
 - [ ] Code-enabled Claude smoke-test: branch + draft PR + real tests.
