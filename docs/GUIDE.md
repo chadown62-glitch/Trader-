@@ -30,7 +30,7 @@ Autre possibilité : ouvrez un terminal et tapez `winget install Python.Python.3
 |---------|------|
 | `lancer.bat` | Démarre Sentinelle. Pour l'arrêter, fermez la fenêtre noire. |
 | `demo.bat` | Démo **hors-ligne** sur un marché simulé, pour découvrir sans connexion. |
-| `diagnostic.bat` | Vérifie l'installation : Python, internet, données de marché, Ollama, carte graphique. |
+| `diagnostic.bat` | Vérifie l'installation : Python, internet, données de marché, Ollama, carte graphique ; puis diagnostic complet (panel démarré et arrêté dans un dossier temporaire, modèles gelés, verdict READY / BLOCKED). Voir [WINDOWS.md](WINDOWS.md). |
 
 ---
 
@@ -244,13 +244,19 @@ Rien n'est jamais tradé automatiquement. La connexion de votre compte reste sur
 - **Double authentification** (Réglages → Sécurité) : scannez le QR code avec Google Authenticator ou Authy.
 - **Notifications du navigateur** (Réglages → Sécurité) et **thème clair** (bouton ☀ en haut).
 
-## 9. Laisser tourner 24 h/24
+## 9. Observation continue : préparer, puis demander l'accord
 
-- **Windows → Paramètres → Système → Alimentation** : mise en veille sur « Jamais ».
-- **Windows Update** : définissez des « heures d'activité » pour éviter les redémarrages surprises.
-- **BIOS de la carte mère** : option « Restore on AC Power Loss » sur « Power On », pour que le PC redémarre seul après une coupure de courant.
-- **Démarrage automatique** : dans un terminal ouvert dans le dossier de Sentinelle, tapez `py -3 scripts\demarrage_auto.py --activer`. Pour annuler, remplacez `--activer` par `--desactiver`.
-- Après un redémarrage, Sentinelle relance l'IA d'entraînement si elle était en marche. Il compare aussi ses positions à l'exchange (réconciliation) et repose un stop manquant.
+Le superviseur #34 est livré mais **non démarré**. La campagne v2 garde son modèle et ses
+réglages gelés ; v3 observe la macro en parallèle sans modifier ses décisions. Les fonctions
+ordinaires d'entraînement décrites plus haut ne doivent pas remplacer cette politique.
+
+Suivez [WINDOWS.md](WINDOWS.md) : diagnostic jetable sur le vrai PC, revue des tests et des
+six pages desktop/mobile, plan lié aux empreintes, puis **accord humain distinct avant lancement**.
+Aucun démarrage automatique, service Windows ou tâche planifiée n'est autorisé par cette livraison.
+
+La reprise conserve les prédictions et les écritures papier ; elle ne rejoue pas les entrées
+expirées. Toute protection porte exclusivement sur les positions fictives dans SQLite :
+aucune réconciliation privée avec un exchange, aucun stop ou ordre réel n'est envoyé.
 
 ---
 

@@ -7,6 +7,11 @@ Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et tél�
 > **Avertissement.** Le trading comporte un risque de perte en capital. Aucun bot ne peut garantir des gains, et les résultats passés, réels ou simulés, ne préjugent pas des résultats futurs.
 > Ce logiciel ne constitue ni un conseil financier, ni un conseil fiscal.
 
+> **Observation gelée #34 : préparée, non démarrée.** Le mode continu nécessite le diagnostic
+> du vrai PC Windows 11 puis votre accord distinct. Les fonctionnalités générales ci-dessous
+> ne sont pas toutes actives dans cette campagne : modèle figé, macro en observation parallèle,
+> aucune promotion ni réentraînement automatique. Voir [la procédure actuelle](docs/WINDOWS.md).
+
 ## Ce que vous pouvez faire
 
 - **Trader vous-même** sur des graphiques en temps réel :
@@ -18,6 +23,7 @@ Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et tél�
   - **vérifier qu'elle sait apprendre** : un banc d'essai lui cache des règles dans des marchés artificiels et mesure ce qu'elle retrouve ;
   - puis **en direct, 24 h/24, avec de l'argent fictif**. Chaque décision, prise ou refusée, est expliquée, et chaque signal est suivi jusqu'à son issue.
 - **Suivre le bulletin de fiabilité** de l'IA : modèle validé, 30 jours de résultats en direct, gains nets, baisse contenue. Il mesure des preuves en argent fictif et n'ouvre aucun mode réel.
+- **Page « Préparation »** : en lecture seule, dit si l'observation prospective gelée (30 € fictifs) peut commencer, avec chaque raison de blocage (protocoles gelés et leurs empreintes, réglages, prix publics, historique, Windows 11). Aucun bouton de démarrage.
 - **Page « Performances »** : résultat net par trade et par jour (jours sans trade compris), réalisé et latent séparés, baisse maximale, résultats par stratégie, signaux refusés et leurs raisons. Aucune projection, aucun chiffre « annualisé ».
 - **Simulation accélérée** : rejouer des mois de marché en quelques secondes, avec exactement les mêmes règles que l'apprentissage et le trading fictif, dans les conditions de votre portefeuille ([docs/EXECUTION.md](docs/EXECUTION.md)).
 - **Fiches cryptos** : tout ce que Sentinelle sait de chaque crypto suivie (ampleur normale des mouvements, pires chutes, lien avec le Bitcoin, liquidité, résultats passés de chaque stratégie).
@@ -50,14 +56,20 @@ Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et tél�
 
 Autres lanceurs :
 - **`demo.bat`** : démo hors-ligne sur un marché simulé.
-- **`diagnostic.bat`** : vérification de l'installation.
+- **`diagnostic.bat`** : vérification de l'installation, puis diagnostic complet avec verdict READY / BLOCKED pour l'observation ([docs/WINDOWS.md](docs/WINDOWS.md)).
 - Mac et Linux : `./lancer.sh`.
 
 Mode d'emploi complet : **[docs/GUIDE.md](docs/GUIDE.md)**. Ce qu'il reste à faire : **[docs/PLAN.md](docs/PLAN.md)**. Sources d'information retenues et écartées : **[docs/SOURCES.md](docs/SOURCES.md)**.
 
 ## Résultats mesurés
 
-Les résultats, y compris les mauvais, sont dans **[docs/RESULTATS.md](docs/RESULTATS.md)**. En résumé, sur données réelles et frais compris :
+**Résultats historiques non revalidés après les corrections temporelles et d'exécution.**
+Les chiffres ci-dessous et **[docs/RESULTATS.md](docs/RESULTATS.md)** sont conservés pour
+l'historique ; ils ne démontrent pas les capacités de la version intégrée actuelle. Aucun avantage
+net durable sur marché authentique ni promotion de modèle n'est démontré par cette livraison.
+Les preuves actuelles et leurs limites sont dans [le rapport #34](docs/validation/autonomous-supervisor.md).
+
+Résumé historique, avant revalidation :
 - les stratégies de court terme perdent de l'argent ; le **suivi de tendance en 4 h** garde un léger avantage ;
 - exemple : un croisement de moyennes « EMA 9/21 » en 1 minute fait environ 1 000 trades par mois et perd **80 à 89 %** en un mois une fois les frais payés ;
 - sur 2018-2022 (années jamais utilisées pour concevoir les stratégies), le suivi de tendance est **positif** (+0,33 R par trade en 4 h) ;
@@ -95,3 +107,5 @@ node tests/e2e/ui_check.js  # vérification du panel dans un navigateur (Playwri
 Dossier de conception : [docs/CONCEPTION.md](docs/CONCEPTION.md).
 
 Graphiques : TradingView Lightweight Charts™ (Apache 2.0), Copyright © TradingView, Inc. — [tradingview.com](https://www.tradingview.com/).
+
+Superviseur #34 préparé, non démarré : [intégration et reprises](docs/validation/autonomous-supervisor.md), [validation PC et accord distinct](docs/WINDOWS.md#6-plan-de-lancement-reproductible--à-utiliser-après-revue-et-accord). Aucun service permanent lancé.
