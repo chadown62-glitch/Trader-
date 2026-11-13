@@ -19,17 +19,17 @@
     }
   },
   "full_suite": {
-    "passed": 517,
+    "passed": 519,
     "skipped": 1,
     "xfail": 0,
     "failures": 0,
-    "seconds": 170.753,
+    "seconds": 176.2,
     "network": "env -i + seccomp offline_exec; no sockets",
     "skip": "test_real_panel_starts_answers_stops_and_restarts_in_a_temporary_folder: local sockets forbidden"
   },
   "local_socket_test": {
     "passed": 1,
-    "seconds": 8.69,
+    "seconds": 9.099,
     "disposable_panel": true,
     "stopped": true
   },
@@ -70,5 +70,14 @@
     "sentinelle/news/shadow/sources.py": "8c4ebabd1ced369e438961b53fb7f5d7c6ddd33c6fe7b39630208b34047a74c4",
     "sentinelle/news/shadow/store.py": "91d8761860642a1f7b33e296ef82bac8804305ea25313cded6d58f5ba080eaf2",
     "sentinelle/services/champion.py": "02590428d4b4764315badca3230c6e7011bc1750a5918d8f30a4614d4e3f28c8"
+  },
+  "earlier_validation_this_delivery": {
+    "passed": 517,
+    "skipped": 1,
+    "xfail": 0,
+    "failures": 0,
+    "seconds": 170.753,
+    "network": "env -i + seccomp offline_exec; no sockets",
+    "skip": "test_real_panel_starts_answers_stops_and_restarts_in_a_temporary_folder: local sockets forbidden"
   }
 }

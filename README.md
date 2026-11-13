@@ -7,6 +7,11 @@ Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et tél�
 > **Avertissement.** Le trading comporte un risque de perte en capital. Aucun bot ne peut garantir des gains, et les résultats passés, réels ou simulés, ne préjugent pas des résultats futurs.
 > Ce logiciel ne constitue ni un conseil financier, ni un conseil fiscal.
 
+> **Observation gelée #34 : préparée, non démarrée.** Le mode continu nécessite le diagnostic
+> du vrai PC Windows 11 puis votre accord distinct. Les fonctionnalités générales ci-dessous
+> ne sont pas toutes actives dans cette campagne : modèle figé, macro en observation parallèle,
+> aucune promotion ni réentraînement automatique. Voir [la procédure actuelle](docs/WINDOWS.md).
+
 ## Ce que vous pouvez faire
 
 - **Trader vous-même** sur des graphiques en temps réel :
@@ -58,7 +63,13 @@ Mode d'emploi complet : **[docs/GUIDE.md](docs/GUIDE.md)**. Ce qu'il reste à fa
 
 ## Résultats mesurés
 
-Les résultats, y compris les mauvais, sont dans **[docs/RESULTATS.md](docs/RESULTATS.md)**. En résumé, sur données réelles et frais compris :
+**Résultats historiques non revalidés après les corrections temporelles et d'exécution.**
+Les chiffres ci-dessous et **[docs/RESULTATS.md](docs/RESULTATS.md)** sont conservés pour
+l'historique ; ils ne démontrent pas les capacités de la version intégrée actuelle. Aucun avantage
+net durable sur marché authentique ni promotion de modèle n'est démontré par cette livraison.
+Les preuves actuelles et leurs limites sont dans [le rapport #34](docs/validation/autonomous-supervisor.md).
+
+Résumé historique, avant revalidation :
 - les stratégies de court terme perdent de l'argent ; le **suivi de tendance en 4 h** garde un léger avantage ;
 - exemple : un croisement de moyennes « EMA 9/21 » en 1 minute fait environ 1 000 trades par mois et perd **80 à 89 %** en un mois une fois les frais payés ;
 - sur 2018-2022 (années jamais utilisées pour concevoir les stratégies), le suivi de tendance est **positif** (+0,33 R par trade en 4 h) ;

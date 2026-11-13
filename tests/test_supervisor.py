@@ -566,3 +566,25 @@ def test_preflight_api_with_supervisor_state_is_authenticated_read_only_and_neve
     finally:
         app.close()
         state.close()
+
+
+def test_continuous_plan_cannot_substitute_an_experimental_fixture_model(tmp_path):
+    protocol = fixture.setup(tmp_path)
+    with pytest.raises(ValueError, match="unchanged registered v2"):
+        prepare(tmp_path / "app", protocol, tmp_path / "forbidden.json")
+    assert not (tmp_path / "forbidden.json").exists()
+
+
+def test_changed_launch_plan_is_rejected_between_ticks(tmp_path, monkeypatch):
+    protocol = fixture.setup(tmp_path, real_model=True)
+    path = tmp_path / "plan.json"
+    p = prepare(tmp_path / "app", protocol, path)
+    state = State(tmp_path / "app/supervisor")
+    backend = supervise.PublicBackend(path, state)
+    try:
+        monkeypatch.setattr(supervise, "load_plan", lambda _: dict(p, poll_seconds=30))
+        with pytest.raises(ValueError, match="plan changed"):
+            backend.validate()
+    finally:
+        backend.close()
+        state.close()

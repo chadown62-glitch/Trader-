@@ -44,6 +44,8 @@ def prepare(data, root, output, *, now=None):
 
     data, root = Path(data).resolve(), Path(root).resolve()
     p = check(root)
+    if digest((root / "protocol.json").read_bytes()) != digest((PROJECT / "research/prospective-v2/protocol.json").read_bytes()):
+        raise ValueError("Continuous launch supports only the unchanged registered v2 protocol")
     settings = json.loads((root / "settings.json").read_bytes())
     existing_installation(data, settings)
     macro = verify_macro_shadow(PROJECT / "research/macro-shadow-v3/protocol.json")
@@ -107,6 +109,8 @@ def load_plan(path):
     from tools.prospective import check
 
     frozen = check(p["root"])
+    if p["v2_sha"] != digest((PROJECT / "research/prospective-v2/protocol.json").read_bytes()):
+        raise ValueError("Continuous launch supports only the unchanged registered v2 protocol")
     if (
         digest((Path(p["root"]) / "protocol.json").read_bytes()) != p["v2_sha"]
         or frozen["model_sha256"] != p["model_sha"]

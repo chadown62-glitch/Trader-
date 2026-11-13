@@ -29,7 +29,8 @@ class PublicBackend:
         self.client.close()
 
     def validate(self):
-        load_plan(self.plan_path)
+        if load_plan(self.plan_path) != self.plan:
+            raise ValueError("Launch plan changed during supervision; review a new approval")
 
     def collect(self, path):
         from tools.public_capture import PublicCapture

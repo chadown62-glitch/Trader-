@@ -35,7 +35,9 @@ Aucun service Windows, daemon, démarrage automatique ou tâche planifiée n'est
 
 Le plan enregistre les chemins de l'installation et du protocole, modèle/réglages/périodes v2,
 empreintes v3, sources Python du moteur et du superviseur, vues JS/CSS et requirements.
-Toute modification de ces fichiers invalide le plan et l'accord ; préparer un nouveau plan de
+Seul le protocole v2 enregistré, ou sa copie byte-identique, est accepté en production ;
+un modèle de couverture des tests est refusé par `prepare`. Toute modification du plan en cours
+interrompt les prochains ticks. Toute modification de ces fichiers invalide le plan et l'accord ; préparer un nouveau plan de
 lancement est alors nécessaire. Cela ne réécrit aucun protocole scientifique. Les reçus sont
 une trace locale de la décision de l'opérateur, pas une signature inviolable contre quelqu'un
 qui peut modifier le code ou les fichiers.
@@ -78,6 +80,8 @@ L'utilisateur doit archiver explicitement les fichiers avant reprise. Aucun nett
 
 Ctrl+C et `stop` sont coopératifs ; un GET en cours termine ou expire avant l'arrêt.
 L'état « actif » devient périmé après 45s sans heartbeat : un appel lent peut donc le dégrader.
+Les versions de dépendances du rapport Windows doivent être comparées à celles de la `.venv`
+utilisée au lancement : le diagnostic jetable ne certifie pas une autre installation de bibliothèques.
 Le budget ne tue pas un calcul natif bloqué ; l'arrêt OS brutal reste récupérable, testé ci-dessous.
 Les rapports par clôture sont immuables et groupés par date dans `daily/` ; une journée sans
 observation n'a pas de performance inventée. Une journée observée sans trade reste mesurable.
@@ -91,9 +95,10 @@ par son simple stockage. Aucun listener externe/Telegram n'est activé dans ce s
 
 ## Validation de cette livraison
 
-**Résultat exécuté sur la branche intégrée : 517 tests réussis, 0 échec, 0 xfail,
+**Résultat exécuté sur la branche intégrée : 519 tests réussis, 0 échec, 0 xfail,
 1 skip (socket locale interdite sous seccomp).** Ce test a ensuite réussi séparément : 1/1.
-Les 23 nouveaux cas du superviseur font partie de ce total. La suite a duré 170,77s ;
+Les 25 nouveaux cas du superviseur font partie de ce total. La suite a duré 176,21s ;
+premier passage 517 réussites, puis 519 après ajout de deux garde-fous ;
 un avertissement Starlette sur l'adaptateur httpx, sans échec. Ruff ciblé et `git diff --check` réussis.
 Le diagnostic Linux complet a également démarré, arrêté et redémarré un panel jetable,
 produit son rapport puis terminé ; il reste BLOCKED et ne valide pas Windows.

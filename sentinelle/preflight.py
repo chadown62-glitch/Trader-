@@ -183,9 +183,12 @@ def _read_only(db_path: Path, scratch: Path) -> sqlite3.Connection:
     uri = "file:" + quote(str(copy_path.resolve()), safe="/:") + "?mode=ro"
     conn = sqlite3.connect(uri, uri=True)
     conn.row_factory = sqlite3.Row
-    if conn.execute('PRAGMA quick_check').fetchone()[0]!='ok':
+    try:
+        if conn.execute('PRAGMA quick_check').fetchone()[0]!='ok':
+            raise ValueError('Inconsistent SQLite snapshot; retry when the writer is idle')
+    except Exception:
         conn.close()
-        raise ValueError('Inconsistent SQLite snapshot; retry when the writer is idle')
+        raise
     return conn
 
 
