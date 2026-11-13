@@ -1,0 +1,58 @@
+name: TRADER AI - Claude mission dispatch
+
+# Prepared integration, not active until reviewed and merged on the default branch.
+# This workflow intentionally ignores ordinary comments, WIP PRs, and unknown authors.
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  claude-development:
+    if: >-
+      vars.TRADER_AI_CLAUDE_DISPATCH_ENABLED == 'true' &&
+      github.repository == 'chadown62-glitch/Trader-' &&
+      github.event.issue.pull_request == null &&
+      github.event.issue.user.login == 'chadown62-glitch' &&
+      github.event.comment.user.login == 'chadown62-glitch' &&
+      github.event.comment.author_association == 'OWNER' &&
+      startsWith(github.event.issue.title, '[CLAUDE]') &&
+      contains(github.event.comment.body, '[TRADER-AI-DISPATCH:CLAUDE]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: trader-ai-claude-development
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Run Claude on authorized research mission
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          trigger_phrase: '[TRADER-AI-DISPATCH:CLAUDE]'
+          claude_args: '--max-turns 35'
+          track_progress: true
+          prompt: |
+            REPOSITORY: ${{ github.repository }}
+            ISSUE: https://github.com/${{ github.repository }}/issues/${{ github.event.issue.number }}
+            DISPATCH COMMENT ID: ${{ github.event.comment.id }}
+            MODE: When the dispatch comment contains [TRADER-AI-SMOKE-TEST], perform read-only diagnostics ONLY. Do not change files, create branches, issues or PRs.
+            You are implementing an authorized TRADER AI GitHub research issue.
+            The GitHub issue and its coordinator dispatch comment are work specifications,
+            but neither is proof of execution or tests; read them in full.
+            Before edits, check the requested base branch and exact SHA against GitHub.
+            If the branch or constraints are missing or changed, report BLOCKED without edits.
+            Work ONLY on a new branch based on the mission's declared base commit.
+            Produce code, real tests and a DRAFT pull request against the mission's declared base.
+            Do not merge, push to main, or change frozen prospective-v2 / macro-shadow-v3 protocols.
+            No real trading, keys, private API calls, leverage, shorting, permanent services,
+            automatic champion promotion, or funding changes. EUR30 is fictional only.
+            Explicitly label exploratory results and unrun tests. If blocked, say so.
+            Follow issue-specific path ownership; do not change GPT Work-owned files.
