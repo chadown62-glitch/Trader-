@@ -60,7 +60,8 @@
       "status": "AWAITING_CURRENT_DELIVERY",
       "no_new_candidate_in_R1": true,
       "delivery_state": "NO_PR_OR_BRANCH_FOR_ISSUE_41",
-      "start_status": "PUBLISHED_NOT_DISPATCHED"
+      "start_status": "PUBLISHED_NOT_DISPATCHED",
+      "channel_status": "WORKFLOW_INSTALLED_DISABLED_AUTH_PENDING"
     },
     "GPT_Work": {
       "current_issue": 39,
@@ -92,7 +93,8 @@
       "recovery_report": "docs/validation/mission-control-resume.md",
       "recovery_state": "LOCAL_CODE_UNPUBLISHED_ENV_UNAVAILABLE",
       "recovery_note": "Handoff-only; latest changes not tested; 549 passed +1 skipped is an older tree. Never mark PR #39 delivered before the code is pushed and verified.",
-      "start_status": "RECOVERY_REQUEST_PUBLISHED_NOT_DISPATCHED"
+      "start_status": "RECOVERY_REQUEST_PUBLISHED_NOT_DISPATCHED",
+      "channel_status": "VERIFIED_SANDBOX_DEVELOPMENT_ROUTE"
     }
   },
   "integration": {
@@ -121,6 +123,18 @@
       "39": 6864988575,
       "41": 6864989351
     },
-    "operator_request": "2026-11-13: user requests launching latest missions; publication of GitHub issue comments achieved, but both development channels remain unconfirmed/no ACK."
+    "operator_request": "2026-11-13: user requests launching latest missions; publication of GitHub issue comments achieved, but both development channels remain unconfirmed/no ACK.",
+    "work_developer_sandbox_smoke_verified": true,
+    "work_developer_sandbox_smoke": {
+      "pr": 45,
+      "run_id": "135e3071-1c8c-8325-95f7-c70f6892c58d",
+      "commit_sha": "2d82c19fb807645d4a0ee8d2317588e8511132d4",
+      "code_test": "Python 3.12.14, WORK_DEV_SMOKE_PASS",
+      "scope": "test PR only, no production mission"
+    },
+    "claude_workflow_installed_disabled": true,
+    "claude_workflow_install_pr": 44,
+    "claude_authentication_pending": true,
+    "work_future_autodispatch_protocol": "[TRADER-AI-DISPATCH:WORK:v1]"
   }
 }
