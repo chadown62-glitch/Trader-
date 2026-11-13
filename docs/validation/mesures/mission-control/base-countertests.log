@@ -1,0 +1,89 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+__________________ test_failed_tick_keeps_failure_not_stopped __________________
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-3/test_failed_tick_keeps_failure0')
+
+    def test_failed_tick_keeps_failure_not_stopped(tmp_path):
+        state = State(tmp_path)
+        backend = FakeBackend(lambda: START)
+        backend.validate = lambda: (_ for _ in ()).throw(ValueError('invalid implementation'))
+        try:
+            with pytest.raises(ValueError):
+                Supervisor(plan(), state, backend, clock=lambda: START).run()
+>           assert state.get('status') == 'failed_closed'
+E           AssertionError: assert 'stopped' == 'failed_closed'
+E             
+E             - failed_closed
+E             + stopped
+
+tests/test_mission_control_audit.py:20: AssertionError
+_________________ test_second_cli_cannot_change_owner_metadata _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-3/test_second_cli_cannot_change_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f9e5065bb30>
+
+    def test_second_cli_cannot_change_owner_metadata(tmp_path, monkeypatch):
+        cfg = {'data': str(tmp_path)}
+        monkeypatch.setattr(supervise, 'load_plan', lambda _: cfg)
+        monkeypatch.setattr(supervise, 'authorize', lambda *_: cfg)
+        class Backend:
+            def __init__(self, *args): pass
+            def close(self): pass
+        monkeypatch.setattr(supervise, 'PublicBackend', Backend)
+        owner = State(tmp_path/'supervisor')
+        owner.set('plan', {'owner': 'first'})
+        with instance_lock(owner.folder):
+            before = snapshot(owner.folder)
+            with pytest.raises(RuntimeError, match='already owns'):
+                supervise.main(['run', '--plan', str(tmp_path/'plan'), '--approval', str(tmp_path/'approve')])
+>           assert snapshot(owner.folder) == before
+E           AssertionError: assert {'instance.lo...\x01plan\x02'} == {'instance.lo...03\x15\tplan'}
+E             
+E             Omitting 2 identical items, use -vv to show
+E             Differing items:
+E             {'state.sqlite-wal': b'7\x7f\x06\x82\x00-\xe2\x18\x00\x00\x10\x00\x00\x00\x00\x00\xbc\xe5\x8a\xb0\xf3\x1fz\xf7\x85q\xe...x00\x00\x00\x00\x00\x00\x00\x00\x00\x11\x03\'\x01approval_file\x04\r\x03\x1f\x01plan_file\x03\x08\x03\x15\x01plan\x02'} != {'state.sqlite-wal': b'7\x7f\x06\x82\x00-\xe2\x18\x00\x00\x10\x00\x00\x00\x00\x00\xbc\xe5\x8a\xb0\xf3\x1fz\xf7\x85q\xe...x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x07\x03\x15\tplan'}
+E             {'state.sqlite-shm': b'\x18\xe2-\...
+E             
+E             ...Full output truncated (2 lines hidden), use '-vv' to show
+
+tests/test_mission_control_audit.py:40: AssertionError
+_____________ test_forged_windows_summary_without_tests_is_refused _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-3/test_forged_windows_summary_wi0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f9e5065bfb0>
+
+    def test_forged_windows_summary_without_tests_is_refused(tmp_path, monkeypatch):
+        protocol = fixture.setup(tmp_path, real_model=True)
+        path = tmp_path/'plan.json'
+        cfg = prepare(tmp_path/'app', protocol, path)
+        report = tmp_path/'report.json'
+        report.write_bytes(encoded({'windows_actually_tested': True, 'installation': {'ok': True, 'not_verified': []},
+                                   'data_dir': cfg['data'], 'supervisor_code': cfg['code']}))
+        monkeypatch.setattr('tools.diagnose_windows.system_info', lambda: {'windows_actually_tested': True})
+>       with pytest.raises(ValueError, match='evidence'):
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+tests/test_mission_control_audit.py:53: Failed
+___________ test_rehashed_derived_book_cannot_disagree_with_raw_http ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-3/test_rehashed_derived_book_can0')
+
+    def test_rehashed_derived_book_cannot_disagree_with_raw_http(tmp_path):
+        fixture.capture(tmp_path)
+        path = tmp_path/'capture/capture.json'
+        report = json.loads(path.read_bytes())
+        report['books']['BTC/EUR']['asks'][0][1] = '9999999'
+        path.write_bytes(encoded(report))
+        path.with_suffix('.sha256').write_text(digest(path.read_bytes()))
+>       with pytest.raises(ValueError, match='archived response'):
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+tests/test_mission_control_audit.py:64: Failed
+- generated xml file: /workspace/scratch/6168c8d38e5c/mission-control/docs/validation/mesures/mission-control/base-countertests.xml -
+=========================== short test summary info ============================
+FAILED tests/test_mission_control_audit.py::test_failed_tick_keeps_failure_not_stopped
+FAILED tests/test_mission_control_audit.py::test_second_cli_cannot_change_owner_metadata
+FAILED tests/test_mission_control_audit.py::test_forged_windows_summary_without_tests_is_refused
+FAILED tests/test_mission_control_audit.py::test_rehashed_derived_book_cannot_disagree_with_raw_http
+4 failed, 2 deselected in 3.80s

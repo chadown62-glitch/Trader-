@@ -113,6 +113,22 @@ Bruts, manifestes et ZIP conservés ; vérification d'intégrité hors réseau r
 SHA ZIP : `5b37a77eb79504411354e6af86bf88eabf6153ed11443c5022b65eba8673626e`.
 L'absence d'observation depuis le début de v2 reste une lacune, sans rattrapage.
 
+## Dernier résultat vérifié
+
+**541 passed, 1 skipped, 0 failed, 0 error, 0 xfail**, 252,36 s,
+Linux x86-64 / Python 3.12.14 / CCXT complet 4.4.99, environnement vidé et seccomp.
+Le seul test sur socket locale : **1 passed**, rejoué séparément en 12,59 s.
+Soit 22 tests de plus que les 519 réussites de #35. Ruff ciblé, syntaxe JS,
+`git diff --check` des sources et `pip check` passent. Les logs/JUnit bruts
+conservent volontairement les espaces de sortie de pytest. Un avertissement Starlette/httpx
+subsiste. Un contrôle intermédiaire avait 536 réussites et un échec sur
+l'ancienne sélection littérale de tests PowerShell ; l'assertion vérifie
+maintenant la suite complète et son JUnit/sceau, sans retirer de test.
+
+Arbre source exact testé : `82d4311b6d7b0228ae635e807a0bd14be415616e`,
+commit local `d364683`, checkpoint distant équivalent `a957b048`.
+Les différences ultérieures sont uniquement rapports/procédures et preuves.
+
 ## Vérification reproductible
 
 Les fichiers bruts datés sont dans `mesures/mission-control`. Les quatre échecs
@@ -141,3 +157,22 @@ Aucune nouvelle réservation prospective n'est fabriquée depuis la description
 du fichier perdu. V2/v3 et leurs modèles demeurent inchangés. Contrat et matrice
 de fusion avec Claude : `docs/contracts/mission-control-alpha-factory.md`.
 Les enveloppes du blueprint #42 attendent une mission ultérieure après revue.
+
+
+## Modèle de menaces et limites
+
+| Risque | Défense livrée | Limite conservée |
+|---|---|---|
+| Rentabilité exagérée | Catégories séparées, pas de profits évités, verdict prudent | Aucun avantage indépendant démontré |
+| Look-ahead et labels immatures | Provenance antérieure, disponibilité, exit et résolution <= export | Aucun ancien candidat sans preuve requalifié |
+| Captures manipulées | SHA bruts/dérivés et rapprochement L2 | Pas de signature exchange ; admin local reste dans la frontière de confiance |
+| Code/modèle/risk changés | Plan et empreintes, accord revérifié chaque tick | Changement => nouvel accord après diagnostic |
+| FX ou prix indisponible | Ledger par actif et MTM courant null | Snapshot conservé, pas assimilé à un prix actuel |
+| Même carnet reçu deux fois | Identité exchange et consommation persistante | REST sans heure exchange, pas de preuve de position dans la file |
+| Panne / PC arrêté / API coupée | Reprise/outbox, absence de rattrapage, backoff borné | Pas de protection garantie quand la machine est éteinte |
+| Faux diagnostic Windows | OS réel, JUnit complet, sceau local, runtime lié | Pas d'attestation matérielle ; Windows reste non testé ici |
+
+Les protections T0/T1/T2/outbox de #32 sont conservées et réexécutées dans la
+suite complète ; les scénarios ajoutés couvrent notamment trois jours accélérés,
+une coupure non rattrapée, les réceptions répétées, une frontière UTC et une
+horloge invalide avec conservation de l'échec et arrêt prioritaire.

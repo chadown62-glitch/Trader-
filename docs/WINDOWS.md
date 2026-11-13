@@ -234,5 +234,4 @@ L'arrêt dépose un STOP indépendant de l'intégrité du plan. Il sera lu au pr
 tick (ou Ctrl+C interrompt l'attente). Il ne clôture pas les positions à prix
 périmé. Après arrêt, rétablir des prix récents et revoir le risque ; la machine
 éteinte n'offre aucune garantie de protection des positions fictives. Pour
-réarmer seulement, sans démarrer : `python -m tools.supervise resume --plan
-rapports\pilot-plan.json`. Un changement de plan/code/runtime invalide l'accord.
+réarmer seulement, sans démarrer : `python -m tools.supervise resume --plan rapports\pilot-plan.json`. Un changement de plan/code/runtime invalide l'accord.
