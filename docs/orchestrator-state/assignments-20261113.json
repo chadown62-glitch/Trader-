@@ -58,7 +58,9 @@
       "next_after_verified": "ErrorDiagnosisV1: multi-label causal diagnosis with UNKNOWN outcome, evidence tiers, false-positive stress tests; HypothesisRegistry: preregistered correction proposals and rejected experiments, using blueprint issue #42",
       "next_requires_verified_current_pr": true,
       "status": "AWAITING_CURRENT_DELIVERY",
-      "no_new_candidate_in_R1": true
+      "no_new_candidate_in_R1": true,
+      "delivery_state": "NO_PR_OR_BRANCH_FOR_ISSUE_41",
+      "start_status": "PUBLISHED_NOT_DISPATCHED"
     },
     "GPT_Work": {
       "current_issue": 39,
@@ -84,7 +86,13 @@
       ],
       "next_after_verified": "DecisionEvidenceV1, OutcomeEnvelopeV1, ObservationExportV1: time-stamped read-only exports of evidence and mature outcomes, with EUR30 paper ledgers and crash-safe provenance; blueprint issue #42",
       "next_requires_verified_current_pr": true,
-      "status": "AWAITING_CURRENT_DELIVERY"
+      "status": "AWAITING_CURRENT_DELIVERY",
+      "resume_branch": "work/mission-control-v1-resume",
+      "resume_head_sha": "fbe8e63cabc3da3686c39237b33121bff91af8de",
+      "recovery_report": "docs/validation/mission-control-resume.md",
+      "recovery_state": "LOCAL_CODE_UNPUBLISHED_ENV_UNAVAILABLE",
+      "recovery_note": "Handoff-only; latest changes not tested; 549 passed +1 skipped is an older tree. Never mark PR #39 delivered before the code is pushed and verified.",
+      "start_status": "RECOVERY_REQUEST_PUBLISHED_NOT_DISPATCHED"
     }
   },
   "integration": {
@@ -108,6 +116,11 @@
       "Coordinateur TRADER AI",
       "Livraisons TRADER AI"
     ],
-    "note": "User requested continuous coordination; monitoring is active but direct developer dispatch remains unverified. Do not report missions as launched without run IDs."
+    "note": "User requested continuous coordination; monitoring is active but direct developer dispatch remains unverified. Do not report missions as launched without run IDs.",
+    "last_issue_comments": {
+      "39": 6864988575,
+      "41": 6864989351
+    },
+    "operator_request": "2026-11-13: user requests launching latest missions; publication of GitHub issue comments achieved, but both development channels remain unconfirmed/no ACK."
   }
 }
