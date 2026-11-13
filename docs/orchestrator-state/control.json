@@ -11,12 +11,20 @@
   ],
   "agent_channels": {
     "Claude": {
-      "status": "AWAITING_AGENT_CONNECTION",
-      "ack_required": true
+      "status": "WORKFLOW_INSTALLED_DISABLED_AUTH_PENDING",
+      "ack_required": true,
+      "prepared_pr": 44,
+      "workflow": ".github/workflows/trader-ai-claude-dispatch.yml",
+      "disabled_until_repo_var": "TRADER_AI_CLAUDE_DISPATCH_ENABLED=true",
+      "requires_auth_secret": "CLAUDE_CODE_OAUTH_TOKEN",
+      "test_run_ack": false
     },
     "GPT_Work": {
-      "status": "AWAITING_AGENT_CONNECTION",
-      "ack_required": true
+      "status": "DEVELOPER_RUNTIME_CAPABILITY_CHECK_PENDING",
+      "ack_required": true,
+      "test_comment_id": 6865420048,
+      "developer_run_ack": false,
+      "review_watcher_enabled": true
     }
   },
   "max_correction_cycles": 2,
@@ -33,5 +41,14 @@
     "frozen_protocol_changes": false,
     "automatic_promotion": false,
     "permanent_service_launch": false
+  },
+  "integration_setup": {
+    "authorized_by_owner_on": "2026-11-13",
+    "workflow_pr": 44,
+    "main_setup_commit": "2f04951f667fcd006ee8b9df28cfe5d4ee3b8d49",
+    "enabled_workflow": false,
+    "real_trading_authorized": false,
+    "automatic_main_merge_authorized": false,
+    "notes": "Only dispatch workflow and setup docs added to main with one-time authorization. Missing Anthropic OAuth secret + explicit repo variable. Work developer capability check is pending; dispatch requires ACK for both routes."
   }
 }
