@@ -1,1 +1,21 @@
-{"run_id":"github-6a746290-dfab-11f1-99c4-63a9135aafc4","pr":46,"head_sha":"f272bef227602a6e33eea764a2d9f39ea7e36721","state":"REVIEWED_IN_PROGRESS","effects":[]}
+{
+  "run_id": "github-6a746290-dfab-11f1-99c4-63a9135aafc4",
+  "pr": 46,
+  "head_sha": "f272bef227602a6e33eea764a2d9f39ea7e36721",
+  "state": "NEEDS_CHANGES",
+  "verified": false,
+  "effect": {
+    "review_id": 5898567496,
+    "url": "https://github.com/chadown62-glitch/Trader-/pull/46#pullrequestreview-5898567496",
+    "confirmed": true
+  },
+  "independent_suite": {
+    "passed": 541,
+    "skipped": 1,
+    "failed": 0,
+    "seconds": 277.82,
+    "socket_separately_passed": 1,
+    "socket_seconds": 11.08
+  },
+  "new_mission_blocked": true
+}
