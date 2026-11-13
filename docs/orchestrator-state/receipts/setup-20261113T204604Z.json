@@ -1,0 +1,45 @@
+{
+  "schema": "trader-ai-orchestrator-test/v1",
+  "event_automation_id": "Automation_34d3346df2c08191a573fcab87ff3413",
+  "hourly_automation_preserved": "6af735ab1ef08191ade5dae20ad5b5e9",
+  "trigger": {
+    "repository": "chadown62-glitch/Trader-",
+    "author_login": "chadown62-glitch",
+    "event": "pull_request",
+    "only_on_merge": false,
+    "enable_commit_updates": true,
+    "enable_comments": true,
+    "enable_reviews": false,
+    "include_bot_reviews": false
+  },
+  "test": {
+    "pr": 35,
+    "comment_id": 6864523978,
+    "head_sha": "2078aa671bb0b87f9773de462686c41da0a30fb3",
+    "run_id": "95a8621d-7d10-832f-9a35-851aa7c292e8",
+    "status": "completed",
+    "started_at": "2026-11-13T20:46:50.856549Z",
+    "completed_at": "2026-11-13T20:47:36.201972Z",
+    "ack_confirmed": true,
+    "github_read_confirmed": true
+  },
+  "duplicate_create": {
+    "first": "success",
+    "second": "422 sha wasn't supplied; existing contents not overwritten",
+    "conditional_delete": "confirmed"
+  },
+  "limits": {
+    "agent_dispatch_verified": false,
+    "work_development_session_started": false,
+    "claude_session_started": false,
+    "full_race_crash_exactly_once_proven": false,
+    "notification_delivery_status": "unknown",
+    "draft_open_and_commit_events_configured_but_not_individually_smoke_tested": true
+  },
+  "safety": {
+    "main_modified": false,
+    "protocols_modified": false,
+    "real_trading": false,
+    "permanent_service_started": false
+  }
+}
