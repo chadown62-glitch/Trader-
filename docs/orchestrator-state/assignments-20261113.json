@@ -1,0 +1,113 @@
+{
+  "schema": "trader-ai-agent-assignment/v1",
+  "generated_at": "2026-11-13",
+  "repository": "chadown62-glitch/Trader-",
+  "owner": "ChatGPT coordinator",
+  "context": {
+    "blueprint_issue": 42,
+    "roadmap_issue": 36,
+    "orchestrator_issue": 43,
+    "reference_wallet": "30 EUR fictional",
+    "production_trading_allowed": false
+  },
+  "coordination_rules": {
+    "max_active_missions_per_agent": 1,
+    "promotion_requires_future_protocol_and_human_approval": true,
+    "no_main_merge": true,
+    "frozen": [
+      "research/prospective-v2/**",
+      "research/macro-shadow-v3/**"
+    ],
+    "state_branch": "coordination/trader-ai-orchestrator",
+    "reviewer_conditions": [
+      "exact-pr-head-sha",
+      "changed-file-diff",
+      "tests-evidence",
+      "causal-integrity",
+      "no-real-trading",
+      "cross-agent-contract-compatibility"
+    ],
+    "delivery_trigger": "github-pr-events-plus-hourly-fallback",
+    "dispatch_requires_authenticated_agent_ack": true,
+    "unresolved_dispatch": "AWAITING_AGENT_CONNECTION"
+  },
+  "agents": {
+    "Claude": {
+      "current_issue": 41,
+      "base_pr": 40,
+      "base_branch": "claude/alpha-factory-v1",
+      "base_sha": "529f4c5e7de1f948af4125d3801b796229e025b7",
+      "deliverable": "RegimeRouter-R1 single confirmatory shadow candidate with preregistration and future-only tests",
+      "allowed_scope": [
+        "sentinelle/alpha/**",
+        "sentinelle/ai/expert_lab.py",
+        "tests/test_alpha_*.py",
+        "tests/test_expert_lab.py",
+        "tools/alpha_factory.py",
+        "docs/validation/alpha-*.md"
+      ],
+      "forbidden_scope": [
+        "tools/public_capture.py",
+        "tools/observe.py",
+        "tools/supervisor.py",
+        "docs/WINDOWS.md",
+        "sentinelle/api/**",
+        "research/prospective-v2/**",
+        "research/macro-shadow-v3/**"
+      ],
+      "next_after_verified": "ErrorDiagnosisV1: multi-label causal diagnosis with UNKNOWN outcome, evidence tiers, false-positive stress tests; HypothesisRegistry: preregistered correction proposals and rejected experiments, using blueprint issue #42",
+      "next_requires_verified_current_pr": true,
+      "status": "AWAITING_CURRENT_DELIVERY",
+      "no_new_candidate_in_R1": true
+    },
+    "GPT_Work": {
+      "current_issue": 39,
+      "base_pr": 35,
+      "base_branch": "work/autonomous-supervisor",
+      "base_sha": "2078aa671bb0b87f9773de462686c41da0a30fb3",
+      "deliverable": "Observability, robust evidence plane, Windows diagnostic, offline recovery tests, financial reports separated by provenance",
+      "allowed_scope": [
+        "sentinelle/services/**",
+        "sentinelle/api/**",
+        "tools/observe.py",
+        "tools/public_capture.py",
+        "tools/supervisor.py",
+        "docs/WINDOWS.md",
+        "tests/test_supervisor*.py",
+        "docs/validation/mission-control*.md"
+      ],
+      "forbidden_scope": [
+        "sentinelle/alpha/**",
+        "sentinelle/ai/expert_lab.py",
+        "research/prospective-v2/**",
+        "research/macro-shadow-v3/**"
+      ],
+      "next_after_verified": "DecisionEvidenceV1, OutcomeEnvelopeV1, ObservationExportV1: time-stamped read-only exports of evidence and mature outcomes, with EUR30 paper ledgers and crash-safe provenance; blueprint issue #42",
+      "next_requires_verified_current_pr": true,
+      "status": "AWAITING_CURRENT_DELIVERY"
+    }
+  },
+  "integration": {
+    "opens_after": "both current PRs delivered, independently reviewed, and interface schemas agreed",
+    "target": "new stacked draft PR only, never main",
+    "tests": [
+      "full regression under Python 3.12",
+      "causal timestamp and out-of-order data tests",
+      "no broker imports from shadow",
+      "paper-only immutable models",
+      "independent financial replay",
+      "Windows only if genuine Windows environment is tested"
+    ],
+    "scope": "read-only contract exchange between Claude diagnosis and Work evidence; no automatic trading or model promotion"
+  },
+  "handoff": {
+    "github_issue_is_not_agent_start": true,
+    "claude_development_run_confirmed": false,
+    "work_development_run_confirmed": false,
+    "monitoring_automations": [
+      "Coordinateur TRADER AI",
+      "Livraisons TRADER AI"
+    ],
+    "note": "User requested continuous coordination; monitoring is active but direct developer dispatch remains unverified. Do not report missions as launched without run IDs."
+  }
+}
