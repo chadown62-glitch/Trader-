@@ -70,6 +70,48 @@ def run(cfg: ChallengeConfig, output: Path, *, extra=None, label="synthétique")
     return summary
 
 
+def _fmt(x, digits=2, signed=True):
+    if x is None:
+        return "—"
+    return (f"{x:+.{digits}f}" if signed else f"{x:.{digits}f}").replace(".", ",")
+
+
+def markdown(summary: dict, *, budgets=("50", "tout")) -> str:
+    """Tableaux lisibles tirés de summary.json (aucune valeur saisie à la main)."""
+    out = [f"Données : {summary.get('data')} · préenregistrement `{summary['preregistration_sha256'][:16]}…` · "
+           f"confiance par intervalle {_fmt(summary['confidence_per_interval'] * 100, 2, False)} % · durée {summary.get('duration_s')} s", ""]
+    for fam, table in summary["velocity"].items():
+        out += [f"#### {fam}", "", "| Concurrent | Budget | P&L net moyen (€) | Écart vs toutes les entrées (€) | Trades | Baisse max. | "
+                "Brier vs taux enseignant | AUC | CPU (s) | Mo | Écart €/100 obs. | Réplications > 0 | Verdict |",
+                "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+        for row in table.values():
+            if row["budget"] not in budgets and row["learner"] not in ("take_all",):
+                continue
+            if row["learner"] == "take_all" and row["budget"] != "tout":
+                continue
+            out.append(f"| {row['learner']} | {row['budget']} | {_fmt(row['mean_net_pnl_eur'])} | {_fmt(row['mean_delta_vs_take_all_eur'])} | "
+                       f"{_fmt(row['mean_trades'], 1, False)} | {_fmt(row['mean_max_drawdown'] * 100, 1, False)} % | "
+                       f"{_fmt(row['mean_brier_skill'], 3)} | {_fmt(row['mean_auc'], 3, False)} | {_fmt(row['cpu_s'], 2, False)} | "
+                       f"{_fmt(row['peak_mb'], 1, False)} | {_fmt(row['delta_eur_per_100_obs'])} | "
+                       f"{row['positive_lower_bounds']}/{row['replications']} | {row['verdict']} |")
+        out.append("")
+    for fam, table in summary["ablation"].items():
+        out += [f"#### Ablation du conseil — {fam}", "", "| Variante | P&L net moyen (€) | Trades | vs toutes les entrées | Contribution marginale (€) | Recommandation |",
+                "|---|---|---|---|---|---|"]
+        for name, row in table.items():
+            out.append(f"| {name} | {_fmt(row['mean_net_pnl_eur'])} | {_fmt(row['mean_trades'], 1, False)} | {row['vs_take_all']} | "
+                       f"{_fmt(row.get('marginal_contribution_eur'))} | {row.get('recommandation', '')} |")
+        out.append("")
+    out += ["#### Shadow Tournament", "", "| Marché | Graine | Concurrents | Vainqueur (sélection) | P&L évaluation (€) | Malédiction du vainqueur (/jour) | "
+            "Corrélation de rang sélection→évaluation |", "|---|---|---|---|---|---|---|"]
+    for m in summary["tournament"]["markets"]:
+        out.append(f"| {m['kind']}@{m['edge']} | {m['seed']} | {m['candidates']} | {m['winner']} | {_fmt(m['winner_evaluation_pnl_eur'])} | "
+                   f"{_fmt(m['winner_curse'] * 100, 3)} % | {_fmt(m['selection_vs_evaluation_rank_correlation'], 2)} |")
+    out += ["", "Verdicts du tournoi : " + "; ".join(f"{k} : {v['verdict']} ({v['positive_lower_bounds']}/{v['replications']})"
+                                                  for k, v in summary["tournament"]["verdicts"].items())]
+    return "\n".join(out)
+
+
 def main(argv=None) -> int:
     cli = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = cli.add_subparsers(dest="cmd", required=True)
@@ -83,7 +125,12 @@ def main(argv=None) -> int:
     real.add_argument("--history", type=Path, required=True)
     real.add_argument("--symbols", nargs="+", default=["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT", "ADA/USDT"])
     real.add_argument("--fx-bps", type=float, default=5.0, help="conversion USDT -> EUR par ordre (hypothèse prudente)")
+    rep = sub.add_parser("report")
+    rep.add_argument("--input", type=Path, required=True)
     a = cli.parse_args(argv)
+    if a.cmd == "report":
+        print(markdown(json.loads((a.input / "summary.json").read_text(encoding="utf-8"))))
+        return 0
     if a.cmd == "catalogue":
         cat = load_catalogue()
         print(json.dumps({"version": cat.version, "sha256": cat.sha256,

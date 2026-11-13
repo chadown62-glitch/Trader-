@@ -237,3 +237,23 @@ def test_survivorship_trap_winners_only_expert_feed_is_rejected():
     # biais du survivant : le flux affiche 100 % de gagnants alors que le taux réel est bien plus bas
     assert all(r.net_r > 0 for r in rows) and np.mean(all_r > 0) < 0.6
     assert np.mean([r.net_r for r in rows]) > all_r.mean()
+
+
+# ---------------------------------------------------------------------------
+# Docteur des erreurs
+# ---------------------------------------------------------------------------
+
+
+def test_error_doctor_uses_only_matured_outcomes_and_counts_each_category():
+    from sentinelle.alpha.doctor import diagnose
+
+    s = build_situations(U)
+    enter = ~s.vetoed
+    full = diagnose(s, enter)
+    cats = full["categories"]
+    assert set(cats) == {"fausse_entrée", "refus_injustifié", "sortie_trop_précoce", "tué_par_les_coûts"}
+    assert cats["fausse_entrée"]["n"] > 0 and cats["fausse_entrée"]["mean_net_r"] < 0
+    if cats["refus_injustifié"]["n"]:
+        assert cats["refus_injustifié"]["mean_net_r"] > 0
+    early = diagnose(s, enter, as_of=int(s.decided_at[len(s) // 3]))
+    assert early["observations"] < full["observations"]  # rien d'inconnu à l'instant n'est compté
