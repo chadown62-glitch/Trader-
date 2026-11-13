@@ -1,12 +1,14 @@
 {
   "run_id": "github-6a746290-dfab-11f1-99c4-63a9135aafc4",
   "key": "PR46:f272bef227602a6e33eea764a2d9f39ea7e36721:corrections:1",
-  "state": "PENDING_EFFECT",
+  "state": "PUBLISHED",
   "cycle": 1,
   "owner": "GPT_Work",
-  "findings": [
-    "FUTURE_FINANCIAL_FACTS_EXPORTED",
-    "LEDGER_GAP_NOT_BLOCKED"
-  ],
-  "effect": null
+  "effect": {
+    "review_id": 5898567496,
+    "url": "https://github.com/chadown62-glitch/Trader-/pull/46#pullrequestreview-5898567496",
+    "confirmed": true
+  },
+  "developer_ack": false,
+  "dispatch_performed": false
 }
