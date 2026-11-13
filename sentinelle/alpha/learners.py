@@ -24,7 +24,7 @@ from ..ai.model import MetaModel
 from .dataset import Situations
 from .teachers import EXIT_VARIANTS, TEACHER_NAMES
 
-EV_GRID = (-0.05, 0.0, 0.05, 0.1, 0.15, 0.2, 0.3)  # seuils d'espérance nette (en R)
+EV_GRID = (-np.inf, -0.05, 0.0, 0.05, 0.1, 0.15, 0.2, 0.3)  # seuils d'espérance nette (R) ; -inf = tout prendre
 MIN_TAKEN = 15
 TREND_COL, ATR_RANK_COL = 10, 12
 
@@ -222,7 +222,7 @@ class RegimeRouter(Learner):
     """Moyenne d'issues mûres par (enseignant, climat), rétrécie vers 0 : n'entre que si elle reste positive."""
     name = "regime_router"
     prior = 20.0
-    margins = (0.0, 0.05, 0.1, 0.2)
+    margins = (-np.inf, 0.0, 0.05, 0.1, 0.2)  # -inf = suivre tous les enseignants
 
     def fit(self, train, cal):
         super().fit(train, cal)

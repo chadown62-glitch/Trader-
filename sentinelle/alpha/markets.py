@@ -9,6 +9,10 @@ Familles :
   calme, volatil ; ``edge`` règle la force de l'avantage planté (0 = aucun) ;
 - ``noise`` : marche aléatoire de même volatilité, AUCUN avantage : rien ne doit y paraître rentable ;
 - ``regime_shift`` : l'avantage de tendance disparaît et devient du retour à la moyenne sur la fin ;
+- ``hidden_rule`` (contrôle POSITIF) : après une poussée de volume visible à la clôture, le prix
+  prolonge le mouvement des 6 dernières bougies pendant 12 bougies. La règle est apprenable à
+  partir des seules caractéristiques connues (volume relatif, rendement sur 6 bougies) ; un banc
+  incapable d'y détecter un progrès serait aveugle ;
 - pièges : trous de liquidité (écarts énormes), annonces macro avec révisions tardives,
   colonne « fuite » (rendement futur) réservée aux tests de l'équipe rouge.
 """
@@ -39,7 +43,7 @@ def synthetic_universe(seed: int, *, kind: str = "regimes", edge: float = 1.0, n
                        symbols: tuple[str, ...] = ("AAA/EUR", "BBB/EUR", "CCC/EUR"),
                        liquidity_holes: float = 0.01, start_ts: int = START_TS) -> Universe:
     """Univers déterministe (même graine = mêmes bougies, au bit près)."""
-    if kind not in ("regimes", "noise", "regime_shift"):
+    if kind not in ("regimes", "noise", "regime_shift", "hidden_rule"):
         raise ValueError("famille de marché inconnue")
     if kind == "noise":
         edge = 0.0
@@ -55,6 +59,9 @@ def synthetic_universe(seed: int, *, kind: str = "regimes", edge: float = 1.0, n
         p = anchor = np.log(100.0 * (1 + k))
         drift = np.zeros(n_bars)
         shift_at = int(n_bars * 0.6) if kind == "regime_shift" else n_bars
+        spikes = (srng.random(n_bars) < 0.04) if kind == "hidden_rule" else np.zeros(n_bars, dtype=bool)
+        trend_edge = 0.3 * edge if kind == "hidden_rule" else edge
+        boost = np.zeros(n_bars + 13)
         previous = -1
         for t in range(n_bars):
             reg = REGIMES[regimes[t]]
@@ -63,12 +70,16 @@ def synthetic_universe(seed: int, *, kind: str = "regimes", edge: float = 1.0, n
                 previous = regimes[t]
             mu = 0.0
             if reg in ("trend_up", "trend_down") and t < shift_at:
-                mu = (1 if reg == "trend_up" else -1) * 0.0016 * edge
+                mu = (1 if reg == "trend_up" else -1) * 0.0016 * trend_edge
             elif reg == "range" or (t >= shift_at and reg in ("trend_up", "trend_down")):
-                mu = -0.06 * edge * (p - anchor)
+                mu = -0.06 * trend_edge * (p - anchor)
+            mu += boost[t]
             drift[t] = mu
             p = p + mu + sigma[t] * eps[t]
             logp[t] = p
+            if spikes[t] and t >= 6:  # visible à la clôture de t ; effet seulement à partir de t + 1
+                direction = 1.0 if logp[t] - logp[t - 6] > 0 else -1.0
+                boost[t + 1:t + 13] += direction * 0.004 * edge
         close = np.exp(logp)
         prev = np.concatenate([[close[0]], close[:-1]])
         open_ = prev * np.exp(srng.normal(0, 0.0008, n_bars))
@@ -76,6 +87,7 @@ def synthetic_universe(seed: int, *, kind: str = "regimes", edge: float = 1.0, n
         high = np.maximum(open_, close) * np.exp(span[0])
         low = np.minimum(open_, close) * np.exp(-span[1])
         volume = np.exp(srng.normal(8, 0.35, n_bars)) * np.where(regimes == REGIMES.index("volatile"), 1.8, 1.0)
+        volume = np.where(spikes, volume * 4.0, volume)
         spread = 3.0 + 400 * sigma * np.abs(srng.normal(0, 0.3, n_bars))
         holes = srng.random(n_bars) < liquidity_holes
         spread = np.where(holes, srng.uniform(60, 250, n_bars), spread)  # trous de liquidité

@@ -368,13 +368,13 @@ def build_council(train: Situations, cal: Situations, cost: CostModel, rules: Po
 
 def run_council(universe: Universe, council: ShadowCouncil, s_eval: Situations, window: tuple[int, int], *,
                 cost: CostModel, macro_events: tuple[MacroEvent, ...] = (), ledger=None,
-                rules: PortfolioRules = PortfolioRules()) -> tuple[list, list[CouncilDecision]]:
+                rules: PortfolioRules = PortfolioRules(), inds: dict | None = None) -> tuple[list, list[CouncilDecision]]:
     """Fait délibérer le conseil à chaque bougie où un enseignant propose une entrée, dans l'ordre du temps.
 
     Renvoie les intentions retenues (pour le portefeuille fictif) et toutes les décisions (y compris
     les abstentions). Les issues ne sont écrites au registre qu'à leur date de disponibilité.
     """
-    inds = {sym: indicators(universe.bars[sym], cost.default_spread_bps) for sym in universe.symbols}
+    inds = inds or {sym: indicators(universe.bars[sym], cost.default_spread_bps) for sym in universe.symbols}
     by_bar: dict[tuple[int, str], list[int]] = {}
     for k in range(len(s_eval)):
         if not s_eval.vetoed[k] and window[0] <= s_eval.index[k] < window[1]:

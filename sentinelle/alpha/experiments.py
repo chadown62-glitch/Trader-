@@ -18,7 +18,8 @@ import numpy as np
 from .council import AGENTS, build_council, run_council
 from .dataset import build_situations, split, time_windows
 from .execution import CostModel, PortfolioRules, run_portfolio
-from .learners import ProjectMixte, TakeAll
+from .bars import indicators
+from .learners import ExitLearner, ProjectMixte, TakeAll
 from .ledger import ShadowLedger
 from .markets import synthetic_macro_calendar, synthetic_universe
 from .stats import paired_daily_interval, replication_verdict
@@ -62,6 +63,9 @@ def council_ablation(kind: str, edge: float, seed: int, cfg: ChallengeConfig, *,
     macro = synthetic_macro_calendar(u, seed) if universe is None else ()
     model = ProjectMixte()
     model.fit(parts["train"], parts["calibration"])
+    exits = ExitLearner()
+    exits.fit(parts["train"], parts["calibration"])
+    inds = {sym: indicators(u.bars[sym], cost.default_spread_bps) for sym in u.symbols}
     variants = {"council_full": dict(enabled=frozenset(AGENTS))}
     for a in AGENTS:
         variants[f"without:{a}"] = dict(enabled=frozenset(AGENTS) - {a})
@@ -71,9 +75,11 @@ def council_ablation(kind: str, edge: float, seed: int, cfg: ChallengeConfig, *,
     decisions_full = None
     for name, opts in variants.items():
         for split_name, s_part, win in (("evaluation", ev, window), ("selection", parts["selection"], sel_window)):
-            council = build_council(parts["train"], parts["calibration"], cost, rules, eval_situations=s_part, model=model, **opts)
+            council = build_council(parts["train"], parts["calibration"], cost, rules, eval_situations=s_part, model=model,
+                                    exits=exits, **opts)
             ledger = ShadowLedger(ledger_path) if (ledger_path and name == "council_full" and split_name == "evaluation") else None
-            intents, decisions = run_council(u, council, s_part, win, cost=cost, macro_events=macro, ledger=ledger, rules=rules)
+            intents, decisions = run_council(u, council, s_part, win, cost=cost, macro_events=macro, ledger=ledger, rules=rules,
+                                             inds=inds)
             res = run_portfolio(u, intents, start=win[0], end=win[1], rules=rules, cost=cost)
             key = name if split_name == "evaluation" else name + "@selection"
             results[key] = {"net_pnl_eur": res.net_pnl, "trades": len(res.trades), "max_drawdown": res.max_drawdown(),
