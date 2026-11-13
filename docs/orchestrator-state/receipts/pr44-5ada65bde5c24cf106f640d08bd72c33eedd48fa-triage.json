@@ -1,0 +1,32 @@
+{
+  "coordinator": "[TRADER-AI-COORDINATOR]",
+  "key": "PR44:5ada65bde5c24cf106f640d08bd72c33eedd48fa:triage",
+  "run_id": "github-b526e180-5ada65bde5c2",
+  "delivery_ids": [
+    "b526e180-dfa8-11f1-8260-2c2fc9d363f6",
+    "3bc613a0-dfa9-11f1-8f53-5af925a31b23"
+  ],
+  "pr": 44,
+  "head_sha": "5ada65bde5c24cf106f640d08bd72c33eedd48fa",
+  "head_branch": "automation/claude-github-dispatch-v1",
+  "base_sha": "5fa6b3656fdd132080f76e716c08003659843db0",
+  "base_branch": "main",
+  "state": "WAITING",
+  "reason": "Preparation-only automation proposal, no final delivery of #39 or #41; agent ownership cannot be inferred from shared author.",
+  "changes_observed": "Workflow proposal adds disabled-by-default variable gate, progress tracking and read-only diagnostic prompt. These changes are configuration proposals, not authenticated channel ACKs.",
+  "evidence": {
+    "diff_read": true,
+    "comments_read": 0,
+    "check_runs": 0,
+    "statuses": 0,
+    "combined_status": "pending with zero statuses; no identified test run",
+    "logs_read": 0,
+    "tests_rerun": 0,
+    "assignment_blob_sha": "d06f6b409b810c38530be178135d37bc5a8a1244"
+  },
+  "review_performed": false,
+  "verified": false,
+  "external_effects": [],
+  "channel_status": "AWAITING_AGENT_CONNECTION",
+  "next": "Await final delivery; no interruption, new mission, workflow activation or dispatch."
+}
