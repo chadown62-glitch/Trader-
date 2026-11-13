@@ -11,7 +11,7 @@ def read_public_book(source, symbol):
     stamp = raw.get("timestamp")
     if isinstance(stamp, bool) or not isinstance(stamp, (int, float)) or stamp <= 0:
         raise LiquidityError("Horodatage du carnet indisponible")
-    return BookSnapshot(raw["bids"], raw["asks"], stamp / 1000, source.name)
+    return BookSnapshot(raw["bids"], raw["asks"], stamp / 1000, source.name, raw.get("lastUpdateId"))
 
 
 def match_snapshot(broker, symbol, book, now, max_age):
@@ -33,6 +33,16 @@ def match_snapshot(broker, symbol, book, now, max_age):
             used = {"buy": {}, "sell": {}}
             db.execute("INSERT OR REPLACE INTO paper_books(symbol, source, ts, original, consumed) VALUES(?,?,?,?,?)",
                        (*key, book.timestamp, original, json.dumps(used)))
+        if book.identity is not None:
+            db.execute("CREATE TABLE IF NOT EXISTS paper_depth_identity(symbol TEXT, source TEXT, identity INTEGER, original TEXT, consumed TEXT, PRIMARY KEY(symbol,source,identity))")
+            latest = db.scalar("SELECT MAX(identity) FROM paper_depth_identity WHERE symbol=? AND source=?", key)
+            if latest is not None and book.identity < latest:
+                raise LiquidityError("Book identity moved backwards")
+            prior = db.one("SELECT * FROM paper_depth_identity WHERE symbol=? AND source=? AND identity=?", (*key, book.identity))
+            if prior:
+                if prior['original'] != original:
+                    raise LiquidityError("Book changed at same exchange identity")
+                used = json.loads(prior['consumed'])
         count = 0
         for order in sorted(broker.open_orders(symbol), key=lambda o: (o["type"] != "stop", o["id"])):
             order = broker.get_order(order["id"])
@@ -77,4 +87,6 @@ def match_snapshot(broker, symbol, book, now, max_age):
                 if broker.reserved().get(broker.quote, 0) > broker._total(broker.quote) + 1e-8:
                     broker.cancel_order(order["id"], "Solde insuffisant pour le reliquat après glissement")
         db.execute("UPDATE paper_books SET consumed=? WHERE symbol=? AND source=?", (json.dumps(used), *key))
+        if book.identity is not None:
+            db.execute("INSERT OR REPLACE INTO paper_depth_identity VALUES(?,?,?,?,?)", (*key, book.identity, original, json.dumps(used)))
         return count

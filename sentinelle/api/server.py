@@ -178,7 +178,7 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         if path.startswith("/api/"):
             if request.method not in ("GET", "HEAD", "OPTIONS") and request.headers.get(CSRF_HEADER) != "1":
                 return JSONResponse({"detail": "Requête refusée (protection CSRF)"}, status_code=403)
-            if path not in PUBLIC and not auth.valid(request.cookies.get(COOKIE), refresh=path != "/api/observation/preflight"):
+            if path not in PUBLIC and not auth.valid(request.cookies.get(COOKIE), refresh=path not in ("/api/observation/preflight", "/api/evidence", "/api/evidence/export")):
                 return JSONResponse({"detail": "Connexion requise"}, status_code=401)
         response = await call_next(request)
         response.headers["X-Frame-Options"] = "DENY"
@@ -377,6 +377,16 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
     @api.get("/api/portfolio/evaluation")
     async def evaluation_dashboard():
         return await app.acall(app.evaluation_dashboard)
+
+    @api.get("/api/evidence")
+    @api.get("/api/evidence/export")
+    async def evidence(request: Request):
+        from ..services.evidence import export
+        result = await asyncio.to_thread(export, app.data_dir)
+        headers = {}
+        if request.url.path.endswith('/export'):
+            headers['Content-Disposition'] = 'attachment; filename="evidence-'+str(int(result['generated_at']))+'.json"'
+        return JSONResponse(result, headers=headers)
 
     @api.get("/api/performance")
     async def performance(account_id: int | None = None, period: str = "all"):

@@ -176,10 +176,15 @@ def _read_only(db_path: Path, scratch: Path) -> sqlite3.Connection:
     l'utilisateur est seulement lu."""
     db_path = Path(db_path)
     copy_path = Path(scratch) / "lecture.db"
-    shutil.copyfile(db_path, copy_path)
     wal = Path(str(db_path) + "-wal")
+    def stamps():
+        return [(p.stat().st_size, p.stat().st_mtime_ns, p.stat().st_ino) if p.exists() else None for p in (db_path, wal)]
+    before = stamps()
+    shutil.copyfile(db_path, copy_path)
     if wal.exists():
         shutil.copyfile(wal, Path(str(copy_path) + "-wal"))
+    if stamps() != before:
+        raise ValueError("SQLite writer changed during snapshot; retry when idle")
     uri = "file:" + quote(str(copy_path.resolve()), safe="/:") + "?mode=ro"
     conn = sqlite3.connect(uri, uri=True)
     conn.row_factory = sqlite3.Row

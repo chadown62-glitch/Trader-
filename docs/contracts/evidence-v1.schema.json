@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sentinelle:evidence:v1",
+  "title": "Evidence Observatory v1, read-only research export",
+  "type": "object",
+  "required": ["schema", "generated_at", "paper_only", "promotion_allowed", "status", "categories", "wallet", "errors", "independent_advantage"],
+  "properties": {
+    "schema": {"const": "sentinelle.evidence/v1"},
+    "generated_at": {"type": "number"},
+    "paper_only": {"const": true},
+    "promotion_allowed": {"const": false},
+    "independent_advantage": {"const": false},
+    "status": {"enum": ["BLOCKED", "NOT_ENOUGH_EVIDENCE"]},
+    "categories": {
+      "type": "object",
+      "required": ["synthetic_fixture", "historical_public", "prospective_recorded"],
+      "additionalProperties": false,
+      "properties": {
+        "synthetic_fixture": {"$ref": "#/$defs/category"},
+        "historical_public": {"$ref": "#/$defs/category"},
+        "prospective_recorded": {"$ref": "#/$defs/category"}
+      }
+    },
+    "wallet": {"type": ["object", "null"], "properties": {"initial_eur": {"const": 30}, "attribution": {"const": "SHARED_MANUAL_AND_AI_UNATTRIBUTED"}, "current_mtm_eur": {"type": "null"}}},
+    "errors": {"type": "array", "items": {"type": "string"}},
+    "uptime_seconds": {"type": "null"},
+    "learning_speed": {"type": "null"},
+    "operating_cost_eur": {"type": "null"}
+  },
+  "$defs": {
+    "category": {
+      "type": "object", "required": ["reports", "daily", "profit_claim"],
+      "properties": {
+        "profit_claim": {"const": false},
+        "reports": {"type": "array"},
+        "daily": {"type": "array"},
+        "decisions": {"type": "array", "items": {"type": "object", "required": ["candidate_id", "available_at", "recorded_at", "maturity", "capture_sha256", "realized_portfolio_pnl_eur"], "properties": {"maturity": {"enum": ["PENDING", "MATURE"]}, "realized_portfolio_pnl_eur": {"type": "null"}}}}
+      }
+    }
+  }
+}

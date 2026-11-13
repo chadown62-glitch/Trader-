@@ -37,6 +37,7 @@ $Travail = Join-Path $env:TEMP "trader-ai-diagnostic-$Horodatage"
 $Rapports = Join-Path $Racine 'rapports'
 New-Item -ItemType Directory -Force -Path $Travail, $Rapports | Out-Null
 $Journal = Join-Path $Rapports "diagnostic-windows-$Horodatage.log"
+$Junit = Join-Path $Rapports "tests-windows-$Horodatage.xml"
 $Rapport = Join-Path $Rapports "diagnostic-$Horodatage.json"
 $Sortie = 0
 $Resultat = @{ installation = 'non lancé'; diagnostic = $null; tests = 'non lancés' }
@@ -66,7 +67,7 @@ try {
   if ($LASTEXITCODE -ne 0) { throw "Création de l'environnement Python impossible." }
   $Python = Join-Path $Venv 'Scripts\python.exe'
   Write-Host "Installation des dépendances (quelques minutes)..."
-  & $Python -m pip install --disable-pip-version-check -q -r (Join-Path $Code 'requirements.txt') pytest
+  & $Python -m pip install --disable-pip-version-check -q -r (Join-Path $Code 'requirements.txt') -r (Join-Path $Code 'requirements-dev.txt')
   if ($LASTEXITCODE -ne 0) { throw "Installation des dépendances échouée : vérifiez la connexion internet." }
   $Resultat.installation = 'réussie'
 
@@ -82,9 +83,14 @@ try {
   if (-not $SansTests) {
     Push-Location $Code
     try {
-      & $Python -m pytest -q -o addopts='' -p no:cacheprovider tests/test_preflight.py tests/test_diagnostic.py tests/test_supervisor.py tests/test_observation_e2e.py tests/test_lockdown.py tests/test_portfolio.py tests/test_api.py
+      & $Python -m pytest -q -o addopts='' -p no:cacheprovider --junitxml=$Junit tests
       if ($LASTEXITCODE -ne 0) { $Sortie = 1 }
-      $Resultat.tests = if ($LASTEXITCODE -eq 0) { 'réussis' } else { "échecs (code $LASTEXITCODE)" }
+      $CodeTests = $LASTEXITCODE
+      if ($CodeTests -eq 0 -and $Resultat.diagnostic -eq 0) {
+        & $Python -m tools.diagnose_windows --rapport $Rapport --seal-junit $Junit
+        if ($LASTEXITCODE -ne 0) { $Sortie = 1 }
+      }
+      $Resultat.tests = if ($CodeTests -eq 0) { 'réussis' } else { "échecs (code $LASTEXITCODE)" }
     } finally { Pop-Location }
   }
 }

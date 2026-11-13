@@ -117,7 +117,7 @@ class PublicCapture:
                            'timestamp':stamp*1000,'received_at':stamp,'source_event_time':None,
                            'time_quality':'receipt_only; exchange event time unavailable','lastUpdateId':raw.get('lastUpdateId')}
         manifest={'schema':1,'origin':origin,'end_ms':end,'created_at':self.clock(),'archives':archives,'markets':markets,'books':books,
-                  'endpoint':BASE,'http_evidence':[dict(r) for r in self.db.execute('SELECT key,raw_path,sha,received,latency FROM requests WHERE sha IS NOT NULL ORDER BY key')]}
+                  'endpoint':BASE,'http_evidence':[dict(r) for r in self.db.execute('SELECT key,path,params,raw_path,sha,received,latency FROM requests WHERE sha IS NOT NULL ORDER BY key')]}
         immutable(self.root/'capture.json',encoded(manifest))
         immutable(self.root/'capture.sha256',(digest(encoded(manifest))+'\n').encode())
         return manifest
@@ -136,7 +136,34 @@ def load_capture(root):
     for symbol,expected in m['archives'].items():
         histories[symbol],_=load_archive(root/symbol.replace('/','-'),expected)
         if int(histories[symbol].ts.iloc[-1])+STEP_MS!=m['end_ms']:raise ValueError('Capture chronology mismatch')
+    verify_books(root, m['books'], m['http_evidence'])
     return m,histories
+
+
+def verify_books(root, books, evidence):
+    """Bind derived L2 to the actual archived endpoint, symbol, receipt and bytes."""
+    from decimal import Decimal
+    root = Path(root)
+    for symbol, book in books.items():
+        key = digest(encoded(['depth', {'symbol': symbol.replace('/', ''), 'limit': 20}]))
+        matches = [e for e in evidence if e['key'] == key]
+        if len(matches) != 1:
+            raise ValueError('Missing or ambiguous raw depth evidence')
+        e = matches[0]
+        path = Path(e['raw_path'])
+        if path.is_absolute() or '..' in path.parts:
+            raise ValueError('Invalid raw depth path')
+        raw = (root / path).read_bytes()
+        if digest(raw) != e['sha']:
+            raise ValueError('HTTP depth integrity failure')
+        value = json.loads(raw)
+        if (book['received_at'] != e['received'] or book['timestamp'] != e['received']*1000
+                or book.get('source_event_time') is not None or book.get('lastUpdateId') != value.get('lastUpdateId')):
+            raise ValueError('Depth receipt or identity mismatch')
+        for side in ('bids', 'asks'):
+            norm = lambda rows: [[Decimal(str(p)), Decimal(str(q))] for p, q in rows]
+            if norm(book[side]) != norm(value[side]):
+                raise ValueError('Derived depth differs from archived response')
 
 
 class CaptureSource:

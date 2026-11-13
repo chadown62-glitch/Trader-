@@ -444,6 +444,7 @@ def render(result: dict):
 
 def main(argv=None) -> int:
     cli = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    cli.add_argument("--seal-junit", type=Path, help="Seal an existing report with completed Windows test evidence")
     cli.add_argument("--reseau", action="store_true", help="vérifie aussi les prix publics (lecture seule, sans compte)")
     cli.add_argument("--rapport", nargs="?", const="auto", help="écrit le rapport JSON (par défaut dans rapports/)")
     cli.add_argument("--donnees", type=Path, help="dossier de données à examiner en lecture seule (par défaut : data)")
@@ -456,6 +457,12 @@ def main(argv=None) -> int:
         path = (ROOT / "rapports" / f"diagnostic-{datetime.now(timezone.utc):%Y%m%d-%H%M%S}.json") if a.rapport == "auto" else Path(a.rapport)
     with contextlib.suppress(Exception):
         sys.stdout.reconfigure(encoding="utf-8")  # console Windows
+    if a.seal_junit:
+        if not path or not path.is_file():
+            cli.error("Existing --rapport required for sealing")
+        from sentinelle.services.platform_validation import seal
+        seal(path, a.seal_junit)
+        return 0
     result = diagnose(data_dir=a.donnees, network=a.reseau, panel=not a.sans_panel, report_name=path.name if path else None)
     if path:
         path.parent.mkdir(parents=True, exist_ok=True)

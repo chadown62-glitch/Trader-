@@ -227,6 +227,8 @@ def test_approval_requires_real_pc_matching_report_and_distinct_operator_confirm
     monkeypatch.setattr("tools.diagnose_windows.system_info", lambda: {"windows_actually_tested": True})
     with pytest.raises(ValueError, match="confirmation"):
         approve(target, report, approval, "yes")
+    # Isolate evidence verification in this control-flow test; real seal rejection has independent regressions.
+    monkeypatch.setattr("sentinelle.services.platform_validation.verify", lambda _: None)
     approve(target, report, approval, CONFIRM)
     assert authorize(target, approval) == p
     report.write_bytes(report.read_bytes() + b" ")

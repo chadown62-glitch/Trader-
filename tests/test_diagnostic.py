@@ -127,7 +127,8 @@ def test_windows_script_is_finite_and_never_targets_user_data():
     assert "Remove-Item -Recurse -Force $Travail" in script
     assert "Remove-Item" not in script.replace("Remove-Item -Recurse -Force $Travail", "")
     assert "Start-Process" not in script and "Register-ScheduledTask" not in script and "New-Service" not in script
-    assert "tests/test_preflight.py" in script and "tests/test_diagnostic.py" in script
+    assert "--junitxml=$Junit tests" in script and "--seal-junit $Junit" in script
+    assert "$CodeTests -eq 0 -and $Resultat.diagnostic -eq 0" in script
 
 
 def test_launcher_diagnostic_runs_the_full_report():

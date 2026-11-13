@@ -306,7 +306,7 @@ def test_changed_capture_and_changed_protocol_do_not_reuse_reserved_bar(tmp_path
     checksum=p.with_suffix('.sha256') if change=='capture' else protocol/'protocol.sha256'
     checksum.write_text(digest(p.read_bytes())+'\n')
     with patch('tools.prospective.datetime',FrozenDate):
-        with pytest.raises(ValueError,match='Conflicting capture'):
+        with pytest.raises(ValueError,match='Conflicting capture|Depth receipt or identity mismatch'):
             step(tmp_path/'app',protocol,tmp_path/'capture',execute=True,clock=lambda:NOW)
 
 
