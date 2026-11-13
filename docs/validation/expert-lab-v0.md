@@ -34,3 +34,20 @@ Résultat local avant dépôt : **19 tests réussis** sous Python 3.13.5, pytest
 4. Agents spécialistes en shadow, ablation de la contribution de chacun, puis validation prospective préenregistrée. **Jamais de modification de v2/v3 en cours, ni de promotion automatique sur des données déjà explorées.**
 
 **Cette brique n'est pas un bot gagnant :** c'est une garantie élémentaire contre l'entraînement sur du faux « génie » reconstruit après coup.
+
+## Audit v1 (mission #38, 13 novembre 2026)
+
+Réexécution des 19 tests sous CPython 3.12.3 hors réseau : 19 réussis. Des sondes exécutables ont
+ensuite démontré 8 défauts, corrigés dans `sentinelle/ai/expert_lab.py` :
+
+1. décision enregistrée **après** que son issue soit connue, acceptée ;
+2. secondes et millisecondes mélangées sans erreur ;
+3. même décision comptée deux fois sous deux identifiants ;
+4. identifiants en conflit : l'ordre d'entrée décidait de l'enregistrement retenu ;
+5. gain « réalisé » accepté avec une simple adresse de fill, sans heure, prix ni frais ;
+6. drapeaux `verified` auto-déclarés suffisants ; un audit indépendant (`ProvenanceAudit`) est désormais exigé ;
+7. réception tardive des données et révisions rétrospectives non modélisées ;
+8. purge silencieuse aux bornes des fenêtres ; la partie `purged` est désormais rendue.
+
+Les tests de #37 ont été adaptés au fill horodaté et à l'audit (même intention), 22 tests ajoutés
+(41 au total). Détails : [alpha-factory-v1.md](alpha-factory-v1.md).

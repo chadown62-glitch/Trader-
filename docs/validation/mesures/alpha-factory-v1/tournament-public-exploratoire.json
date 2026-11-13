@@ -1,0 +1,102 @@
+{
+  "markets": [
+    {
+      "kind": "real-all",
+      "edge": NaN,
+      "seed": -1,
+      "candidates": 35,
+      "winner": "council_full",
+      "winner_selection_mean_daily": 0.0005348712080548004,
+      "winner_evaluation_mean_daily": -0.00019973922327549948,
+      "winner_curse": 0.0007346104313302999,
+      "winner_evaluation_pnl_eur": -2.7707996944845235,
+      "winner_vs_take_all": {
+        "days": 457,
+        "mean_daily_diff": 0.0011746007830530862,
+        "ci_low": 0.00020059009807415402,
+        "ci_high": 0.001995392500989076
+      },
+      "winner_absolute": {
+        "days": 457,
+        "mean_daily_diff": -0.00019973922327549948,
+        "ci_low": -0.0005670942892739777,
+        "ci_high": 0.00019136076098577007
+      },
+      "selection_vs_evaluation_rank_correlation": 0.44257703081232497
+    },
+    {
+      "kind": "real-group-1",
+      "edge": NaN,
+      "seed": -1,
+      "candidates": 35,
+      "winner": "router_with_exits|400",
+      "winner_selection_mean_daily": 0.0005184818096887624,
+      "winner_evaluation_mean_daily": -4.539356313980728e-05,
+      "winner_curse": 0.0005638753728285697,
+      "winner_evaluation_pnl_eur": -0.8880839147227562,
+      "winner_vs_take_all": {
+        "days": 457,
+        "mean_daily_diff": 0.0010403642654429168,
+        "ci_low": 0.0004192561177774541,
+        "ci_high": 0.001659476397280579
+      },
+      "winner_absolute": {
+        "days": 457,
+        "mean_daily_diff": -4.539356313980728e-05,
+        "ci_low": -0.0006488740721909811,
+        "ci_high": 0.000658246050987153
+      },
+      "selection_vs_evaluation_rank_correlation": 0.542296918767507
+    },
+    {
+      "kind": "real-group-2",
+      "edge": NaN,
+      "seed": -1,
+      "candidates": 35,
+      "winner": "regime_router|400",
+      "winner_selection_mean_daily": 0.0002892130536658042,
+      "winner_evaluation_mean_daily": 2.1290770813166558e-05,
+      "winner_curse": 0.00026792228285263766,
+      "winner_evaluation_pnl_eur": 0.33685851148047874,
+      "winner_vs_take_all": {
+        "days": 623,
+        "mean_daily_diff": 0.00047236545990292795,
+        "ci_low": -0.00023809651434043212,
+        "ci_high": 0.0012011490377680273
+      },
+      "winner_absolute": {
+        "days": 623,
+        "mean_daily_diff": 2.1290770813166558e-05,
+        "ci_low": -0.0002017720078481744,
+        "ci_high": 0.00032797743911413673
+      },
+      "selection_vs_evaluation_rank_correlation": 0.6280112044817928
+    }
+  ],
+  "verdicts": {
+    "real-all@nan": {
+      "replications": 1,
+      "positive_lower_bounds": 1,
+      "required": 2,
+      "verdict": "non démontré",
+      "verdict_preregistered": "non démontré",
+      "positive_absolute_and_relative": 0
+    },
+    "real-group-1@nan": {
+      "replications": 1,
+      "positive_lower_bounds": 1,
+      "required": 2,
+      "verdict": "non démontré",
+      "verdict_preregistered": "non démontré",
+      "positive_absolute_and_relative": 0
+    },
+    "real-group-2@nan": {
+      "replications": 1,
+      "positive_lower_bounds": 0,
+      "required": 2,
+      "verdict": "non démontré",
+      "verdict_preregistered": "non démontré",
+      "positive_absolute_and_relative": 0
+    }
+  }
+}

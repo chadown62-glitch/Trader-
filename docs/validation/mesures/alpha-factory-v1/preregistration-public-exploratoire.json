@@ -1,0 +1,55 @@
+{
+  "kind": "alpha-factory-velocity-preregistration",
+  "config": {
+    "seeds": [],
+    "markets": [],
+    "n_bars": 6000,
+    "budgets": [
+      100,
+      400,
+      null
+    ],
+    "embargo_bars": 30,
+    "confidence": 0.95,
+    "fractions": [
+      0.5,
+      0.15,
+      0.15,
+      0.2
+    ],
+    "cost": {
+      "fee_rate": 0.001,
+      "slippage_bps": 5.0,
+      "default_spread_bps": 4.0,
+      "fx_bps": 5.0
+    },
+    "rules": {
+      "capital": 30.0,
+      "risk_frac": 0.005,
+      "min_order_max_risk": 0.01,
+      "min_notional": 5.0,
+      "max_positions": 3,
+      "max_position_frac": 0.34
+    }
+  },
+  "config_sha256": "afc5cd13065c429d2354c4f9be912a73fefdc6156c2e0a6a095aa22dac829a0e",
+  "learners": [
+    "cash",
+    "take_all",
+    "teacher:trend",
+    "teacher:breakout",
+    "teacher:pullback",
+    "teacher:mean_reversion",
+    "project_mixte",
+    "error_replay",
+    "regime_router",
+    "exit_learner",
+    "router_with_exits"
+  ],
+  "trials_per_market": 33,
+  "registered_at": 1794577148.5056496,
+  "primary_comparison": "rendement quotidien apparié vs take_all, fenêtre d'évaluation, mode figé",
+  "decision_rule": "borne basse > 0 (Bonferroni sur les essais) sur >= 2/3 des marchés indépendants d'une famille",
+  "decision_rule_v1_1": "règle stricte : en plus, borne basse du rendement quotidien ABSOLU > 0 sur les mêmes marchés",
+  "can_trade": false
+}
