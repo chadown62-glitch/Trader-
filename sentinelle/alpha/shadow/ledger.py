@@ -113,7 +113,8 @@ class ChainLedger:
     def __init__(self, path: Path | None = None, *, fsync: bool = True):
         self.path = Path(path) if path else None
         self.fsync = fsync
-        self.lines: list[dict] = []
+        self.lines: list[dict] = []  # lignes de la chaîne
+        self.items: list[dict] = []  # tout le fichier, dans l'ordre, fragments illisibles compris (pour la vérification)
         self._buffer: list[dict] | None = None
         self._step = -1
         self._at = 0
@@ -134,7 +135,7 @@ class ChainLedger:
             except (ValueError, UnicodeError, LedgerError, TypeError, KeyError):
                 items.append({"kind": "torn", "raw_sha256": sha256(fragment)})
         report = verify_chain(items)  # lève si la chaîne est rompue
-        self.lines = chain_lines(items)
+        self.items, self.lines = items, chain_lines(items)
         self._step = max((ln["step"] for ln in self.lines), default=-1)
         self._at = report["clock"]
         if report["uncommitted"] or report["undeclared_torn"]:
@@ -180,6 +181,7 @@ class ChainLedger:
                 if self.fsync:
                     os.fsync(fh.fileno())
         self.lines += lines
+        self.items += lines
 
     def begin(self, at_ms: int) -> int:
         if self.recovered:

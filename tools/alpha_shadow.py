@@ -7,6 +7,7 @@ Hors ligne, exécution finie, aucun ordre, aucun service. Les commandes :
     python -m tools.alpha_shadow register --not-before DATE    # puissance, durée, manifeste immuable
     python -m tools.alpha_shadow verify                        # manifeste, artefacts et code intacts ?
     python -m tools.alpha_shadow replay   --archive DOSSIER --output DOSSIER   # rejeu EXPLORATOIRE du moteur
+    python -m tools.alpha_shadow ingest   --ledger FICHIER --observations FICHIER.jsonl --now-ms N   # un pas, puis arrêt
     python -m tools.alpha_shadow report   --ledger FICHIER [--anchors FICHIER]
     python -m tools.alpha_shadow anchor   --ledger FICHIER     # ligne à publier pour dater le registre
     python -m tools.alpha_shadow bench    --output DOSSIER     # coût de calcul et courbes d'apprentissage (exploratoire)
@@ -34,13 +35,13 @@ from sentinelle.alpha.execution import CostModel, PortfolioRules  # noqa: E402
 from sentinelle.alpha.shadow import analysis, protocol  # noqa: E402
 from sentinelle.alpha.shadow.contract import json_schema, make, sha256  # noqa: E402
 from sentinelle.alpha.shadow.engine import Limits, ShadowEngine, load_lines  # noqa: E402
-from sentinelle.alpha.shadow.ledger import ChainLedger  # noqa: E402
+from sentinelle.alpha.shadow.ledger import ChainLedger, chain_lines  # noqa: E402
 from sentinelle.alpha.shadow.r1 import load_model  # noqa: E402
 
 DIR = ROOT / protocol.DIRECTORY
 SYMBOLS = ("BTC/EUR", "ETH/EUR", "SOL/EUR")
 HORIZONS = (90, 180, 270, 365)
-EFFECTS = (0.0, 0.02, 0.05, 0.10, 0.20)
+EFFECTS = (0.0, 0.02, 0.05, 0.10, 0.20, 0.35, 0.50, 0.75, 1.00)  # au-delà de 0,20 : colonnes d'information (la règle de durée vise 0,05)
 HORIZON_RULE = {"target_yearly_effect": 0.05, "target_power": 0.80,
                 "text": "plus petite durée parmi 90, 180, 270 et 365 jours dont la puissance simulée atteint 80 % pour un "
                         "avantage vrai de +5 % par an ; à défaut 365 jours, puissance déclarée"}
@@ -144,7 +145,13 @@ def cmd_register(a) -> int:
     if not_before <= now:
         print("--not-before doit être dans le futur : la fenêtre ne peut pas précéder l'enregistrement.", file=sys.stderr)
         return 2
+    row = power["power"][str(horizon)]
+    detectable = next((e for e in EFFECTS if row[f"{e:.2f}"] >= HORIZON_RULE["target_power"]), None)
     summary = {**power, "horizon_rule": HORIZON_RULE, "chosen_horizon_days": horizon, "power_at_target": achieved,
+               "smallest_yearly_effect_detected_at_target_power": detectable,
+               "statement": "puissance faible pour tout avantage réaliste : à la fin de la fenêtre, un verdict INCONCLUSIVE "
+                            "est l'issue la plus probable même si R1 avait un avantage modéré ; le protocole peut surtout "
+                            "réfuter (critère d'arrêt, régression), difficilement confirmer",
                "activity": floor, "min_r1_entries_rule": "5e centile de l'activité de R1 au contrôle de développement, sur la durée choisie"}
     manifest = protocol.build_manifest(root=ROOT, model_sha256=digest, reference_sha256=dev["reference_project_mixte_sha256"],
                                        development_sha256=protocol.file_sha(out / "development-report.json"), registered_at_ms=now,
@@ -237,12 +244,52 @@ def cmd_replay(a) -> int:
     t0 = time.time()
     engine = replay(universe, manifest, m_sha, model, start_ms=start, days=days, ledger_path=ledger,
                     reference=load_reference(Path(a.dir), manifest))
-    report = analysis.build_report(engine.ledger.lines, manifest_sha256=m_sha, model_sha256=model.sha256, plan=manifest["analysis"],
+    report = analysis.build_report(engine.ledger.items, manifest_sha256=m_sha, model_sha256=model.sha256, plan=manifest["analysis"],
                                    now_ms=engine.now, explored=True)
     report["inputs"] = prov
     _dump(out / "report.json", report)
     print(json.dumps({"verdict": report["verdict"], "lines": len(engine.ledger.lines), "duration_s": round(time.time() - t0, 1),
                       "arms": {k: round(v["net_pnl_eur"], 4) for k, v in report["arms"].items()}}, ensure_ascii=False, indent=1))
+    return 0
+
+
+def cmd_ingest(a) -> int:
+    """Un seul pas, puis arrêt : lit un fichier d'observations du contrat (une par ligne) et avance la session.
+
+    C'est le point d'entrée prévu pour un export de Mission Control : un fichier, aucune connexion.
+    Le mode prospectif reste fermé ici : il exige la revue commune du contrat et l'accord du propriétaire.
+    """
+    if a.mode == "prospective":
+        print("Mode prospectif non ouvert par cette commande : revue commune et accord du propriétaire requis.", file=sys.stderr)
+        return 2
+    manifest, m_sha, problems, model = load_protocol(Path(a.dir))
+    if problems:
+        print("Protocole altéré : " + " ; ".join(problems), file=sys.stderr)
+        return 1
+    records = [json.loads(x) for x in Path(a.observations).read_text(encoding="utf-8").splitlines() if x.strip()]
+    bars = [r for r in records if isinstance(r, dict) and r.get("kind") == "bar"]
+    books = [r for r in records if isinstance(r, dict) and r.get("kind") == "book"]
+    other = len(records) - len(bars) - len(books)
+    ledger = ChainLedger(Path(a.ledger))
+    reference = load_reference(Path(a.dir), manifest)
+    if ledger.lines or ledger.recovered:
+        session = ledger.lines[0]["body"]["config"]
+        cfg = protocol.session_config(manifest, m_sha, start_ms=session["start_ms"], mode=session["mode"],
+                                      horizon_days=(session["end_ms"] - session["start_ms"]) // 86_400_000)
+        engine = ShadowEngine.resume(cfg, model, ledger, now_ms=a.now_ms, reference=reference)
+    else:
+        if a.start_ms is None:
+            print("Nouvelle session : --start-ms est requis.", file=sys.stderr)
+            return 2
+        cfg = protocol.session_config(manifest, m_sha, start_ms=a.start_ms, mode=a.mode, horizon_days=a.days)
+        engine = ShadowEngine.start(cfg, model, ledger, now_ms=a.now_ms, reference=reference)
+    result = engine.step(a.now_ms, bars=bars, books=books)
+    kinds: dict[str, int] = {}
+    for ln in result["lines"]:
+        kinds[ln["kind"]] = kinds.get(ln["kind"], 0) + 1
+    print(json.dumps({"step": result["step"], "lines": kinds, "ignored_records": other, "anchor": result["anchor"],
+                      "decisions": [{"symbol": d["body"]["symbol"], "as_of_ms": d["body"]["as_of_ms"], "action": d["body"]["action"],
+                                     "reason": d["body"]["reason"]} for d in result["decisions"]]}, ensure_ascii=False, indent=1))
     return 0
 
 
@@ -259,7 +306,7 @@ def cmd_report(a) -> int:
 
 
 def cmd_anchor(a) -> int:
-    lines = load_lines(Path(a.ledger))
+    lines = chain_lines(load_lines(Path(a.ledger)))
     print(json.dumps({"contract": "alpha_shadow_anchor_v1", "ledger_id": lines[0]["sha"], "seq": lines[-1]["seq"],
                       "head_sha256": lines[-1]["sha"], "created_at_ms": _now_ms()}, ensure_ascii=False))
     return 0
@@ -288,6 +335,14 @@ def main(argv=None) -> int:
     rep.add_argument("--ledger", type=Path, required=True)
     rep.add_argument("--anchors", type=Path)
     rep.add_argument("--now-ms", type=int)
+    ing = sub.add_parser("ingest")
+    ing.add_argument("--dir", type=Path, default=DIR)
+    ing.add_argument("--ledger", type=Path, required=True)
+    ing.add_argument("--observations", type=Path, required=True, help="fichier JSONL d'enregistrements bar / book du contrat")
+    ing.add_argument("--now-ms", type=int, required=True, help="heure UTC de l'appelant, en millisecondes")
+    ing.add_argument("--start-ms", type=int)
+    ing.add_argument("--days", type=int)
+    ing.add_argument("--mode", default="replay_exploratory", choices=["replay_exploratory", "synthetic", "prospective"])
     an = sub.add_parser("anchor")
     an.add_argument("--ledger", type=Path, required=True)
     b = sub.add_parser("bench")
@@ -304,7 +359,7 @@ def main(argv=None) -> int:
 
         return run_bench(a)
     return {"freeze": cmd_freeze, "register": cmd_register, "verify": cmd_verify, "replay": cmd_replay, "report": cmd_report,
-            "anchor": cmd_anchor}[a.cmd](a)
+            "anchor": cmd_anchor, "ingest": cmd_ingest}[a.cmd](a)
 
 
 if __name__ == "__main__":

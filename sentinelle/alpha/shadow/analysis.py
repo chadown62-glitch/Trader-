@@ -162,8 +162,8 @@ def build_report(lines: list[dict], *, manifest_sha256: str, model_sha256: str, 
     if body["manifest_sha256"] != manifest_sha256 or body["model_sha256"] != model_sha256:
         reasons.append("la session n'utilise pas le manifeste ou le modèle préenregistrés")
     problems = verify_anchors(lines, anchors or [])
-    integrity["anchors"] = problems
-    reasons += problems
+    integrity["anchors"], integrity["anchor_problems"] = problems[:20], len(problems)
+    reasons += problems[:5] + ([f"… et {len(problems) - 5} autres écarts entre le registre et ses ancres"] if len(problems) > 5 else [])
     prec = precedence(lines, anchors or [])
     dated = sorted((a for a in (anchors or []) if isinstance(a.get("published_at_ms"), int)), key=lambda a: a["seq"])
     integrity.update(precedence=prec, anchored=bool(dated), void_lines=data["void_lines"], recoveries=data["recoveries"],
@@ -285,3 +285,26 @@ def activity_floor(entries_by_day: dict[int, int], days: list[int], horizon: int
 
 def report_sha(report: dict) -> str:
     return sha256(report)
+
+
+def verify_against_history(lines: list[dict], reference_bars: dict[str, dict[int, str]]) -> dict:
+    """Compare les bougies du registre à un historique public obtenu INDÉPENDAMMENT.
+
+    ``reference_bars`` : actif -> {ouverture_ms -> empreinte de marché} recalculée depuis une autre
+    source (``engine.market_sha``). Un registre réécrit avec de faux prix reste cohérent avec
+    lui-même ; il ne l'est plus avec l'historique public. C'est le contrôle qui rend une
+    réécriture complète détectable sans faire confiance à celui qui tient le fichier.
+    """
+    checked, mismatched, unknown = 0, [], []
+    for ln in verify_chain(lines)["valid"]:
+        if ln["kind"] != "admission" or ln["body"]["status"] == "PENDING":
+            continue
+        bar = ln["body"]["bar"]
+        ref = reference_bars.get(bar["symbol"], {}).get(bar["open_at_ms"])
+        if ref is None:
+            unknown.append([bar["symbol"], bar["open_at_ms"]])
+        else:
+            checked += 1
+            if ref != ln["body"]["bar_sha256"]:
+                mismatched.append([bar["symbol"], bar["open_at_ms"]])
+    return {"checked": checked, "mismatched": mismatched, "unknown": unknown, "consistent": not mismatched}

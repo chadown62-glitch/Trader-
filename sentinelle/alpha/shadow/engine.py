@@ -30,7 +30,7 @@ from ..execution import CostModel, Outcome, PortfolioRules, simulate_trade
 from ..teachers import TEACHERS, abstention_mask
 from . import CAN_TRADE, CONTRACT
 from .contract import MODES, ContractError, make, sha256, validate
-from .ledger import ChainLedger, LedgerError, chain_lines, parse, verify_chain
+from .ledger import ChainLedger, LedgerError, parse, verify_chain
 from .online import Tape
 from .r1 import R1Model, climate_of
 
@@ -159,7 +159,7 @@ class ShadowEngine:
         """Reprise après arrêt : rejoue les pas clos, exige qu'ils redonnent le registre, annule le pas inachevé."""
         if not ledger.lines:
             raise ShadowError("Registre vide : rien à reprendre")
-        report = verify_chain(ledger.lines)
+        report = verify_chain(ledger.items)
         valid = report["valid"]
         session = valid[0] if valid else None
         if session is None or session["kind"] != "session":
@@ -496,8 +496,8 @@ class ShadowEngine:
                     partial = False
                     if booked:
                         _, served = book_fill(next(b for b in self.books[sym] if sha256(b) == booked[1])["asks"], notional)
-                        partial = served < notional - 1e-9
-                        notional = min(notional, served)  # exécution partielle : seulement ce que le carnet offrait
+                        partial = bool(served < notional - 1e-9)
+                        notional = float(min(notional, served))  # exécution partielle : seulement ce que le carnet offrait
                         if notional < rules.min_notional:
                             deny("carnet_insuffisant")
                             continue
@@ -586,9 +586,9 @@ def _same(a, b, rtol: float = 1e-9) -> bool:
 
 
 def load_lines(path) -> list[dict]:
-    """Lecture seule d'un registre (pour l'analyse) : lève si la chaîne est rompue."""
+    """Lecture seule d'un registre (pour l'analyse), fragments illisibles déclarés compris ; lève si la chaîne est rompue."""
     items, fragment = parse(Path(path).read_bytes())
     if fragment:
         raise LedgerError("Registre terminé par une ligne incomplète : reprise nécessaire")
     verify_chain(items)
-    return chain_lines(items)
+    return items
