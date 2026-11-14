@@ -1,0 +1,264 @@
+{
+ "abort_criteria": [
+  "baisse maximale du bras R1 >= 10% : plus aucune entrée, verdict REJECTED",
+  "empreinte du manifeste, du modèle ou du code différente : FAILED_INTEGRITY",
+  "registre incohérent avec ses ancres : FAILED_INTEGRITY"
+ ],
+ "analysis": {
+  "block_days": 7,
+  "bootstrap_reps": 2000,
+  "bootstrap_seed": 701,
+  "confidence": 0.95,
+  "interim_looks": "couverture et sécurité seulement",
+  "method": "rendements quotidiens UTC ; bootstrap circulaire par blocs de 7 jours ; gain absolu ET écart apparié",
+  "min_book_entry_share": 0.9,
+  "min_decision_coverage": 0.95,
+  "min_precedence_share": 0.95,
+  "min_r1_entries": 100,
+  "power": {
+   "activity": {
+    "entries_per_day": 0.3258145363408521,
+    "expected_entries": 118.92230576441102,
+    "p05": 100,
+    "p50": 119,
+    "source_days": 399
+   },
+   "chosen_horizon_days": 365,
+   "horizon_rule": {
+    "target_power": 0.8,
+    "target_yearly_effect": 0.05,
+    "text": "plus petite durée parmi 90, 180, 270 et 365 jours dont la puissance simulée atteint 80 % pour un avantage vrai de +5 % par an ; à défaut 365 jours, puissance déclarée"
+   },
+   "horizons_days": [
+    90,
+    180,
+    270,
+    365
+   ],
+   "inner_reps": 400,
+   "method": "bootstrap circulaire par blocs de 7 jours des séries centrées du contrôle de développement",
+   "min_r1_entries_rule": "5e centile de l'activité de R1 au contrôle de développement, sur la durée choisie",
+   "power": {
+    "180": {
+     "0.00": 0.0,
+     "0.02": 0.0,
+     "0.05": 0.0,
+     "0.10": 0.0033333333333333335,
+     "0.20": 0.04,
+     "0.35": 0.2733333333333333,
+     "0.50": 0.6433333333333333,
+     "0.75": 0.9733333333333334,
+     "1.00": 1.0
+    },
+    "270": {
+     "0.00": 0.0,
+     "0.02": 0.0,
+     "0.05": 0.0033333333333333335,
+     "0.10": 0.01,
+     "0.20": 0.13333333333333333,
+     "0.35": 0.49333333333333335,
+     "0.50": 0.85,
+     "0.75": 1.0,
+     "1.00": 1.0
+    },
+    "365": {
+     "0.00": 0.0,
+     "0.02": 0.0,
+     "0.05": 0.0,
+     "0.10": 0.01,
+     "0.20": 0.15333333333333332,
+     "0.35": 0.57,
+     "0.50": 0.9133333333333333,
+     "0.75": 1.0,
+     "1.00": 1.0
+    },
+    "90": {
+     "0.00": 0.0,
+     "0.02": 0.0,
+     "0.05": 0.0,
+     "0.10": 0.0033333333333333335,
+     "0.20": 0.02666666666666667,
+     "0.35": 0.19333333333333333,
+     "0.50": 0.46,
+     "0.75": 0.8133333333333334,
+     "1.00": 0.97
+    }
+   },
+   "power_at_target": 0.0,
+   "seed": 4141,
+   "sims": 300,
+   "smallest_yearly_effect_detected_at_target_power": 0.5,
+   "source_daily_std_candidate": 0.008802594064690947,
+   "source_daily_std_difference": 0.0038619848434783923,
+   "source_days": 399,
+   "statement": "puissance faible pour tout avantage réaliste : à la fin de la fenêtre, un verdict INCONCLUSIVE est l'issue la plus probable même si R1 avait un avantage modéré ; le protocole peut surtout réfuter (critère d'arrêt, régression), difficilement confirmer",
+   "yearly_effects": [
+    0.0,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.35,
+    0.5,
+    0.75,
+    1.0
+   ]
+  },
+  "primary_reference": "take_all",
+  "trials": 1
+ },
+ "arms": {
+  "candidate": "r1",
+  "descriptive": [
+   "cash",
+   "teacher:<référence fixée dans l'artefact>",
+   "project_mixte",
+   "buy_and_hold"
+  ],
+  "isolation": "un portefeuille fictif de 30 EUR par bras ; aucun lien avec le portefeuille principal ni avec un courtier",
+  "primary_reference": "take_all",
+  "project_mixte_file": "reference-project-mixte.joblib",
+  "project_mixte_sha256": "93733a6334c9d1889c2c71eea31b981ccdf42244433717901dc9789d16905266"
+ },
+ "can_trade": false,
+ "candidate": {
+  "count": 1,
+  "frozen": "algorithme, hyperparamètres, table, marge, règles des enseignants ; aucun réapprentissage pendant la fenêtre",
+  "model_file": "r1-model.json",
+  "model_sha256": "33c765de35987e5a4ddfeb5ce8ee1ece65126878cc02ec80a00a135148123911",
+  "name": "RegimeRouter-R1"
+ },
+ "contract": "alpha_shadow_contract_v1",
+ "decision_rule": "sans amélioration robuste à la fin de la fenêtre, R1 est rejeté et son rapport intégral conservé",
+ "development": {
+  "data": {
+   "BTC/EUR": {
+    "bars": 11946,
+    "dataset_sha256": "b34e4c8814d16c025302a586d4090beeca6112e01238c6bc1036ad3300c7a57a",
+    "end_ms": 1794528000000,
+    "observed_at_ms": 1794605428480,
+    "source": "Binance public spot REST",
+    "start_ms": 1622505600000
+   },
+   "ETH/EUR": {
+    "bars": 11946,
+    "dataset_sha256": "6722134b4084743d7826315605571e1834c9a97eba7abe59679d4ec7d133168b",
+    "end_ms": 1794528000000,
+    "observed_at_ms": 1794605431832,
+    "source": "Binance public spot REST",
+    "start_ms": 1622505600000
+   },
+   "SOL/EUR": {
+    "bars": 11946,
+    "dataset_sha256": "4151bb81be76126fbfa504e886fea3c5ba5bf2aa43f33b6186f5db66b99cdc02",
+    "end_ms": 1794528000000,
+    "observed_at_ms": 1794605434148,
+    "source": "Binance public spot REST",
+    "start_ms": 1622505600000
+   }
+  },
+  "report_file": "development-report.json",
+  "report_sha256": "57af242030a5aef02ee086c9a1572a219ce2bc30719e61fa8ec5c48361d88c73",
+  "status": "périodes déjà étudiées : exploratoire, aucune valeur de preuve"
+ },
+ "distinct_from": [
+  "research/prospective-v2",
+  "research/macro-shadow-v3"
+ ],
+ "execution": {
+  "cost": {
+   "default_spread_bps": 4.0,
+   "fee_rate": 0.001,
+   "fx_bps": 0.0,
+   "slippage_bps": 5.0
+  },
+  "entry": "premier carnet reçu après l'écriture de la décision, dans le délai ; à défaut ouverture suivante + demi-écart + glissement (approximation, non confirmatoire)",
+  "exit": "contrat d'exécution du projet (stop au pire du stop et de l'ouverture, règle et durée à l'ouverture suivante)",
+  "limits": {
+   "max_decision_latency_ms": 300000,
+   "max_drawdown": 0.1,
+   "max_fill_delay_ms": 300000,
+   "max_reception_latency_ms": 300000,
+   "warmup_bars": 320
+  },
+  "open_at_end": "valorisées à la dernière clôture, frais de sortie estimés déduits (résultat latent)",
+  "refused_or_abstained": "aucun résultat attribué",
+  "rules": {
+   "capital": 30.0,
+   "max_position_frac": 0.34,
+   "max_positions": 3,
+   "min_notional": 5.0,
+   "min_order_max_risk": 0.01,
+   "risk_frac": 0.005
+  }
+ },
+ "hypothesis": {
+  "falsified_if": "à la fin de la fenêtre, l'une des deux bornes basses n'est pas strictement positive, ou le critère d'arrêt est atteint",
+  "primary": "La politique figée RegimeRouter-R1 améliore l'espérance nette du portefeuille fictif de 30 EUR : rendement quotidien net > 0 ET supérieur à celui de la référence « toutes les entrées », limites de risque respectées.",
+  "secondary_distinct": "vitesse et coût d'apprentissage : mesurés à part, jamais une preuve de rendement"
+ },
+ "implementation_sha256": {
+  "sentinelle/ai/evaluation.py": "4337650e23db68df750cad7e9b4ef3d08818f55a5de4e5ccfa0bcceb0fb85690",
+  "sentinelle/alpha/bars.py": "217ba1869f10d77706dd695e275374314d4e2aeb2407b1360cd38022b2b65921",
+  "sentinelle/alpha/execution.py": "c6ec7b1c9f3d1617e6946208098041f9d4fa4ef3d0de84df9a98bbf99470e1b4",
+  "sentinelle/alpha/shadow/__init__.py": "c03254face72895c892383cc5d424a552155b35d816c76c808679875db2059f9",
+  "sentinelle/alpha/shadow/analysis.py": "9402aa9bc2e6fee64c656613c0ac4037afeb26dfa9e9896aadd2568e045b990e",
+  "sentinelle/alpha/shadow/contract.py": "e0d6f3ec9e584af1140e2cc7c92ba3ace884f2dd6a1852ebf1d4384b9198ccbd",
+  "sentinelle/alpha/shadow/engine.py": "0e2ec6f6e0318b6c4e599f549623ccce3531df9b3619939e03aa6795279c91b3",
+  "sentinelle/alpha/shadow/ledger.py": "1f090f3a54ae77b69e68690cdf5fb1f0fd40f08cac45e1f06bdfcf3a16399a67",
+  "sentinelle/alpha/shadow/online.py": "62658dca9b41fcba5ad95bab94fcd1e6bb39bdaf467bf04f9b8ca55d50dbb88d",
+  "sentinelle/alpha/shadow/protocol.py": "ae827a49b37028680ff38ba4fe63914731d241d40467b955e738079b54f5214c",
+  "sentinelle/alpha/shadow/r1.py": "162c62f334dbfa2cae4ebbaae75926521b0a8746e00dbc175de33db302b13be1",
+  "sentinelle/alpha/shadow/reference.py": "698165657391313a7ac2f308140020b6efb548436299bb4b1673f89ced3bc090",
+  "sentinelle/alpha/teachers.py": "95f8b3b42cfc89437eb162261a44620e6b0928e141bf626dd98dc797aad27cd0",
+  "sentinelle/execution/contract.py": "0a8e5b8ccdb572193cae1278cb0258caef860e3bbae91d05ea3430152f53c4e8"
+ },
+ "mode": "shadow_only",
+ "name": "RegimeRouter-R1 : preuve prospective shadow à candidat unique",
+ "no_permanent_service_authorized": true,
+ "promotion_allowed": false,
+ "protocol_id": "alpha-shadow-r1-p1",
+ "registered_at": "2026-11-14T07:50:53.874000+00:00",
+ "registered_at_ms": 1794642653874,
+ "requirements_before_start": [
+  "revue de cette PR et revue commune du contrat avec l'export de Mission Control (#39)",
+  "validation Windows du collecteur par GPT Work, sur le PC du propriétaire",
+  "accord explicite du propriétaire pour une observation à durée finie (aucun service permanent)",
+  "flux de bougies 4 h closes reçues en moins de 5 minutes, avec au moins 320 bougies d'historique par actif",
+  "carnets horodatés reçus après chaque décision, sinon le verdict restera INSUFFICIENT_EVIDENCE",
+  "publication datée des ancres du registre (au moins une avant le début, puis une par jour)"
+ ],
+ "schema": 1,
+ "status": "PREREGISTERED_NOT_STARTED",
+ "trials": {
+  "amendments": "aucun ; toute modification = nouveau protocole, nouvelle fenêtre future, nouvelle ligne au journal",
+  "count": 1,
+  "journal": "trials.jsonl"
+ },
+ "universe": {
+  "decision_inputs": "bougies publiques closes uniquement (recalculables par tous) ; les carnets ne servent qu'au prix d'exécution",
+  "symbols": [
+   "BTC/EUR",
+   "ETH/EUR",
+   "SOL/EUR"
+  ],
+  "timeframe_ms": 14400000
+ },
+ "verdicts": [
+  "NOT_STARTED",
+  "IN_PROGRESS",
+  "EXPLORATORY",
+  "FAILED_INTEGRITY",
+  "INSUFFICIENT_EVIDENCE",
+  "REJECTED",
+  "INCONCLUSIVE",
+  "PROMOTION_RECOMMENDED_FOR_FUTURE_PAPER_ONLY"
+ ],
+ "window": {
+  "end": "début + horizon_days ; une seule lecture des résultats, à la fin",
+  "horizon_days": 365,
+  "not_before_ms": 1794787200000,
+  "start": "une minuit UTC >= not_before, choisie à l'activation ; la session doit être créée et ancrée AVANT ce début",
+  "warmup_bars": 320
+ }
+}
