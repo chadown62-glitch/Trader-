@@ -1,0 +1,152 @@
+{
+ "kind": "alpha-shadow-r1-online-vs-batch",
+ "status": "EXPLORATORY : période déjà étudiée",
+ "window_ms": [
+  1760572800000,
+  1794528000000
+ ],
+ "verdict": "EXPLORATORY",
+ "primary": {
+  "hypothesis": "R1 améliore le résultat net du portefeuille fictif : gain absolu > 0 ET supérieur à la référence primaire",
+  "reference": "take_all",
+  "confidence": 0.95,
+  "trials": 1,
+  "absolute": {
+   "days": 394,
+   "mean": -0.0003493788152114542,
+   "ci_low": -0.0012443013561752015,
+   "ci_high": 0.0007663121019785413
+  },
+  "relative": {
+   "days": 394,
+   "mean": 0.00038763775181206006,
+   "ci_low": 4.464923563321138e-05,
+   "ci_high": 0.0007506036910777147
+  },
+  "outcome": "not_demonstrated"
+ },
+ "coverage": {
+  "expected_decisions": 7077,
+  "decided_on_time": 7077,
+  "missing": 0,
+  "settlement_coverage": 1.0,
+  "actions": {
+   "NO_SIGNAL": 6417,
+   "ENTER": 281,
+   "ABSTAIN": 379
+  }
+ },
+ "arms": {
+  "r1": {
+   "online_net_pnl_eur": -4.250389434697954,
+   "online_closed": 130,
+   "online_open_at_end": 0,
+   "online_latent_eur": 0.0,
+   "online_net_eur_closed": -4.250389434698037,
+   "online_max_drawdown": 0.22203752770850504,
+   "batch_net_pnl_eur": -4.250389434697954,
+   "batch_trades": 130,
+   "batch_max_drawdown": 0.22203752770850504,
+   "difference_eur": 0.0
+  },
+  "take_all": {
+   "online_net_pnl_eur": -7.986781885863518,
+   "online_closed": 264,
+   "online_open_at_end": 0,
+   "online_latent_eur": 0.0,
+   "online_net_eur_closed": -7.9867818858636355,
+   "online_max_drawdown": 0.3093665345669223,
+   "batch_net_pnl_eur": -7.986781885863518,
+   "batch_trades": 264,
+   "batch_max_drawdown": 0.3093665345669223,
+   "difference_eur": 0.0
+  },
+  "teacher:breakout": {
+   "online_net_pnl_eur": -3.855402492070354,
+   "online_closed": 109,
+   "online_open_at_end": 0,
+   "online_latent_eur": 0.0,
+   "online_net_eur_closed": -3.85540249207041,
+   "online_max_drawdown": 0.22106976376255183,
+   "batch_net_pnl_eur": -3.855402492070354,
+   "batch_trades": 109,
+   "batch_max_drawdown": 0.22106976376255183,
+   "difference_eur": 0.0
+  },
+  "project_mixte": {
+   "online_net_pnl_eur": -3.8632312006780936,
+   "online_closed": 119,
+   "online_open_at_end": 0,
+   "online_latent_eur": 0.0,
+   "online_net_eur_closed": -3.8632312006781913,
+   "online_max_drawdown": 0.22672043003976938,
+   "batch_net_pnl_eur": -3.8632312006780936,
+   "batch_trades": 119,
+   "batch_max_drawdown": 0.22672043003976938,
+   "difference_eur": 0.0
+  },
+  "cash": {
+   "online_net_pnl_eur": 0.0,
+   "online_closed": 0,
+   "online_open_at_end": 0,
+   "online_latent_eur": 0.0,
+   "online_net_eur_closed": 0.0,
+   "online_max_drawdown": 0.0,
+   "batch_net_pnl_eur": 0.0,
+   "batch_trades": 0,
+   "batch_max_drawdown": 0.0,
+   "difference_eur": 0.0
+  },
+  "buy_and_hold": {
+   "online_net_pnl_eur": -13.531199506489134,
+   "online_closed": 0,
+   "online_open_at_end": 0,
+   "online_latent_eur": 0.0,
+   "online_net_eur_closed": 0.0,
+   "online_max_drawdown": 0.5966992244622769,
+   "batch_net_pnl_eur": -14.134862610040141,
+   "batch_trades": 3,
+   "batch_max_drawdown": null,
+   "difference_eur": 0.6036631035510069
+  }
+ },
+ "history_check": {
+  "checked": 35838,
+  "mismatched": 0,
+  "unknown": 0,
+  "consistent": true
+ },
+ "lines": 56166,
+ "ledger_head": "23926351462f79250c8453b5af38fc8f67cd11bdb9c252e4e0ca14878f833882",
+ "duration_s": 51.6,
+ "inputs": {
+  "BTC/EUR": {
+   "dataset_sha256": "b34e4c8814d16c025302a586d4090beeca6112e01238c6bc1036ad3300c7a57a",
+   "source": "Binance public spot REST",
+   "bars": 11946,
+   "start_ms": 1622505600000,
+   "end_ms": 1794528000000,
+   "observed_at_ms": 1794605428480
+  },
+  "ETH/EUR": {
+   "dataset_sha256": "6722134b4084743d7826315605571e1834c9a97eba7abe59679d4ec7d133168b",
+   "source": "Binance public spot REST",
+   "bars": 11946,
+   "start_ms": 1622505600000,
+   "end_ms": 1794528000000,
+   "observed_at_ms": 1794605431832
+  },
+  "SOL/EUR": {
+   "dataset_sha256": "4151bb81be76126fbfa504e886fea3c5ba5bf2aa43f33b6186f5db66b99cdc02",
+   "source": "Binance public spot REST",
+   "bars": 11946,
+   "start_ms": 1622505600000,
+   "end_ms": 1794528000000,
+   "observed_at_ms": 1794605434148
+  }
+ },
+ "manifest_sha256": "57db07cc1394c4f5700d8328caf2cb58a958ad410c32ac38a7632dfb02fc6b4a",
+ "model_sha256": "33c765de35987e5a4ddfeb5ce8ee1ece65126878cc02ec80a00a135148123911",
+ "project_mixte_available": true,
+ "note": "même rejeu SANS limite de baisse (hors protocole) : sert seulement à comparer au calcul d'un seul bloc"
+}

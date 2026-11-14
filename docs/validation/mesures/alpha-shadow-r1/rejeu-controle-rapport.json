@@ -1,0 +1,232 @@
+{
+ "contract": "alpha_shadow_contract_v1",
+ "kind": "report",
+ "protocol_id": "alpha-shadow-r1-p1",
+ "manifest_sha256": "57db07cc1394c4f5700d8328caf2cb58a958ad410c32ac38a7632dfb02fc6b4a",
+ "model_sha256": "33c765de35987e5a4ddfeb5ce8ee1ece65126878cc02ec80a00a135148123911",
+ "mode": "replay_exploratory",
+ "generated_at_ms": 1794528002000,
+ "verdict": "EXPLORATORY",
+ "reasons": [
+  "période déjà étudiée ou données simulées : aucune valeur de preuve"
+ ],
+ "r1_status": "not_evaluated",
+ "window": {
+  "start_ms": 1760572800000,
+  "end_ms": 1794528000000,
+  "complete": true,
+  "days_observed": 394
+ },
+ "integrity": {
+  "chain": "ok",
+  "anchors": [],
+  "anchored": false,
+  "anchor_problems": 0,
+  "precedence": {
+   "decisions_with_outcome": 663,
+   "proven_prior_to_outcome": 0,
+   "share": 0.0,
+   "last_anchored_seq": -1,
+   "lines_after_last_anchor": 55908
+  },
+  "void_lines": 0,
+  "recoveries": 0,
+  "session_anchored_before_start": false,
+  "ledger_id": "f86a475f8bbb00574fa1967ffc52dbe2c84116417344dc71e3b967610a504336",
+  "state": "chaîne vérifiée ; au-delà de la dernière ancre, rien n'est prouvé"
+ },
+ "coverage": {
+  "expected_decisions": 7077,
+  "decided_on_time": 7077,
+  "refused": {},
+  "missing": 0,
+  "decision_coverage": 1.0,
+  "actions": {
+   "NO_SIGNAL": 6417,
+   "ENTER": 30,
+   "ABSTAIN": 630
+  },
+  "expected_settlements": 2359,
+  "settled": 2359,
+  "settlement_coverage": 1.0,
+  "rejected_observations": {},
+  "admissions": {
+   "DECIDABLE": 7080,
+   "HISTORY": 28758,
+   "PENDING": 0
+  }
+ },
+ "primary": {
+  "hypothesis": "R1 améliore le résultat net du portefeuille fictif : gain absolu > 0 ET supérieur à la référence primaire",
+  "reference": "take_all",
+  "confidence": 0.95,
+  "trials": 1,
+  "absolute": {
+   "days": 394,
+   "mean": -0.00026746183542136504,
+   "ci_low": -0.0005467243089564256,
+   "ci_high": -6.063262628827697e-05
+  },
+  "relative": {
+   "days": 394,
+   "mean": 0.0004695547316021492,
+   "ci_low": -0.0007531043642558997,
+   "ci_high": 0.0014417221683763453
+  },
+  "outcome": "regression"
+ },
+ "arms": {
+  "r1": {
+   "net_pnl_eur": -3.0238785538813744,
+   "final_eur": 26.976121446118626,
+   "max_drawdown": 0.10185855641258756,
+   "closed_trades": 18,
+   "open_at_end": 0,
+   "wins": 1,
+   "false_signals": 17,
+   "abandoned": 0,
+   "refused_by_portfolio": 12,
+   "fees_eur": 0.17826462769210621,
+   "net_eur_closed": -3.0238785538813833,
+   "latent_eur": 0.0,
+   "mean_net_r": -0.7518143698410081,
+   "entries": 18,
+   "book_entries": 0,
+   "book_entry_share": 0.0,
+   "partial_fills": 0
+  },
+  "take_all": {
+   "net_pnl_eur": -7.986781885863518,
+   "final_eur": 22.01321811413648,
+   "max_drawdown": 0.3093665345669223,
+   "closed_trades": 264,
+   "open_at_end": 0,
+   "wins": 102,
+   "false_signals": 162,
+   "abandoned": 0,
+   "refused_by_portfolio": 431,
+   "fees_eur": 2.841283219869497,
+   "net_eur_closed": -7.9867818858636355,
+   "latent_eur": 0.0,
+   "mean_net_r": -0.11983786237219914,
+   "entries": 264,
+   "book_entries": 0,
+   "book_entry_share": 0.0,
+   "partial_fills": 0
+  },
+  "teacher:breakout": {
+   "net_pnl_eur": -3.855402492070354,
+   "final_eur": 26.144597507929646,
+   "max_drawdown": 0.22106976376255183,
+   "closed_trades": 109,
+   "open_at_end": 0,
+   "wins": 21,
+   "false_signals": 88,
+   "abandoned": 0,
+   "refused_by_portfolio": 102,
+   "fees_eur": 1.171712276499303,
+   "net_eur_closed": -3.85540249207041,
+   "latent_eur": 0.0,
+   "mean_net_r": -0.06532675010940443,
+   "entries": 109,
+   "book_entries": 0,
+   "book_entry_share": 0.0,
+   "partial_fills": 0
+  },
+  "project_mixte": {
+   "net_pnl_eur": -3.8632312006780936,
+   "final_eur": 26.136768799321906,
+   "max_drawdown": 0.22672043003976938,
+   "closed_trades": 119,
+   "open_at_end": 0,
+   "wins": 25,
+   "false_signals": 94,
+   "abandoned": 0,
+   "refused_by_portfolio": 140,
+   "fees_eur": 1.2571670850121262,
+   "net_eur_closed": -3.8632312006781913,
+   "latent_eur": 0.0,
+   "mean_net_r": -0.05442867265829999,
+   "entries": 119,
+   "book_entries": 0,
+   "book_entry_share": 0.0,
+   "partial_fills": 0
+  },
+  "cash": {
+   "net_pnl_eur": 0.0,
+   "final_eur": 30.0,
+   "max_drawdown": 0.0,
+   "closed_trades": 0,
+   "open_at_end": 0,
+   "wins": 0,
+   "false_signals": 0,
+   "abandoned": 0,
+   "refused_by_portfolio": 0,
+   "fees_eur": 0.0,
+   "net_eur_closed": 0.0,
+   "latent_eur": 0.0,
+   "mean_net_r": null,
+   "entries": 0,
+   "book_entries": 0,
+   "book_entry_share": null,
+   "partial_fills": 0
+  },
+  "buy_and_hold": {
+   "net_pnl_eur": -13.531199506489134,
+   "final_eur": 16.468800493510866,
+   "max_drawdown": 0.5966992244622769,
+   "closed_trades": 0,
+   "open_at_end": 0,
+   "wins": 0,
+   "false_signals": 0,
+   "abandoned": 0,
+   "refused_by_portfolio": 0,
+   "fees_eur": 0.0,
+   "net_eur_closed": 0.0,
+   "latent_eur": 0.0,
+   "mean_net_r": null,
+   "entries": 0,
+   "book_entries": 0,
+   "book_entry_share": null,
+   "partial_fills": 0
+  }
+ },
+ "secondary": {
+  "descriptive_only": {
+   "teacher:breakout": {
+    "vs_r1_paired": {
+     "days": 394,
+     "mean": 4.127186212461628e-05,
+     "ci_low": -0.0011194774064989443,
+     "ci_high": 0.0009086219334995538
+    }
+   },
+   "project_mixte": {
+    "vs_r1_paired": {
+     "days": 394,
+     "mean": 4.117556636709694e-05,
+     "ci_low": -0.0011069828867887582,
+     "ci_high": 0.0009094589760121225
+    }
+   },
+   "cash": {
+    "vs_r1_paired": {
+     "days": 394,
+     "mean": -0.00026746183542136504,
+     "ci_low": -0.0005467243089564256,
+     "ci_high": -6.063262628827697e-05
+    }
+   },
+   "buy_and_hold": {
+    "vs_r1_paired": {
+     "days": 394,
+     "mean": 0.0008873762749365945,
+     "ci_low": -0.0016894832481847786,
+     "ci_high": 0.0035164884016973463
+    }
+   }
+  },
+  "note": "bras descriptifs : jamais utilisés pour conclure"
+ },
+ "claim": "simulation fictive ; aucun gain futur promis ; aucune promotion automatique"
+}

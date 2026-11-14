@@ -1,0 +1,147 @@
+{
+ "kind": "alpha-shadow-r1-purge-bias",
+ "status": "EXPLORATORY : marchés synthétiques, graines 7001 à 7003, 6000 bougies",
+ "markets": [
+  {
+   "market": "regimes@1.0#7001",
+   "r1": {
+    "batch_purged_eur": 0.0,
+    "online_marked_eur": 0.0,
+    "open_at_end": 0,
+    "latent_eur": 0.0
+   },
+   "take_all": {
+    "batch_purged_eur": 5.053017153944715,
+    "online_marked_eur": 5.053017153944715,
+    "open_at_end": 0,
+    "latent_eur": 0.0
+   }
+  },
+  {
+   "market": "regimes@1.0#7002",
+   "r1": {
+    "batch_purged_eur": 0.8729849256124993,
+    "online_marked_eur": 0.7092802775370082,
+    "open_at_end": 1,
+    "latent_eur": -0.16370464807549112
+   },
+   "take_all": {
+    "batch_purged_eur": -1.4854884310156677,
+    "online_marked_eur": -1.6054378309112565,
+    "open_at_end": 2,
+    "latent_eur": -0.11994939989559139
+   }
+  },
+  {
+   "market": "regimes@1.0#7003",
+   "r1": {
+    "batch_purged_eur": -2.5411831719910403,
+    "online_marked_eur": -1.9244677196965938,
+    "open_at_end": 0,
+    "latent_eur": 0.0
+   },
+   "take_all": {
+    "batch_purged_eur": -4.667613610907122,
+    "online_marked_eur": -4.115678686524987,
+    "open_at_end": 3,
+    "latent_eur": 0.012794003316622948
+   }
+  },
+  {
+   "market": "hidden_rule@1.0#7001",
+   "r1": {
+    "batch_purged_eur": 14.603188031412088,
+    "online_marked_eur": 14.603188031412088,
+    "open_at_end": 0,
+    "latent_eur": 0.0
+   },
+   "take_all": {
+    "batch_purged_eur": 13.727029585193321,
+    "online_marked_eur": 13.727029585193321,
+    "open_at_end": 0,
+    "latent_eur": 0.0
+   }
+  },
+  {
+   "market": "hidden_rule@1.0#7002",
+   "r1": {
+    "batch_purged_eur": 11.382639380129682,
+    "online_marked_eur": 11.2625091795353,
+    "open_at_end": 1,
+    "latent_eur": -0.12013020059437629
+   },
+   "take_all": {
+    "batch_purged_eur": 8.397829815777285,
+    "online_marked_eur": 8.131100628617673,
+    "open_at_end": 2,
+    "latent_eur": -0.2667291871596147
+   }
+  },
+  {
+   "market": "hidden_rule@1.0#7003",
+   "r1": {
+    "batch_purged_eur": 7.456870660010331,
+    "online_marked_eur": 9.767264924017404,
+    "open_at_end": 3,
+    "latent_eur": 2.310394264007072
+   },
+   "take_all": {
+    "batch_purged_eur": 1.7419290826113034,
+    "online_marked_eur": 4.089087007996866,
+    "open_at_end": 3,
+    "latent_eur": 2.310394264007072
+   }
+  },
+  {
+   "market": "noise@0.0#7001",
+   "r1": {
+    "batch_purged_eur": 2.337899185645959,
+    "online_marked_eur": 2.337899185645959,
+    "open_at_end": 0,
+    "latent_eur": 0.0
+   },
+   "take_all": {
+    "batch_purged_eur": -1.0170693293779678,
+    "online_marked_eur": -1.0170693293779678,
+    "open_at_end": 0,
+    "latent_eur": 0.0
+   }
+  },
+  {
+   "market": "noise@0.0#7002",
+   "r1": {
+    "batch_purged_eur": 1.246831107306246,
+    "online_marked_eur": 1.1070702592089603,
+    "open_at_end": 1,
+    "latent_eur": -0.13976084809728473
+   },
+   "take_all": {
+    "batch_purged_eur": 1.5131175826871228,
+    "online_marked_eur": 1.526978629845587,
+    "open_at_end": 3,
+    "latent_eur": 0.013861047158463258
+   }
+  },
+  {
+   "market": "noise@0.0#7003",
+   "r1": {
+    "batch_purged_eur": -0.1512819658890514,
+    "online_marked_eur": 0.21263162007301162,
+    "open_at_end": 2,
+    "latent_eur": 0.36391358596206036
+   },
+   "take_all": {
+    "batch_purged_eur": -4.268522424223818,
+    "online_marked_eur": -3.9046088382617548,
+    "open_at_end": 2,
+    "latent_eur": 0.36391358596206036
+   }
+  }
+ ],
+ "take_all_mean_difference_eur": 0.32113209953700267,
+ "take_all_mean_latent_eur": 0.25714270148766805,
+ "take_all_markets_with_positive_latent": 4,
+ "take_all_markets_with_open_positions": 6,
+ "note": "le calcul d'un seul bloc (PR #40) écarte les positions non closes en fin de fenêtre ; le moteur les valorise à la dernière clôture",
+ "note_r1": "les lignes r1 mêlent deux effets : la purge ET l'arrêt du protocole à 10 % de baisse ; seule la ligne take_all isole la purge"
+}

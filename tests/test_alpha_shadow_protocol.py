@@ -161,6 +161,19 @@ def test_p0_no_noise_market_is_announced_profitable(seed):
         assert rep["verdict"] in ("INCONCLUSIVE", "REJECTED") and rep["r1_status"] == "rejected"
 
 
+@pytest.mark.parametrize("seed", [21, 23])
+def test_a_market_whose_regime_changes_is_reported_honestly_never_promoted_by_default(seed):
+    m = market(seed, "regime_shift")
+    eng = run(m, config(m, mode="prospective"), books=True)
+    rep = report(eng, m, anchors=anchors_for(eng))
+    assert rep["verdict"] in ("INCONCLUSIVE", "REJECTED", "INSUFFICIENT_EVIDENCE", "PROMOTION_RECOMMENDED_FOR_FUTURE_PAPER_ONLY")
+    if rep["verdict"] == "PROMOTION_RECOMMENDED_FOR_FUTURE_PAPER_ONLY":  # jamais sans les deux bornes positives
+        assert rep["primary"]["absolute"]["ci_low"] > 0 and rep["primary"]["relative"]["ci_low"] > 0
+    else:
+        assert rep["r1_status"] in ("rejected", "not_evaluated")
+    assert rep["coverage"]["missing"] == 0 and rep["arms"]["cash"]["net_pnl_eur"] == 0.0
+
+
 def test_daily_returns_match_the_development_portfolio():
     u, d = M["u"], M["d"]
     part = d["parts"]["evaluation"]

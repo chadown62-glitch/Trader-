@@ -160,6 +160,7 @@ def test_malformed_future_unclosed_or_foreign_bars_are_refused_with_a_reason():
         "UNKNOWN_MARKET": {**good, "symbol": "DOGE/EUR"},
         "MISALIGNED_BAR": {**good, "close_at_ms": good["close_at_ms"] + 60_000},
         "NOT_AN_OBJECT": "bougie",
+        "UNKNOWN_KIND": {"contract": good["contract"], "kind": "news", "title": "rumeur", "received_at_ms": now},  # R1 ne lit aucune actualité
     }
     for code, raw in cases.items():
         before = eng.tapes["AAA/EUR"].n
@@ -270,6 +271,18 @@ def test_refusals_and_abstentions_never_receive_a_result_and_cash_stays_flat():
         for o in rows:
             if o["status"] in ("abandoned", "refused_by_portfolio"):
                 assert o["net_eur"] is None and o["entry"] is None, arm
+
+
+def test_a_result_is_only_written_once_its_exit_bar_is_known():
+    admitted = {(ln["body"]["bar"]["symbol"], ln["body"]["bar"]["close_at_ms"]): ln["seq"] for ln in kinds(BASE, "admission")}
+    filled = [ln for ln in kinds(BASE, "outcome") if ln["body"]["status"] == "filled"]
+    assert len(filled) > 50
+    for ln in filled:
+        b = ln["body"]
+        assert b["available_at_ms"] == b["exit"]["at_ms"] + TF  # disponible à la clôture de la bougie de sortie, pas avant
+        assert ln["seq"] > admitted[(b["symbol"], b["available_at_ms"])]  # écrit après l'admission de cette bougie
+        assert b["entry"]["at_ms"] == b["decision_as_of_ms"] and b["exit"]["at_ms"] >= b["entry"]["at_ms"]
+        assert b["net_eur"] == pytest.approx(b["gross_eur"] - b["costs_eur"], abs=1e-9)  # brut - coûts = net, en euros
 
 
 def test_each_arm_has_its_own_portfolio():
