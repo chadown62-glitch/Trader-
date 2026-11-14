@@ -1,6 +1,6 @@
 {
   "schema": "trader-ai-orchestrator/v1",
-  "enabled": true,
+  "enabled": false,
   "allowed_pr_authors": [
     "chadown62-glitch"
   ],
@@ -11,7 +11,7 @@
   ],
   "agent_channels": {
     "Claude": {
-      "status": "WORKFLOW_INSTALLED_DISABLED_AUTH_PENDING",
+      "status": "CANCELLED_MANUAL_HANDOFF",
       "ack_required": true,
       "prepared_pr": 44,
       "workflow": ".github/workflows/trader-ai-claude-dispatch.yml",
@@ -20,7 +20,7 @@
       "test_run_ack": false
     },
     "GPT_Work": {
-      "status": "VERIFIED_SANDBOX_DEVELOPMENT_ROUTE",
+      "status": "CANCELLED_MANUAL_HANDOFF",
       "ack_required": true,
       "test_comment_id": 6865420048,
       "developer_run_ack": true,
@@ -59,6 +59,10 @@
     "automatic_main_merge_authorized": false,
     "notes": "Only dispatch workflow and setup docs added to main with one-time authorization. Missing Anthropic OAuth secret + explicit repo variable. Work developer capability check is pending; dispatch requires ACK for both routes.",
     "work_smoke_pr": 45,
-    "work_smoke_result": "DEV_ROUTE_SMOKE_VERIFIED_ONLY"
+    "work_smoke_result": "DEV_ROUTE_SMOKE_VERIFIED_ONLY",
+    "cancelled_by_owner": true,
+    "auto_dispatch_enabled": false,
+    "manual_prompts_only": true,
+    "note": "Owner explicitly cancelled all ChatGPT/Claude/GPT Work automated TRADER AI coordination and dispatch on 2026-11-14. Preserve research and PRs; manual prompting only."
   }
 }
