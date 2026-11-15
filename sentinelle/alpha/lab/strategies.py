@@ -35,7 +35,7 @@ class Context:
     age: np.ndarray  # jours consécutifs de cotation de chaque colonne
     medvol: np.ndarray  # volume médian des 30 derniers jours
     vol90: np.ndarray  # volatilité quotidienne des 90 derniers jours (filtre des actifs adossés)
-    held: dict = field(default_factory=dict)  # actif -> {"days": jours de détention, "entry": prix d'entrée}
+    held: dict = field(default_factory=dict)  # actif -> {"days": jours de détention, "entry": prix d'entrée, "value": valeur à la clôture}
     exclude: frozenset = frozenset()  # actifs retirés de l'univers (études de généralisation)
     majors: tuple = MAJORS  # paire d'actifs des règles « majeurs » (remplacée dans les études de généralisation)
 
@@ -192,7 +192,8 @@ def _slots(ctx: Context, p: dict, cols: list[int], enter: Callable[[int], bool],
            priority: Callable[[int], float]) -> Weights:
     """Portefeuille à emplacements : on garde ce qui n'a pas de signal de sortie, on remplit les emplacements libres."""
     index = {ctx.name(j): j for j in range(len(ctx.panel.assets))}
-    keep = [a for a, info in sorted(ctx.held.items()) if a in index and not leave(index[a], info)]
+    keep = [a for a, info in sorted(ctx.held.items(), key=lambda kv: (-kv[1].get("value", 0.0), kv[0])) if a in index and not leave(index[a], info)]
+    keep = keep[:p["slots"]]  # un reliquat invendable (sous le minimum d'ordre) ne prend jamais un emplacement de plus
     free = p["slots"] - len(keep)
     fresh = sorted((j for j in cols if ctx.name(j) not in ctx.held and enter(j)), key=lambda j: (priority(j), ctx.name(j)))
     return {a: 1 / p["slots"] for a in keep + [ctx.name(j) for j in fresh[:max(0, free)]]}

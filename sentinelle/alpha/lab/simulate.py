@@ -90,7 +90,8 @@ def is_decision_day(spec: Spec, panel: Panel, t: int) -> bool:
 
 def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: int, capital: float = CAPITAL,
              features: Features | None = None, exclude: frozenset = frozenset(), majors: tuple = MAJORS) -> SimResult:
-    """Évalue ``spec`` sur les jours ``start..end`` (inclus). La première décision est prise à la clôture de ``start - 1``."""
+    """Évalue ``spec`` sur les jours ``start..end`` (inclus). La première décision est prise à la clôture de ``start - 1``
+    pour tous (mise en place), les suivantes selon le calendrier de la règle."""
     if not 1 <= start <= end < len(panel):
         raise ValueError("Fenêtre invalide")
     if start - 1 < spec.warmup:
@@ -128,8 +129,9 @@ def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: i
     for t in range(start - 1, end):
         nxt = t + 1
         target = None
-        if is_decision_day(spec, panel, t):
-            ctx = Context(panel.view(t), feats.age[t], feats.medvol[t], feats.vol90[t], {a: dict(v) for a, v in info.items()}, exclude, majors)
+        if t == start - 1 or is_decision_day(spec, panel, t):  # mise en place à la veille du début, puis calendrier de la règle
+            held = {a: {**v, "value": qty[a] * float(panel.close[t, col[a]])} for a, v in info.items()}
+            ctx = Context(panel.view(t), feats.age[t], feats.medvol[t], feats.vol90[t], held, exclude, majors)
             target = spec.fn(ctx, spec.params)
             total = sum(target.values())
             if any((not np.isfinite(w)) or w < 0 for w in target.values()) or total > 1 + 1e-9:

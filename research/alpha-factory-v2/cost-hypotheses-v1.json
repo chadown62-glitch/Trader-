@@ -1,0 +1,31 @@
+{
+ "kind": "alpha-lab-cost-hypotheses",
+ "schema": 1,
+ "version": "1.0.0-provisoire",
+ "source_of_truth": "mission COST OPTIMIZER (GPT Work) : rien de publié au 15/11/2026, ces valeurs sont provisoires",
+ "status": "PROVISOIRE : frais, glissement et conversion repris des réglages du projet ; demi-écart élargi hors BTC et ETH ; à remplacer par les mesures de COST OPTIMIZER (nouvelle version, nouveau plan)",
+ "unit": "points de base (0,01 %) du montant de chaque ordre",
+ "min_notional": 5.0,
+ "majors": ["BTC", "ETH"],
+ "scenarios": {
+  "brut": {
+   "fee_bps": 0, "slippage_bps": 0, "half_spread_bps": {"majors": 0, "others": 0}, "fx_bps": 0,
+   "note": "sans aucun coût : sert uniquement à séparer l'avantage brut des coûts, jamais à conclure"
+  },
+  "projet": {
+   "fee_bps": 10, "slippage_bps": 5, "half_spread_bps": {"majors": 2, "others": 2}, "fx_bps": 0,
+   "note": "hypothèses des PR #40 et #48 (frais 0,1 %, glissement 5 pb, écart 4 pb), sans conversion"
+  },
+  "prudent": {
+   "fee_bps": 10, "slippage_bps": 5, "half_spread_bps": {"majors": 2, "others": 8}, "fx_bps": 5,
+   "note": "scénario principal : écart quatre fois plus large hors BTC et ETH, conversion vers la devise du portefeuille à chaque ordre"
+  },
+  "tendu": {
+   "fee_bps": 10, "slippage_bps": 15, "half_spread_bps": {"majors": 6, "others": 24}, "fx_bps": 5,
+   "note": "scénario de tension : glissement et écart triplés"
+  }
+ },
+ "primary": "prudent",
+ "stress": "tendu",
+ "gross": "brut"
+}
