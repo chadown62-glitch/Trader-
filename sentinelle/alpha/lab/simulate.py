@@ -158,7 +158,7 @@ def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: i
                         sell(asset, qty[asset], price)
                     else:
                         deny("reliquat_sous_le_minimum")
-                elif have - goal >= cost.min_notional and goal >= cost.min_notional:
+                elif have - goal >= cost.min_notional:  # allègement : tout ordre au moins égal au minimum est passé
                     sell(asset, (have - goal) / price, price)
             # 2) achats, dans la limite des liquidités
             for asset in sorted(want):
