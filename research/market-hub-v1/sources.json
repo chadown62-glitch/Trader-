@@ -1,0 +1,103 @@
+{
+ "kind": "dmh-official-sources",
+ "consulted": "2026-11-16",
+ "note": "pages officielles lues en lecture publique ; seules leurs empreintes et les faits utilisés sont conservés",
+ "pages": [
+  {
+   "name": "jup_build_md",
+   "url": "https://developers.jup.ag/docs/api-reference/swap/build.md",
+   "received_ms": 1794848377235,
+   "sha256": "d589a1f937af9f83e4b5b94899976a48a48a8e71d3987c0ee9c7895136b2b22e",
+   "bytes": 15686
+  },
+  {
+   "name": "jup_llms",
+   "url": "https://dev.jup.ag/llms.txt",
+   "received_ms": 1794848353334,
+   "sha256": "a11fe53f5ec5c8fdca60ff79ce973c2592d95ab302db7a224077e6cc57fa8f77",
+   "bytes": 133535
+  },
+  {
+   "name": "jup_order_md",
+   "url": "https://developers.jup.ag/docs/api-reference/swap/order.md",
+   "received_ms": 1794848376585,
+   "sha256": "359f9bca6329284bb64ee48d1436d7248d59330f788ce602ecb72dca8f8059b8",
+   "bytes": 17941
+  },
+  {
+   "name": "jup_price_md",
+   "url": "https://developers.jup.ag/docs/price/index.md",
+   "received_ms": 1794848377406,
+   "sha256": "c05eff46872f88ed78d00a5a2c43e2606596aeab87885bf4f8a9090f90272b7b",
+   "bytes": 13366
+  },
+  {
+   "name": "jup_quote",
+   "url": "https://dev.jup.ag/docs/swap-api/get-quote",
+   "received_ms": 1794848352621,
+   "sha256": "2c6afdf05f4c893724ee89537aa868de17dd0c1e92f7f81611494532cf03451a",
+   "bytes": 263870
+  },
+  {
+   "name": "jup_ratelimit",
+   "url": "https://dev.jup.ag/docs/api-rate-limit",
+   "received_ms": 1794848354223,
+   "sha256": "df12ccb50d37a4adb7e71fd0e07a44b88dc588c798fccc4bc126553b86a0d8a2",
+   "bytes": 172235
+  },
+  {
+   "name": "jup_ratelimits_md",
+   "url": "https://developers.jup.ag/docs/portal/rate-limits.md",
+   "received_ms": 1794848376964,
+   "sha256": "e58f819759bf171f50b8f50c8cc8b688d320f82a01edc4009d4d2cfc770e9e4f",
+   "bytes": 5143
+  },
+  {
+   "name": "uni_base",
+   "url": "https://docs.uniswap.org/contracts/v3/reference/deployments/base-deployments",
+   "received_ms": 1794848350531,
+   "sha256": "4978f6e7780a3eb1d89ef7ab7342c16beb207b330082f6230d590b3fcdd3f76c",
+   "bytes": 327819
+  },
+  {
+   "name": "uni_eth",
+   "url": "https://docs.uniswap.org/contracts/v3/reference/deployments/ethereum-deployments",
+   "received_ms": 1794848351186,
+   "sha256": "b8bdadd5f15c188c1f3f037756b1d375f8ae72d89f8c15bc45a50f89095069eb",
+   "bytes": 328600
+  },
+  {
+   "name": "uni_quoter",
+   "url": "https://docs.uniswap.org/contracts/v3/reference/periphery/lens/QuoterV2",
+   "received_ms": 1794848351740,
+   "sha256": "7819d3ff2630f5d2172c0bb8eeaaedb9bf28207e1747f3ae8f709c0e8a632d0b",
+   "bytes": 327273
+  }
+ ],
+ "facts": [
+  {
+   "source": "uni_base",
+   "fact": "Base : UniswapV3Factory 0x33128a8fC17869897dcE68Ed026d694621f6FDfD, QuoterV2 0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a, UniversalRouter 0x6fF5693b99212Da76ad316178A184AB56D299b43"
+  },
+  {
+   "source": "uni_eth",
+   "fact": "Ethereum : UniswapV3Factory 0x1F98431c8aD98523631AE4a59f267346ea31F984, QuoterV2 0x61fFE014bA17989E743c5F6cB21bF9697530B21e, UniversalRouter 0x66a9893cc07d91d95644aedd05d03f95e1dba8af"
+  },
+  {
+   "source": "jup_quote",
+   "fact": "/swap/v1/quote : « UNMAINTAINED », remplacé par la Swap API V2"
+  },
+  {
+   "source": "jup_llms",
+   "fact": "Swap API V2 : GET /swap/v2/order renvoie un devis et, AVEC un portefeuille (taker), une transaction à signer ; sans taker : devis seul (transaction nulle)"
+  },
+  {
+   "source": "jup_ratelimits_md",
+   "fact": "accès sans clé : 0,5 requête/s, fenêtre glissante de 60 s ; en-têtes x-ratelimit-*"
+  },
+  {
+   "source": "jup_order_md",
+   "fact": "champs feeBps, platformFee, signatureFeeLamports, prioritizationFeeLamports, rentFeeLamports ; transaction nulle si taker absent"
+  }
+ ]
+}
