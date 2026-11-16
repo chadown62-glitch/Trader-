@@ -13,14 +13,14 @@ rentable. Mesuré sur une capture publique du 16/11/2026 (3 actifs × 5, 10 et 3
 1. **10 à 30 €** : la meilleure route est la paire directe en euros (Binance) : **18 à 22 pb aller-retour** ;
    l'exécution simulée sur les carnets capturés confirme l'estimation à 0,5 pb près.
 2. **Réduction démontrée sur les mêmes données** : paire en euros contre détour par l'USDT sur la même plateforme,
-   **−19,5 à −20,8 pb par aller-retour** (≈ 2 conversions évitées), cohérent avec la mesure indépendante de #50.
+   **−19,6 à −20,7 pb par aller-retour** (≈ 2 conversions évitées), cohérent avec la mesure indépendante de #50.
 3. **Face aux réglages du moteur existant** (40 pb aller-retour pour une paire en USDC depuis l'euro) : 18,5 à
    21,7 pb de moins. Une partie seulement est une économie (la conversion évitée) ; le reste vient de ce que le
    moteur existant compte 5 pb de glissement par ordre là où ≈ 0 est mesuré : c'est une surestimation, pas une économie.
 4. **5 €** : le minimum de 5 € de Binance est franchi par l'arrondi de quantité ; le hub se rabat sur Kraken
    (≈ 80 pb, commission hypothétique 0,40 %) ou sur un détour par l'USDT (≈ 40 pb). **Plus cher que ce que suppose
    le moteur existant**, qui ignore ce minimum : à 5 €, mieux vaut ne pas trader.
-5. **Réseaux décentralisés** : financés depuis l'euro, **300 à 6 200 pb** à ces montants (retraits et jeton de gaz,
+5. **Réseaux décentralisés** : financés depuis l'euro, **≈ 300 à 6 200 pb** à ces montants (retraits et jeton de gaz,
    frais fixes) ; jamais retenus. L'échange lui-même sur Base coûte 1 à 5 pb + 0,001 € de gaz : il ne deviendrait
    compétitif qu'avec des fonds déjà sur la chaîne et des retraits quasi gratuits (hypothèse non vérifiée).
 6. **Reliquat** : 10 € de BTC sur Binance laissent ≈ 0,58 € invendables (pas de 0,00001 BTC) ; la valeur reste
