@@ -187,3 +187,19 @@ def test_client_is_bounded_and_restricted_to_public_read_paths():
         c.api("depth", {"symbol": "X"})
     assert len(calls) == 2 and all(u.startswith(cost_fetch.API) for u in calls)
     assert Path(cost_fetch.__file__).read_text(encoding="utf-8").count("apiKey") == 0
+
+
+def test_duplicate_identifiers_are_used_once_and_overwritten_windows_are_never_misattributed(tmp_path):
+    def sample(t):
+        return {"id": "dup", "class": "majors_usdt", "symbol": "BTCUSDT", "day": "2022-01-08", "kind": "intraday", "t_ms": t, "start_ms": t - 60_000,
+                "end_ms": t + 420_000, "split": "estimation", "sizes_quote": [5.0, 10.0, 30.0], "eur_to_quote": 1.0, "file_group": "g"}
+    a, b = sample(D0 * DAY + 3_600_000), sample(D0 * DAY + 7_200_000)
+    plan = {"samples": [a, b, dict(b)], "sizes_eur": [5.0, 10.0, 30.0], "sides": ["buy"], "latencies_ms": [1000, 5000, 30000],
+            "timeouts_ms": [30000]}
+    (tmp_path / "samples").mkdir()
+    body = {"sample": b, "checksum_ok": True, "zip_sha256": "cd" * 32, "rows": synthetic_rows("BTCUSDT", b["start_ms"], b["end_ms"], 3)}
+    (tmp_path / "samples" / "dup.json.gz").write_bytes(gzip.compress(json.dumps(body).encode()))  # seule la fenêtre de b a survécu
+    tapes, status = measure.load_samples(tmp_path, plan)
+    assert status["id_collision"] == 1 and status["duplicate_id"] == 1 and status["archived"] == 1
+    rows = measure.evaluate(plan, tapes, {}, venues.binance_spot_vip0())
+    assert {r["t"] for r in rows} == {b["t_ms"]} and len(rows) == 3  # b une seule fois (3 tailles), jamais a avec les données de b

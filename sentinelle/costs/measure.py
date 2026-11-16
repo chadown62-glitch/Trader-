@@ -40,14 +40,26 @@ def tape_from_rows(symbol: str, rows: list, sha: str) -> Tape:
 
 
 def load_samples(root: Path, plan: dict) -> tuple[dict, dict]:
-    """Échantillons archivés ; ceux dont la somme officielle ne concorde pas sont comptés, pas utilisés."""
-    tapes, status = {}, {"planned": len(plan["samples"]), "archived": 0, "checksum_failed": 0, "missing": 0, "empty": 0}
+    """Échantillons archivés ; ceux dont la somme officielle ne concorde pas sont comptés, pas utilisés.
+
+    Un identifiant présent deux fois dans le plan (même paire, même jour, tirée deux fois) n'est utilisé
+    qu'une fois ; si sa fenêtre archivée ne correspond pas à l'instant prévu (fenêtre écrasée par son
+    double), l'échantillon est écarté et compté (``id_collision``), jamais apparié à de mauvaises données.
+    """
+    tapes, status = {}, {"planned": len(plan["samples"]), "archived": 0, "checksum_failed": 0, "missing": 0, "empty": 0,
+                         "duplicate_id": 0, "id_collision": 0}
     for s in plan["samples"]:
+        if s["id"] in tapes:
+            status["duplicate_id"] += 1
+            continue
         path = Path(root) / "samples" / f"{s['id']}.json.gz"
         if not path.exists():
             status["missing"] += 1
             continue
         body = json.loads(gzip.decompress(path.read_bytes()))
+        if body.get("sample", {}).get("t_ms", s["t_ms"]) != s["t_ms"]:
+            status["id_collision"] += 1
+            continue
         if not body.get("checksum_ok"):
             status["checksum_failed"] += 1
             continue
@@ -61,11 +73,12 @@ def load_samples(root: Path, plan: dict) -> tuple[dict, dict]:
 def evaluate(plan: dict, tapes: dict, filters: dict[str, MarketFilters], fees: FeeSchedule) -> list[dict]:
     """Toutes les variantes d'exécution, pour chaque échantillon, taille et sens."""
     taker, maker = fees.rate(maker=False), fees.rate(maker=True)
-    rows = []
+    rows, done = [], set()
     for s in plan["samples"]:
         tape = tapes.get(s["id"])
-        if tape is None:
-            continue
+        if tape is None or s["id"] in done or not (len(tape) == 0 or tape.ts[0] >= s["start_ms"] and tape.ts[-1] < s["end_ms"]):
+            continue  # doublon d'identifiant, ou fenêtre qui n'est pas celle de cet échantillon
+        done.add(s["id"])
         f = filters.get(s["symbol"])
         tick = float(f.tick) if f else 0.0
         for k, size in enumerate(s["sizes_quote"]):
@@ -299,7 +312,7 @@ def probes(root: Path, filters: dict[str, MarketFilters], sizes_quote=(5.0, 10.0
     for sym, bs in books.items():
         summary[sym] = {"probes": len(bs), "half_spread_bps": describe([b["half_spread_bps"] for b in bs]),
                         "depth_quote_top": describe([b["depth_quote_top"] for b in bs]),
-                        "impact_bps": {s: describe([b["impact_bps"][str(s)] for b in bs]) for s in sizes_quote}}
+                        "impact_bps": {str(s): describe([b["impact_bps"][str(s)] for b in bs]) for s in sizes_quote}}
     err = {}
     for cls, es in errors.items():
         e = np.array([x["error_bps"] for x in es])

@@ -1,0 +1,3047 @@
+{
+ "kind": "cost-evidence-index",
+ "note": "réponses publiques archivées (empreinte SHA-256) ; les fichiers bruts restent hors dépôt",
+ "probes": [
+  {
+   "kind": "depth",
+   "symbol": "BTCEUR",
+   "round": 0,
+   "received_ms": 1794815668902,
+   "status": 200,
+   "sha256": "7f1ae53d7e6828b2d0d82230679d805fdc53351d6e75370f7002156f00cfeced",
+   "bytes": 6446
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCEUR",
+   "round": 0,
+   "received_ms": 1794815669111,
+   "status": 200,
+   "sha256": "f5fefc2868520118392a6aeb29344c34b4f8faa86fa3bf47ebc35d814679284a",
+   "bytes": 3312
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHEUR",
+   "round": 0,
+   "received_ms": 1794815669316,
+   "status": 200,
+   "sha256": "3143fbcfaf7a530451cdffe68e6454f2c4f6f7e3a847cba870a01e409fcf935d",
+   "bytes": 6248
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHEUR",
+   "round": 0,
+   "received_ms": 1794815669521,
+   "status": 200,
+   "sha256": "64381021556fc80b4733b0afc14399b44594fe47018d95da75d3e4f7dcb3c265",
+   "bytes": 825
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLEUR",
+   "round": 0,
+   "received_ms": 1794815669727,
+   "status": 200,
+   "sha256": "04732307ec7156f34ed14da8e1db4a52d9f3adcf8b8660acecc7de053a1e975b",
+   "bytes": 5879
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLEUR",
+   "round": 0,
+   "received_ms": 1794815669933,
+   "status": 200,
+   "sha256": "573079d714459bbdedde8deb2161b0725d3d1a31dfa724635fb233c8822a7128",
+   "bytes": 792
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCUSDT",
+   "round": 0,
+   "received_ms": 1794815670139,
+   "status": 200,
+   "sha256": "9a4aa0cef249e2d4f4eec2256587f186c6ab43745886446a2cf831573d8d602f",
+   "bytes": 6447
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCUSDT",
+   "round": 0,
+   "received_ms": 1794815670350,
+   "status": 200,
+   "sha256": "2a40309ed31cc178d1e8f120129cf564a0a3cda0724302dd5b6f5f957530bf79",
+   "bytes": 94240
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHUSDT",
+   "round": 0,
+   "received_ms": 1794815670555,
+   "status": 200,
+   "sha256": "f67cca43761945ac56656939fcb2f30caf2c671fda47e8d3b2a2780df88f7a54",
+   "bytes": 6294
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHUSDT",
+   "round": 0,
+   "received_ms": 1794815670765,
+   "status": 200,
+   "sha256": "534919b16a398d22ccb9dbdad3942b6b6957e99f51a8114f9620ceeee380d9d2",
+   "bytes": 66130
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLUSDT",
+   "round": 0,
+   "received_ms": 1794815670971,
+   "status": 200,
+   "sha256": "cca7070356d6d0bd8c18f46a283c2402d3df7fa590bf735893c9f6a9f9dc2cce",
+   "bytes": 6031
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLUSDT",
+   "round": 0,
+   "received_ms": 1794815671180,
+   "status": 200,
+   "sha256": "5a0eb646422de5168584069eb319cb8ebd53906847faaffa47d4598eed01cd9e",
+   "bytes": 14968
+  },
+  {
+   "kind": "depth",
+   "symbol": "EURUSDT",
+   "round": 0,
+   "received_ms": 1794815671387,
+   "status": 200,
+   "sha256": "e29f02e3b4bb44ffc40cffa2bb30191e5c78777638e20fa3833a4f6c32c2ae24",
+   "bytes": 5936
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "EURUSDT",
+   "round": 0,
+   "received_ms": 1794815671597,
+   "status": 200,
+   "sha256": "d9b868957389c07426b5281226e52524616bb7c213ce6655f4d23b1481b555d0",
+   "bytes": 5107
+  },
+  {
+   "kind": "depth",
+   "symbol": "BNBUSDT",
+   "round": 0,
+   "received_ms": 1794815671802,
+   "status": 200,
+   "sha256": "4637bfd42780d56db9be7b79863054e1e6aac8f0994ec4563b83bb6eb9b3a9ef",
+   "bytes": 6105
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BNBUSDT",
+   "round": 0,
+   "received_ms": 1794815672009,
+   "status": 200,
+   "sha256": "06c54dc43fabb87e35f310ce6c33b7b81db03fe6e81b06c452ea64f6d9dd6eb9",
+   "bytes": 31497
+  },
+  {
+   "kind": "depth",
+   "symbol": "XRPUSDT",
+   "round": 0,
+   "received_ms": 1794815672214,
+   "status": 200,
+   "sha256": "0b0da8f90d89e1d0ae09b3171e80af382fff46b71026c5cd6887c80c3ed9e1ec",
+   "bytes": 6127
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "XRPUSDT",
+   "round": 0,
+   "received_ms": 1794815672421,
+   "status": 200,
+   "sha256": "71f64aafb30e48618d536eec5054d92e96b63dd5d66a21679a46500a72c94653",
+   "bytes": 12652
+  },
+  {
+   "kind": "depth",
+   "symbol": "ADAUSDT",
+   "round": 0,
+   "received_ms": 1794815672633,
+   "status": 200,
+   "sha256": "e4f7b0dc6b6a306b8848828aa9079375095bc19bb059e24e8a49fcbd4b20f9f9",
+   "bytes": 6278
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ADAUSDT",
+   "round": 0,
+   "received_ms": 1794815672839,
+   "status": 200,
+   "sha256": "1756fd2f1e53d17e91712bad298c07cb7872a9cd24918b6d22aea19cb147806d",
+   "bytes": 1057
+  },
+  {
+   "kind": "depth",
+   "symbol": "TRXUSDT",
+   "round": 0,
+   "received_ms": 1794815673046,
+   "status": 200,
+   "sha256": "c8b034fe9e88670feb62a7fb028cf1b43efc9ce6b39612fe3a7423251c157828",
+   "bytes": 6190
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "TRXUSDT",
+   "round": 0,
+   "received_ms": 1794815673257,
+   "status": 200,
+   "sha256": "8b235f4ef52441402198bfe2e6e6ed810388069a00747044d75f5925bf6a3902",
+   "bytes": 10518
+  },
+  {
+   "kind": "depth",
+   "symbol": "DOGEUSDT",
+   "round": 0,
+   "received_ms": 1794815673462,
+   "status": 200,
+   "sha256": "5891cb876c0fe18762da9fb345c82eed986f53516c29381f614fb9c7930c9cae",
+   "bytes": 6286
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "DOGEUSDT",
+   "round": 0,
+   "received_ms": 1794815673667,
+   "status": 200,
+   "sha256": "effaf23e2acdb4f29e06536e2fd6ade367f5b5386084ae02f12675cc9d56460e",
+   "bytes": 4282
+  },
+  {
+   "kind": "depth",
+   "symbol": "SHIBUSDT",
+   "round": 0,
+   "received_ms": 1794815673876,
+   "status": 200,
+   "sha256": "a718a9ecf760350b1e8aef19fd8c21e9dcb7a04bc51fe399ac6433925566daa9",
+   "bytes": 6028
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SHIBUSDT",
+   "round": 0,
+   "received_ms": 1794815674083,
+   "status": 200,
+   "sha256": "afc9c25407d759ab8d36779cbbd886ab5eab27aab341f2d6e008263313c22c3a",
+   "bytes": 1997
+  },
+  {
+   "kind": "depth",
+   "symbol": "PEPEUSDT",
+   "round": 0,
+   "received_ms": 1794815674287,
+   "status": 200,
+   "sha256": "593da1eb541c6bf3fd059a6a39311992b9268f30946ffdb9ec247dca97da9f6c",
+   "bytes": 6239
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "PEPEUSDT",
+   "round": 0,
+   "received_ms": 1794815674496,
+   "status": 200,
+   "sha256": "78698c46bcf9bc77cf794051d47c6f8a6e26b4a0e0e100c1a619fb637fc95897",
+   "bytes": 4622
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCEUR",
+   "round": 1,
+   "received_ms": 1794815694701,
+   "status": 200,
+   "sha256": "290c3dfad27afff690623ff21b3c9d2b676fe382b422bd5d2b32828006f2f401",
+   "bytes": 6446
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCEUR",
+   "round": 1,
+   "received_ms": 1794815694906,
+   "status": 200,
+   "sha256": "916429f40a172b69d9a746264a4ec6dd227b0ed7fcedef51ba42657023ae898d",
+   "bytes": 2130
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHEUR",
+   "round": 1,
+   "received_ms": 1794815695112,
+   "status": 200,
+   "sha256": "7ccd2900c67bee9d7a37afd20f17f8e0e403be4b9c82c07095f1b028707d1d97",
+   "bytes": 6247
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHEUR",
+   "round": 1,
+   "received_ms": 1794815695317,
+   "status": 200,
+   "sha256": "94ead33e7f604d2e634ee653ff08399de17216b9e18e93ebd65e75d4e88c32be",
+   "bytes": 707
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLEUR",
+   "round": 1,
+   "received_ms": 1794815695522,
+   "status": 200,
+   "sha256": "d8f99a8925e184a37bea662a478343ad4c7b8b8ae24103a3c76e0d370390c397",
+   "bytes": 5882
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLEUR",
+   "round": 1,
+   "received_ms": 1794815695727,
+   "status": 200,
+   "sha256": "56df39cfc9e79e57df8a1c82c2e5f753b721de3d1177d96e811373a68fcdb5e9",
+   "bytes": 566
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCUSDT",
+   "round": 1,
+   "received_ms": 1794815695932,
+   "status": 200,
+   "sha256": "ca131dc6b80ecaea14d2d4b20c9fc12ea95775d6b86c3e63e6814ffe3363c5c6",
+   "bytes": 6448
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCUSDT",
+   "round": 1,
+   "received_ms": 1794815696143,
+   "status": 200,
+   "sha256": "024c8309d4bf4a4c3f4e70d578ce64e92394e9d0ab668417be61701a530a237b",
+   "bytes": 75459
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHUSDT",
+   "round": 1,
+   "received_ms": 1794815696348,
+   "status": 200,
+   "sha256": "dd2d2b0597be18ad8754889997d522debf726be78c71fdaf8a2c8f5b0e707c08",
+   "bytes": 6291
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHUSDT",
+   "round": 1,
+   "received_ms": 1794815696556,
+   "status": 200,
+   "sha256": "0008e645c91d5be5273d96807e70a9b3e1a9d718f509ba2e4efaa756aef3e899",
+   "bytes": 54409
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLUSDT",
+   "round": 1,
+   "received_ms": 1794815696762,
+   "status": 200,
+   "sha256": "a168b6eac8d021596e8a3f992b620540bb925bf03dad618455f41f9481dddc85",
+   "bytes": 6034
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLUSDT",
+   "round": 1,
+   "received_ms": 1794815696968,
+   "status": 200,
+   "sha256": "8aa7d00326b70a2af0cfc7b1d11e1f2a7081fb3b316e04c904f677a7052e8cea",
+   "bytes": 14249
+  },
+  {
+   "kind": "depth",
+   "symbol": "EURUSDT",
+   "round": 1,
+   "received_ms": 1794815697173,
+   "status": 200,
+   "sha256": "4a1c8dd2ef7f35e89d34f3ffde5554bff0d3d2bf9622c21208435576659251de",
+   "bytes": 5937
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "EURUSDT",
+   "round": 1,
+   "received_ms": 1794815697381,
+   "status": 200,
+   "sha256": "645bba1b8129bf8b59040cdf5b3f282a7ab85a85898c9d77e2a0f73c86e323f0",
+   "bytes": 4763
+  },
+  {
+   "kind": "depth",
+   "symbol": "BNBUSDT",
+   "round": 1,
+   "received_ms": 1794815697585,
+   "status": 200,
+   "sha256": "5c31bcc32fe95efe6eadd2338593ddbdee4cdcb46fb7a13c90650d74739ce38b",
+   "bytes": 6110
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BNBUSDT",
+   "round": 1,
+   "received_ms": 1794815697792,
+   "status": 200,
+   "sha256": "10c64490789401535f92f273ebaa854e980ec8ce2ad34ce9ea0221f7bf957b3f",
+   "bytes": 20068
+  },
+  {
+   "kind": "depth",
+   "symbol": "XRPUSDT",
+   "round": 1,
+   "received_ms": 1794815697997,
+   "status": 200,
+   "sha256": "aa1365c564144fca7858f6f2f5f9141a2f6ace182d1571a72b7b1ccba0b35340",
+   "bytes": 6128
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "XRPUSDT",
+   "round": 1,
+   "received_ms": 1794815698207,
+   "status": 200,
+   "sha256": "ed443ab242440c7d542e20673a971d6815c0b5f43929b5b6e3dbf63f66102245",
+   "bytes": 11462
+  },
+  {
+   "kind": "depth",
+   "symbol": "ADAUSDT",
+   "round": 1,
+   "received_ms": 1794815698413,
+   "status": 200,
+   "sha256": "6dbb3ce4182707c60333e8de47c535529cee0d0fa1c48bc0208dabc0e1f59889",
+   "bytes": 6275
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ADAUSDT",
+   "round": 1,
+   "received_ms": 1794815698618,
+   "status": 200,
+   "sha256": "01c437f88588f1a75ea08f34e1a30382b910fc87a8bd295a9ce4f5707da85f73",
+   "bytes": 1291
+  },
+  {
+   "kind": "depth",
+   "symbol": "TRXUSDT",
+   "round": 1,
+   "received_ms": 1794815698833,
+   "status": 200,
+   "sha256": "fd7596d8763a65e6a16c299b8dabf5d843d6bc61330c465196215d4031846eb2",
+   "bytes": 6190
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "TRXUSDT",
+   "round": 1,
+   "received_ms": 1794815699039,
+   "status": 200,
+   "sha256": "d69f6f789bed1a1fb0efe87feade7eb2107cc42a38526f9fe58a2d7de5e0acf3",
+   "bytes": 9109
+  },
+  {
+   "kind": "depth",
+   "symbol": "DOGEUSDT",
+   "round": 1,
+   "received_ms": 1794815699243,
+   "status": 200,
+   "sha256": "9bcd4229ed68190478799f72435cb05d6613a42002a08f7150f56f2212c2cecf",
+   "bytes": 6281
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "DOGEUSDT",
+   "round": 1,
+   "received_ms": 1794815699450,
+   "status": 200,
+   "sha256": "d3c97b6148e13cb308a560205bdcf33fe26ca6311dfcd741d1bbdf248dfc3cf9",
+   "bytes": 4874
+  },
+  {
+   "kind": "depth",
+   "symbol": "SHIBUSDT",
+   "round": 1,
+   "received_ms": 1794815699656,
+   "status": 200,
+   "sha256": "2fb8e09f9a7ebd4acd29570504733e1da7c2e6d7451085d5450dbac0a7d58666",
+   "bytes": 6028
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SHIBUSDT",
+   "round": 1,
+   "received_ms": 1794815699862,
+   "status": 200,
+   "sha256": "ca3af49785f06f716d8eb213b9f04d302dbbbca643d71d6c8223a227b0240e40",
+   "bytes": 1399
+  },
+  {
+   "kind": "depth",
+   "symbol": "PEPEUSDT",
+   "round": 1,
+   "received_ms": 1794815700068,
+   "status": 200,
+   "sha256": "024fd344da4a18ca9fafa2a8e671e2dcca28bad1157bec259357aa90eca8562a",
+   "bytes": 6239
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "PEPEUSDT",
+   "round": 1,
+   "received_ms": 1794815700273,
+   "status": 200,
+   "sha256": "d5fca903b3b7ec68cefe0e2f060779e04cb72e86b91c71cdd07df27d65abb2f8",
+   "bytes": 4625
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCEUR",
+   "round": 2,
+   "received_ms": 1794815720478,
+   "status": 200,
+   "sha256": "c173ef4e1076e5d787a1c0b13f6eb987d733b943982e4f074aa9b5029b1dc438",
+   "bytes": 6446
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCEUR",
+   "round": 2,
+   "received_ms": 1794815720685,
+   "status": 200,
+   "sha256": "08d505caf54a880966534e980f6cacc46ad14ff38feacaa4a9516bf597539b3a",
+   "bytes": 2965
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHEUR",
+   "round": 2,
+   "received_ms": 1794815720924,
+   "status": 200,
+   "sha256": "62ba6a22f25c3712bd39f5ea99516c1a5dc90e34d88b0a8071a28758c50a23f1",
+   "bytes": 6247
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHEUR",
+   "round": 2,
+   "received_ms": 1794815721130,
+   "status": 200,
+   "sha256": "a23ae65ff0c3b720f49af25b10bdc3217e44ccc97b3fada8ea527bc9706cb771",
+   "bytes": 237
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLEUR",
+   "round": 2,
+   "received_ms": 1794815721335,
+   "status": 200,
+   "sha256": "54a27e7e19055a93c6974a30c53c303fb4df2b1497ef28882653dd58a1a9b9f5",
+   "bytes": 5880
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLEUR",
+   "round": 2,
+   "received_ms": 1794815721540,
+   "status": 200,
+   "sha256": "852421d42bf67e8bd252e6f8605a22a1ae62681e79d63d50301ed37727e99b12",
+   "bytes": 792
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCUSDT",
+   "round": 2,
+   "received_ms": 1794815721744,
+   "status": 200,
+   "sha256": "8b76106d4cae0052ee48b8b493ec436fc12ffc75310800a18ebaae35d101cefa",
+   "bytes": 6447
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCUSDT",
+   "round": 2,
+   "received_ms": 1794815721956,
+   "status": 200,
+   "sha256": "9c611fcabe0ff8d6bd31b46f248f6ebc51846008e70a2acc347525dcdb110e67",
+   "bytes": 96685
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHUSDT",
+   "round": 2,
+   "received_ms": 1794815722163,
+   "status": 200,
+   "sha256": "1fc7cf6d363efdb115f2c4311300f87e4a4a873eef4a35f25b8e29569c620571",
+   "bytes": 6291
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHUSDT",
+   "round": 2,
+   "received_ms": 1794815722372,
+   "status": 200,
+   "sha256": "c6ebbc1405f2418f8837bc3bf58326869daec0bac08653d76001cf4d8dfc78c5",
+   "bytes": 56948
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLUSDT",
+   "round": 2,
+   "received_ms": 1794815722577,
+   "status": 200,
+   "sha256": "e1430eece3f39eee8817c8188aeea64485ec2c4257ebe309eafee90793773520",
+   "bytes": 6032
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLUSDT",
+   "round": 2,
+   "received_ms": 1794815722784,
+   "status": 200,
+   "sha256": "b4d0749562fa5b24b4c59c8040624fa2564b7a988bdf9dda2960b3be18abdf93",
+   "bytes": 13890
+  },
+  {
+   "kind": "depth",
+   "symbol": "EURUSDT",
+   "round": 2,
+   "received_ms": 1794815722989,
+   "status": 200,
+   "sha256": "81c0d678b224f37895ae134159beb0ed69478f129901c17a064aef604e44ac49",
+   "bytes": 5938
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "EURUSDT",
+   "round": 2,
+   "received_ms": 1794815723194,
+   "status": 200,
+   "sha256": "2093f353dbab008dab618cbb9d5648cecb921bcd6e1d85b79b4e00fa2986c2d9",
+   "bytes": 5462
+  },
+  {
+   "kind": "depth",
+   "symbol": "BNBUSDT",
+   "round": 2,
+   "received_ms": 1794815723415,
+   "status": 200,
+   "sha256": "37db2c2c6a63edb67b1ad173bc148cc3c71e7a8162ec15c0b5f13df9282c2414",
+   "bytes": 6099
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BNBUSDT",
+   "round": 2,
+   "received_ms": 1794815723621,
+   "status": 200,
+   "sha256": "93bdb4b1d25632486c0bdfa42df150f9a8559d52a11199794ab65c79d05405bd",
+   "bytes": 32434
+  },
+  {
+   "kind": "depth",
+   "symbol": "XRPUSDT",
+   "round": 2,
+   "received_ms": 1794815723826,
+   "status": 200,
+   "sha256": "301cb3a7655440f2cff7cf5766aa25aeb02610d53db9f42c42560838d17f8ef4",
+   "bytes": 6129
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "XRPUSDT",
+   "round": 2,
+   "received_ms": 1794815724032,
+   "status": 200,
+   "sha256": "3937770fc744fdfc6f5d11a9bb347df9cc2930eeff99a6426b7352c6568e6b31",
+   "bytes": 12537
+  },
+  {
+   "kind": "depth",
+   "symbol": "ADAUSDT",
+   "round": 2,
+   "received_ms": 1794815724238,
+   "status": 200,
+   "sha256": "2452d8db2b1a26a807ce04f1efd4fe952fc9991582c8ae8e03a57c7be517a2dc",
+   "bytes": 6277
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ADAUSDT",
+   "round": 2,
+   "received_ms": 1794815724443,
+   "status": 200,
+   "sha256": "c94fcfec24f176114f57348b9000cedf2888e4880ffaa0d0e758a524d7aa404d",
+   "bytes": 819
+  },
+  {
+   "kind": "depth",
+   "symbol": "TRXUSDT",
+   "round": 2,
+   "received_ms": 1794815724648,
+   "status": 200,
+   "sha256": "88c9a426492ca1cdc6785b54c84d861d9434cc6b1a0c3af277f0ceadd7e72ed5",
+   "bytes": 6190
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "TRXUSDT",
+   "round": 2,
+   "received_ms": 1794815724855,
+   "status": 200,
+   "sha256": "a64b0bf39e7066b922f1bda7daa773a5968d175ea2719554576af33a6ce0621b",
+   "bytes": 6178
+  },
+  {
+   "kind": "depth",
+   "symbol": "DOGEUSDT",
+   "round": 2,
+   "received_ms": 1794815725060,
+   "status": 200,
+   "sha256": "a3163c0bf7926487cd34d7e7ae9be86f4fd1714235475d22b066d64fcb70d03e",
+   "bytes": 6285
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "DOGEUSDT",
+   "round": 2,
+   "received_ms": 1794815725267,
+   "status": 200,
+   "sha256": "ab3afce3156e3d211a8f0176f8f99c1a0f7c66a1a29e7027bea2647ef2744523",
+   "bytes": 4163
+  },
+  {
+   "kind": "depth",
+   "symbol": "SHIBUSDT",
+   "round": 2,
+   "received_ms": 1794815725471,
+   "status": 200,
+   "sha256": "a19db2d7680d06c27569d6806b3190e20dc23a3a66ca3df48b80f1b176d376a2",
+   "bytes": 6028
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SHIBUSDT",
+   "round": 2,
+   "received_ms": 1794815725679,
+   "status": 200,
+   "sha256": "a80200752dcd35d7eff96580f0ed6d2746ed6e5bdb69bc8f86a462b933d2ec44",
+   "bytes": 1283
+  },
+  {
+   "kind": "depth",
+   "symbol": "PEPEUSDT",
+   "round": 2,
+   "received_ms": 1794815725883,
+   "status": 200,
+   "sha256": "9cd50a0455fc56a03d693ad297489ccdc96863bcccdacf37b7939c2a030c3873",
+   "bytes": 6238
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "PEPEUSDT",
+   "round": 2,
+   "received_ms": 1794815726090,
+   "status": 200,
+   "sha256": "58ca1f101fd9b4b03f7b720a86f85d2fa4310aeea99d6120950f06cf763dc92c",
+   "bytes": 4632
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCEUR",
+   "round": 3,
+   "received_ms": 1794815746295,
+   "status": 200,
+   "sha256": "38039c4cc6b85a76b1b92b84dcc09ab84a86d4112994c6fe5e383b06f8287df6",
+   "bytes": 6446
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCEUR",
+   "round": 3,
+   "received_ms": 1794815746501,
+   "status": 200,
+   "sha256": "93466082dc20012fc31463ba116d6c2e9b42d6a2076a7c17284765b8da98b503",
+   "bytes": 5335
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHEUR",
+   "round": 3,
+   "received_ms": 1794815746705,
+   "status": 200,
+   "sha256": "46decbf7cf3f2a6b0c93620f7cde07ab41d840608ff2d2400b4acfa8665912a8",
+   "bytes": 6247
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHEUR",
+   "round": 3,
+   "received_ms": 1794815746911,
+   "status": 200,
+   "sha256": "9863b4d4868d5660e8aa792281313cf6d5bb2018caf3c9db3df809aaf081cae5",
+   "bytes": 1176
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLEUR",
+   "round": 3,
+   "received_ms": 1794815747116,
+   "status": 200,
+   "sha256": "175da47d58f708f89da158889ddc97aae1ac97f52fa24cd5ff142f75237919f0",
+   "bytes": 5882
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLEUR",
+   "round": 3,
+   "received_ms": 1794815747321,
+   "status": 200,
+   "sha256": "ef3b85cde0584e9a0e52a35ea41f8ed480448a8afe2d01441d0c030f50c900fb",
+   "bytes": 905
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCUSDT",
+   "round": 3,
+   "received_ms": 1794815747527,
+   "status": 200,
+   "sha256": "69d7360fd1ec325d1ade4352b007332b5083a96ac8043cec00f352292169298f",
+   "bytes": 6447
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCUSDT",
+   "round": 3,
+   "received_ms": 1794815747740,
+   "status": 200,
+   "sha256": "931bc0b72791c9923ac93b0df3102856709cbf1bff70ec0b34757bdafeaf3315",
+   "bytes": 121691
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHUSDT",
+   "round": 3,
+   "received_ms": 1794815747945,
+   "status": 200,
+   "sha256": "b6334ddc048e9ce7c769b4bf1a90b2e4fb8580374b945503940340a9d70463a1",
+   "bytes": 6294
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHUSDT",
+   "round": 3,
+   "received_ms": 1794815748154,
+   "status": 200,
+   "sha256": "2e2509f2f0d7104f79e40db9917a27e638b6532295e521b6d2ab108eed1a811f",
+   "bytes": 64415
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLUSDT",
+   "round": 3,
+   "received_ms": 1794815748358,
+   "status": 200,
+   "sha256": "6e6cd2d28acf5b233cd736c4e668778b32b536d76fe019feaea0a5f4eff16e40",
+   "bytes": 6034
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLUSDT",
+   "round": 3,
+   "received_ms": 1794815748567,
+   "status": 200,
+   "sha256": "5b82bedaaa03c0ab7a3d7c1c9bb75dc1940e48ee4091d5fadabb29cb3cd56a33",
+   "bytes": 16226
+  },
+  {
+   "kind": "depth",
+   "symbol": "EURUSDT",
+   "round": 3,
+   "received_ms": 1794815748772,
+   "status": 200,
+   "sha256": "0aa998acfba4b79f16f1eafa32fdb6f63d7506de8cd0070dab4e8dd6e248abb0",
+   "bytes": 5937
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "EURUSDT",
+   "round": 3,
+   "received_ms": 1794815748978,
+   "status": 200,
+   "sha256": "69df6b4a039aac0c944ab92e54457f341d4453bc1ac403f8cbf976c246c7a70c",
+   "bytes": 4768
+  },
+  {
+   "kind": "depth",
+   "symbol": "BNBUSDT",
+   "round": 3,
+   "received_ms": 1794815749183,
+   "status": 200,
+   "sha256": "a250c4f2d310ad50e59e0629362512c1e132b59ce1e7239b57f320636999eeb6",
+   "bytes": 6107
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BNBUSDT",
+   "round": 3,
+   "received_ms": 1794815749390,
+   "status": 200,
+   "sha256": "c8683522c5496981ea58856f6351de7c1e75ec7fe37c8fd8f90892da70b904ea",
+   "bytes": 32673
+  },
+  {
+   "kind": "depth",
+   "symbol": "XRPUSDT",
+   "round": 3,
+   "received_ms": 1794815749607,
+   "status": 200,
+   "sha256": "047b4d40aedc71842e738ab6a68fdb30197909531a3896fc242f7939846029d2",
+   "bytes": 6147
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "XRPUSDT",
+   "round": 3,
+   "received_ms": 1794815749816,
+   "status": 200,
+   "sha256": "493667e03d803cd339902f89f7d61f932d4946d6e299e8a7cf048a987296568b",
+   "bytes": 10767
+  },
+  {
+   "kind": "depth",
+   "symbol": "ADAUSDT",
+   "round": 3,
+   "received_ms": 1794815750022,
+   "status": 200,
+   "sha256": "072fafeb3c1ae0bab13273524f804ed30f3ee4a2ff6feaca67fa1b1b90eb0675",
+   "bytes": 6281
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ADAUSDT",
+   "round": 3,
+   "received_ms": 1794815750227,
+   "status": 200,
+   "sha256": "60c3b2e306430afa55f0b2820d535797629fe7cbd0cadbc5478ab3db39479e66",
+   "bytes": 1398
+  },
+  {
+   "kind": "depth",
+   "symbol": "TRXUSDT",
+   "round": 3,
+   "received_ms": 1794815750436,
+   "status": 200,
+   "sha256": "57560b1aae3dd422d29343a9ad37a7bd0b3fb88d3b68f7cb5cfc79975158e02b",
+   "bytes": 6190
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "TRXUSDT",
+   "round": 3,
+   "received_ms": 1794815750641,
+   "status": 200,
+   "sha256": "eed9b047dba23a6725a247e8bd9af305cd3cc4dcb02d57493fe2b0ab9fff29ff",
+   "bytes": 5240
+  },
+  {
+   "kind": "depth",
+   "symbol": "DOGEUSDT",
+   "round": 3,
+   "received_ms": 1794815750846,
+   "status": 200,
+   "sha256": "1031258bacf7714131c31f713a543e65b434d5244e272d045efd2c3137172032",
+   "bytes": 6304
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "DOGEUSDT",
+   "round": 3,
+   "received_ms": 1794815751052,
+   "status": 200,
+   "sha256": "20a6c2abaa5089bbc4edfb218169fa8202144829d877d17d52f769fad538d415",
+   "bytes": 4519
+  },
+  {
+   "kind": "depth",
+   "symbol": "SHIBUSDT",
+   "round": 3,
+   "received_ms": 1794815751256,
+   "status": 200,
+   "sha256": "ba41ae3faeafa06b3069f41b5770b7a9e7e1cc763dbd88f0487b53231104a03c",
+   "bytes": 6028
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SHIBUSDT",
+   "round": 3,
+   "received_ms": 1794815751466,
+   "status": 200,
+   "sha256": "93e3bddaa2587c1e7688246e39dfeef92195ee93898441a6b3cde7e03b9989fe",
+   "bytes": 1402
+  },
+  {
+   "kind": "depth",
+   "symbol": "PEPEUSDT",
+   "round": 3,
+   "received_ms": 1794815751671,
+   "status": 200,
+   "sha256": "d6eb6dc6b9b9e574362546b472f09a2bdef9a14c6c382d15f131c09f7fd5f836",
+   "bytes": 6238
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "PEPEUSDT",
+   "round": 3,
+   "received_ms": 1794815751879,
+   "status": 200,
+   "sha256": "147513f7a8dce2f3dd66e5bad1f4bc98810fef8e2b57478784d6cc2beb8f240f",
+   "bytes": 4632
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCEUR",
+   "round": 4,
+   "received_ms": 1794815772106,
+   "status": 200,
+   "sha256": "80bcc70cc83ca5b8d641b41682afda4049a3b2a0aa4ee31e2eb79a3034b101e1",
+   "bytes": 6446
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCEUR",
+   "round": 4,
+   "received_ms": 1794815772314,
+   "status": 200,
+   "sha256": "73dd0c086c2d7207a92d2476410a66159898ade88f7463902431945894cb5f18",
+   "bytes": 4863
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHEUR",
+   "round": 4,
+   "received_ms": 1794815772526,
+   "status": 200,
+   "sha256": "d874f9fd448888c21f153da13e0965e52401a699a1d6b2b40d0b556855a5931c",
+   "bytes": 6250
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHEUR",
+   "round": 4,
+   "received_ms": 1794815772735,
+   "status": 200,
+   "sha256": "80684ca994a5fa336580ba83f7cb3a690b95e7cc1d6a08247c50491221931d09",
+   "bytes": 1879
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLEUR",
+   "round": 4,
+   "received_ms": 1794815772940,
+   "status": 200,
+   "sha256": "1c1a104f048f543ccbd42774b4b3a92dc45b48a1ab36dc21ef6411bc665d4b75",
+   "bytes": 5882
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLEUR",
+   "round": 4,
+   "received_ms": 1794815773148,
+   "status": 200,
+   "sha256": "0c64fe2ba992ce075a6c0bfc873ccb138140fcae13c47ea22a89b1e97117925a",
+   "bytes": 792
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCUSDT",
+   "round": 4,
+   "received_ms": 1794815773357,
+   "status": 200,
+   "sha256": "0399af62d46631155d6c8cf2611a44fde756240b4115547b96a4475786238d6b",
+   "bytes": 6448
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCUSDT",
+   "round": 4,
+   "received_ms": 1794815773573,
+   "status": 200,
+   "sha256": "3a9d82b63655ca970837a1fb50887003affc6acc5e1bed2a277e45057127fd74",
+   "bytes": 121694
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHUSDT",
+   "round": 4,
+   "received_ms": 1794815773779,
+   "status": 200,
+   "sha256": "4016956e05c2daa4a29f7b2c85b19718fbcc05ba43c7cf11d494349e9420a3fe",
+   "bytes": 6292
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHUSDT",
+   "round": 4,
+   "received_ms": 1794815773990,
+   "status": 200,
+   "sha256": "b09fcf9f5ea2af93b60e281f8f4eb8ab10521c394a2e3e27b353d296290b3ec6",
+   "bytes": 67669
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLUSDT",
+   "round": 4,
+   "received_ms": 1794815774194,
+   "status": 200,
+   "sha256": "a1bb2504f9ab973b7e06f913a721b88e1b1f58f74cc1bb1990ac77232def96f3",
+   "bytes": 6035
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLUSDT",
+   "round": 4,
+   "received_ms": 1794815774401,
+   "status": 200,
+   "sha256": "2027b7e42d3a941709bdd6514d76972216644cd720cbdec1fc4f765321025cf0",
+   "bytes": 19606
+  },
+  {
+   "kind": "depth",
+   "symbol": "EURUSDT",
+   "round": 4,
+   "received_ms": 1794815774606,
+   "status": 200,
+   "sha256": "d99738736c6522af4618841fc3a8f601755eda33ba375478564fb7f0bf92a10d",
+   "bytes": 5936
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "EURUSDT",
+   "round": 4,
+   "received_ms": 1794815774812,
+   "status": 200,
+   "sha256": "f22c4bffc33847ce090e12d833e9e23f0e4d3d41ae66cd9befa50e4d34b97045",
+   "bytes": 4880
+  },
+  {
+   "kind": "depth",
+   "symbol": "BNBUSDT",
+   "round": 4,
+   "received_ms": 1794815775020,
+   "status": 200,
+   "sha256": "b8feac7c5ba6c5fc35c87d8e1e8b1fe45e8bca2415b82874fb9e32c65e85a77c",
+   "bytes": 6104
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BNBUSDT",
+   "round": 4,
+   "received_ms": 1794815775229,
+   "status": 200,
+   "sha256": "725f48c6cbb660b543abfb1a3cc3479c467d11e774b116897103c11f3174efee",
+   "bytes": 35393
+  },
+  {
+   "kind": "depth",
+   "symbol": "XRPUSDT",
+   "round": 4,
+   "received_ms": 1794815775435,
+   "status": 200,
+   "sha256": "b144939762c1d06a762563c8315b76995219452f2d9f4c925307c1786cb7fafc",
+   "bytes": 6126
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "XRPUSDT",
+   "round": 4,
+   "received_ms": 1794815775642,
+   "status": 200,
+   "sha256": "b7a47611dabf79db4af786c827fd4b285323d38c37a1ad9a19c7232c8252975f",
+   "bytes": 13466
+  },
+  {
+   "kind": "depth",
+   "symbol": "ADAUSDT",
+   "round": 4,
+   "received_ms": 1794815775851,
+   "status": 200,
+   "sha256": "bb7cace8e2b905a94e8959e120dd1b610e37b6bb0294817f6c69296ed54296cc",
+   "bytes": 6277
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ADAUSDT",
+   "round": 4,
+   "received_ms": 1794815776057,
+   "status": 200,
+   "sha256": "a54c63d6024cd13a46de4c1bbf7f2a43d23a605d96ea3223b75efa557b991a91",
+   "bytes": 1982
+  },
+  {
+   "kind": "depth",
+   "symbol": "TRXUSDT",
+   "round": 4,
+   "received_ms": 1794815776262,
+   "status": 200,
+   "sha256": "4f6c3eb06c6249e1ed3fab102be7cd944cd3d5a6dd93f8d63bf937dca1fef324",
+   "bytes": 6190
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "TRXUSDT",
+   "round": 4,
+   "received_ms": 1794815776469,
+   "status": 200,
+   "sha256": "591fc61d8939a64361a688ed35fd69cf534c2dd88ac0a8da5923ff70a9a68462",
+   "bytes": 5006
+  },
+  {
+   "kind": "depth",
+   "symbol": "DOGEUSDT",
+   "round": 4,
+   "received_ms": 1794815776686,
+   "status": 200,
+   "sha256": "17c695d53c5525430101cec6d41a35a4a00e2342c6e67f4a2ce3ddd9117d663e",
+   "bytes": 6298
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "DOGEUSDT",
+   "round": 4,
+   "received_ms": 1794815776893,
+   "status": 200,
+   "sha256": "6d7de764f5e318bb80fe1aeeb1ec7c37b37d8a778b3740b6415c1835fd90ed1c",
+   "bytes": 4989
+  },
+  {
+   "kind": "depth",
+   "symbol": "SHIBUSDT",
+   "round": 4,
+   "received_ms": 1794815777099,
+   "status": 200,
+   "sha256": "0b8774f60719e89492f2267a847c4ae3a06b78e45003b5c71e4c641991e7f8e2",
+   "bytes": 6028
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SHIBUSDT",
+   "round": 4,
+   "received_ms": 1794815777304,
+   "status": 200,
+   "sha256": "2fee4bd128a9e46aae9dae4580dfbc81372f29f2c475f1b9b8bc9ad53a018376",
+   "bytes": 1288
+  },
+  {
+   "kind": "depth",
+   "symbol": "PEPEUSDT",
+   "round": 4,
+   "received_ms": 1794815777509,
+   "status": 200,
+   "sha256": "29a80415b84e42752edbff1427e6526f29fb231388a7f7f43d7f931aefb18bdc",
+   "bytes": 6238
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "PEPEUSDT",
+   "round": 4,
+   "received_ms": 1794815777718,
+   "status": 200,
+   "sha256": "62b10adaf0b4987528501779f5d8121ea647c10036d38849d00c1b665fb56a71",
+   "bytes": 4050
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCEUR",
+   "round": 5,
+   "received_ms": 1794815797940,
+   "status": 200,
+   "sha256": "859a6e3bdb5ab976e26934407351626b39fef174af8a1a227638475b99a9b5bb",
+   "bytes": 6446
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCEUR",
+   "round": 5,
+   "received_ms": 1794815798146,
+   "status": 200,
+   "sha256": "f02668a62a194220be3216d17336337ce9d3e01d17db59cf34de54ea897cac17",
+   "bytes": 5924
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHEUR",
+   "round": 5,
+   "received_ms": 1794815798352,
+   "status": 200,
+   "sha256": "3d7e534dba839248707db0023c8c52d039de9ba5b6cbd69f1b7b4f4ad027dd09",
+   "bytes": 6249
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHEUR",
+   "round": 5,
+   "received_ms": 1794815798558,
+   "status": 200,
+   "sha256": "0a70841f780cc0a46c4d4d599f92158783fa3cfbebe0dea23e7a3860e6891689",
+   "bytes": 1761
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLEUR",
+   "round": 5,
+   "received_ms": 1794815798763,
+   "status": 200,
+   "sha256": "c73785e31ec3649509000cb57236aa1a9b512b40771c7ced89f55a1bf736dd6f",
+   "bytes": 5883
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLEUR",
+   "round": 5,
+   "received_ms": 1794815798971,
+   "status": 200,
+   "sha256": "39bd635ca97294847e3057526c92328615bca5328f737e9bce34f29278d0a545",
+   "bytes": 677
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCUSDT",
+   "round": 5,
+   "received_ms": 1794815799181,
+   "status": 200,
+   "sha256": "d0da48d8488cf131912d95d1561bddc2390cbe7750cee6513b1dc7be2ae0b795",
+   "bytes": 6447
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCUSDT",
+   "round": 5,
+   "received_ms": 1794815799393,
+   "status": 200,
+   "sha256": "068960f69465be9e989076b6f5a67a37291eca0d50268421ebca77b621775c63",
+   "bytes": 121682
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHUSDT",
+   "round": 5,
+   "received_ms": 1794815799599,
+   "status": 200,
+   "sha256": "eb9e62896a47655dcc86e8f3af3a7ed1150a8b41ccee36c65c3fd21dfd355f24",
+   "bytes": 6293
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHUSDT",
+   "round": 5,
+   "received_ms": 1794815799809,
+   "status": 200,
+   "sha256": "c4296a2c92df14807a0ed4b9678d92bbdb045c3427f9114f96a798befe66a8c6",
+   "bytes": 68373
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLUSDT",
+   "round": 5,
+   "received_ms": 1794815800014,
+   "status": 200,
+   "sha256": "31462b3b96b68e08ebd1b711ba20b7eb9ad346f8be73e7da6ad7d05759a93507",
+   "bytes": 6034
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLUSDT",
+   "round": 5,
+   "received_ms": 1794815800222,
+   "status": 200,
+   "sha256": "cd547095982806ecc045275e3c2590595412ee01ed28c8b84ec954ba8d43a153",
+   "bytes": 17724
+  },
+  {
+   "kind": "depth",
+   "symbol": "EURUSDT",
+   "round": 5,
+   "received_ms": 1794815800429,
+   "status": 200,
+   "sha256": "9484774aca860b08073a7a67a63e5656353bc43360027b12e57ca7aefa2ad1ec",
+   "bytes": 5940
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "EURUSDT",
+   "round": 5,
+   "received_ms": 1794815800635,
+   "status": 200,
+   "sha256": "bb6bd9f490830ecc2e4adce64d6937b8def035c8e161370763e78e7676386e33",
+   "bytes": 4879
+  },
+  {
+   "kind": "depth",
+   "symbol": "BNBUSDT",
+   "round": 5,
+   "received_ms": 1794815800842,
+   "status": 200,
+   "sha256": "dacf8f3e807da92ef138848788a7b9d993221fb1ac11f62b3904e4fc800693b6",
+   "bytes": 6107
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BNBUSDT",
+   "round": 5,
+   "received_ms": 1794815801050,
+   "status": 200,
+   "sha256": "ffec43b1eb496ea3071b42c6486034b788bf9c6d07986d5f4d0bcf8a4dddf80a",
+   "bytes": 32186
+  },
+  {
+   "kind": "depth",
+   "symbol": "XRPUSDT",
+   "round": 5,
+   "received_ms": 1794815801260,
+   "status": 200,
+   "sha256": "3bc0f2ac484456df6eb6e7be6ea3b7ed0930dae156c458a53eff9785334fdd8d",
+   "bytes": 6139
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "XRPUSDT",
+   "round": 5,
+   "received_ms": 1794815801469,
+   "status": 200,
+   "sha256": "2f9130c54878413ca6eaf3a4c9acad2dfd8a0f8dd52f09d872cbd7ccbae1226b",
+   "bytes": 14640
+  },
+  {
+   "kind": "depth",
+   "symbol": "ADAUSDT",
+   "round": 5,
+   "received_ms": 1794815801682,
+   "status": 200,
+   "sha256": "7d16606ec147a3cba35b55de22b4b561711a0a1ae79cd3ef5e7618aa0a45652b",
+   "bytes": 6279
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ADAUSDT",
+   "round": 5,
+   "received_ms": 1794815801888,
+   "status": 200,
+   "sha256": "0a7f1168111c5ca2a08f1120c5dd799a52fede8a8c3de02dfb151d5d04391475",
+   "bytes": 2097
+  },
+  {
+   "kind": "depth",
+   "symbol": "TRXUSDT",
+   "round": 5,
+   "received_ms": 1794815802094,
+   "status": 200,
+   "sha256": "16d80cb1259396f1075b514920601412a86055459ac27ca19c5962f64cbd3bdd",
+   "bytes": 6191
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "TRXUSDT",
+   "round": 5,
+   "received_ms": 1794815802301,
+   "status": 200,
+   "sha256": "5db8d358bc0dc580a9f0a994da841298b6b07b6ff6508fcd594241dab11b3617",
+   "bytes": 4892
+  },
+  {
+   "kind": "depth",
+   "symbol": "DOGEUSDT",
+   "round": 5,
+   "received_ms": 1794815802507,
+   "status": 200,
+   "sha256": "acf202c0a20d422057e27472e8f35d263f56654d8cc14ef6c18a484733c72b46",
+   "bytes": 6297
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "DOGEUSDT",
+   "round": 5,
+   "received_ms": 1794815802713,
+   "status": 200,
+   "sha256": "9d7a373faa8a38ebe0fcadc808b2c58dc8dba2cc4b860d02d20484cbeb5b71f4",
+   "bytes": 5465
+  },
+  {
+   "kind": "depth",
+   "symbol": "SHIBUSDT",
+   "round": 5,
+   "received_ms": 1794815802939,
+   "status": 200,
+   "sha256": "806bb726d5a29fb5c6375eabea78ef5a16f03f7eda9585330b4b1ee9662996f8",
+   "bytes": 6028
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SHIBUSDT",
+   "round": 5,
+   "received_ms": 1794815803144,
+   "status": 200,
+   "sha256": "5b5537ac7b5756c9fce0d850180bfb2f7af5b488b8636be234fd528019d38032",
+   "bytes": 1171
+  },
+  {
+   "kind": "depth",
+   "symbol": "PEPEUSDT",
+   "round": 5,
+   "received_ms": 1794815803349,
+   "status": 200,
+   "sha256": "f5fdf1254e9888e5b5c5cc5caf2def378892a4e844f309038a4a59a7e566c123",
+   "bytes": 6238
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "PEPEUSDT",
+   "round": 5,
+   "received_ms": 1794815803562,
+   "status": 200,
+   "sha256": "c5800f6ee1214d86533f81e0f63b48b67fb122d3b48df43d6db81f16cf2abba3",
+   "bytes": 4048
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCEUR",
+   "round": 6,
+   "received_ms": 1794815823767,
+   "status": 200,
+   "sha256": "0e73566d357c350a71d22e392b64092fc74adfd623851a8ab43822fe388669c0",
+   "bytes": 6446
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCEUR",
+   "round": 6,
+   "received_ms": 1794815823974,
+   "status": 200,
+   "sha256": "377ee5fab92f07268b6fff07b17cd0c63113d8b83a5ca3254b5b2d65d388f52d",
+   "bytes": 5921
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHEUR",
+   "round": 6,
+   "received_ms": 1794815824181,
+   "status": 200,
+   "sha256": "772da092e0b09965f0581c0ca8a3f03467efe54ddc373b8dfacd091485e59bf5",
+   "bytes": 6249
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHEUR",
+   "round": 6,
+   "received_ms": 1794815824388,
+   "status": 200,
+   "sha256": "167cd0cffb2f31ce269d5aef32c744f2738a2c92cce519ef9f266775539a87b7",
+   "bytes": 1997
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLEUR",
+   "round": 6,
+   "received_ms": 1794815824595,
+   "status": 200,
+   "sha256": "b217e94b9363984b845546459fd49a89b84f50e8d9da9ff6fafa030aa21e9e0d",
+   "bytes": 5882
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLEUR",
+   "round": 6,
+   "received_ms": 1794815824838,
+   "status": 200,
+   "sha256": "d4096d22e6ff5fcc34cc1b34814ad897ece83c36a3f28a6bdf06866a8b40a412",
+   "bytes": 564
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCUSDT",
+   "round": 6,
+   "received_ms": 1794815825043,
+   "status": 200,
+   "sha256": "a84877870736875fa18914632545db4d444c4df6244acd74113df888668c5b4c",
+   "bytes": 6447
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCUSDT",
+   "round": 6,
+   "received_ms": 1794815825260,
+   "status": 200,
+   "sha256": "b988d8281fd4ce8c8ad7452c4bac9c6475d484f481163b79d334b926b6349190",
+   "bytes": 121655
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHUSDT",
+   "round": 6,
+   "received_ms": 1794815825465,
+   "status": 200,
+   "sha256": "53a4a511eb2b140344698e55cb9691dcd1a8f5bc1c2717b190f5bcdeacfae4d2",
+   "bytes": 6294
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHUSDT",
+   "round": 6,
+   "received_ms": 1794815825680,
+   "status": 200,
+   "sha256": "db2560aa061e45e7a9563312bc6fe90210e9618a93a0f24b317594e3913882b0",
+   "bytes": 77653
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLUSDT",
+   "round": 6,
+   "received_ms": 1794815825888,
+   "status": 200,
+   "sha256": "0e980355184c37c9791c57f03884346e1247181fe001e9a1b8b5eef7dbf2fe8d",
+   "bytes": 6034
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLUSDT",
+   "round": 6,
+   "received_ms": 1794815826096,
+   "status": 200,
+   "sha256": "867c671478e3fdc37542418ed67d9b3c65f3b6749b412e7cfd588400e0c688ac",
+   "bytes": 20888
+  },
+  {
+   "kind": "depth",
+   "symbol": "EURUSDT",
+   "round": 6,
+   "received_ms": 1794815826304,
+   "status": 200,
+   "sha256": "c0248ee47b7bb05ff2a82c604a12d22fd86e9edd9ec41120696880ade65f4c85",
+   "bytes": 5937
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "EURUSDT",
+   "round": 6,
+   "received_ms": 1794815826511,
+   "status": 200,
+   "sha256": "18d637b8c6e22685b1cd22ea7a7e30ab5679a103998d3d7027cd5343203e6aa9",
+   "bytes": 5342
+  },
+  {
+   "kind": "depth",
+   "symbol": "BNBUSDT",
+   "round": 6,
+   "received_ms": 1794815826717,
+   "status": 200,
+   "sha256": "f380136a763c8e968707c9a1031516bd77f157c6c8eb77aa75fa094263abdd64",
+   "bytes": 6103
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BNBUSDT",
+   "round": 6,
+   "received_ms": 1794815826925,
+   "status": 200,
+   "sha256": "120e318c4ac76cd4f55f593aa0c9ecc698fed5ca6ffbde50d70105b4f4598738",
+   "bytes": 34686
+  },
+  {
+   "kind": "depth",
+   "symbol": "XRPUSDT",
+   "round": 6,
+   "received_ms": 1794815827132,
+   "status": 200,
+   "sha256": "4aeb52277fb4060385e6b47a6ab24f59a2a75ec0deea08d09d906e9d8c01f196",
+   "bytes": 6146
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "XRPUSDT",
+   "round": 6,
+   "received_ms": 1794815827339,
+   "status": 200,
+   "sha256": "f22e610baa4f5f3d5e7a24db1d5b9d0233630271247b53d9fc82e003addafe08",
+   "bytes": 16761
+  },
+  {
+   "kind": "depth",
+   "symbol": "ADAUSDT",
+   "round": 6,
+   "received_ms": 1794815827565,
+   "status": 200,
+   "sha256": "07261445f280d3a0d1947630a16b9fec1d91f9a94d1cf2f941ce6696011b1ff8",
+   "bytes": 6276
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ADAUSDT",
+   "round": 6,
+   "received_ms": 1794815827772,
+   "status": 200,
+   "sha256": "80d985e25d1a45deb756a48ab563ba7d0978f0f001f3d0f1b048a2382e38a74e",
+   "bytes": 1862
+  },
+  {
+   "kind": "depth",
+   "symbol": "TRXUSDT",
+   "round": 6,
+   "received_ms": 1794815827978,
+   "status": 200,
+   "sha256": "6ef9d3701ce6d9aab1d0ef921be47034c4177232a5fa9f6bb5ec0238071efbfe",
+   "bytes": 6189
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "TRXUSDT",
+   "round": 6,
+   "received_ms": 1794815828185,
+   "status": 200,
+   "sha256": "e991012a5365809f8fb650569082228dbddeb253290ffc3df81941204b90ed4b",
+   "bytes": 5008
+  },
+  {
+   "kind": "depth",
+   "symbol": "DOGEUSDT",
+   "round": 6,
+   "received_ms": 1794815828390,
+   "status": 200,
+   "sha256": "4fc0ecfb8fabaf95d72c62a3c6df0ad2d38ae34b56b6ed931a601cb970b6a0a9",
+   "bytes": 6297
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "DOGEUSDT",
+   "round": 6,
+   "received_ms": 1794815828596,
+   "status": 200,
+   "sha256": "61fff9412dfd58d7656f9b679fa610185ce35485fd341ee423bf0a803ccba380",
+   "bytes": 5819
+  },
+  {
+   "kind": "depth",
+   "symbol": "SHIBUSDT",
+   "round": 6,
+   "received_ms": 1794815828801,
+   "status": 200,
+   "sha256": "42e2784ae1121a937809beb4d825ddf529f86a196210d31cee36731a22658d7d",
+   "bytes": 6028
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SHIBUSDT",
+   "round": 6,
+   "received_ms": 1794815829007,
+   "status": 200,
+   "sha256": "d61360b9c8a8ba920ee97d55c2a5a801af1f4d67a90744478a5dde13033d07a6",
+   "bytes": 1171
+  },
+  {
+   "kind": "depth",
+   "symbol": "PEPEUSDT",
+   "round": 6,
+   "received_ms": 1794815829212,
+   "status": 200,
+   "sha256": "dfd75f35534d4e73ee8af8f9da8735e756a661032177ca926513ca80a35510cc",
+   "bytes": 6238
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "PEPEUSDT",
+   "round": 6,
+   "received_ms": 1794815829420,
+   "status": 200,
+   "sha256": "7614faf1b2c82725a91b2ea05534ab9921aa6b19504398a25fc727dad7f07cba",
+   "bytes": 3816
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCEUR",
+   "round": 7,
+   "received_ms": 1794815849628,
+   "status": 200,
+   "sha256": "4755e703a926cc10205837c118a24b8ea017729bfa1497fa93fe477eb73fdd6f",
+   "bytes": 6446
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCEUR",
+   "round": 7,
+   "received_ms": 1794815849835,
+   "status": 200,
+   "sha256": "931244e7f5731fa1fba7141300ae64a4873353cd3f38c5bad646ee47dcb4f4aa",
+   "bytes": 4494
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHEUR",
+   "round": 7,
+   "received_ms": 1794815850040,
+   "status": 200,
+   "sha256": "2ec07bcbf1df482f267729c3ff62a9aee5b9da1d2986183c3c022df4fde5d6ec",
+   "bytes": 6248
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHEUR",
+   "round": 7,
+   "received_ms": 1794815850249,
+   "status": 200,
+   "sha256": "79a2abd8c5dcbbe909b7ae1483e62fe1209ecd36be4e85a6192b1c06b0d07ac0",
+   "bytes": 1528
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLEUR",
+   "round": 7,
+   "received_ms": 1794815850455,
+   "status": 200,
+   "sha256": "b1b633e2227e4b812b2ef1b18579786bfebf8e855b36cc2437cfe386a7666866",
+   "bytes": 5881
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLEUR",
+   "round": 7,
+   "received_ms": 1794815850661,
+   "status": 200,
+   "sha256": "2a0115291c9066fefa3fae1b036820eb026b6ee52d1f374a9fa22dc450225ce9",
+   "bytes": 564
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCUSDT",
+   "round": 7,
+   "received_ms": 1794815850866,
+   "status": 200,
+   "sha256": "db9689b171e481931367b110e7e7094d0bf888d26fe0bc25461b1c8f73f82157",
+   "bytes": 6449
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCUSDT",
+   "round": 7,
+   "received_ms": 1794815851077,
+   "status": 200,
+   "sha256": "06d4b946dcfdc560830b818ec1376c6087eed9d549722c1d6c41e9aa17f58464",
+   "bytes": 121553
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHUSDT",
+   "round": 7,
+   "received_ms": 1794815851283,
+   "status": 200,
+   "sha256": "ecc53f6d940ec19d39c8cc144b0fda2a5dc98f4c9f49044137cd56481114218c",
+   "bytes": 6294
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHUSDT",
+   "round": 7,
+   "received_ms": 1794815851491,
+   "status": 200,
+   "sha256": "b8b3bc7a5525b05e1d1d47b8a1e94f628fd1d70d6f48ce7446e93de35a3813fe",
+   "bytes": 67168
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLUSDT",
+   "round": 7,
+   "received_ms": 1794815851696,
+   "status": 200,
+   "sha256": "6395027d7bd95260cf08006daa80ef15c3fa07991a104e30fc9b92522974e7cd",
+   "bytes": 6036
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLUSDT",
+   "round": 7,
+   "received_ms": 1794815851901,
+   "status": 200,
+   "sha256": "228fce701d757d1033019c5860f8eea9311993453772ad4c922a590bfdfaad56",
+   "bytes": 21480
+  },
+  {
+   "kind": "depth",
+   "symbol": "EURUSDT",
+   "round": 7,
+   "received_ms": 1794815852108,
+   "status": 200,
+   "sha256": "4f07dca2bffd5f0126d1720a1ce38b69e7e2d81ae363e6f5c57caad6a71cc6df",
+   "bytes": 5940
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "EURUSDT",
+   "round": 7,
+   "received_ms": 1794815852313,
+   "status": 200,
+   "sha256": "1fc641a8391b3b2937e4b51e2f7096f559435e5a795f6985dc9e698621882932",
+   "bytes": 5225
+  },
+  {
+   "kind": "depth",
+   "symbol": "BNBUSDT",
+   "round": 7,
+   "received_ms": 1794815852517,
+   "status": 200,
+   "sha256": "c2706a6313bf3c83553029b582f61a66c65afe3dee2564fb66390af6f42d4a89",
+   "bytes": 6111
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BNBUSDT",
+   "round": 7,
+   "received_ms": 1794815852724,
+   "status": 200,
+   "sha256": "71d685dd28f1a9f7209921d11ffffb0cbbf8d4bcf3496fe162e29665eccf69b9",
+   "bytes": 22919
+  },
+  {
+   "kind": "depth",
+   "symbol": "XRPUSDT",
+   "round": 7,
+   "received_ms": 1794815852929,
+   "status": 200,
+   "sha256": "ec7e9f6c4db35e8f7f7945d572ae9d111f46f38800c2d0a318c7a1a92ee1edc1",
+   "bytes": 6148
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "XRPUSDT",
+   "round": 7,
+   "received_ms": 1794815853136,
+   "status": 200,
+   "sha256": "ed9844d9f1dff280c9aeb7175b6634d9fc135b7198bdc4c54f28b99be83ed701",
+   "bytes": 21924
+  },
+  {
+   "kind": "depth",
+   "symbol": "ADAUSDT",
+   "round": 7,
+   "received_ms": 1794815853341,
+   "status": 200,
+   "sha256": "93b64318c39200f0b64a4e389b729adcf079898f4f33954ed5fc15510b533c35",
+   "bytes": 6280
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ADAUSDT",
+   "round": 7,
+   "received_ms": 1794815853559,
+   "status": 200,
+   "sha256": "8866c86d88daf953533720747e3ed9f38093f155b0dfbfe6d988e54b58e810d0",
+   "bytes": 1635
+  },
+  {
+   "kind": "depth",
+   "symbol": "TRXUSDT",
+   "round": 7,
+   "received_ms": 1794815853764,
+   "status": 200,
+   "sha256": "7df0272501ae4576e35e4a4d0a9149e9a3d8a2a2c3268f7e579e997ff08513f8",
+   "bytes": 6189
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "TRXUSDT",
+   "round": 7,
+   "received_ms": 1794815853971,
+   "status": 200,
+   "sha256": "6755c3a1a043375ff175700070aa0ac3c07ba50adce822fc275e94203db7e57a",
+   "bytes": 4659
+  },
+  {
+   "kind": "depth",
+   "symbol": "DOGEUSDT",
+   "round": 7,
+   "received_ms": 1794815854175,
+   "status": 200,
+   "sha256": "c3fd191fbf0179286392b62c3dfe87bdf2aec3aeb9643473c69a5a12c5c6107c",
+   "bytes": 6292
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "DOGEUSDT",
+   "round": 7,
+   "received_ms": 1794815854381,
+   "status": 200,
+   "sha256": "1dbe6d74a60473611324e184e117cb23a316ac25125a664f58fdbf3a276face1",
+   "bytes": 5466
+  },
+  {
+   "kind": "depth",
+   "symbol": "SHIBUSDT",
+   "round": 7,
+   "received_ms": 1794815854586,
+   "status": 200,
+   "sha256": "a3fae83075c70ed8a5b9492b6f22cc8cd051a7dc98ef76e76fc11c7c137bbcda",
+   "bytes": 6028
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SHIBUSDT",
+   "round": 7,
+   "received_ms": 1794815854804,
+   "status": 200,
+   "sha256": "af81bc8990047e0bb8b932db5c813ad588d51b88236b0ac0067afc04b3648e10",
+   "bytes": 1402
+  },
+  {
+   "kind": "depth",
+   "symbol": "PEPEUSDT",
+   "round": 7,
+   "received_ms": 1794815855010,
+   "status": 200,
+   "sha256": "d237970d867516b2b5cd15e7bdb2c30b7cabc6d4964e3e69dd8ca0d5c6e5311b",
+   "bytes": 6238
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "PEPEUSDT",
+   "round": 7,
+   "received_ms": 1794815855217,
+   "status": 200,
+   "sha256": "6d8dc663a0efacfd16f77bd9c7aef663ce0ce3d109f3eeb5745411f5eb5ede19",
+   "bytes": 3469
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCEUR",
+   "round": 8,
+   "received_ms": 1794815875423,
+   "status": 200,
+   "sha256": "25ec97f5c4ed663128b490409c5d3cd1dc5cc7dec417b7c39e64204edd198e85",
+   "bytes": 6446
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCEUR",
+   "round": 8,
+   "received_ms": 1794815875629,
+   "status": 200,
+   "sha256": "eedd37b39953f761205c86c221ae4746ff5fc0d8dbe7ef7625bd929f1d8a3178",
+   "bytes": 5202
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHEUR",
+   "round": 8,
+   "received_ms": 1794815875834,
+   "status": 200,
+   "sha256": "3fe125b56aed1d17446e9afc5031131649aa7e41e3a2b5655cb4d932ab59004b",
+   "bytes": 6248
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHEUR",
+   "round": 8,
+   "received_ms": 1794815876039,
+   "status": 200,
+   "sha256": "847d6c2618dc79295d6ec96e2a072bc9961a0ed27e62072dea3fc4cb44410939",
+   "bytes": 1059
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLEUR",
+   "round": 8,
+   "received_ms": 1794815876244,
+   "status": 200,
+   "sha256": "bb7ff9c18d5886d27e9ad3d908cc3d3a1674318d2648cefb7aa139b9440efd08",
+   "bytes": 5882
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLEUR",
+   "round": 8,
+   "received_ms": 1794815876449,
+   "status": 200,
+   "sha256": "c8aaf16b2428103e9f8d854d478cfec270bab91a24ad94d65849c20b9d4b9bf3",
+   "bytes": 338
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCUSDT",
+   "round": 8,
+   "received_ms": 1794815876654,
+   "status": 200,
+   "sha256": "dcfa6930e2aee61ffa2301ec46119a66a2f8a5ad878f317d8a90d35204bc2a93",
+   "bytes": 6447
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCUSDT",
+   "round": 8,
+   "received_ms": 1794815876868,
+   "status": 200,
+   "sha256": "dc824093dfa9a3efcbbc5386d05bb064b3d3e6ca87ef36d36004538e341718f1",
+   "bytes": 121502
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHUSDT",
+   "round": 8,
+   "received_ms": 1794815877074,
+   "status": 200,
+   "sha256": "6df0834131fe40e32c05d951644d1cbf10cab73414c5aeaa1915af510d1c0954",
+   "bytes": 6297
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHUSDT",
+   "round": 8,
+   "received_ms": 1794815877282,
+   "status": 200,
+   "sha256": "0ee28dc5cd6c1d94892f1889d8e7fae0fc4b9c5dbb0dd241ab4dddb2a70ac964",
+   "bytes": 60521
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLUSDT",
+   "round": 8,
+   "received_ms": 1794815877499,
+   "status": 200,
+   "sha256": "c36050e16fb61eb1910845c8f9c65441b3a091feb75693c134c3ac00b949a553",
+   "bytes": 6031
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLUSDT",
+   "round": 8,
+   "received_ms": 1794815877723,
+   "status": 200,
+   "sha256": "73c43ee48eb00bc2d7ab175a14c922199e2ff1349b73ce8a4c10c332664b9446",
+   "bytes": 19254
+  },
+  {
+   "kind": "depth",
+   "symbol": "EURUSDT",
+   "round": 8,
+   "received_ms": 1794815877939,
+   "status": 200,
+   "sha256": "9ac151ae97eab1e8f2af1324561be799885da4f7c0d459e55701eeb42259eace",
+   "bytes": 5941
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "EURUSDT",
+   "round": 8,
+   "received_ms": 1794815878145,
+   "status": 200,
+   "sha256": "a6e5c67e7c5d177509ab64f6e7f30f1f5e9657e4ad117ddc65ac2f774bc70d20",
+   "bytes": 5923
+  },
+  {
+   "kind": "depth",
+   "symbol": "BNBUSDT",
+   "round": 8,
+   "received_ms": 1794815878350,
+   "status": 200,
+   "sha256": "3247e821d614a4ab094ec8c39ff45dff99a38b5482170c5c948da177994b3919",
+   "bytes": 6108
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BNBUSDT",
+   "round": 8,
+   "received_ms": 1794815878556,
+   "status": 200,
+   "sha256": "bc610b0528d5cd8af23172174101418ea3dad82e091a196018ec352456952752",
+   "bytes": 20656
+  },
+  {
+   "kind": "depth",
+   "symbol": "XRPUSDT",
+   "round": 8,
+   "received_ms": 1794815878762,
+   "status": 200,
+   "sha256": "17a273682612cad35fff1cef485b775ad3571c9cd0c3743cdfb20a9dda7c98c0",
+   "bytes": 6142
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "XRPUSDT",
+   "round": 8,
+   "received_ms": 1794815878970,
+   "status": 200,
+   "sha256": "5c1639a6525a30e9442891a34dbaf55bc6e5776e505aee7e10ee216acec99448",
+   "bytes": 23215
+  },
+  {
+   "kind": "depth",
+   "symbol": "ADAUSDT",
+   "round": 8,
+   "received_ms": 1794815879175,
+   "status": 200,
+   "sha256": "06d5d5993171a84e814a9e3743b743b1f941652f9718c1c56ef7dc377258aa70",
+   "bytes": 6277
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ADAUSDT",
+   "round": 8,
+   "received_ms": 1794815879381,
+   "status": 200,
+   "sha256": "8256132802c5ec4512c3f9fafd9a2392575832fc13a37e414dca2ce891f21d38",
+   "bytes": 1051
+  },
+  {
+   "kind": "depth",
+   "symbol": "TRXUSDT",
+   "round": 8,
+   "received_ms": 1794815879586,
+   "status": 200,
+   "sha256": "78fe21ccabf55ca449ed57241e27e27f2ef4ce942fa3e4af9d4669c2f6037cc1",
+   "bytes": 6189
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "TRXUSDT",
+   "round": 8,
+   "received_ms": 1794815879792,
+   "status": 200,
+   "sha256": "e68cb2de68e04090f35ae0a2e8297c6cf420a77d7867cb6180a81040c76bd5cd",
+   "bytes": 4660
+  },
+  {
+   "kind": "depth",
+   "symbol": "DOGEUSDT",
+   "round": 8,
+   "received_ms": 1794815879998,
+   "status": 200,
+   "sha256": "00a7d39502bc12c212c099a226f073a9d695e59b0395d1d72ad2b29c94700863",
+   "bytes": 6294
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "DOGEUSDT",
+   "round": 8,
+   "received_ms": 1794815880204,
+   "status": 200,
+   "sha256": "d783b1194999b14754ad88e5c24bbc5a23f9838376eade74b5c88218a1860daf",
+   "bytes": 4874
+  },
+  {
+   "kind": "depth",
+   "symbol": "SHIBUSDT",
+   "round": 8,
+   "received_ms": 1794815880410,
+   "status": 200,
+   "sha256": "2315f59efb3209204edc2ac6e68c43519a00a4e11d9cbb7b8ddd6a0841928d85",
+   "bytes": 6028
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SHIBUSDT",
+   "round": 8,
+   "received_ms": 1794815880614,
+   "status": 200,
+   "sha256": "27adbaae5861b337a3bcd36966c5bebce74974588b4268ea98c3f148ce3ebddb",
+   "bytes": 1282
+  },
+  {
+   "kind": "depth",
+   "symbol": "PEPEUSDT",
+   "round": 8,
+   "received_ms": 1794815880819,
+   "status": 200,
+   "sha256": "244c4baa7b76d0f141cd1f65ce667484ff2e3cb5a75790a3b4e6ef0095a5840f",
+   "bytes": 6238
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "PEPEUSDT",
+   "round": 8,
+   "received_ms": 1794815881039,
+   "status": 200,
+   "sha256": "19bd0fbbb20ca1624f815c5c55494f82c434055803fc7957a8461ea11aef59a1",
+   "bytes": 3585
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCEUR",
+   "round": 9,
+   "received_ms": 1794815901245,
+   "status": 200,
+   "sha256": "aafd005e68fb966b600b6a66921a3a6c9b8743630c4cbe26c34775abe19ba0b3",
+   "bytes": 6446
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCEUR",
+   "round": 9,
+   "received_ms": 1794815901462,
+   "status": 200,
+   "sha256": "deecf2278b4f3a4099a75ad3aeb78fedd53f7bffd8a019123e73659a8aba424d",
+   "bytes": 6272
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHEUR",
+   "round": 9,
+   "received_ms": 1794815901682,
+   "status": 200,
+   "sha256": "da1f44d7cf63df4fe4168699ec4b7637d9f55301c13b09837a3224572dc3d8b5",
+   "bytes": 6248
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHEUR",
+   "round": 9,
+   "received_ms": 1794815901890,
+   "status": 200,
+   "sha256": "3d3d1d71c18cd1d8f2698d6613e37d8421c0cd0a8005e11365a5390ae527c713",
+   "bytes": 590
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLEUR",
+   "round": 9,
+   "received_ms": 1794815902095,
+   "status": 200,
+   "sha256": "bb75ca65048b69531b14d1e1ee7e6a48adb62e1d764b2f2a6bd1703f2b3260f2",
+   "bytes": 5879
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLEUR",
+   "round": 9,
+   "received_ms": 1794815902300,
+   "status": 200,
+   "sha256": "c8aaf16b2428103e9f8d854d478cfec270bab91a24ad94d65849c20b9d4b9bf3",
+   "bytes": 338
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCUSDT",
+   "round": 9,
+   "received_ms": 1794815902505,
+   "status": 200,
+   "sha256": "6317767e85fd1ac761767a8cefef1445108a8ac9720b5e9e66f8782b23b17b9b",
+   "bytes": 6447
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCUSDT",
+   "round": 9,
+   "received_ms": 1794815902721,
+   "status": 200,
+   "sha256": "02dc8a9801f739f8c87574b7c01a587019a14c9d291df0f203cbae9b2caf6423",
+   "bytes": 121629
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHUSDT",
+   "round": 9,
+   "received_ms": 1794815902926,
+   "status": 200,
+   "sha256": "ca4c29d4d7f7d79dc055e07b1b4df412e8496f25508e65642a2d8ca5d3483bed",
+   "bytes": 6294
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHUSDT",
+   "round": 9,
+   "received_ms": 1794815903134,
+   "status": 200,
+   "sha256": "c1e430e420c2b0ce0d76d9bfb122ca76ae3ae5bed3ae8fa573dd00c61cadb600",
+   "bytes": 54039
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLUSDT",
+   "round": 9,
+   "received_ms": 1794815903339,
+   "status": 200,
+   "sha256": "16f2afa6f8f1dcb021fc11b80a9716c1b39931d50a20df57066408a0f2189b0e",
+   "bytes": 6025
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLUSDT",
+   "round": 9,
+   "received_ms": 1794815903548,
+   "status": 200,
+   "sha256": "0e02a58b8ffbb10923f61654804caf42a99ccb426f18856e8d64fe914b5db41a",
+   "bytes": 12708
+  },
+  {
+   "kind": "depth",
+   "symbol": "EURUSDT",
+   "round": 9,
+   "received_ms": 1794815903752,
+   "status": 200,
+   "sha256": "94ceff11e04d51d59eac18999766ea5dde57645b519be3f6ccfb327b5e631af9",
+   "bytes": 5940
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "EURUSDT",
+   "round": 9,
+   "received_ms": 1794815903958,
+   "status": 200,
+   "sha256": "0f8f317cc6297503fc6ba1a2bf9854c73a8868cdf20bedb7c95f0de1e710ef5b",
+   "bytes": 5342
+  },
+  {
+   "kind": "depth",
+   "symbol": "BNBUSDT",
+   "round": 9,
+   "received_ms": 1794815904170,
+   "status": 200,
+   "sha256": "7af7aeb281e7b9c6ceb7a14d409437600ef383cf64094b4da2998012410b8889",
+   "bytes": 6097
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BNBUSDT",
+   "round": 9,
+   "received_ms": 1794815904377,
+   "status": 200,
+   "sha256": "a0c4e04f22e9aaacaf9bacba9ba4a5a6f10be286cfbca9566062059ae7f1f582",
+   "bytes": 20793
+  },
+  {
+   "kind": "depth",
+   "symbol": "XRPUSDT",
+   "round": 9,
+   "received_ms": 1794815904581,
+   "status": 200,
+   "sha256": "85c83088a78adc437ab90d22973f8785388bb189d3bf65555dd55e7ec6a96d42",
+   "bytes": 6134
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "XRPUSDT",
+   "round": 9,
+   "received_ms": 1794815904789,
+   "status": 200,
+   "sha256": "1bcc6c27db12145760537e3c65d6e78b9069951b8755e5da542ee9682f628a2f",
+   "bytes": 18150
+  },
+  {
+   "kind": "depth",
+   "symbol": "ADAUSDT",
+   "round": 9,
+   "received_ms": 1794815904995,
+   "status": 200,
+   "sha256": "bd1f76d27ee6229ac569c2fd80226fa3dbfa5c66662709ab43c165ad4943cf4a",
+   "bytes": 6277
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ADAUSDT",
+   "round": 9,
+   "received_ms": 1794815905200,
+   "status": 200,
+   "sha256": "acb000f7a8ab6ce5a32f86947faffa35aa4d8539b5b8922113d0d6b62261ed5d",
+   "bytes": 1049
+  },
+  {
+   "kind": "depth",
+   "symbol": "TRXUSDT",
+   "round": 9,
+   "received_ms": 1794815905405,
+   "status": 200,
+   "sha256": "3616de5868bb447c4f0aa4d3fdf9ce81063310428b52f88a46fe076976f5a72c",
+   "bytes": 6189
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "TRXUSDT",
+   "round": 9,
+   "received_ms": 1794815905613,
+   "status": 200,
+   "sha256": "8f8e49c1906bc60f2a4ebebdc0e5736504fc73873fa6a73ccafdbfe9bf0cdf49",
+   "bytes": 4775
+  },
+  {
+   "kind": "depth",
+   "symbol": "DOGEUSDT",
+   "round": 9,
+   "received_ms": 1794815905819,
+   "status": 200,
+   "sha256": "7b99a1e4012cc14b1b6c7a4fd94e09243302568efd7324203cc54135ee2b0813",
+   "bytes": 6286
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "DOGEUSDT",
+   "round": 9,
+   "received_ms": 1794815906028,
+   "status": 200,
+   "sha256": "8ac4169b0cd09cfc55fbcf60978a313deb97bdec81feec8eeb5a36573bb86de6",
+   "bytes": 4877
+  },
+  {
+   "kind": "depth",
+   "symbol": "SHIBUSDT",
+   "round": 9,
+   "received_ms": 1794815906233,
+   "status": 200,
+   "sha256": "8f0ef13e10aeb4c03b74320dee663cdfca46688dfb041b9c67bba525f7ea8f0f",
+   "bytes": 6028
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SHIBUSDT",
+   "round": 9,
+   "received_ms": 1794815906439,
+   "status": 200,
+   "sha256": "07d9d7148a9c6e1572858eefe4ac6e24f1f73d6b8d4ea78063cbcd21d66b5713",
+   "bytes": 1281
+  },
+  {
+   "kind": "depth",
+   "symbol": "PEPEUSDT",
+   "round": 9,
+   "received_ms": 1794815906644,
+   "status": 200,
+   "sha256": "c931ba6aa2d3df9d041d4881ed81c9cb8764cbcb8c56da1efff6b3f8bf3aedc0",
+   "bytes": 6239
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "PEPEUSDT",
+   "round": 9,
+   "received_ms": 1794815906850,
+   "status": 200,
+   "sha256": "98bebeba596336d5913ceede99e195ec93fc260a3dfe8913b3b98b82d6dbd83d",
+   "bytes": 3357
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCEUR",
+   "round": 10,
+   "received_ms": 1794815927056,
+   "status": 200,
+   "sha256": "d6f9e783dbd2af15b4deb4910a60fe6a7911e103f2cce099151959e476bf7175",
+   "bytes": 6446
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCEUR",
+   "round": 10,
+   "received_ms": 1794815927275,
+   "status": 200,
+   "sha256": "b50335dd0cfc6ee3b09358eef0d008e15cc1243975aaaec57db4621a5f5c8d23",
+   "bytes": 5445
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHEUR",
+   "round": 10,
+   "received_ms": 1794815927479,
+   "status": 200,
+   "sha256": "1bdcd0f43afed8b9de27ca0ef573d6d5567f305e652ec3bd1d17d2fc490c6e4f",
+   "bytes": 6248
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHEUR",
+   "round": 10,
+   "received_ms": 1794815927685,
+   "status": 200,
+   "sha256": "12cf0fcf87da756fa3a1cda74f61b5ab0607a9add96b746ca29cdc60771bb7b3",
+   "bytes": 1409
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLEUR",
+   "round": 10,
+   "received_ms": 1794815927890,
+   "status": 200,
+   "sha256": "d531947d777dca3b0d3b38269a976d0582509f8bc91e158b350668bc3abefefa",
+   "bytes": 5882
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLEUR",
+   "round": 10,
+   "received_ms": 1794815928097,
+   "status": 200,
+   "sha256": "fea5580e961adee2cbc1267fdc8982b6b9602ad80705362e112159dd0ee78325",
+   "bytes": 114
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCUSDT",
+   "round": 10,
+   "received_ms": 1794815928306,
+   "status": 200,
+   "sha256": "12a26b448380e98bd448b2c1a534fd2885c155d1aa514b1965a903204f1ebe52",
+   "bytes": 6447
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCUSDT",
+   "round": 10,
+   "received_ms": 1794815928518,
+   "status": 200,
+   "sha256": "975bdcd845ed4a9e7f09777f172d094a93d7cad26fce7ae8eec8c0e8f531b21c",
+   "bytes": 121516
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHUSDT",
+   "round": 10,
+   "received_ms": 1794815928725,
+   "status": 200,
+   "sha256": "2309c7f115808b6e3c554d368134c03a787bb7e163a3ee254a2886e33c630efa",
+   "bytes": 6296
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHUSDT",
+   "round": 10,
+   "received_ms": 1794815928934,
+   "status": 200,
+   "sha256": "956f17f19bc852fd4dee296de568fdab0139179728f11f97413779e7b4f4f1f7",
+   "bytes": 57366
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLUSDT",
+   "round": 10,
+   "received_ms": 1794815929139,
+   "status": 200,
+   "sha256": "ef91946264a2bc631eacb128429ea5594f81524ba848db4f3b221950ee695277",
+   "bytes": 6027
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLUSDT",
+   "round": 10,
+   "received_ms": 1794815929347,
+   "status": 200,
+   "sha256": "9466529a26a81c6bfae344deb5344bf370ceb4039c155574653453d68396c68d",
+   "bytes": 14814
+  },
+  {
+   "kind": "depth",
+   "symbol": "EURUSDT",
+   "round": 10,
+   "received_ms": 1794815929553,
+   "status": 200,
+   "sha256": "35317404aba7a183ab311d37bd3435811d0acd12c1680be9764f26ae00e70dd6",
+   "bytes": 5938
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "EURUSDT",
+   "round": 10,
+   "received_ms": 1794815929758,
+   "status": 200,
+   "sha256": "1ffecb672cc3ea355b10201318b9ca328520a8ab4a71aa2aa1b985119b2d718c",
+   "bytes": 6041
+  },
+  {
+   "kind": "depth",
+   "symbol": "BNBUSDT",
+   "round": 10,
+   "received_ms": 1794815929962,
+   "status": 200,
+   "sha256": "c2d8e8ee94f4efd22d9929d0b307874f2798fe6cd1f8d7923c90dc5c49f5a8b1",
+   "bytes": 6104
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BNBUSDT",
+   "round": 10,
+   "received_ms": 1794815930169,
+   "status": 200,
+   "sha256": "a94503dfd2e18db221a3a7c5c6a7e415185bbb03ced6d7b1e5768fc26a42a178",
+   "bytes": 20555
+  },
+  {
+   "kind": "depth",
+   "symbol": "XRPUSDT",
+   "round": 10,
+   "received_ms": 1794815930375,
+   "status": 200,
+   "sha256": "d7f2c4a6bad7c31fbaa66b84f99f229049402f5ece443a87f59706dfbca5cda7",
+   "bytes": 6133
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "XRPUSDT",
+   "round": 10,
+   "received_ms": 1794815930582,
+   "status": 200,
+   "sha256": "b168a48192deb0175c8520386bc66473f0554c09eddf2f1ffa0b25357edc06fc",
+   "bytes": 21282
+  },
+  {
+   "kind": "depth",
+   "symbol": "ADAUSDT",
+   "round": 10,
+   "received_ms": 1794815930786,
+   "status": 200,
+   "sha256": "bc7d159c0d2b9be40a330ec67ee9cad01ba63cc619aa746c6229950a71be6191",
+   "bytes": 6279
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ADAUSDT",
+   "round": 10,
+   "received_ms": 1794815930992,
+   "status": 200,
+   "sha256": "93f71bea2dfd1f0a949242202b8c97126ff91fe1a6535db7f779ab7e7e76ac42",
+   "bytes": 582
+  },
+  {
+   "kind": "depth",
+   "symbol": "TRXUSDT",
+   "round": 10,
+   "received_ms": 1794815931198,
+   "status": 200,
+   "sha256": "1ee23fc69e74198f9b6dd811e73e9cd4e09745270e2581892bdd7b81026d7c4e",
+   "bytes": 6183
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "TRXUSDT",
+   "round": 10,
+   "received_ms": 1794815931403,
+   "status": 200,
+   "sha256": "a6874cfd84da0b34cb66c41aa5a9c7ac59060ab971c50294b2bb51d80d831112",
+   "bytes": 5005
+  },
+  {
+   "kind": "depth",
+   "symbol": "DOGEUSDT",
+   "round": 10,
+   "received_ms": 1794815931607,
+   "status": 200,
+   "sha256": "0163ba7f8acaac0baab9909856116458db5b29d832450c3404e8591477c7f631",
+   "bytes": 6282
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "DOGEUSDT",
+   "round": 10,
+   "received_ms": 1794815931814,
+   "status": 200,
+   "sha256": "032ea3c8961d353dee3b6da8f2dfb8b5bd0e058f0bc04ec01070710fd94949a5",
+   "bytes": 3807
+  },
+  {
+   "kind": "depth",
+   "symbol": "SHIBUSDT",
+   "round": 10,
+   "received_ms": 1794815932018,
+   "status": 200,
+   "sha256": "28a3fb5447e272727e3a16283dcadba7ed5ded3bed3c5146ab8b29d944a15257",
+   "bytes": 6028
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SHIBUSDT",
+   "round": 10,
+   "received_ms": 1794815932223,
+   "status": 200,
+   "sha256": "56e0a0a8952bb55cbeb63c01708fc4eee6bfbd88d30d9a12c7c737429bd883aa",
+   "bytes": 1512
+  },
+  {
+   "kind": "depth",
+   "symbol": "PEPEUSDT",
+   "round": 10,
+   "received_ms": 1794815932428,
+   "status": 200,
+   "sha256": "9ca052bccf7c978870f346786e34305e7b1b0087a57d9c271bd9269ba2624e08",
+   "bytes": 6239
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "PEPEUSDT",
+   "round": 10,
+   "received_ms": 1794815932633,
+   "status": 200,
+   "sha256": "db60d086d2e16732e66131af2fe292965a114f1848b5d5199756f9b9babd9c8b",
+   "bytes": 3470
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCEUR",
+   "round": 11,
+   "received_ms": 1794815952839,
+   "status": 200,
+   "sha256": "105ff6c125bdacc8faddb3fda7623fe56d30de5a29a344962508b870cfad23d9",
+   "bytes": 6446
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCEUR",
+   "round": 11,
+   "received_ms": 1794815953051,
+   "status": 200,
+   "sha256": "51886f3aa2bbc4149292da31e0c39dd200d1f2c3d63db971afcffede3bb830dd",
+   "bytes": 5924
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHEUR",
+   "round": 11,
+   "received_ms": 1794815953271,
+   "status": 200,
+   "sha256": "83b337dbe65b638fc139c7283995d2bbedf52fe8e027fcd1e2c6d459c6ef3e5c",
+   "bytes": 6247
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHEUR",
+   "round": 11,
+   "received_ms": 1794815953477,
+   "status": 200,
+   "sha256": "b074e19595be32dce31213c75e754cf00a6cb0af7eb4a316400b14b773d79e44",
+   "bytes": 1173
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLEUR",
+   "round": 11,
+   "received_ms": 1794815953682,
+   "status": 200,
+   "sha256": "3f7a091aa9de94daac74513ae8fb4f426d2904262b8ba811033c32c52d4a6a22",
+   "bytes": 5879
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLEUR",
+   "round": 11,
+   "received_ms": 1794815953890,
+   "status": 200,
+   "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "bytes": 2
+  },
+  {
+   "kind": "depth",
+   "symbol": "BTCUSDT",
+   "round": 11,
+   "received_ms": 1794815954094,
+   "status": 200,
+   "sha256": "6a89188e43b3201ba73a717aa5640a64ae5ed18d1bf00a647dde036e91f9f0df",
+   "bytes": 6447
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BTCUSDT",
+   "round": 11,
+   "received_ms": 1794815954309,
+   "status": 200,
+   "sha256": "b10b55861fc8ca5e194920680cdaf1b57567ce979ac62f5ecab7436c8c4d43f5",
+   "bytes": 121410
+  },
+  {
+   "kind": "depth",
+   "symbol": "ETHUSDT",
+   "round": 11,
+   "received_ms": 1794815954514,
+   "status": 200,
+   "sha256": "8da38747507691ac4c1a31be7725bcbf82ccc07dc25f499055c36c253d00f5ef",
+   "bytes": 6306
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ETHUSDT",
+   "round": 11,
+   "received_ms": 1794815954729,
+   "status": 200,
+   "sha256": "f4ca00d5fe038fa333fad988d25d8f2aaa2e47ce0fc3ee2a5d92fb786d21f14a",
+   "bytes": 63555
+  },
+  {
+   "kind": "depth",
+   "symbol": "SOLUSDT",
+   "round": 11,
+   "received_ms": 1794815954934,
+   "status": 200,
+   "sha256": "785ca64140bd51934b47b67d2945fc59a64e31cc73614b7dc3b0b05e990dea1e",
+   "bytes": 6026
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SOLUSDT",
+   "round": 11,
+   "received_ms": 1794815955147,
+   "status": 200,
+   "sha256": "fc5d758bf2972e6a18ff3ba987affd852cd5238b84ec719345eeaacdd874be2c",
+   "bytes": 18547
+  },
+  {
+   "kind": "depth",
+   "symbol": "EURUSDT",
+   "round": 11,
+   "received_ms": 1794815955353,
+   "status": 200,
+   "sha256": "4ab0f961a84e1e408b745cc6f024cb7a33be063c7380724fdb17d28e4f27638c",
+   "bytes": 5938
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "EURUSDT",
+   "round": 11,
+   "received_ms": 1794815955560,
+   "status": 200,
+   "sha256": "2f3ae546d08a6ed089140c466f9c65536895033cfbbcc7de1215282bf36c35d3",
+   "bytes": 5929
+  },
+  {
+   "kind": "depth",
+   "symbol": "BNBUSDT",
+   "round": 11,
+   "received_ms": 1794815955765,
+   "status": 200,
+   "sha256": "aaed5b4586e0cd677aec057bc504415d3178658bb8500857de0b82bee8c60c91",
+   "bytes": 6107
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "BNBUSDT",
+   "round": 11,
+   "received_ms": 1794815955971,
+   "status": 200,
+   "sha256": "daf5d9b97efcfae5c041568e742fd145743457228327a352312cad72b94b1da4",
+   "bytes": 17199
+  },
+  {
+   "kind": "depth",
+   "symbol": "XRPUSDT",
+   "round": 11,
+   "received_ms": 1794815956176,
+   "status": 200,
+   "sha256": "d5dffd9bc93ca984bae5f5ce64198fe076afc109e04225225daec090694cfcd8",
+   "bytes": 6140
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "XRPUSDT",
+   "round": 11,
+   "received_ms": 1794815956383,
+   "status": 200,
+   "sha256": "6b4defc3bb393cf1a8c1a75aff0e2c7a9a79e12d5a869491bc4137204fa2af8c",
+   "bytes": 23621
+  },
+  {
+   "kind": "depth",
+   "symbol": "ADAUSDT",
+   "round": 11,
+   "received_ms": 1794815956588,
+   "status": 200,
+   "sha256": "fb3e598a61abb063ec07fe19460776f711cb378adbd3da1643f0004284374b00",
+   "bytes": 6278
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "ADAUSDT",
+   "round": 11,
+   "received_ms": 1794815956794,
+   "status": 200,
+   "sha256": "b0a57d3f33f7b4cb04bfd03aae57123dddeed8bbc0cf40a87475737f440e3349",
+   "bytes": 931
+  },
+  {
+   "kind": "depth",
+   "symbol": "TRXUSDT",
+   "round": 11,
+   "received_ms": 1794815956999,
+   "status": 200,
+   "sha256": "bdbbb6ea8167ee5376e038799351422732514e869a7c35ee99e7d1a6b3b8441d",
+   "bytes": 6187
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "TRXUSDT",
+   "round": 11,
+   "received_ms": 1794815957208,
+   "status": 200,
+   "sha256": "b2ff68b9b289327f6a06850abec7e95a2f5ec92ed8f64df15aef9e4580167988",
+   "bytes": 5593
+  },
+  {
+   "kind": "depth",
+   "symbol": "DOGEUSDT",
+   "round": 11,
+   "received_ms": 1794815957412,
+   "status": 200,
+   "sha256": "4e4855aa31714757134ac47e3e9c700ef011bfbd4df18436bd517735dcea02e6",
+   "bytes": 6285
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "DOGEUSDT",
+   "round": 11,
+   "received_ms": 1794815957618,
+   "status": 200,
+   "sha256": "b81adbfee3e5171fc3680fc64f9fee543c7d582b41aa30dc4f90fdb45a2c02e4",
+   "bytes": 4281
+  },
+  {
+   "kind": "depth",
+   "symbol": "SHIBUSDT",
+   "round": 11,
+   "received_ms": 1794815957836,
+   "status": 200,
+   "sha256": "dea4a421964683434c4e1a659a87fc710cb571a6e79299579692e66ef7a53496",
+   "bytes": 6028
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "SHIBUSDT",
+   "round": 11,
+   "received_ms": 1794815958041,
+   "status": 200,
+   "sha256": "919799321617eb62d413db8548a5f032828634658fe0ec88fcf74883273158c0",
+   "bytes": 1512
+  },
+  {
+   "kind": "depth",
+   "symbol": "PEPEUSDT",
+   "round": 11,
+   "received_ms": 1794815958245,
+   "status": 200,
+   "sha256": "fa5127f02a09d18eec112ec2c10e458b14cb8d14b7b1daebb1bd3854d890a8d2",
+   "bytes": 6238
+  },
+  {
+   "kind": "aggTrades_probe",
+   "symbol": "PEPEUSDT",
+   "round": 11,
+   "received_ms": 1794815958451,
+   "status": 200,
+   "sha256": "e59dfa549e1c9154ea0ae3c9985c82d236049bb630266d4a66633f1d1ca118b2",
+   "bytes": 3818
+  }
+ ],
+ "exchange_info": [
+  {
+   "received_ms": 1794814963846,
+   "status": 200,
+   "sha256": "4819432ccacd53e1d6f2a6abd9061058b768befe2afacdd571cf3b68aa8fd003",
+   "bytes": 80378
+  }
+ ],
+ "fee_page": [
+  {
+   "url": "https://www.binance.com/en/fee/schedule",
+   "received_ms": 1794814951624,
+   "status": 202,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  }
+ ]
+}
