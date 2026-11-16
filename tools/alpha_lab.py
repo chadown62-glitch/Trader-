@@ -99,6 +99,10 @@ def _load(directory: Path, archive: Path | None):
 
 
 def cmd_verify(a) -> int:
+    if not (Path(a.dir) / "preregistration.json").exists():
+        print(json.dumps({"status": "NOT_REGISTERED", "intact": False,
+                          "note": "aucun plan enregistré : préparation, aucune exécution sur données réelles"}, ensure_ascii=False, indent=1))
+        return 1
     plan, digest, problems, hyp, _ = _load(Path(a.dir), a.archive)
     print(json.dumps({"plan_id": plan["plan_id"], "plan_sha256": digest, "status": plan["status"], "candidates": len(plan["candidates"]),
                       "journal": [ln["kind"] for ln in registry.journal(Path(a.dir))], "problems": problems, "intact": not problems},
@@ -108,6 +112,9 @@ def cmd_verify(a) -> int:
 
 def cmd_run(a) -> int:
     directory, out = Path(a.dir), Path(a.output)
+    if not (directory / "preregistration.json").exists():
+        print("Exécution refusée : aucun plan enregistré (préenregistrement obligatoire avant toute exécution).", file=sys.stderr)
+        return 1
     plan, digest, problems, hyp, panel = _load(directory, a.archive)
     if problems:
         print("Exécution refusée : " + " ; ".join(problems), file=sys.stderr)

@@ -177,23 +177,13 @@ def test_plan_is_write_once_and_detects_any_change(tmp_path):
     assert [ln["kind"] for ln in registry.journal(work)] == ["plan_registered", "experiment_run"] and len(panel) == 600
 
 
-def test_registered_plan_and_published_results_are_intact_and_consistent():
-    plan, digest, problems = registry.load_plan(DIR, root=ROOT, hyp=HYP)
-    assert problems == [], problems  # le code du laboratoire est celui qui a été préenregistré
-    assert plan["plan_id"] == registry.PLAN_ID and plan["status"] == "EXPLORATORY" and plan["window"] == registry.WINDOW
-    assert plan["candidates"] == [s.name for s in CANDIDATES] and plan["candidate_definitions"] == {s.name: s.describe() for s in CANDIDATES}
-    assert plan["trials"]["candidates"] == 15 and plan["costs"]["primary"] == "prudent" and plan["analysis"]["risk_limit"] == 0.10
-    assert plan["generalization"]["exclude_already_studied"] == list(registry.ALREADY_STUDIED) and len(plan["generalization"]["other_pairs"]) == 3
-    journal = registry.journal(DIR)
-    assert [ln["kind"] for ln in journal][:2] == ["plan_registered", "experiment_run"] and journal[0]["body"]["plan_sha256"] == digest
-    assert journal[0]["at_ms"] < journal[1]["at_ms"]  # le plan a été enregistré avant l'exécution
-    results = json.loads((MEASURES / "results.json").read_text(encoding="utf-8"))
-    from sentinelle.alpha.shadow.contract import sha256
-    assert sha256(results) == journal[1]["body"]["results_sha256"]  # les résultats publiés sont ceux de l'exécution, sans retouche
-    assert results["plan_sha256"] == digest and results["data"]["archive_manifest_sha256"] == plan["data"]["archive_manifest_sha256"]
-    assert list(results["candidates"]) == plan["candidates"] and results["status"] == "EXPLORATORY" and results["can_trade"] is False
-    assert results["summary"]["retained"] == journal[1]["body"]["retained"]
-    assert all((c["verdict"] == RETAINED) == all(c["checks"].values()) for c in results["candidates"].values())
+def test_preparation_state_no_plan_registered_and_nothing_run_on_real_data():
+    """Décision du 15/11/2026 (option B) : aucun plan enregistré, aucune exécution sur données réelles avant la
+    validation du contrat de coûts. Ce test changera quand le plan sera enregistré, pas avant."""
+    assert not (DIR / "preregistration.json").exists() and not (DIR / "journal.jsonl").exists()
+    assert not (MEASURES / "results.json").exists()
+    assert registry.WINDOW == {"start": "2020-01-01", "split": "2023-06-01", "end": "2026-11-12"}
+    assert "PROVISOIRE" in HYP.status  # les coûts actuels sont provisoires : ils seront remplacés par le contrat de COST OPTIMIZER
 
 
 def test_the_frozen_r1_candidate_and_protocol_of_pr48_are_untouched():
@@ -212,23 +202,19 @@ def test_lab_declares_itself_exploratory_long_only_and_unlevered():
 # ---------------------------------------------------------------------------
 
 
-def test_cli_lists_candidates_verifies_and_reports(capsys):
+def test_cli_lists_candidates_and_reports_the_preparation_state(capsys):
     assert alpha_lab.main(["candidates"]) == 0
     out = json.loads(capsys.readouterr().out)
     assert len(out["candidates"]) == 15 and len(out["references"]) == 4 and all(c["source"] for c in out["candidates"])
-    assert alpha_lab.main(["verify"]) == 0
-    assert json.loads(capsys.readouterr().out)["intact"] is True
-    assert alpha_lab.main(["report", "--input", str(MEASURES)]) == 0
-    text = capsys.readouterr().out
-    assert "Conclusion du banc" in text and "mom_xs_28_top3" in text and "Références simples" in text
+    assert alpha_lab.main(["verify"]) == 1
+    state = json.loads(capsys.readouterr().out)
+    assert state["status"] == "NOT_REGISTERED" and state["intact"] is False
 
 
-def test_cli_refuses_to_register_twice_or_to_run_on_other_data(tmp_path, capsys):
-    assert alpha_lab.main(["register", "--archive", str(tmp_path)]) == 2
-    assert "immuable" in capsys.readouterr().err
+def test_cli_refuses_to_run_without_a_registered_plan(tmp_path, capsys):
     alpha_lab_fetch.run(tmp_path / "archive", END_MS, fake_exchange([]), max_requests=50)
     assert alpha_lab.main(["run", "--archive", str(tmp_path / "archive"), "--output", str(tmp_path / "out")]) == 1
-    assert "archive de données n'est pas celle du plan" in capsys.readouterr().err and not (tmp_path / "out").exists()
+    assert "aucun plan" in capsys.readouterr().err and not (tmp_path / "out").exists()
     assert alpha_lab.main(["universe", "--archive", str(tmp_path / "archive"), "--dates", "2018-02-05"]) == 0
     assert json.loads(capsys.readouterr().out)["quality"]["columns"] == 3
 
