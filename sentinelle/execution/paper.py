@@ -89,6 +89,10 @@ class PaperBroker:
         self.book_fn = book_fn
         self.spread_fn = spread_fn  # demi-écart achat/vente observé sur le carnet, en fraction du prix (facultatif)
         self.listeners: list[FillListener] = []
+        # Hub de marché (mission 51) : mêmes euros, un seul portefeuille. Ses réservations sont déduites des fonds
+        # disponibles ici, et la valeur prudente de ses positions est ajoutée à la valeur totale. None = sans hub.
+        self.external_reserved: Callable[[], dict[str, float]] | None = None
+        self.external_value: Callable[[], float] | None = None
 
     # -- conversion ---------------------------------------------------------------
     def fx(self, currency: str, for_trading: bool = True) -> FxQuote:
@@ -150,6 +154,13 @@ class PaperBroker:
         self._write(asset, before, after, kind, ref)
 
     @atomic
+    def adjust_cash(self, delta: float, kind: str, note: str) -> None:
+        """Mouvement d'euros demandé par le hub (achat ou vente fictive), inscrit au grand livre ; jamais négatif."""
+        if kind not in ("hub_achat", "hub_vente", "hub_frais"):
+            raise OrderError("Mouvement de liquidités inconnu", "invalid")
+        self._adjust(self.quote, float(delta), kind, note=note)
+
+    @atomic
     def set_balance(self, asset: str, total: float, kind: str = "ajustement", note: str | None = None) -> None:
         if not math.isfinite(total) or total < 0:
             raise OrderError(f"Un solde ne peut pas être négatif ({asset})", "invalid")
@@ -187,6 +198,9 @@ class PaperBroker:
                     res[self.quote] += left * px * (1 + self.fee_rate + self.slip) * float(rate) * (1 + self.conversion_cost(o["symbol"]))
         for (_, asset), amt in groups.items():
             res[asset] += amt
+        if self.external_reserved is not None:
+            for asset, amt in self.external_reserved().items():  # une erreur ici empêche l'ordre : refus par défaut
+                res[asset] += float(amt)
         return dict(res)
 
     def available(self, asset: str) -> float:
@@ -214,6 +228,8 @@ class PaperBroker:
             if not px or not rate or not math.isfinite(px) or px <= 0:
                 raise OrderError(f"Valorisation impossible pour {asset} : prix ou change indisponible", "no_price")
             total += qty * px * rate
+        if self.external_value is not None:
+            total += float(self.external_value())
         return total, cash
 
     def breakdown(self) -> dict:
