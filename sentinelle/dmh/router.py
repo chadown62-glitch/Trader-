@@ -28,8 +28,17 @@ class RouteError(ValueError):
     pass
 
 
+KINDS = ("frais", "immobilise", "risque")
+SCENARIOS = ("central", "commissions_basses", "commissions_hautes", "defavorable")
+
+
 @dataclass(frozen=True)
 class Cost:
+    """Une composante : `kind` = frais réellement payés, capital immobilisé (reliquat, provision) ou risque (espérance).
+
+    `unverified_fee` : commission ou frais de retrait HYPOTHÉTIQUES (aucune grille vérifiable) ; les décisions qui en
+    dépendent sont signalées.
+    """
     name: str
     eur: float
     low: float
@@ -37,20 +46,37 @@ class Cost:
     level: str
     source: str
     note: str = ""
+    kind: str = "frais"
+    unverified_fee: bool = False
 
     def __post_init__(self):
         if not all(math.isfinite(x) for x in (self.eur, self.low, self.high)) or not self.low <= self.eur <= self.high + 1e-12:
             raise RouteError(f"composante de coût incohérente : {self.name} ({self.low}, {self.eur}, {self.high})")
+        if self.kind not in KINDS:
+            raise RouteError(f"nature de coût inconnue : {self.kind}")
+
+    def at(self, scenario: str) -> float:
+        """Valeur de la composante dans un scénario : les commissions non vérifiées seules à leurs bornes, ou tout au pire."""
+        if scenario == "central":
+            return self.eur
+        if scenario == "defavorable":
+            return self.high
+        if scenario == "commissions_basses":
+            return self.low if self.unverified_fee else self.eur
+        if scenario == "commissions_hautes":
+            return self.high if self.unverified_fee else self.eur
+        raise RouteError(f"scénario inconnu : {scenario}")
 
     def to_dict(self):
         return {"name": self.name, "eur": self.eur, "low": self.low, "high": self.high, "level": self.level, "source": self.source,
-                "note": self.note}
+                "note": self.note, "kind": self.kind, "unverified_fee": self.unverified_fee}
 
 
-def cost(name, eur, low=None, high=None, *, level, source, note="") -> Cost:
+def cost(name, eur, low=None, high=None, *, level, source, note="", kind="frais", unverified_fee=None) -> Cost:
     lo = eur if low is None else low
     hi = eur if high is None else high
-    return Cost(name, float(eur), float(min(lo, eur)), float(max(hi, eur)), level, source, note)
+    unv = (level == "HYPOTHETICAL" and kind == "frais") if unverified_fee is None else unverified_fee
+    return Cost(name, float(eur), float(min(lo, eur)), float(max(hi, eur)), level, source, note, kind, bool(unv))
 
 
 @dataclass
@@ -117,10 +143,20 @@ class Route:
             fill *= leg.fill_probability
         fail = 1.0 - math.prod(1 - leg.failure[0] for leg in self.legs)
         levels = [x.level for leg in self.legs for x in leg.costs] or ["HYPOTHETICAL"]
+        comps = [x for leg in self.legs for x in leg.costs]
+        by_kind = {k: sum(x.eur for x in comps if x.kind == k) for k in KINDS}
+        deposits = sum(leg.deposit_eur for leg in self.legs)
+        immobilized = by_kind["immobilise"] + deposits
+        scen = {name: sum(x.at(name) for x in comps) for name in SCENARIOS}
+        unverified = sum(x.eur for x in comps if x.unverified_fee)
         return {"cost_eur": c, "cost_low_eur": lo, "cost_high_eur": hi, "cost_bps": c / n * 1e4, "cost_low_bps": lo / n * 1e4,
                 "cost_high_bps": hi / n * 1e4, "entry_fill_probability": fill, "failure_probability": fail,
                 "latency_ms": sum(leg.latency_ms[0] for leg in self.entry), "finality_ms": max((leg.latency_ms[1] for leg in self.entry), default=0),
-                "dust_eur": sum(leg.dust_eur for leg in self.legs), "deposit_eur": sum(leg.deposit_eur for leg in self.legs),
+                "dust_eur": sum(leg.dust_eur for leg in self.legs), "deposit_eur": deposits,
+                "fees_paid_eur": by_kind["frais"], "immobilized_eur": immobilized, "immobilized_pct": immobilized / n * 100,
+                "risk_eur": by_kind["risque"], "unverified_fees_eur": unverified,
+                "unverified_fee_share": unverified / c if c > 0 else 0.0,
+                "scenarios_eur": scen, "scenarios_bps": {k: v / n * 1e4 for k, v in scen.items()},
                 "level": weakest(levels)}
 
     def net(self, edge_bps: float) -> dict:
@@ -130,9 +166,10 @@ class Route:
         gross = edge_bps / 1e4 * self.notional_eur
         central = p * (gross - t["cost_eur"])
         pessimistic = min(p, 1.0) * (gross - t["cost_high_eur"])
+        scen = {k: p * (gross - v) for k, v in t["scenarios_eur"].items()}
         return {"edge_bps": edge_bps, "gross_eur": gross, "net_eur": central, "net_bps": central / self.notional_eur * 1e4,
                 "net_pessimistic_eur": pessimistic, "missed_opportunity_eur": (1 - p) * max(0.0, gross - t["cost_eur"]),
-                "break_even_bps": t["cost_bps"]}
+                "break_even_bps": t["cost_bps"], "net_by_scenario_eur": scen}
 
     def to_dict(self, edge_bps: float | None = None):
         d = {"id": self.id, "label": self.label, "kind": self.kind, "notional_eur": self.notional_eur,
@@ -235,8 +272,8 @@ def cex_leg(view: MarketView, venue: str, pair: str, side: str, *, quote_budget:
         sellable = rules.floor_qty(qty_out)
         dust = qty_out - sellable
         dust_eur = dust * book.bid * eur_per_quote
-        if dust_eur > 0:  # règle de COST OPTIMIZER : la valeur reste détenue ; comptée seulement dans la borne pessimiste
-            costs.append(cost("reliquat invendable", 0.0, 0.0, dust_eur, level="ESTIMATED",
+        if dust_eur > 0:  # capital immobilisé : compté comme perdu (règle prudente de la mission 52), affiché à part
+            costs.append(cost("reliquat invendable", dust_eur, 0.0, dust_eur, level="ESTIMATED", kind="immobilise",
                               source=f"pas de quantité {rules.step:g} ({venue})",
                               note=f"{dust_eur:.4f} € conservés mais invendables seuls (commission prélevée dans l'actif reçu, "
                                    "quantité revendable arrondie au pas)"))
@@ -245,6 +282,24 @@ def cex_leg(view: MarketView, venue: str, pair: str, side: str, *, quote_budget:
               asset_in, loc_in, qty_in, asset_out, loc_out, qty_out, eur, costs, 1.0, A.FAILURE_PROB["cex"], A.LATENCY_MS["cex"],
               dust_eur, 0.0, [book.evidence or {"sha256": book.sha256, "received_ms": book.received_ms}, rules.evidence], data)
     return leg
+
+
+def economic_minimum(rules: Rules, price: float, fee: float, *, eur_per_quote: float = 1.0, floor_eur: float = 10.0,
+                     max_immobilized_pct: float = 1.0) -> dict:
+    """Montant minimal économique d'un achat sur une plateforme (mission 52), en euros.
+
+    - minimum de la plateforme, plus un pas de quantité de marge d'arrondi, commission comprise ;
+    - reliquat : la commission prélevée dans l'actif reçu laisse jusqu'à un pas de quantité invendable ; pour qu'il reste
+      sous `max_immobilized_pct` % du montant, il faut un montant ≥ valeur d'un pas / limite ;
+    - plancher prudent de 10 € tant que l'exécution économique n'est pas démontrée.
+    """
+    step_value = rules.step * price * eur_per_quote
+    venue_min = (rules.min_notional * eur_per_quote + step_value) * (1 + fee)
+    dust_min = step_value / (max_immobilized_pct / 100) if step_value > 0 else 0.0
+    return {"venue": rules.venue, "pair": rules.pair, "step": rules.step, "step_value_eur": step_value, "venue_min_eur": venue_min,
+            "dust_min_eur": dust_min, "floor_eur": floor_eur, "economic_min_eur": max(floor_eur, venue_min, dust_min),
+            "binding": max((("plancher prudent", floor_eur), ("minimum de la plateforme", venue_min), ("reliquat", dust_min)),
+                           key=lambda x: x[1])[0]}
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -343,14 +398,14 @@ def dex_leg(view: MarketView, registry: TokenRegistry, network: str, t_in: Token
         ap = units[0] * gg.price_wei("p50") / 1e18 * px_native
         costs.append(cost("approbation du token (simulée, une fois)", ap, units[1] * gg.base_fee_wei / 1e18 * px_native,
                           units[2] * gg.price_wei("p90") / 1e18 * px_native, level="HYPOTHETICAL", source="ERC-20 approve",
-                          note="coût simulé uniquement : aucune permission de dépense n'est jamais accordée"))
+                          note="coût simulé uniquement : aucune permission de dépense n'est jamais accordée", unverified_fee=False))
         data["approval"] = True
     mev_hi = A.MEV_SHARE_OF_TOLERANCE[network][2] * tolerance_bps / 1e4 * value_in
-    costs.append(cost("robots (MEV, sandwich)", 0.0, 0.0, mev_hi, level="HYPOTHETICAL", source="hypothèse du hub",
+    costs.append(cost("robots (MEV, sandwich)", 0.0, 0.0, mev_hi, level="HYPOTHETICAL", source="hypothèse du hub", kind="risque",
                       note="nul en moyenne sur de petits montants ; au pire jusqu'à la tolérance de glissement"))
     pf = A.FAILURE_PROB[network]
     costs.append(cost("transaction échouée (gaz perdu)", pf[0] * g[0], pf[1] * g[1], pf[2] * g[2], level="HYPOTHETICAL",
-                      source="hypothèse du hub", note="le gaz est payé même si l'échange échoue"))
+                      source="hypothèse du hub", note="le gaz est payé même si l'échange échoue", kind="risque"))
     deposit = 0.0
     if network == "solana" and not has_token_account:
         deposit = view.solana().rent_token_account_lamports / 1e9 * px_native
@@ -562,7 +617,8 @@ def provision_gas(view: MarketView, network: str, native_asset: str) -> list[Leg
     px, _ = view.eur_reference(native_asset)
     w = transfer_leg(view, network, native_asset, best.qty_out, px, "withdraw", best.venue, f"native:{network}")
     left = w.qty_out * px
-    w.costs.append(cost("provision de gaz conservée (reliquat)", 0.0, 0.0, left, level="ESTIMATED", source="solde natif restant",
+    w.costs.append(cost("provision de gaz conservée (reliquat)", left, 0.0, left, level="ESTIMATED", kind="immobilise",
+                        source="solde natif restant",
                         note="valeur conservée sur la chaîne, difficilement revendable en petite quantité"))
     best.step += " — provision pour les frais de réseau"
     return [best, w]
@@ -578,14 +634,25 @@ class Choice:
     ranked: list[Route]
     reasons: list[str]
     sensitivity: list[str]
+    fee_dependent: bool = False
+    scenario_winners: dict = field(default_factory=dict)
 
     def to_dict(self, edge_bps):
         return {"decision": self.decision, "route": self.route.to_dict(edge_bps) if self.route else None,
-                "alternatives": [r.to_dict(edge_bps) for r in self.ranked], "reasons": self.reasons, "sensitivity": self.sensitivity}
+                "alternatives": [r.to_dict(edge_bps) for r in self.ranked], "reasons": self.reasons, "sensitivity": self.sensitivity,
+                "fee_dependent": self.fee_dependent, "scenario_winners": self.scenario_winners}
 
 
+# Règle de choix PRÉÉTABLIE (mission 52), fixée sans regarder de résultat de stratégie :
+# 1. une route n'est éligible que si son capital immobilisé (reliquats, provision de gaz, dépôts) reste sous la limite ;
+# 2. on retient la route au meilleur résultat net dans le scénario DÉFAVORABLE (toutes les composantes à leur borne
+#    haute), puis au meilleur net central : jamais simplement la moins chère au prix central ;
+# 3. on s'abstient si le net central est ≤ 0 ou si le net défavorable est < 0 ;
+# 4. si le gagnant change quand les commissions non vérifiées passent à leur borne basse ou haute, la décision est
+#    signalée comme dépendante de commissions non vérifiées.
 def choose(routes: list[Route], edge_bps: float | None, *, min_fill: float = 0.5, min_net_eur: float = 0.0,
-           max_cost_bps: float | None = None, allow_limit: bool = False) -> Choice:
+           max_cost_bps: float | None = None, allow_limit: bool = False, max_immobilized_pct: float | None = None,
+           robust: bool = True) -> Choice:
     eligible = []
     for r in routes:
         if r.reasons:
@@ -601,26 +668,51 @@ def choose(routes: list[Route], edge_bps: float | None, *, min_fill: float = 0.5
         if t["entry_fill_probability"] < min_fill:
             r.reasons.append(f"probabilité de remplissage {t['entry_fill_probability']:.0%} < {min_fill:.0%}")
             continue
+        if max_immobilized_pct is not None and t["immobilized_pct"] > max_immobilized_pct:
+            r.reasons.append(f"capital immobilisé {t['immobilized_eur']:.4f} € ({t['immobilized_pct']:.2f} % du montant) "
+                             f"> limite {max_immobilized_pct:g} %")
+            continue
         if max_cost_bps is not None and t["cost_bps"] > max_cost_bps:
             r.reasons.append(f"coût aller-retour {t['cost_bps']:.1f} pb > plafond {max_cost_bps:.0f} pb")
             continue
         eligible.append(r)
     edge = 0.0 if edge_bps is None else float(edge_bps)
-    ranked = sorted(eligible, key=lambda r: (-r.net(edge)["net_eur"], r.totals()["cost_high_eur"], r.totals()["latency_ms"]))
+
+    def key(r, scenario="defavorable"):
+        n = r.net(edge)
+        t = r.totals()
+        if robust:
+            return (-n["net_by_scenario_eur"][scenario], -n["net_eur"], t["cost_high_eur"], t["latency_ms"])
+        return (-n["net_eur"], t["cost_high_eur"], t["latency_ms"])
+    ranked = sorted(eligible, key=key)
     ranked += [r for r in routes if r not in ranked]
     reasons, sens = [], []
     if not eligible:
         return Choice("ABSTENTION", None, ranked, ["aucune route fiable : toutes sont impossibles ou hors limites"], sens)
     best = ranked[0]
+    winners = {}
+    for scen in ("central", "commissions_basses", "commissions_hautes", "defavorable"):
+        w = min(eligible, key=lambda r: (-r.net(edge)["net_by_scenario_eur"][scen], r.totals()["latency_ms"]))
+        winners[scen] = w.label
+    fee_dependent = len({winners["commissions_basses"], winners["commissions_hautes"], winners["central"]}) > 1
+    if fee_dependent:
+        sens.append(f"décision dépendante de commissions NON VÉRIFIÉES : au prix central « {winners['central']} », commissions "
+                    f"basses « {winners['commissions_basses']} », commissions hautes « {winners['commissions_hautes']} »")
+    t = best.totals()
+    if t["unverified_fee_share"] > 0.5:
+        sens.append(f"{t['unverified_fee_share']:.0%} du coût de la route retenue vient de commissions non vérifiées")
+    if winners["central"] != best.label:
+        sens.append(f"la moins chère au prix central (« {winners['central']} ») n'est pas retenue : elle est moins sûre dans le scénario défavorable")
     if edge_bps is None:
         reasons.append("aucun avantage brut annoncé : le résultat net attendu est le coût changé de signe")
     nb = best.net(edge)
     if nb["net_eur"] <= min_net_eur:
-        reasons.append(f"résultat net attendu {nb['net_eur']:+.4f} € (avantage {edge:.0f} pb − coût {best.totals()['cost_bps']:.1f} pb) : "
+        reasons.append(f"résultat net attendu {nb['net_eur']:+.4f} € (avantage {edge:.0f} pb − coût {t['cost_bps']:.1f} pb) : "
                        "opération non rentable")
-        return Choice("ABSTENTION", None, ranked, reasons, sens)
-    # robustesse face aux hypothèses : le classement change-t-il si chaque route prend sa borne haute ?
-    alt = sorted(eligible, key=lambda r: -(r.net(edge)["net_pessimistic_eur"]))
-    if alt[0] is not best:
-        sens.append(f"aux bornes hautes des coûts, la meilleure route serait « {alt[0].label} » : choix sensible aux hypothèses")
-    return Choice("ROUTE", best, ranked, reasons, sens)
+        return Choice("ABSTENTION", None, ranked, reasons, sens, fee_dependent, winners)
+    adverse = nb["net_by_scenario_eur"]["defavorable"]
+    if robust and adverse < 0:
+        reasons.append(f"résultat net dans le scénario défavorable {adverse:+.4f} € (coût {t['scenarios_bps']['defavorable']:.1f} pb) : "
+                       "rentable seulement si les coûts restent centraux — abstention prudente")
+        return Choice("ABSTENTION", None, ranked, reasons, sens, fee_dependent, winners)
+    return Choice("ROUTE", best, ranked, reasons, sens, fee_dependent, winners)

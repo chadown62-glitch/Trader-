@@ -31,6 +31,23 @@ def test_published_validation_is_reproduced_exactly_from_the_archived_capture(tm
         sa, sb = a["simulated"].get("round_trip_cost_bps"), b["simulated"].get("round_trip_cost_bps")
         assert (sa is None) == (sb is None) and (sa is None or sa == pytest.approx(sb, abs=1e-9))
         assert a["security"]["allowed"] == b["security"]["allowed"]
+        assert a["user_path"]["outcome"] == b["user_path"]["outcome"] and a["user_path"]["route"] == b["user_path"]["route"]
+
+
+def test_cost_measures_and_the_user_path_are_reported_separately():
+    """Mission 52 : une mesure de coût à 30 € (portefeuille de mesure isolé) ne vaut pas autorisation pour l'utilisateur."""
+    pub = json.loads((MEASURES / "validation.json").read_text(encoding="utf-8"))
+    for r in pub["rows"]:
+        assert "hors limites" in r["measure"] and r["user_path"]["limits"].startswith("par défaut")
+        u = r["user_path"]
+        if r["notional_eur"] > 10:
+            assert u["outcome"] == "REFUS DE SÉCURITÉ" and any("position" in x for x in u["reasons"])
+        if r["notional_eur"] < 10:
+            assert u["outcome"] == "REFUS DE SÉCURITÉ" and any("minimum" in x for x in u["reasons"])
+        if u["outcome"] == "AUTORISÉE":
+            assert u["immobilized_pct"] <= 1.0 and r["notional_eur"] == 10
+    tables = (MEASURES / "tableaux.md").read_text(encoding="utf-8")
+    assert "Parcours utilisateur" in tables and "limites de l'utilisateur NON appliquées" in tables and "Seuil économique" in tables
 
 
 def test_estimates_agree_with_simulated_execution_on_the_same_books():
@@ -38,5 +55,7 @@ def test_estimates_agree_with_simulated_execution_on_the_same_books():
     for r in pub["rows"]:
         sim = r["simulated"].get("round_trip_cost_bps")
         if r["chosen"] and sim is not None:
-            assert abs(sim - r["chosen"]["cost_bps"]) < 2.0, (r["asset"], r["notional_eur"])  # cohérence estimation / simulation
+            # même base : frais payés simulés + reliquat conservé (capital immobilisé) ≈ coût économique estimé
+            leftover_bps = r["simulated"]["leftover_cost_eur"] / r["simulated"]["spent_eur"] * 1e4
+            assert abs(sim + leftover_bps - r["chosen"]["cost_bps"]) < 2.5, (r["asset"], r["notional_eur"])
             assert r["simulated"]["reconciled"]

@@ -159,6 +159,9 @@ class Ledger:
         self.cash: CashBridge | None = None
         for stmt in _statements(SCHEMA):  # instructions idempotentes, sans executescript (qui validerait une transaction en cours)
             db.execute(stmt)
+        cols = {r[1] for r in db.conn.execute("PRAGMA table_info(dmh_holdings)").fetchall()}
+        if "step" not in cols:  # pas de quantité de la plateforme : distingue la part revendable du reliquat
+            db.execute("ALTER TABLE dmh_holdings ADD COLUMN step REAL NOT NULL DEFAULT 0")
 
     def now_ms(self) -> int:
         return int(self.clock() * 1000)
@@ -363,7 +366,7 @@ class Ledger:
         side, ca, cl = f["side"], f["counter_asset"], f["counter_location"]
         if side == "buy":
             self._debit(ca, cl, cq, f"paiement {f['asset']} ({op_id})")
-            self._credit(f["asset"], f["location"], qty, eur, int(f.get("final_ms", 0)))
+            self._credit(f["asset"], f["location"], qty, eur, int(f.get("final_ms", 0)), float(f.get("step", 0.0) or 0.0))
         elif side == "sell":
             self._debit(f["asset"], f["location"], qty, f"vente {f['asset']} ({op_id})")
             self._credit(ca, cl, cq, eur, int(f.get("final_ms", 0)))
@@ -393,14 +396,17 @@ class Ledger:
         self.db.execute("UPDATE dmh_holdings SET qty = ?, cost_eur = ? WHERE account_id = ? AND asset = ? AND location = ?",
                         (left, max(0.0, cost), self.account_id, asset, location))
 
-    def _credit(self, asset: str, location: str, qty: float, cost_eur: float, final_ms: int) -> None:
+    def _credit(self, asset: str, location: str, qty: float, cost_eur: float, final_ms: int, step: float = 0.0) -> None:
         if asset == "EUR" and location == "cash":
             self.cash.adjust(qty, "hub_vente", "produit d'une vente fictive")
             return
-        self.db.execute("INSERT INTO dmh_holdings(account_id, asset, location, qty, cost_eur, final_ms) VALUES (?, ?, ?, ?, ?, ?) "
+        if not (math.isfinite(step) and step >= 0):
+            raise LedgerError("pas de quantité invalide", "invalid")
+        self.db.execute("INSERT INTO dmh_holdings(account_id, asset, location, qty, cost_eur, final_ms, step) VALUES (?, ?, ?, ?, ?, ?, ?) "
                         "ON CONFLICT(account_id, asset, location) DO UPDATE SET qty = qty + excluded.qty, "
-                        "cost_eur = cost_eur + excluded.cost_eur, final_ms = MAX(final_ms, excluded.final_ms)",
-                        (self.account_id, asset, location, qty, max(0.0, cost_eur), final_ms))
+                        "cost_eur = cost_eur + excluded.cost_eur, final_ms = MAX(final_ms, excluded.final_ms), "
+                        "step = MAX(step, excluded.step)",
+                        (self.account_id, asset, location, qty, max(0.0, cost_eur), final_ms, step))
 
     # -- transactions simulées sur la chaîne (journal local, jamais diffusé) ---------------------------------------
     def record_sim_tx(self, op_id: str, network: str, final_ms: int, fee_eur: float, data: dict) -> dict:
@@ -462,19 +468,63 @@ class Ledger:
         return rows
 
     def set_mark(self, asset: str, location: str, value_eur: float, method: str) -> None:
+        if isinstance(value_eur, bool) or not isinstance(value_eur, (int, float)) or not math.isfinite(value_eur) or value_eur < 0:
+            raise LedgerError(f"valorisation refusée (valeur invalide pour {asset})", "invalid")
         self.db.execute("INSERT INTO dmh_marks VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(account_id, asset, location) DO UPDATE SET "
                         "value_eur = excluded.value_eur, ts_ms = excluded.ts_ms, method = excluded.method",
                         (self.account_id, asset, location, float(value_eur), self.now_ms(), method))
 
-    def liquidation_value(self, max_age_ms: int = 86_400_000) -> float:
-        """Valeur des positions du hub pour le tableau de bord : dernière valorisation prudente, sinon coût d'achat."""
-        total = 0.0
+    def valuation(self, max_age_ms: int = 86_400_000) -> list[dict]:
+        """Valeur prudente de chaque position, avec sa méthode : récente → valeur de sortie ; ancienne → la plus basse de
+        la dernière valeur et du coût ; aucune → coût d'achat (signalé). Une valeur stockée invalide est ignorée."""
+        out = []
         now = self.now_ms()
         for h in self.holdings():
             m = self.db.one("SELECT * FROM dmh_marks WHERE account_id = ? AND asset = ? AND location = ?",
                             (self.account_id, h["asset"], h["location"]))
-            total += m["value_eur"] if m and now - m["ts_ms"] <= max_age_ms else h["cost_eur"]
+            ok = m is not None and isinstance(m["value_eur"], (int, float)) and math.isfinite(m["value_eur"]) and m["value_eur"] >= 0
+            if ok and now - m["ts_ms"] <= max_age_ms:
+                v, method, stale = m["value_eur"], m["method"], False
+            elif ok:
+                v, method, stale = min(m["value_eur"], h["cost_eur"]), "valeur ancienne : la plus basse de la dernière valeur et du coût", True
+            else:
+                v, method, stale = h["cost_eur"], "aucune valeur récente : coût d'achat (à relire)", True
+            out.append({"asset": h["asset"], "location": h["location"], "value_eur": float(v), "method": method, "stale": stale,
+                        "mark_ts_ms": m["ts_ms"] if m else None})
+        return out
+
+    def liquidation_value(self, max_age_ms: int = 86_400_000) -> float:
+        """Valeur des positions du hub pour le tableau de bord (voir `valuation`)."""
+        return sum(x["value_eur"] for x in self.valuation(max_age_ms))
+
+    def eur_flows(self) -> float:
+        """Somme des euros entrés (+) et sortis (−) par les exécutions du hub (contrepartie en euros)."""
+        total = 0.0
+        for f in self.fills():
+            if (f["counter_asset"], f["counter_location"]) == ("EUR", "cash"):
+                total += f["counter_qty"] if f["side"] == "sell" else -f["counter_qty"]
+            if (f["asset"], f["location"]) == ("EUR", "cash"):
+                total += -f["qty"] if f["side"] == "sell" else f["qty"]
         return total
+
+    def reconcile_with_broker(self, broker) -> list[str]:
+        """Concordance avec le broker fictif du portefeuille principal : mêmes euros, mêmes réservations."""
+        problems = []
+        rows = self.db.query("SELECT COALESCE(SUM(amount), 0) AS s FROM ledger WHERE account_id = ? AND asset = ? "
+                             "AND kind IN ('hub_achat','hub_vente','hub_frais')", (self.account_id, broker.quote))
+        booked = float(rows[0]["s"]) if rows else 0.0
+        flows = self.eur_flows()
+        if abs(booked - flows) > 1e-7:
+            problems.append(f"grand livre du portefeuille principal : {booked:.8f} € de mouvements du hub, exécutions du hub {flows:.8f} €")
+        if broker._total(broker.quote) < -1e-9:
+            problems.append("solde en euros du portefeuille principal négatif")
+        seen = float((broker.external_reserved() if broker.external_reserved else {}).get(broker.quote, 0.0))
+        mine = self.reserved("EUR", "cash")
+        if abs(seen - mine) > 1e-9:
+            problems.append(f"réservations du hub vues par le broker : {seen:.6f} €, registre du hub : {mine:.6f} €")
+        if broker.external_value is None:
+            problems.append("la valeur des positions du hub n'est pas comptée par le broker principal")
+        return problems
 
     # -- réconciliation ----------------------------------------------------------------------------------------------
     def reconcile(self, *, block_on_error: bool = True) -> dict:
@@ -517,6 +567,11 @@ class Ledger:
                 problems.append(f"euros : registre {self.cash.total():.8f}, dépôt + exécutions {dep + flows.get(('EUR', 'cash'), 0.0):.8f}")
         if self.cash is not None and self.cash.total() < -EPS:
             problems.append("solde en euros négatif")
+        if isinstance(self.cash, MainAccountCash):
+            try:
+                problems += self.reconcile_with_broker(self.cash._broker())
+            except Exception as exc:  # contrôle impossible : traité comme une incohérence (refus par défaut)
+                problems.append(f"contrôle croisé avec le portefeuille principal impossible : {exc.__class__.__name__}")
         res = {"ok": not problems, "problems": problems, "journal_entries": n, "ts_ms": self.now_ms()}
         with self.db.transaction():
             if problems and block_on_error:

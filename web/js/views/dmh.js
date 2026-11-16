@@ -132,15 +132,25 @@ export default {
     <template v-else>
       <div class="note" :class="pv.decision==='ROUTE' && pv.verdict.allowed ? 'info' : 'warn'" data-decision>
         <b>{{ pv.decision==='ROUTE' && pv.verdict.allowed ? 'Opération possible' : (pv.decision==='ABSTENTION' ? 'ABSTENTION' : 'REFUS de sécurité') }}</b> — {{ pv.explanation }}</div>
+      <div v-if="pv.money" class="kpi-grid" data-money>
+        <div class="card"><div class="small muted">Frais réellement payés (estimés)</div><b>{{ eur(pv.money.fees_paid_eur) }}</b></div>
+        <div class="card"><div class="small muted">Capital immobilisé (reliquats, provision, dépôts)</div><b>{{ eur(pv.money.immobilized_eur) }}</b>
+          <div class="small faint">{{ pv.money.immobilized_pct.toFixed(2) }} % du montant</div></div>
+        <div class="card"><div class="small muted">Capital disponible</div><b>{{ eur(pv.money.cash_available_now_eur) }} → {{ eur(pv.money.cash_available_after_eur) }}</b></div>
+        <div class="card"><div class="small muted">Dont commissions non vérifiées</div><b>{{ eur(pv.money.unverified_fees_eur) }}</b></div>
+      </div>
+      <div v-if="pv.fee_dependent" class="note warn">Décision dépendante de commissions NON VÉRIFIÉES : vérifiez la grille de votre compte.</div>
+      <ul v-if="pv.sensitivity && pv.sensitivity.length" class="small muted"><li v-for="x in pv.sensitivity" :key="x">{{ x }}</li></ul>
       <ul v-if="pv.verdict.vetoes.length" class="small"><li v-for="v in pv.verdict.vetoes" :key="v.code + v.message"><b>{{ v.layer }}</b> : {{ v.message }}</li></ul>
       <ul v-if="pv.verdict.warnings.length" class="small muted"><li v-for="v in pv.verdict.warnings" :key="v.code">{{ v.message }}</li></ul>
       <div class="table-wrap"><table>
-        <thead><tr><th>Route</th><th>Aller-retour</th><th>Fourchette</th><th>Net (hypothèse)</th><th>Remplissage</th><th>Reliquat</th><th>Preuve</th><th>Motif</th></tr></thead>
+        <thead><tr><th>Route</th><th>Aller-retour</th><th>Fourchette</th><th>Défavorable</th><th>Net (hypothèse)</th><th>Remplissage</th><th>Immobilisé</th><th>Preuve</th><th>Motif</th></tr></thead>
         <tbody><tr v-for="r in routes" :key="r.id" :class="{muted: !r.eligible}">
           <td>{{ r.label }}</td><td>{{ r.totals ? bps(r.totals.cost_bps) + ' · ' + eur(r.totals.cost_eur) : '—' }}</td>
           <td>{{ r.totals ? bps(r.totals.cost_low_bps) + ' – ' + bps(r.totals.cost_high_bps) : '' }}</td>
+          <td>{{ r.totals ? bps(r.totals.scenarios_bps.defavorable) : '' }}</td>
           <td>{{ r.net ? eur(r.net.net_eur) : '—' }}</td><td>{{ r.totals ? Math.round(r.totals.entry_fill_probability*100) + ' %' : '' }}</td>
-          <td>{{ r.totals ? eur(r.totals.dust_eur) : '' }}</td><td>{{ r.totals ? r.totals.level : '' }}</td><td class="small">{{ (r.reasons || []).join(' ; ') || (r.notes || []).join(' ; ') }}</td></tr></tbody></table></div>
+          <td>{{ r.totals ? eur(r.totals.immobilized_eur) : '' }}</td><td>{{ r.totals ? r.totals.level : '' }}</td><td class="small">{{ (r.reasons || []).join(' ; ') || (r.notes || []).join(' ; ') }}</td></tr></tbody></table></div>
       <details v-if="pv.route"><summary>Détail des frais de la route retenue</summary>
         <div v-for="(l, i) in [...pv.route.entry, ...(pv.route.exit || [])]" :key="i" class="small"><b>{{ l.step }}</b>
           <ul><li v-for="c in l.costs" :key="c.name">{{ c.name }} : {{ eur(c.eur) }} ({{ eur(c.low) }} – {{ eur(c.high) }}) · {{ c.level }} · <span class="faint">{{ c.source }}</span></li></ul></div></details>
@@ -151,11 +161,13 @@ export default {
 
   <section v-if="tab==='simulateur'" class="card">
     <div class="card-head"><h2>Positions fictives</h2><span class="spacer"></span><button @click="refreshOpen">Mettre à jour les ordres ouverts</button><button @click="reconcile">Réconcilier</button></div>
-    <p v-if="positions" class="small">Euros fictifs : {{ eur(positions.cash_total) }} (disponibles : {{ eur(positions.cash_available) }})</p>
+    <p v-if="positions" class="small" data-capital>Capital disponible : <b>{{ eur(positions.cash_available) }}</b> (euros fictifs : {{ eur(positions.cash_total) }})
+      · frais payés en simulation : <b>{{ eur(positions.fees_paid_eur) }}</b> · valeur des reliquats (immobilisée) : <b>{{ eur(positions.dust_value_eur) }}</b></p>
     <div v-if="positions && !positions.positions.length" class="empty">Aucune position.</div>
-    <div v-else-if="positions" class="table-wrap"><table><thead><tr><th>Actif</th><th>Lieu</th><th>Quantité</th><th>Coût</th><th>Valeur prudente</th><th>Latent (fictif)</th><th></th></tr></thead>
-      <tbody><tr v-for="p in positions.positions" :key="p.asset + p.location"><td>{{ p.logical }}</td><td>{{ p.location }}</td><td>{{ p.qty }}</td><td>{{ eur(p.cost_eur) }}</td>
-        <td>{{ eur(p.value_eur) }} <span class="small faint">{{ p.mark_method || '' }}</span></td><td>{{ eur(p.unrealized_eur) }}</td>
+    <div v-else-if="positions" class="table-wrap"><table><thead><tr><th>Actif</th><th>Lieu</th><th>Quantité revendable</th><th>Reliquat</th><th>Coût</th><th>Valeur prudente</th><th>Latent (fictif)</th><th></th></tr></thead>
+      <tbody><tr v-for="p in positions.positions" :key="p.asset + p.location"><td>{{ p.logical }}</td><td>{{ p.location }}</td><td>{{ p.sellable_qty }}</td>
+        <td>{{ p.dust_qty ? p.dust_qty + ' (' + eur(p.dust_eur) + ')' : '—' }}</td><td>{{ eur(p.cost_eur) }}</td>
+        <td>{{ eur(p.value_eur) }} <span class="small faint">{{ p.valuation_method || '' }}</span></td><td>{{ eur(p.unrealized_eur) }}</td>
         <td><button @click="previewSell(p)" :disabled="!p.final">{{ p.final ? 'Vendre (fictif)' : 'Finalité en attente' }}</button></td></tr></tbody></table></div>
     <h3>Historique</h3>
     <div v-if="history" class="table-wrap"><table><thead><tr><th>Date</th><th>Sens</th><th>Actif</th><th>État</th><th>Mode</th><th>Notes</th></tr></thead>
