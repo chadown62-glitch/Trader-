@@ -29,7 +29,8 @@ def net_edge(gross_mean_bps: float, gross_sd_bps: float, cost_samples_bps, *, tr
     cost = costs[rng.integers(len(costs), size=(sims, trades))]
     net = (gross - cost).mean(axis=1)
     return {"gross_mean_bps": gross_mean_bps, "trades": trades, "mean_cost_bps": float(costs.mean()),
-            "net_mean_bps": float(net.mean()), "net_ci_low": float(np.quantile(net, 0.025)), "net_ci_high": float(np.quantile(net, 0.975)),
+            "net_mean_bps": float(gross_mean_bps - costs.mean()),  # espérance exacte ; la simulation ne sert qu'à la dispersion
+            "net_ci_low": float(np.quantile(net, 0.025)), "net_ci_high": float(np.quantile(net, 0.975)),
             "p_net_positive": float((net > 0).mean()), "break_even_gross_bps": float(costs.mean()), "cost_samples": int(len(costs))}
 
 
