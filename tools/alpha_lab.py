@@ -31,6 +31,7 @@ from sentinelle.alpha.lab.experiment import FLAGS, REASONS, RETAINED, run_experi
 from sentinelle.alpha.lab.simulate import Features  # noqa: E402
 from sentinelle.alpha.lab.strategies import CANDIDATES, MIN_AGE, REFERENCES, TOP, Context  # noqa: E402
 from sentinelle.alpha.shadow.contract import sha256  # noqa: E402
+from sentinelle.alpha.shadow.protocol import file_sha  # noqa: E402
 
 DIR = ROOT / registry.DIRECTORY
 
@@ -81,8 +82,17 @@ def cmd_register(a) -> int:
     for key in ("start", "split", "end"):
         panel.index_of(registry.WINDOW[key])  # lève si la date manque dans l'archive
     now = _now_ms()
+    _, rules_meta = data.load_rules(a.archive)
+    adoption = None
+    if (out / registry.ADOPTION_FILE).exists():
+        adoption = {"file": registry.ADOPTION_FILE, "sha256": file_sha(out / registry.ADOPTION_FILE)}
+        decided = json.loads((out / registry.ADOPTION_FILE).read_text(encoding="utf-8"))
+        if decided.get("adopted_sha256") != hyp.sha256 or decided.get("adopted_file") != registry.COST_FILE:
+            print("Enregistrement refusé : la décision d'adoption ne porte pas sur ce fichier de coûts.", file=sys.stderr)
+            return 2
     plan = registry.build_plan(root=ROOT, data=panel.provenance, hyp=hyp, other_pairs=other_pairs(panel, feats, registry.WINDOW["start"]),
-                               registered_at=datetime.fromtimestamp(now / 1000, timezone.utc).isoformat(), registered_at_ms=now)
+                               registered_at=datetime.fromtimestamp(now / 1000, timezone.utc).isoformat(), registered_at_ms=now,
+                               rules_meta=rules_meta, adoption=adoption)
     digest = registry.write_plan(out, plan)
     registry.record(out, "plan_registered", {"plan_id": plan["plan_id"], "plan_sha256": digest, "candidates": len(plan["candidates"]),
                                              "cost_hypotheses_sha256": hyp.sha256, "archive_manifest_sha256": panel.provenance["archive_manifest_sha256"]}, now)
@@ -124,7 +134,13 @@ def cmd_run(a) -> int:
         print("Des résultats existent déjà dans ce dossier : utilisez un nouveau dossier.", file=sys.stderr)
         return 2
     t0 = time.time()
-    report = run_experiment(panel, plan, hyp)
+    rules = None
+    if (plan.get("execution") or {}).get("dust_model"):
+        rules, meta = data.load_rules(a.archive)
+        if meta["exchange_info_sha256"] != plan["execution"]["rules"]["exchange_info_sha256"]:
+            print("Exécution refusée : le catalogue de la plateforme n'est pas celui du plan.", file=sys.stderr)
+            return 1
+    report = run_experiment(panel, plan, hyp, rules=rules)
     daily = report.pop("_daily")
     report["plan_sha256"], report["duration_s"] = digest, round(time.time() - t0, 1)
     report["data"] = panel.provenance
@@ -150,12 +166,13 @@ def markdown(report: dict) -> str:
     out = [f"Plan `{report['plan_id']}` · fenêtre {w['start']} → {w['end']} ({w['days']} jours ; P1 {w['p1_days']} j, P2 {w['p2_days']} j) · "
            f"coûts « {report['costs']['primary']} » (tension : « {report['costs']['stress']} ») · {report['tests']['candidates']} candidats", "",
            "#### Résultats nets (30 unités fictives, scénario principal)", "",
-           "| Candidat | Famille | Résultat net | Par an | Baisse max. | Sharpe | Exposition | Ordres | Brut | Coûts payés | Tension | P1 | P2 | p corrigée (absolu) | p corrigée (relatif) | Verdict |",
-           "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+           "| Candidat | Famille | Résultat net | Par an | Baisse max. | Sharpe | Facteur de profit (jours) | Exposition | Ordres | Brut | Coûts payés | Reliquats perdus | Tension | P1 | P2 | p corrigée (absolu) | p corrigée (relatif) | Verdict |",
+           "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for name, c in report["candidates"].items():
         n, k = c["net"], c["costs"]
         out.append(f"| {name} | {c['family']} | {_f(n['net_pnl'])} | {_f(n['cagr'], 1, pct=True)} | {_f(n['max_drawdown'], 0, False, True)} | {_f(n['sharpe'])} | "
-                   f"{_f(n['mean_exposure'], 0, False, True)} | {n['trades']} | {_f(k['gross_pnl'])} | {_f(-(k['fees'] + k['spread_slippage']))} | {_f(k['stressed_pnl'])} | "
+                   f"{_f(n.get('profit_factor_daily'), 2, False)} | {_f(n['mean_exposure'], 0, False, True)} | {n['trades']} | {_f(k['gross_pnl'])} | "
+                   f"{_f(-(k['fees'] + k['spread_slippage']))} | {_f(-n.get('dust_lost', 0.0))} | {_f(k['stressed_pnl'])} | "
                    f"{_f(c['periods']['P1']['return'], 0, pct=True)} | {_f(c['periods']['P2']['return'], 0, pct=True)} | {_f(c['absolute']['p_adjusted'], 3, False)} | "
                    f"{_f(c['relative']['p_adjusted'], 3, False)} | {'**retenu**' if c['verdict'] == RETAINED else 'non retenu'} |")
     out += ["", "#### Références simples (mêmes coûts, mêmes jours)", "", "| Référence | Résultat net | Par an | Baisse max. | Sharpe | P1 | P2 |", "|---|---|---|---|---|---|---|"]
@@ -182,8 +199,78 @@ def markdown(report: dict) -> str:
     for name, rows in g["other_pairs"].items():
         for pair, v in rows.items():
             out.append(f"| {name} | {pair} | {_f(v['net_pnl'])} | {_f(v['sharpe'])} | {_f(v['relative_mean_daily'], 3, pct=True)} | {_f(v['hold_total_return'], 0, pct=True)} |")
-    out += ["", f"**Conclusion du banc : {report['summary']['conclusion']}.**"]
+    sens = report.get("sensitivity")
+    if sens:
+        names = list(sens["variants"])
+        out += ["", "#### Sensibilité (préenregistrée, DESCRIPTIVE : hors règle de décision et hors tests corrigés)", "", sens["role"] + ".", "",
+                "Résultat net (30 unités fictives) selon la variante ; base : " + sens["base"] + ".", "",
+                "| Règle | Principal | " + " | ".join(names) + " | Commission d'équilibre (pb par ordre) |",
+                "|---|---|" + "---|" * len(names) + "---|"]
+        rows = {**{n: c["net"]["net_pnl"] for n, c in report["candidates"].items()}, **{n: r["net_pnl"] for n, r in report["references"].items()}}
+        for name, base in rows.items():
+            be = sens["break_even_fee"].get(name)
+            be_txt = "—" if be is None else (_f(be["bps"], 1, False) if be["bps"] is not None else be["note"])
+            out.append(f"| {name} | {_f(base)} | " + " | ".join(_f(sens["variants"][v][name]["net_pnl"]) for v in names) + f" | {be_txt} |")
+    v = verdict(report)
+    out += ["", f"**Conclusion du banc : {report['summary']['conclusion']}.**", "",
+            f"**Verdict : {v['verdict'].replace('_', ' ')}** — {v['meaning']}.", "",
+            "| Candidat | Lecture |", "|---|---|"] + [f"| {n} | {x.replace('_', ' ').lower()} |" for n, x in v["candidates"].items()]
     return "\n".join(out)
+
+
+VERDICTS = {
+    "AVANTAGE_DÉMONTRÉ": "au moins un candidat passe TOUTES les conditions du plan (sur l'historique : à confirmer en prospectif, jamais « rentable »)",
+    "PROMETTEUR_NON_DÉMONTRÉ": "aucun candidat retenu, mais au moins un est positif net, positif en tension, positif sur les deux périodes et "
+                               "meilleur que la détention de même exposition : il n'échoue que sur la preuve statistique (essais multiples)",
+    "ÉCHEC": "aucun candidat ne remplit même les conditions de signe : aucun avantage net, même non démontré",
+}
+
+
+def verdict_of(c: dict) -> str:
+    """Lecture d'un candidat, fixée le 17/11/2026 AVANT de connaître les résultats (commit antérieur à results.json)."""
+    if c["verdict"] == RETAINED:
+        return "AVANTAGE_DÉMONTRÉ"
+    signs = (c["net"]["net_pnl"] > 0 and c["costs"]["stressed_pnl"] > 0 and c["checks"]["holds_in_both_periods"]
+             and (c["relative"]["interval"]["mean"] or 0) > 0)
+    return "PROMETTEUR_NON_DÉMONTRÉ" if signs else "ÉCHEC"
+
+
+def verdict(report: dict) -> dict:
+    per = {n: verdict_of(c) for n, c in report["candidates"].items()}
+    order = ("AVANTAGE_DÉMONTRÉ", "PROMETTEUR_NON_DÉMONTRÉ", "ÉCHEC")
+    best = next(v for v in order if v in per.values() or v == "ÉCHEC")
+    return {"verdict": best, "meaning": VERDICTS[best], "candidates": per, "rule": VERDICTS}
+
+
+def costs_check(proposal: Path, current: Path) -> dict:
+    """Compatibilité d'un fichier de coûts proposé (contrat COST OPTIMIZER #50) avec le laboratoire, SANS l'adopter."""
+    new, old = costs.load(proposal), costs.load(current)
+    problems = []
+    for name in (new.primary, new.stress, new.gross):
+        new.scenario(name)
+    for attr in ("majors",):
+        if tuple(new.scenario(new.primary).majors) != tuple(old.scenario(old.primary).majors):
+            problems.append(f"{attr} différents")
+    if not new.scenario(new.stress).round_trip("X") >= new.scenario(new.primary).round_trip("X") >= new.scenario(new.gross).round_trip("X"):
+        problems.append("scénarios non ordonnés (brut ≤ principal ≤ tension)")
+    rows = {}
+    for label, h in (("actuel", old), ("proposé", new)):
+        for scen in (h.primary, h.stress):
+            sc = h.scenario(scen)
+            rows[f"{label}:{scen}"] = {"order_bps_majors": (sc.worse("BTC") + sc.fee) * 1e4, "order_bps_others": (sc.worse("X") + sc.fee) * 1e4,
+                                       "round_trip_bps_majors": sc.round_trip("BTC") * 1e4, "round_trip_bps_others": sc.round_trip("X") * 1e4,
+                                       "fee_bps": sc.fee_bps, "fx_bps": sc.fx_bps, "min_notional": sc.min_notional}
+    return {"compatible": not problems, "problems": problems, "proposal": {"version": new.version, "sha256": new.sha256, "status": new.status,
+            "source_of_truth": new.source_of_truth}, "current": {"version": old.version, "sha256": old.sha256, "status": old.status},
+            "scenarios": rows, "adopted": new.sha256 == old.sha256,
+            "note": ("fichier proposé identique au fichier du laboratoire : adopté (décision de la coordination, mission 54)"
+                     if new.sha256 == old.sha256 else "vérification seulement : une adoption exige un nouveau fichier de coûts et un nouveau plan")}
+
+
+def cmd_costs_check(a) -> int:
+    rep = costs_check(a.proposal, a.dir / registry.COST_FILE)
+    print(json.dumps(rep, ensure_ascii=False, indent=1))
+    return 0 if rep["compatible"] else 1
 
 
 def cmd_report(a) -> int:
@@ -210,9 +297,12 @@ def main(argv=None) -> int:
     x.add_argument("--dir", type=Path, default=DIR)
     p = sub.add_parser("report")
     p.add_argument("--input", type=Path, required=True)
+    c = sub.add_parser("costs-check")
+    c.add_argument("--proposal", type=Path, default=ROOT / "research" / "cost-optimizer-v1" / "alpha-lab-cost-hypotheses-proposal.json")
+    c.add_argument("--dir", type=Path, default=DIR)
     a = cli.parse_args(argv)
     return {"candidates": cmd_candidates, "universe": cmd_universe, "register": cmd_register, "verify": cmd_verify, "run": cmd_run,
-            "report": cmd_report}[a.cmd](a)
+            "report": cmd_report, "costs-check": cmd_costs_check}[a.cmd](a)
 
 
 if __name__ == "__main__":

@@ -17,6 +17,8 @@ exposition au marché, instabilité, concentration) ; rien n'est inventé quand 
 """
 from __future__ import annotations
 
+import dataclasses
+
 import numpy as np
 
 from . import CAN_TRADE, CAPITAL, STATUS, stats
@@ -70,12 +72,68 @@ def benchmark_returns(panel: Panel, feats: Features, start: int, end: int, *, ma
 def _sim_summary(res: SimResult) -> dict:
     m = stats.metrics(res.returns, res.equity, res.initial)
     return {**m, "trades": res.trades, "turnover": res.turnover, "fees": res.fees, "spread_slippage": res.spread_slippage,
-            "mean_exposure": float(res.exposure.mean()), "blocked": res.blocked, "forced_exits": res.forced_exits}
+            "mean_exposure": float(res.exposure.mean()), "blocked": res.blocked, "forced_exits": res.forced_exits,
+            "dust_lost": res.dust_lost, "dust_events": res.dust_events}
 
 
-def run_experiment(panel: Panel, plan: dict, hyp: CostHypotheses, *, features: Features | None = None) -> dict:
+SENSITIVITY_KEYS = {"name", "fee_bps", "min_notional", "lag", "forced_haircut", "note"}
+
+
+def sensitivity(panel: Panel, plan: dict, hyp: CostHypotheses, feats: Features, specs: list[Spec], start: int, end: int,
+                rules: dict | None) -> dict | None:
+    """Analyses de sensibilité PRÉENREGISTRÉES, descriptives : jamais dans la règle de décision ni dans les tests corrigés."""
+    sens = plan.get("sensitivity")
+    if not sens:
+        return None
+    primary = hyp.scenario(hyp.primary)
+    every = specs + [BY_NAME[n] for n in plan["references"]]
+
+    def run(spec: Spec, v: dict) -> SimResult:
+        cost = dataclasses.replace(primary, **{k: float(v[k]) for k in ("fee_bps", "min_notional") if k in v})
+        return simulate(panel, spec, cost, start=start, end=end, capital=CAPITAL, features=feats, rules=rules,
+                        lag=int(v.get("lag", 0)), forced_haircut=float(v.get("forced_haircut", 0.0)))
+
+    variants = {}
+    for v in sens["variants"]:
+        if set(v) - SENSITIVITY_KEYS:
+            raise ValueError("Variante de sensibilité mal formée : " + v.get("name", "?"))
+        rows = {}
+        for spec in every:
+            r = run(spec, v)
+            m = stats.metrics(r.returns, r.equity, r.initial)
+            rows[spec.name] = {"net_pnl": m["net_pnl"], "max_drawdown": m["max_drawdown"], "sharpe": m["sharpe"], "trades": r.trades,
+                               "fees": r.fees, "dust_lost": r.dust_lost, "forced_exits": r.forced_exits}
+        variants[v["name"]] = rows
+    be = sens.get("break_even_fee") or {}
+    break_even = {}
+    if be:
+        lo0, hi0, it = float(be["low_bps"]), float(be["high_bps"]), int(be["iterations"])
+        for spec in specs:
+            def net(fee: float) -> float:
+                return run(spec, {"fee_bps": fee}).net_pnl
+            if net(lo0) <= 0:
+                break_even[spec.name] = {"bps": None, "note": f"résultat net négatif ou nul même à {lo0:g} pb de commission"}
+                continue
+            if net(hi0) > 0:
+                break_even[spec.name] = {"bps": None, "note": f"résultat net encore positif à {hi0:g} pb de commission"}
+                continue
+            lo, hi = lo0, hi0
+            for _ in range(it):
+                mid = (lo + hi) / 2
+                lo, hi = (mid, hi) if net(mid) > 0 else (lo, mid)
+            break_even[spec.name] = {"bps": (lo + hi) / 2, "note": "commission par ordre qui annule le résultat net"}
+    return {"role": sens["role"], "base": sens["base"], "variants": variants, "definitions": sens["variants"],
+            "break_even_fee": break_even}
+
+
+def run_experiment(panel: Panel, plan: dict, hyp: CostHypotheses, *, features: Features | None = None, rules: dict | None = None) -> dict:
     """Exécute le plan tel qu'enregistré. Refuse un candidat absent du plan ou un scénario de coûts inconnu."""
     feats = features or Features(panel)
+    model = (plan.get("execution") or {}).get("dust_model")
+    if model and rules is None:
+        raise ValueError("Le plan exige le modèle de reliquats : règles de marché de l'archive manquantes")
+    if not model:
+        rules = None  # plan sans modèle de reliquats : exécution telle qu'enregistrée
     start, split, end = panel.index_of(plan["window"]["start"]), panel.index_of(plan["window"]["split"]), panel.index_of(plan["window"]["end"])
     if not start < split <= end:
         raise ValueError("Fenêtres incohérentes")
@@ -97,7 +155,7 @@ def run_experiment(panel: Panel, plan: dict, hyp: CostHypotheses, *, features: F
                   "bootstrap_seed": plan["analysis"]["bootstrap_seed"], "confidence": plan["analysis"]["confidence"]}
 
     def sim(spec: Spec, cost, **kw) -> SimResult:
-        return simulate(panel, spec, cost, start=start, end=end, capital=CAPITAL, features=feats, **kw)
+        return simulate(panel, spec, cost, start=start, end=end, capital=CAPITAL, features=feats, rules=rules, **kw)
 
     runs = {s.name: sim(s, primary) for s in specs}
     refs = {n: sim(BY_NAME[n], primary) for n in plan["references"]}
@@ -161,7 +219,8 @@ def run_experiment(panel: Panel, plan: dict, hyp: CostHypotheses, *, features: F
             "vs_hold_btc": stats.mean_interval(res.returns - refs["hold_btc"].returns, plan_stats) if "hold_btc" in refs else None,
             "years_to_prove_at_observed_sharpe": (7.85 / sharpe ** 2) if sharpe > 0 else None,
         }
-    generalization = _generalization(panel, plan, feats, specs, primary, start, end, plan_stats)
+    generalization = _generalization(panel, plan, feats, specs, primary, start, end, plan_stats, rules)
+    sens = sensitivity(panel, plan, hyp, feats, specs, start, end, rules)
     retained = [n for n, c in candidates.items() if c["verdict"] == RETAINED]
     by_family = {}
     for n, c in candidates.items():
@@ -177,6 +236,7 @@ def run_experiment(panel: Panel, plan: dict, hyp: CostHypotheses, *, features: F
         "benchmarks": {n: {"total_return": float(np.prod(1 + v) - 1), "p1": float(np.prod(1 + v[p1]) - 1), "p2": float(np.prod(1 + v[~p1]) - 1),
                            "years": stats.by_year(days, v)} for n, v in bench.items()},
         "generalization": generalization,
+        "sensitivity": sens,
         "summary": {"retained": retained, "candidates": len(names), "by_family": by_family,
                     "positive_net": [n for n, c in candidates.items() if c["net"]["net_pnl"] > 0],
                     "positive_gross": [n for n, c in candidates.items() if c["costs"]["gross_pnl"] > 0],
@@ -189,7 +249,7 @@ def run_experiment(panel: Panel, plan: dict, hyp: CostHypotheses, *, features: F
     }
 
 
-def _generalization(panel, plan, feats, specs, cost, start, end, plan_stats) -> dict:
+def _generalization(panel, plan, feats, specs, cost, start, end, plan_stats, rules=None) -> dict:
     """La règle tient-elle ailleurs ? Univers privé des cryptos déjà étudiées par le projet ; autres paires pour les règles « majeurs »."""
     g = plan["generalization"]
     exclude = frozenset(g["exclude_already_studied"])
@@ -197,7 +257,7 @@ def _generalization(panel, plan, feats, specs, cost, start, end, plan_stats) -> 
     bench_ex = benchmark_returns(panel, feats, start, end, majors=tuple(plan["universe"]["majors"]), exclude=exclude)
     for spec in specs:
         if spec.benchmark == "market":
-            res = simulate(panel, spec, cost, start=start, end=end, features=feats, exclude=exclude)
+            res = simulate(panel, spec, cost, start=start, end=end, features=feats, exclude=exclude, rules=rules)
             ref, e = stats.exposure_matched(res.exposure, bench_ex["market"])
             m = stats.metrics(res.returns, res.equity, res.initial)
             out["broad"][spec.name] = {"net_pnl": m["net_pnl"], "sharpe": m["sharpe"], "max_drawdown": m["max_drawdown"], "trades": res.trades,
@@ -206,7 +266,7 @@ def _generalization(panel, plan, feats, specs, cost, start, end, plan_stats) -> 
             rows = {}
             for pair in g["other_pairs"]:
                 pair = tuple(pair)
-                res = simulate(panel, spec, cost, start=start, end=end, features=feats, majors=pair)
+                res = simulate(panel, spec, cost, start=start, end=end, features=feats, majors=pair, rules=rules)
                 b = benchmark_returns(panel, feats, start, end, majors=pair)["majors"]
                 ref, e = stats.exposure_matched(res.exposure, b)
                 m = stats.metrics(res.returns, res.equity, res.initial)

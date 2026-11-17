@@ -1,0 +1,186 @@
+{
+ "analysis": {
+  "alpha": 0.05,
+  "between_looks": "descriptif seulement, sans valeur de décision",
+  "boundaries_method": {
+   "first": "exacte",
+   "paths": 1000000,
+   "seed": 55
+  },
+  "boundaries_z": [
+   5.764075055862867,
+   4.003674966332615,
+   3.1872371899983185,
+   2.741509761552804,
+   2.4299712942825673,
+   2.209566488097796,
+   2.0359404897191977,
+   1.8971377922926775,
+   1.786625154642528
+  ],
+  "confirmed_if_all": [
+   "score z au regard ≥ borne du regard",
+   "résultat net > 0 (scénario principal)",
+   "résultat net > 0 (scénario de tension)"
+  ],
+  "futility": "recommandée (non contraignante) si l'écart moyen est négatif à partir du 2e regard",
+  "primary": "écart quotidien moyen candidat − détention de BTC+ETH à la même exposition moyenne (sans frais), test unilatéral",
+  "spending": "O'Brien-Fleming (Lan-DeMets), unilatéral",
+  "stop_for_harm": "baisse maximale depuis le début > 50%",
+  "z": {
+   "block_days": 7,
+   "method": "moyenne / erreur standard par bootstrap circulaire par blocs",
+   "reps": 5000,
+   "seed": 2701
+  }
+ },
+ "can_trade": false,
+ "candidate": {
+  "definition": {
+   "benchmark": "majors",
+   "family": "momentum",
+   "label": "Momentum 4 semaines, BTC et ETH",
+   "name": "mom_ts_28",
+   "params": {
+    "lookback": 28
+   },
+   "rebalance": "weekly",
+   "rule": "mom_ts",
+   "source": "Moskowitz, Ooi, Pedersen (2012) ; Liu, Tsyvinski (2021) : momentum de 1 à 4 semaines sur les cryptos",
+   "warmup": 30
+  },
+  "frozen_since_plan": "alpha-factory-v2-e1",
+  "name": "mom_ts_28"
+ },
+ "capital": 30.0,
+ "costs": {
+  "file": "cost-hypotheses-v2.json",
+  "primary": "mesure",
+  "scope": "ces hypothèses ne doivent jamais être extrapolées à une plateforme dont les commissions sont différentes",
+  "sha256": "56da1470cf32e1603618dd52f54e22bd0a2134db08d947d0bea45d64ac179c40",
+  "stress": "tension"
+ },
+ "data": {
+  "archive_manifest_sha256": "f301ffe98652c3c0d2f4a87269e1b62187612dbf0c51206bac133dc6c61feb23",
+  "confirmatory_end": "2026-11-12",
+  "endpoint": "https://data-api.binance.vision/api/v3",
+  "history_check": "les bougies jusqu'au 12/11/2026 doivent reproduire à l'octet près les fichiers de l'archive (empreintes du manifeste versionné) : sinon l'observation est refusée",
+  "interval": "1d",
+  "symbols": {
+   "BTC": "BTCUSDT",
+   "ETH": "ETHUSDT"
+  }
+ },
+ "execution": {
+  "catalogue_sha256": "3ec824f817706fe1f91d952ea25c68ccb33229bad9b018a950876f59fed24d65",
+  "dust_model": "pas de quantité de la plateforme ; commission prélevée dans l'actif reçu ; conversion payée en liquidités ; reliquat sous un pas compté comme perdu à sa création (règle prudente, mission 52, mesures de COST OPTIMIZER #50)",
+  "orders": "au marché, à l'ouverture qui suit la décision",
+  "rules": {
+   "BTC": {
+    "min_notional": 5.0,
+    "step": 1e-05,
+    "symbol": "BTCUSDT"
+   },
+   "ETH": {
+    "min_notional": 5.0,
+    "step": 0.0001,
+    "symbol": "ETHUSDT"
+   }
+  }
+ },
+ "implementation_sha256": {
+  "sentinelle/alpha/lab/__init__.py": "1e25e5cefc2dde7fc93bed2499d0b196edda969f34d476e71b98ab7217fbd34c",
+  "sentinelle/alpha/lab/costs.py": "8f8745c34f3e20ad73273b7319235720b5dc4ff7b9c098714c87f8ba9583d336",
+  "sentinelle/alpha/lab/data.py": "7dde59c762783a6f4c4a0597c562cdae80f083ec6ce1e4722f55ef6f59fce530",
+  "sentinelle/alpha/lab/experiment.py": "f6177a1e0e751a6b15ece9532bbf692a0204a6cb1105e848d26126d1a39c5623",
+  "sentinelle/alpha/lab/prospective.py": "29caf12865e8a79b23aed3b640bd073d604fb32c7a183b0afc74bf986c32de7d",
+  "sentinelle/alpha/lab/simulate.py": "55d482966d9753e9ae213620905ff05ef40f7687e34e7624d571599a848c971a",
+  "sentinelle/alpha/lab/stats.py": "96d9c511eb897fb4e7365f0bdbf2ec998c30f44fa2e9d35417832da88230604c",
+  "sentinelle/alpha/lab/strategies.py": "7660e92c93e4b9b04c9f9510268b71d90e9791098c265df2041785837c8f73cc"
+ },
+ "kind": "alpha-lab-prospective-protocol",
+ "known_limits": [
+  "BTC et ETH : pas de données vierges dans le passé, d'où cette observation sur l'avenir seulement",
+  "commission 10 pb : hypothèse non vérifiée ; résultat valable pour cette grille de frais seulement",
+  "montants en USDT : la variation du change EUR/USDT sur les positions n'est pas modélisée",
+  "règles de marché figées au 13/11/2026 ; une modification future par la plateforme n'est pas suivie",
+  "observation lancée à la main (commande à exécution finie), aucun service permanent"
+ ],
+ "leverage": 1.0,
+ "long_only": true,
+ "no_permanent_service": true,
+ "power": {
+  "basis": "écart quotidien mesuré sur l'historique (déjà consulté : sert seulement à dimensionner la durée)",
+  "fixed_horizon_days_80pct": {
+   "effet_periode_2": 3297.2902064146588,
+   "effet_toute_la_periode": 1753.910331986897
+  },
+  "mu_all": 0.0009739163314192935,
+  "mu_p2": 0.0005475156195348555,
+  "probability_confirmed_by_look": {
+   "aucun_effet": [
+    0.0,
+    4e-05,
+    0.00066,
+    0.00335,
+    0.00867,
+    0.01627,
+    0.02616,
+    0.03726,
+    0.04976
+   ],
+   "effet_periode_2": [
+    0.0,
+    0.00221,
+    0.03924,
+    0.14247,
+    0.29193,
+    0.44556,
+    0.58468,
+    0.69692,
+    0.78218
+   ],
+   "effet_toute_la_periode": [
+    0.0,
+    0.00809,
+    0.11042,
+    0.32253,
+    0.55156,
+    0.72951,
+    0.84563,
+    0.91567,
+    0.95519
+   ]
+  },
+  "sigma_all": 0.0164028537396201,
+  "sigma_p2": 0.012643554073201613
+ },
+ "promotion_allowed": false,
+ "protocol_id": "alpha-factory-v2-p1",
+ "question": "L'avantage de mom_ts_28 mesuré sur 2020-2026 se retrouve-t-il sur des journées que personne n'a encore vues ?",
+ "registered_at": "2026-11-17T09:19:44.397000+00:00",
+ "registered_at_ms": 1794907184397,
+ "schema": 1,
+ "source": {
+  "plan_id": "alpha-factory-v2-e1",
+  "plan_sha256": "6f4f436f02ae08767a8152e6cac0568d134383154ee83c7c8538464396954208",
+  "results_sha256": "278f320eb313e3c025c6e3a69bf35e6d45b271d161d5e419ad874c282518dff8",
+  "verdict": "AVANTAGE_DÉMONTRÉ sur l'historique (seul candidat retenu sur 15)"
+ },
+ "status": "PREREGISTERED_NOT_STARTED",
+ "statuses": {
+  "ARRÊT_RISQUE": "baisse maximale au-delà de 50 % depuis le début : observation arrêtée, avantage non confirmé",
+  "CONFIRMÉ_PROSPECTIVEMENT": "borne franchie, net positif et positif en tension : avantage confirmé sur données nouvelles (aucune promotion)",
+  "EN_COURS": "observation en cours ; chiffres descriptifs, sans valeur de décision avant le prochain regard",
+  "NON_CONFIRMÉ": "9 regards sans franchir la borne : avantage non confirmé",
+  "PAS_COMMENCÉ": "aucune journée évaluée : la première décision est prise à la clôture du dimanche 22/11/2026"
+ },
+ "window": {
+  "first_decision": "2026-11-22",
+  "look_days": 365,
+  "max_days": 3285,
+  "max_looks": 9,
+  "never_reused": "2020-01-01 → 2026-11-12 (évaluation unique, déjà consultée)",
+  "start": "2026-11-23"
+ }
+}

@@ -177,3 +177,33 @@ def quality(panel: Panel) -> dict:
             "resumed_series": sum(1 for a in panel.assets if "#" in a), "ended_before_last_day": len(ended),
             "listed_per_year": {y: {"min": min(v), "max": max(v)} for y, v in years.items()},
             "daily_moves_above_100pct": int(np.nansum(r > 1.0)), "daily_moves_below_minus_50pct": int(np.nansum(r < -0.5))}
+
+
+def load_rules(root: Path) -> tuple[dict[str, dict], dict]:
+    """Règles de marché (pas de quantité, montant minimal) par actif, lues dans le catalogue ARCHIVÉ de la plateforme.
+
+    Le catalogue est vérifié par son empreinte (manifeste de l'archive). Limite connue : ce sont les filtres du jour de
+    l'archive, appliqués au passé (les pas ont pu changer). Renvoie (règles par actif, provenance).
+    """
+    root = Path(root)
+    manifest = json.loads((root / "manifest.json").read_bytes())
+    raw = (root / "exchangeInfo.json").read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != manifest["exchange_info_sha256"]:
+        raise ValueError("Catalogue de la plateforme altéré")
+    rules: dict[str, dict] = {}
+    for s in json.loads(raw)["symbols"]:
+        if s.get("quoteAsset") != manifest.get("quote", "USDT"):
+            continue
+        f = {x["filterType"]: x for x in s.get("filters", [])}
+        lot = f.get("LOT_SIZE") or {}
+        notional = f.get("NOTIONAL") or f.get("MIN_NOTIONAL") or {}
+        try:
+            step = float(lot["stepSize"])
+            mn = float(notional.get("minNotional", 0.0))
+        except (KeyError, TypeError, ValueError):
+            continue
+        if step > 0:
+            rules[s["baseAsset"]] = {"symbol": s["symbol"], "step": step, "min_notional": mn}
+    return rules, {"exchange_info_sha256": digest, "assets": len(rules),
+                   "limit": "filtres du jour de l'archive appliqués à tout l'historique"}

@@ -1,0 +1,379 @@
+{
+ "candidate": "mom_ts_28",
+ "costs_latency_liquidity": {
+  "break_even_fee": {
+   "bps": null,
+   "note": "résultat net encore positif à 200 pb de commission"
+  },
+  "median_daily_quote_volume": {
+   "BTC": 1696524237.5831327,
+   "ETH": 910191361.0062494
+  },
+  "note": "impact de marché négligeable pour des ordres de cette taille ; le délai intrajournalier n'est pas mesurable avec des bougies journalières (seul le retard d'un jour l'est)",
+  "order_share_of_daily_volume": {
+   "BTC": 8.8416066612576e-09,
+   "ETH": 1.6480050946008713e-08
+  },
+  "sensitivity": {
+   "commission_25": 1551.5209437803537,
+   "commission_40": 1366.8568789472738,
+   "commission_60": 1168.8352815420717,
+   "decote_sortie_forcee_25": 1751.3922009626233,
+   "decote_sortie_forcee_50": 1751.3922009626233,
+   "defavorable_cumule": 1457.6941094288388,
+   "minimum_10": 1738.0519355533934,
+   "retard_1_jour": 1723.5426243046388
+  },
+  "typical_order": 15.0
+ },
+ "episodes": {
+  "after_exit_28d_mean": 0.02968157953330912,
+  "after_exit_28d_share_lower": 0.4931506849315068,
+  "after_exit_7d_mean": -0.005865753113370258,
+  "best": {
+   "after_exit_28d": -0.020950607097697027,
+   "after_exit_7d": -0.027443542948090704,
+   "asset": "BTC",
+   "closed": true,
+   "days": 168,
+   "entry_day": 1145,
+   "exit_day": 1313,
+   "gross": 4.376732273203695,
+   "mae": -0.006277527464182753,
+   "mfe": 4.736436659410384,
+   "net_approx": 4.372356573203695
+  },
+  "by_asset": {
+   "BTC": 40,
+   "ETH": 35
+  },
+  "count": 75,
+  "mean_adverse_excursion": -0.045593252654163204,
+  "mean_days": 37.24,
+  "mean_favourable_excursion": 0.3486480118292533,
+  "mean_gross": 0.19234949941788143,
+  "mean_net": 0.18797379941788137,
+  "median_days": 28.0,
+  "median_net": -0.006748993110811136,
+  "payoff_ratio": 7.949040806485989,
+  "profit_factor_episodes": 7.33757612906399,
+  "rule": "entrée à l'ouverture qui suit la décision, sortie à l'ouverture qui suit la décision de sortie ; net approché = brut − un aller-retour du scénario principal (hors reliquats) ; « après la sortie » = variation du prix après être sorti (négative : la sortie a évité une baisse)",
+  "share_of_mfe_kept": 0.5517011223115263,
+  "top5_share_of_gains": 0.6081142584394745,
+  "win_rate": 0.48,
+  "worst": {
+   "after_exit_28d": 0.046122957815988075,
+   "after_exit_7d": -0.003156422631213518,
+   "asset": "BTC",
+   "closed": true,
+   "days": 21,
+   "entry_day": 1894,
+   "exit_day": 1915,
+   "gross": -0.16548563136164818,
+   "mae": -0.18638300699014843,
+   "mfe": 0.08834617585741711,
+   "net_approx": -0.1698613313616482
+  }
+ },
+ "failure_summary": {
+  "cannot_trade_at_minimum_10": [
+   "breakout_20_10_slots4",
+   "crypto_btc_gate_top5",
+   "crypto_lowvol_top3",
+   "meanrev_rsi2_slots4",
+   "meanrev_xs_7_bottom3",
+   "mom_dual_90_top3",
+   "mom_xs_28_top3",
+   "value_mom_combo_top3",
+   "value_rev_365_top3"
+  ],
+  "dust_exceeds_fees": [
+   "breakout_20_10_slots4",
+   "crypto_btc_gate_top5",
+   "crypto_weekday_btc",
+   "meanrev_rsi2_slots4",
+   "meanrev_xs_7_bottom3",
+   "mom_dual_90_top3",
+   "mom_xs_28_top3",
+   "value_mom_combo_top3",
+   "value_rev_365_top3"
+  ],
+  "no_gross_edge": [
+   "meanrev_rsi2_slots4",
+   "meanrev_xs_7_bottom3",
+   "mom_dual_90_top3",
+   "value_rev_365_top3"
+  ]
+ },
+ "failures": {
+  "breakout_20_10_slots4": {
+   "dust_lost": 72.68521157004017,
+   "fees_and_spread": 35.053486546076044,
+   "gross": 79.06675697000011,
+   "net": 3.513049280099011,
+   "reasons": [
+    "NOT_SIGNIFICANT_ABSOLUTE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "trades": 696,
+   "trades_at_minimum_10": 0
+  },
+  "breakout_55_20_majors": {
+   "dust_lost": 12.007682995100128,
+   "fees_and_spread": 13.86173918490426,
+   "gross": 226.5160652,
+   "net": 190.68710631974153,
+   "reasons": [
+    "NOT_SIGNIFICANT_ABSOLUTE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE"
+   ],
+   "trades": 133,
+   "trades_at_minimum_10": 90
+  },
+  "crypto_btc_gate_top5": {
+   "dust_lost": 45.60333558782999,
+   "fees_and_spread": 19.567491996803213,
+   "gross": 165.82141060000006,
+   "net": 77.4495836184021,
+   "reasons": [
+    "NOT_SIGNIFICANT_ABSOLUTE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE"
+   ],
+   "trades": 372,
+   "trades_at_minimum_10": 0
+  },
+  "crypto_lowvol_top3": {
+   "dust_lost": 6.751342788440266,
+   "fees_and_spread": 93.86569106820602,
+   "gross": 1222.1650588999996,
+   "net": 1039.4775852242788,
+   "reasons": [
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE"
+   ],
+   "trades": 279,
+   "trades_at_minimum_10": 0
+  },
+  "crypto_volmanaged_btc": {
+   "dust_lost": 0.10576080000002272,
+   "fees_and_spread": 4.871229024558629,
+   "gross": 155.41864600000002,
+   "net": 146.87904670378424,
+   "reasons": [
+    "NOT_SIGNIFICANT_ABSOLUTE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "trades": 86,
+   "trades_at_minimum_10": 70
+  },
+  "crypto_weekday_btc": {
+   "dust_lost": 42.1864132303,
+   "fees_and_spread": 15.171823619536017,
+   "gross": 76.7107042999999,
+   "net": -29.964543107109407,
+   "reasons": [
+    "COSTS_EXCEED_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "trades": 259,
+   "trades_at_minimum_10": 238
+  },
+  "meanrev_rsi2_slots4": {
+   "dust_lost": 25.571469010100003,
+   "fees_and_spread": 4.019479746957989,
+   "gross": -16.96157072000001,
+   "net": -22.10290233249393,
+   "reasons": [
+    "NO_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "trades": 255,
+   "trades_at_minimum_10": 0
+  },
+  "meanrev_xs_7_bottom3": {
+   "dust_lost": 21.115869772999996,
+   "fees_and_spread": 5.091005900255121,
+   "gross": -28.996348589999954,
+   "net": -23.82468687987847,
+   "reasons": [
+    "NO_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "trades": 244,
+   "trades_at_minimum_10": 0
+  },
+  "mom_dual_90_top3": {
+   "dust_lost": 43.35435330024005,
+   "fees_and_spread": 14.74110365096482,
+   "gross": -17.453655554500056,
+   "net": -28.93757068148903,
+   "reasons": [
+    "NO_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "trades": 301,
+   "trades_at_minimum_10": 0
+  },
+  "mom_xs_28_top3": {
+   "dust_lost": 103.06603562352657,
+   "fees_and_spread": 40.09412668064528,
+   "gross": 47.60511713749962,
+   "net": -28.69790973433303,
+   "reasons": [
+    "COSTS_EXCEED_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "trades": 799,
+   "trades_at_minimum_10": 0
+  },
+  "trend_cross_50_200": {
+   "dust_lost": 4.506977508099996,
+   "fees_and_spread": 5.341152196046504,
+   "gross": 131.30631999999997,
+   "net": 121.28751172454687,
+   "reasons": [
+    "NOT_SIGNIFICANT_ABSOLUTE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "trades": 100,
+   "trades_at_minimum_10": 64
+  },
+  "trend_sma_200": {
+   "dust_lost": 16.019371376199963,
+   "fees_and_spread": 25.304500483614667,
+   "gross": 351.47904360000007,
+   "net": 288.39227316117433,
+   "reasons": [
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE"
+   ],
+   "trades": 239,
+   "trades_at_minimum_10": 152
+  },
+  "value_mom_combo_top3": {
+   "dust_lost": 37.48686339945,
+   "fees_and_spread": 18.11173814300022,
+   "gross": 7.716092729999886,
+   "net": -24.76844614735274,
+   "reasons": [
+    "COSTS_EXCEED_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "trades": 335,
+   "trades_at_minimum_10": 0
+  },
+  "value_rev_365_top3": {
+   "dust_lost": 27.29185159034285,
+   "fees_and_spread": 20.838291149442213,
+   "gross": -29.925004350000023,
+   "net": -27.52611556968632,
+   "reasons": [
+    "NO_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "trades": 274,
+   "trades_at_minimum_10": 0
+  }
+ },
+ "kind": "alpha-lab-m55-diagnostic",
+ "net_pnl": 1751.3922009626233,
+ "regimes": {
+  "rule": "tendance : clôture BTC de la veille au-dessus de sa moyenne 200 jours ; volatilité : écart type des rendements quotidiens BTC sur 30 jours (veille), coupée en tiers sur la fenêtre (seuils descriptifs, pas une règle)",
+  "trend": {
+   "baissier": {
+    "candidate_compound": 1.2877205103622926,
+    "candidate_mean_daily": 0.0010016431535575811,
+    "days": 1027,
+    "exposure": 0.36362535157677045,
+    "majors_compound": 0.14451449125508486,
+    "majors_mean_daily": 0.0009202197236388394,
+    "relative_mean_daily": 0.0004887347242494737
+   },
+   "haussier": {
+    "candidate_compound": 24.95585420645796,
+    "candidate_mean_daily": 0.00256485448641419,
+    "days": 1481,
+    "exposure": 0.6917325338636067,
+    "majors_compound": 11.986400204338661,
+    "majors_mean_daily": 0.0022507045333101904,
+    "relative_mean_daily": 0.001310365697093436
+   }
+  },
+  "volatility": {
+   "agitée": {
+    "candidate_compound": 17.701295342248823,
+    "candidate_mean_daily": 0.003939407068758296,
+    "days": 836,
+    "exposure": 0.5046613569898476,
+    "majors_compound": 5.820490587164791,
+    "majors_mean_daily": 0.0033468727080059853,
+    "relative_mean_daily": 0.0020739403985054698
+   },
+   "calme": {
+    "candidate_compound": 1.7686447136184813,
+    "candidate_mean_daily": 0.0014068101232424758,
+    "days": 836,
+    "exposure": 0.6014978125007598,
+    "majors_compound": 1.0858245728458247,
+    "majors_mean_daily": 0.00119566767189111,
+    "relative_mean_daily": 0.0007403736061690367
+   },
+   "moyenne": {
+    "candidate_compound": 0.14683086969803383,
+    "candidate_mean_daily": 0.000427989761447854,
+    "days": 836,
+    "exposure": 0.5659689629511927,
+    "majors_compound": 0.04476035650955934,
+    "majors_mean_daily": 0.0005751140100663974,
+    "relative_mean_daily": 0.00010743498958337396
+   }
+  },
+  "volatility_thresholds_daily": [
+   0.022480761192600927,
+   0.03126679969777803
+  ]
+ },
+ "replay_matches_published": true,
+ "scope": "DESCRIPTIF, sur la fenêtre déjà consultée par l'évaluation unique : n'est ni une confirmation ni une nouvelle évaluation ; le candidat et le protocole prospectif restent figés",
+ "sizing": {
+  "rows": {
+   "10%": {
+    "cagr_approx": 0.1942970995527591,
+    "capital_needed_for_hub_minimum": 75.91557116125513,
+    "feasible_with_hub_minimum": false,
+    "max_drawdown_approx": 0.11220573232560893,
+    "order_per_asset_on_30": 3.951758452330665,
+    "scale": 0.263450563488711
+   },
+   "20%": {
+    "cagr_approx": 0.40509236039058893,
+    "capital_needed_for_hub_minimum": 37.957785580627565,
+    "feasible_with_hub_minimum": false,
+    "max_drawdown_approx": 0.21549228217833793,
+    "order_per_asset_on_30": 7.90351690466133,
+    "scale": 0.526901126977422
+   },
+   "30%": {
+    "cagr_approx": 0.6284970049617442,
+    "capital_needed_for_hub_minimum": 25.305190387085045,
+    "feasible_with_hub_minimum": true,
+    "max_drawdown_approx": 0.31016707115513487,
+    "order_per_asset_on_30": 11.855275356991992,
+    "scale": 0.7903516904661329
+   }
+  },
+  "rule": "rendements quotidiens nets multipliés par la taille (approximation : coûts proportionnels, reliquats et minimums non recalculés) ; ordre par actif quand les deux sont détenus"
+ },
+ "window": {
+  "end": "2026-11-12",
+  "start": "2020-01-01"
+ }
+}

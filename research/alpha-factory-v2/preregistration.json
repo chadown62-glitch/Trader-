@@ -1,0 +1,583 @@
+{
+ "analysis": {
+  "alpha": 0.05,
+  "block_days": 7,
+  "bootstrap_reps": 2000,
+  "bootstrap_seed": 701,
+  "confidence": 0.95,
+  "familywise": {
+   "block_days": 7,
+   "method": "maximum descendant (Romano-Wolf), bootstrap circulaire par blocs, mêmes jours pour tous les candidats",
+   "reps": 5000,
+   "seed": 1701
+  },
+  "relative_reference": "détention de la référence du candidat à son exposition moyenne, sans frais",
+  "risk_limit": 0.1
+ },
+ "can_trade": false,
+ "candidate_definitions": {
+  "breakout_20_10_slots4": {
+   "benchmark": "market",
+   "family": "breakout",
+   "label": "Cassure 20 jours, sortie 10 jours, 4 emplacements",
+   "name": "breakout_20_10_slots4",
+   "params": {
+    "entry": 20,
+    "exit": 10,
+    "slots": 4,
+    "universe": "broad"
+   },
+   "rebalance": "daily",
+   "rule": "breakout",
+   "source": "Donchian ; règles des Turtles, système 1 (Faith, 2007)",
+   "warmup": 120
+  },
+  "breakout_55_20_majors": {
+   "benchmark": "majors",
+   "family": "breakout",
+   "label": "Cassure 55 jours, sortie 20 jours, BTC et ETH",
+   "name": "breakout_55_20_majors",
+   "params": {
+    "entry": 55,
+    "exit": 20,
+    "slots": 2,
+    "universe": "majors"
+   },
+   "rebalance": "daily",
+   "rule": "breakout",
+   "source": "Règles des Turtles, système 2 (Faith, 2007)",
+   "warmup": 60
+  },
+  "crypto_btc_gate_top5": {
+   "benchmark": "market",
+   "family": "crypto",
+   "label": "Panier des 5 plus liquides quand le BTC est au-dessus de sa moyenne 100 jours",
+   "name": "crypto_btc_gate_top5",
+   "params": {
+    "basket": 5,
+    "n": 100
+   },
+   "rebalance": "weekly",
+   "rule": "btc_gate",
+   "source": "Filtre « climat du bitcoin » déjà utilisé par le projet (features.btc_regime)",
+   "warmup": 120
+  },
+  "crypto_lowvol_top3": {
+   "benchmark": "market",
+   "family": "crypto",
+   "label": "Les 3 actifs les moins volatils",
+   "name": "crypto_lowvol_top3",
+   "params": {
+    "n": 3,
+    "window": 30
+   },
+   "rebalance": "monthly",
+   "rule": "low_vol",
+   "source": "Ang, Hodrick, Xing, Zhang (2006) : anomalie de faible volatilité",
+   "warmup": 120
+  },
+  "crypto_volmanaged_btc": {
+   "benchmark": "btc",
+   "family": "crypto",
+   "label": "BTC à exposition pilotée par la volatilité (plafond 100 %)",
+   "name": "crypto_volmanaged_btc",
+   "params": {
+    "step": 0.25,
+    "target": 0.4,
+    "window": 30
+   },
+   "rebalance": "weekly",
+   "rule": "vol_managed",
+   "source": "Moreira, Muir (2017) : portefeuilles pilotés par la volatilité",
+   "warmup": 35
+  },
+  "crypto_weekday_btc": {
+   "benchmark": "btc",
+   "family": "crypto",
+   "label": "BTC le lundi seulement",
+   "name": "crypto_weekday_btc",
+   "params": {
+    "day": 0
+   },
+   "rebalance": "daily",
+   "rule": "weekday",
+   "source": "Caporale, Plastun (2019) : effet jour de la semaine sur le bitcoin",
+   "warmup": 2
+  },
+  "meanrev_rsi2_slots4": {
+   "benchmark": "market",
+   "family": "mean_reversion",
+   "label": "Repli brutal en tendance haussière (RSI 2), 4 emplacements",
+   "name": "meanrev_rsi2_slots4",
+   "params": {
+    "below": 10.0,
+    "exit_sma": 5,
+    "max_days": 10,
+    "rsi": 2,
+    "slots": 4,
+    "trend": 200
+   },
+   "rebalance": "daily",
+   "rule": "meanrev_rsi",
+   "source": "Connors, Alvarez (2008)",
+   "warmup": 210
+  },
+  "meanrev_xs_7_bottom3": {
+   "benchmark": "market",
+   "family": "mean_reversion",
+   "label": "Les 3 plus fortes baisses de la semaine",
+   "name": "meanrev_xs_7_bottom3",
+   "params": {
+    "lookback": 7,
+    "n": 3
+   },
+   "rebalance": "weekly",
+   "rule": "meanrev_xs",
+   "source": "Jegadeesh (1990) : retournement de court terme",
+   "warmup": 120
+  },
+  "mom_dual_90_top3": {
+   "benchmark": "market",
+   "family": "momentum",
+   "label": "Momentum double sur 3 mois",
+   "name": "mom_dual_90_top3",
+   "params": {
+    "lookback": 90,
+    "n": 3
+   },
+   "rebalance": "weekly",
+   "rule": "mom_dual",
+   "source": "Antonacci (2014) : momentum relatif et absolu",
+   "warmup": 120
+  },
+  "mom_ts_28": {
+   "benchmark": "majors",
+   "family": "momentum",
+   "label": "Momentum 4 semaines, BTC et ETH",
+   "name": "mom_ts_28",
+   "params": {
+    "lookback": 28
+   },
+   "rebalance": "weekly",
+   "rule": "mom_ts",
+   "source": "Moskowitz, Ooi, Pedersen (2012) ; Liu, Tsyvinski (2021) : momentum de 1 à 4 semaines sur les cryptos",
+   "warmup": 30
+  },
+  "mom_xs_28_top3": {
+   "benchmark": "market",
+   "family": "momentum",
+   "label": "Les 3 plus fortes hausses sur 4 semaines",
+   "name": "mom_xs_28_top3",
+   "params": {
+    "lookback": 28,
+    "n": 3
+   },
+   "rebalance": "weekly",
+   "rule": "mom_xs",
+   "source": "Jegadeesh, Titman (1993) ; Liu, Tsyvinski, Wu (2022) : facteur momentum des cryptos",
+   "warmup": 120
+  },
+  "trend_cross_50_200": {
+   "benchmark": "majors",
+   "family": "trend",
+   "label": "Moyenne 50 jours au-dessus de la moyenne 200 jours, BTC et ETH",
+   "name": "trend_cross_50_200",
+   "params": {
+    "fast": 50,
+    "slow": 200
+   },
+   "rebalance": "daily",
+   "rule": "trend_cross",
+   "source": "Brock, Lakonishok, LeBaron (1992) : double moyenne mobile",
+   "warmup": 201
+  },
+  "trend_sma_200": {
+   "benchmark": "majors",
+   "family": "trend",
+   "label": "Au-dessus de la moyenne 200 jours, BTC et ETH",
+   "name": "trend_sma_200",
+   "params": {
+    "n": 200
+   },
+   "rebalance": "daily",
+   "rule": "trend_sma",
+   "source": "Faber (2007) : moyenne mobile de 10 mois",
+   "warmup": 201
+  },
+  "value_mom_combo_top3": {
+   "benchmark": "market",
+   "family": "value",
+   "label": "Value + momentum (moyenne des rangs)",
+   "name": "value_mom_combo_top3",
+   "params": {
+    "lookback": 365,
+    "momentum": 28,
+    "n": 3,
+    "skip": 30
+   },
+   "rebalance": "monthly",
+   "rule": "value_momentum",
+   "source": "Asness, Moskowitz, Pedersen (2013)",
+   "warmup": 400
+  },
+  "value_rev_365_top3": {
+   "benchmark": "market",
+   "family": "value",
+   "label": "Les 3 plus fortes baisses sur un an (mois récent exclu)",
+   "name": "value_rev_365_top3",
+   "params": {
+    "lookback": 365,
+    "n": 3,
+    "skip": 30
+   },
+   "rebalance": "monthly",
+   "rule": "value_reversal",
+   "source": "De Bondt, Thaler (1985) ; Asness, Moskowitz, Pedersen (2013) : retournement de long terme comme substitut de la value",
+   "warmup": 400
+  }
+ },
+ "candidates": [
+  "mom_ts_28",
+  "mom_xs_28_top3",
+  "mom_dual_90_top3",
+  "value_rev_365_top3",
+  "value_mom_combo_top3",
+  "trend_sma_200",
+  "trend_cross_50_200",
+  "breakout_20_10_slots4",
+  "breakout_55_20_majors",
+  "meanrev_rsi2_slots4",
+  "meanrev_xs_7_bottom3",
+  "crypto_btc_gate_top5",
+  "crypto_volmanaged_btc",
+  "crypto_weekday_btc",
+  "crypto_lowvol_top3"
+ ],
+ "capital": 30.0,
+ "costs": {
+  "adoption": {
+   "file": "cost-adoption-v2.json",
+   "sha256": "b5c067ef4ad1b4094dd36331163845236ef047312b2679c72ab886ba7951c0c0"
+  },
+  "file": "cost-hypotheses-v2.json",
+  "gross": "brut",
+  "primary": "mesure",
+  "scope": "ces hypothèses ne doivent jamais être extrapolées à une plateforme dont les commissions sont différentes",
+  "sha256": "56da1470cf32e1603618dd52f54e22bd0a2134db08d947d0bea45d64ac179c40",
+  "status": "PROPOSÉ : mesuré et figé par COST OPTIMIZER ; à valider avant l'évaluation unique d'ALPHA FACTORY v2",
+  "stress": "tension",
+  "version": "2.0.0+1.0.0"
+ },
+ "data": {
+  "archive_manifest_sha256": "f301ffe98652c3c0d2f4a87269e1b62187612dbf0c51206bac133dc6c61feb23",
+  "end_ms": 1794528000000,
+  "endpoint": "https://data-api.binance.vision/api/v3",
+  "excluded": {
+   "leveraged": 50,
+   "pegged": 31,
+   "tokenized_security": 105
+  },
+  "invalid_bars_dropped": 0,
+  "quote": "USDT",
+  "series_loaded": 589,
+  "symbols_in_archive": 775
+ },
+ "decision_rule": {
+  "flags_not_blocking": {
+   "CONCENTRATED": "plus de la moitié des gains vient d'un seul actif",
+   "DRAWDOWN_ABOVE_RISK_LIMIT": "baisse maximale au-dessus de la limite de risque du projet",
+   "FEW_TRADES": "moins de 30 ordres : peu d'information",
+   "FORCED_EXITS": "ventes imposées par des retraits de la cote",
+   "ORDERS_BLOCKED_BY_MINIMUM": "des ordres n'ont pas pu passer sous le minimum de la plateforme"
+  },
+  "otherwise": "non retenu, avec ses motifs d'échec mesurés",
+  "reasons": {
+   "COSTS_EXCEED_GROSS_EDGE": "l'avantage brut existe mais les coûts le dépassent",
+   "FRAGILE_TO_COSTS": "résultat négatif dès que les coûts sont dégradés",
+   "NOT_SIGNIFICANT_ABSOLUTE": "gain absolu non démontré une fois les essais multiples pris en compte",
+   "NO_GROSS_EDGE": "aucun avantage avant coûts : la règle ne gagne pas, même gratuite",
+   "NO_VALUE_BEYOND_MARKET_EXPOSURE": "ne fait pas mieux qu'une simple détention de même exposition",
+   "UNKNOWN": "aucun motif mesurable",
+   "UNSTABLE_ACROSS_PERIODS": "ne tient pas sur les deux périodes indépendantes"
+  },
+  "retained_if_all": [
+   "gain absolu : résultat net > 0 et probabilité corrigée des essais multiples < 5 %",
+   "gain relatif : écart moyen > 0 face à la détention de même exposition, probabilité corrigée < 5 %",
+   "tenue dans le temps : résultat net > 0 et écart > 0 sur chacune des deux périodes",
+   "tenue aux coûts : résultat net > 0 dans le scénario de tension"
+  ],
+  "retained_means": "candidat à un futur protocole prospectif préenregistré ; jamais « rentable », jamais promu"
+ },
+ "evidence_level": "données historiques : tri exploratoire ; un candidat retenu n'est pas prouvé, il mérite seulement un protocole prospectif (infrastructure de la PR #48)",
+ "execution": {
+  "dust_model": "pas de quantité de la plateforme ; commission prélevée dans l'actif reçu ; conversion payée en liquidités ; reliquat sous un pas compté comme perdu à sa création (règle prudente, mission 52, mesures de COST OPTIMIZER #50)",
+  "rules": {
+   "assets": 775,
+   "exchange_info_sha256": "3ec824f817706fe1f91d952ea25c68ccb33229bad9b018a950876f59fed24d65",
+   "limit": "filtres du jour de l'archive appliqués à tout l'historique"
+  }
+ },
+ "generalization": {
+  "exclude_already_studied": [
+   "ADA",
+   "BNB",
+   "BTC",
+   "DOGE",
+   "ETH",
+   "LINK",
+   "SOL",
+   "XRP"
+  ],
+  "other_pairs": [
+   [
+    "BNB",
+    "TRX"
+   ],
+   [
+    "MATIC",
+    "XRP"
+   ],
+   [
+    "EOS",
+    "LTC"
+   ]
+  ],
+  "other_pairs_rule": "les six actifs non majeurs les plus liquides de l'univers daté à la veille du début, par paires dans l'ordre",
+  "role": "descriptif : n'entre pas dans la règle de décision"
+ },
+ "implementation_sha256": {
+  "sentinelle/ai/evaluation.py": "4337650e23db68df750cad7e9b4ef3d08818f55a5de4e5ccfa0bcceb0fb85690",
+  "sentinelle/alpha/lab/__init__.py": "1e25e5cefc2dde7fc93bed2499d0b196edda969f34d476e71b98ab7217fbd34c",
+  "sentinelle/alpha/lab/costs.py": "8f8745c34f3e20ad73273b7319235720b5dc4ff7b9c098714c87f8ba9583d336",
+  "sentinelle/alpha/lab/data.py": "7dde59c762783a6f4c4a0597c562cdae80f083ec6ce1e4722f55ef6f59fce530",
+  "sentinelle/alpha/lab/experiment.py": "f6177a1e0e751a6b15ece9532bbf692a0204a6cb1105e848d26126d1a39c5623",
+  "sentinelle/alpha/lab/registry.py": "afaecfb2476effb72bd19056cdfef9c63b567fe9f028be5db5a603aa735856eb",
+  "sentinelle/alpha/lab/simulate.py": "55d482966d9753e9ae213620905ff05ef40f7687e34e7624d571599a848c971a",
+  "sentinelle/alpha/lab/stats.py": "96d9c511eb897fb4e7365f0bdbf2ec998c30f44fa2e9d35417832da88230604c",
+  "sentinelle/alpha/lab/strategies.py": "7660e92c93e4b9b04c9f9510268b71d90e9791098c265df2041785837c8f73cc",
+  "sentinelle/alpha/shadow/analysis.py": "9402aa9bc2e6fee64c656613c0ac4037afeb26dfa9e9896aadd2568e045b990e",
+  "sentinelle/alpha/shadow/protocol.py": "ae827a49b37028680ff38ba4fe63914731d241d40467b955e738079b54f5214c"
+ },
+ "kind": "alpha-lab-preregistration",
+ "known_limits": [
+  "les 8 cryptos suivies par le projet ont déjà été étudiées de 2018 à 2026 (docs/RESULTATS.md) : aucune période n'est vierge pour elles",
+  "le choix des familles et des règles vient de la littérature, publiée d'après des périodes qui recoupent en partie la fenêtre",
+  "pas de carnets d'ordres historiques : écart et glissement sont des hypothèses",
+  "la value est un substitut par les prix : aucune donnée fondamentale ou de réseau n'est disponible hors ligne",
+  "commission de 10 pb par ordre : hypothèse non vérifiée sur un compte ; sensibilité à 25, 40 et 60 pb publiée à part",
+  "règles de marché (pas, minimum) du catalogue de la date de l'archive, appliquées à tout l'historique",
+  "l'ouverture du lendemain vaut presque toujours la clôture du signal (marché continu) : exécution sans délai ; sensibilité « retard d'un jour »",
+  "une fin de cotation est vendue à la dernière clôture connue ; sensibilité avec décote de 25 % et 50 %",
+  "les montants sont en unités de la devise de cotation (USDT) : la conversion est payée à chaque ordre, mais la variation du change EUR/USDT sur les positions n'est pas modélisée",
+  "seules les paires encore présentes dans le catalogue (cotées ou retirées, « BREAK ») sont dans l'archive"
+ ],
+ "leverage": 1.0,
+ "long_only": true,
+ "no_permanent_service": true,
+ "plan_id": "alpha-factory-v2-e1",
+ "promotion_allowed": false,
+ "question": "Parmi des règles simples et publiées, à paramètres fixés d'avance, en existe-t-il une dont l'avantage NET (après coûts) sur un portefeuille fictif de 30 unités, achat seulement et sans levier, soit démontrable ?",
+ "reference_definitions": {
+  "cash": {
+   "benchmark": "market",
+   "family": "reference",
+   "label": "Ne rien faire",
+   "name": "cash",
+   "params": {},
+   "rebalance": "monthly",
+   "rule": "cash",
+   "source": "abstention",
+   "warmup": 0
+  },
+  "hold_basket_top5": {
+   "benchmark": "market",
+   "family": "reference",
+   "label": "Panier des 5 plus liquides, revu chaque mois",
+   "name": "hold_basket_top5",
+   "params": {
+    "basket": 5
+   },
+   "rebalance": "monthly",
+   "rule": "hold_basket",
+   "source": "détention diversifiée",
+   "warmup": 120
+  },
+  "hold_btc": {
+   "benchmark": "btc",
+   "family": "reference",
+   "label": "Acheter et garder le BTC",
+   "name": "hold_btc",
+   "params": {},
+   "rebalance": "monthly",
+   "rule": "hold_btc",
+   "source": "détention simple",
+   "warmup": 1
+  },
+  "hold_majors": {
+   "benchmark": "majors",
+   "family": "reference",
+   "label": "Acheter et garder BTC et ETH",
+   "name": "hold_majors",
+   "params": {},
+   "rebalance": "monthly",
+   "rule": "hold_majors",
+   "source": "détention simple",
+   "warmup": 1
+  }
+ },
+ "references": [
+  "cash",
+  "hold_btc",
+  "hold_majors",
+  "hold_basket_top5"
+ ],
+ "registered_at": "2026-11-17T08:52:57.664000+00:00",
+ "registered_at_ms": 1794905577664,
+ "schema": 1,
+ "sensitivity": {
+  "base": "scénario principal du contrat adopté (commission 10 pb par ordre : HYPOTHÈSE NON VÉRIFIÉE), tout le reste inchangé",
+  "break_even_fee": {
+   "high_bps": 200,
+   "iterations": 12,
+   "low_bps": 0,
+   "rule": "commission par ordre (pb) qui annule le résultat net, par bissection ; aucune valeur si le résultat est négatif dès 0 pb ou encore positif à 200 pb ; le résultat n'étant pas forcément monotone (une autre commission change aussi le chemin des ordres), la valeur trouvée est UNE commission d'équilibre"
+  },
+  "role": "analyses de sensibilité PRÉENREGISTRÉES et DESCRIPTIVES, séparées de l'évaluation de confirmation : elles n'entrent jamais dans la règle de décision ni dans les tests corrigés des essais multiples, et ne peuvent rien « sauver »",
+  "variants": [
+   {
+    "fee_bps": 25,
+    "name": "commission_25",
+    "note": "commission par ordre plus élevée (grilles publiques de petits comptes, non vérifiées)"
+   },
+   {
+    "fee_bps": 40,
+    "name": "commission_40",
+    "note": "commission par ordre plus élevée"
+   },
+   {
+    "fee_bps": 60,
+    "name": "commission_60",
+    "note": "commission par ordre très élevée"
+   },
+   {
+    "min_notional": 10.0,
+    "name": "minimum_10",
+    "note": "minimum d'ordre de 10 (règle par défaut du hub, mission 52 ; minimum historique courant)"
+   },
+   {
+    "lag": 1,
+    "name": "retard_1_jour",
+    "note": "décision exécutée un jour plus tard : l'ouverture du lendemain vaut presque toujours la clôture du signal"
+   },
+   {
+    "forced_haircut": 0.25,
+    "name": "decote_sortie_forcee_25",
+    "note": "vente imposée par une fin de cotation à 75 % de la dernière clôture"
+   },
+   {
+    "forced_haircut": 0.5,
+    "name": "decote_sortie_forcee_50",
+    "note": "vente imposée par une fin de cotation à 50 % de la dernière clôture"
+   },
+   {
+    "fee_bps": 25,
+    "forced_haircut": 0.25,
+    "lag": 1,
+    "min_notional": 10.0,
+    "name": "defavorable_cumule",
+    "note": "commission 25 pb, minimum 10, retard d'un jour et décote de 25 % cumulés"
+   }
+  ]
+ },
+ "status": "EXPLORATORY",
+ "trials": {
+  "amendments": "aucun ; tout changement = nouveau plan, inscrit au journal",
+  "candidates": 15,
+  "families": [
+   "breakout",
+   "crypto",
+   "mean_reversion",
+   "momentum",
+   "trend",
+   "value"
+  ],
+  "parameter_sets_per_candidate": 1,
+  "tuning": "aucun : paramètres de la source citée"
+ },
+ "universe": {
+  "exclusions": {
+   "leveraged_pattern": "(UP|DOWN|BULL|BEAR)$",
+   "not_leveraged": [
+    "JUP",
+    "SYRUP"
+   ],
+   "pegged": [
+    "AEUR",
+    "AUD",
+    "BETH",
+    "BFUSD",
+    "BIDR",
+    "BKRW",
+    "BNSOL",
+    "BRL",
+    "BUSD",
+    "BVND",
+    "DAI",
+    "EUR",
+    "EURI",
+    "FDUSD",
+    "GBP",
+    "GUSD",
+    "IDRT",
+    "NGN",
+    "PAX",
+    "PAXG",
+    "PYUSD",
+    "RLUSD",
+    "RUB",
+    "RWUSD",
+    "SUSD",
+    "TRY",
+    "TUSD",
+    "UAH",
+    "USD1",
+    "USDC",
+    "USDD",
+    "USDE",
+    "USDP",
+    "USDS",
+    "USDSB",
+    "USDSOLD",
+    "UST",
+    "USTC",
+    "VAI",
+    "WBETH",
+    "WBTC",
+    "XAUT",
+    "XUSD",
+    "ZAR"
+   ],
+   "tokenized_securities_group": "TRD_GRP_261"
+  },
+  "majors": [
+   "BTC",
+   "ETH"
+  ],
+  "rule": {
+   "min_listed_days": 91,
+   "peg_filter": {
+    "min_daily_volatility": 0.005,
+    "window_days": 90
+   },
+   "top_by_median_quote_volume": 20,
+   "volume_window_days": 30
+  },
+  "series": "une colonne = une série continue ; un jour manquant coupe la série ; retrait de la cote = vente à la dernière clôture"
+ },
+ "window": {
+  "end": "2026-11-12",
+  "split": "2023-06-01",
+  "start": "2020-01-01"
+ },
+ "window_rationale": "début quand l'univers daté compte au moins 20 actifs assez anciens ; deux périodes indépendantes de durée voisine ; fixé d'après le seul nombre d'actifs cotés, sans regarder aucun rendement de stratégie"
+}

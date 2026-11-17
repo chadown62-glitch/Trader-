@@ -21,7 +21,8 @@ from .strategies import CANDIDATES, REFERENCES
 
 PLAN_ID = "alpha-factory-v2-e1"
 DIRECTORY = "research/alpha-factory-v2"
-COST_FILE = "cost-hypotheses-v1.json"
+COST_FILE = "cost-hypotheses-v2.json"  # copie à l'octet près du contrat COST OPTIMIZER #50 (adopté en mission 54)
+ADOPTION_FILE = "cost-adoption-v2.json"  # décisions de la coordination qui valident ce contrat pour la recherche
 WINDOW = {"start": "2020-01-01", "split": "2023-06-01", "end": "2026-11-12"}
 ALREADY_STUDIED = ("ADA", "BNB", "BTC", "DOGE", "ETH", "LINK", "SOL", "XRP")  # les 8 cryptos suivies par le projet (docs/RESULTATS.md)
 IMPLEMENTATION = tuple(f"sentinelle/alpha/lab/{name}.py" for name in
@@ -37,8 +38,37 @@ def implementation_sha256(root: Path) -> dict[str, str]:
     return {name: file_sha(Path(root) / name) for name in IMPLEMENTATION}
 
 
-def build_plan(*, root: Path, data: dict, hyp: CostHypotheses, other_pairs: list[list[str]], registered_at: str, registered_at_ms: int) -> dict:
+DUST_MODEL = ("pas de quantité de la plateforme ; commission prélevée dans l'actif reçu ; conversion payée en liquidités ; "
+              "reliquat sous un pas compté comme perdu à sa création (règle prudente, mission 52, mesures de COST OPTIMIZER #50)")
+
+
+SENSITIVITY = {
+    "role": "analyses de sensibilité PRÉENREGISTRÉES et DESCRIPTIVES, séparées de l'évaluation de confirmation : elles n'entrent "
+            "jamais dans la règle de décision ni dans les tests corrigés des essais multiples, et ne peuvent rien « sauver »",
+    "base": "scénario principal du contrat adopté (commission 10 pb par ordre : HYPOTHÈSE NON VÉRIFIÉE), tout le reste inchangé",
+    "variants": [
+        {"name": "commission_25", "fee_bps": 25, "note": "commission par ordre plus élevée (grilles publiques de petits comptes, non vérifiées)"},
+        {"name": "commission_40", "fee_bps": 40, "note": "commission par ordre plus élevée"},
+        {"name": "commission_60", "fee_bps": 60, "note": "commission par ordre très élevée"},
+        {"name": "minimum_10", "min_notional": 10.0, "note": "minimum d'ordre de 10 (règle par défaut du hub, mission 52 ; minimum historique courant)"},
+        {"name": "retard_1_jour", "lag": 1, "note": "décision exécutée un jour plus tard : l'ouverture du lendemain vaut presque toujours la clôture du signal"},
+        {"name": "decote_sortie_forcee_25", "forced_haircut": 0.25, "note": "vente imposée par une fin de cotation à 75 % de la dernière clôture"},
+        {"name": "decote_sortie_forcee_50", "forced_haircut": 0.5, "note": "vente imposée par une fin de cotation à 50 % de la dernière clôture"},
+        {"name": "defavorable_cumule", "fee_bps": 25, "min_notional": 10.0, "lag": 1, "forced_haircut": 0.25,
+         "note": "commission 25 pb, minimum 10, retard d'un jour et décote de 25 % cumulés"},
+    ],
+    "break_even_fee": {"low_bps": 0, "high_bps": 200, "iterations": 12,
+                       "rule": "commission par ordre (pb) qui annule le résultat net, par bissection ; aucune valeur si le résultat est "
+                               "négatif dès 0 pb ou encore positif à 200 pb ; le résultat n'étant pas forcément monotone (une autre "
+                               "commission change aussi le chemin des ordres), la valeur trouvée est UNE commission d'équilibre"},
+}
+
+
+def build_plan(*, root: Path, data: dict, hyp: CostHypotheses, other_pairs: list[list[str]], registered_at: str, registered_at_ms: int,
+               rules_meta: dict | None = None, adoption: dict | None = None) -> dict:
     return {
+        "sensitivity": SENSITIVITY,
+        "execution": {"dust_model": DUST_MODEL if rules_meta else None, "rules": rules_meta},
         "kind": "alpha-lab-preregistration", "schema": 1, "plan_id": PLAN_ID, "status": STATUS, "can_trade": CAN_TRADE,
         "promotion_allowed": False, "no_permanent_service": True, "long_only": LONG_ONLY, "leverage": LEVERAGE, "capital": CAPITAL,
         "registered_at": registered_at, "registered_at_ms": registered_at_ms,
@@ -57,7 +87,8 @@ def build_plan(*, root: Path, data: dict, hyp: CostHypotheses, other_pairs: list
         "candidates": [s.name for s in CANDIDATES], "candidate_definitions": {s.name: s.describe() for s in CANDIDATES},
         "references": [s.name for s in REFERENCES], "reference_definitions": {s.name: s.describe() for s in REFERENCES},
         "costs": {"file": COST_FILE, "sha256": hyp.sha256, "version": hyp.version, "primary": hyp.primary, "stress": hyp.stress,
-                  "gross": hyp.gross, "status": hyp.status},
+                  "gross": hyp.gross, "status": hyp.status, "adoption": adoption,
+                  "scope": "ces hypothèses ne doivent jamais être extrapolées à une plateforme dont les commissions sont différentes"},
         "analysis": {"alpha": 0.05, "block_days": 7, "bootstrap_reps": 2000, "bootstrap_seed": 701, "confidence": 0.95, "risk_limit": 0.10,
                      "familywise": {"block_days": 7, "reps": 5000, "seed": 1701,
                                     "method": "maximum descendant (Romano-Wolf), bootstrap circulaire par blocs, mêmes jours pour tous les candidats"},
@@ -83,6 +114,13 @@ def build_plan(*, root: Path, data: dict, hyp: CostHypotheses, other_pairs: list
             "le choix des familles et des règles vient de la littérature, publiée d'après des périodes qui recoupent en partie la fenêtre",
             "pas de carnets d'ordres historiques : écart et glissement sont des hypothèses",
             "la value est un substitut par les prix : aucune donnée fondamentale ou de réseau n'est disponible hors ligne",
+            "commission de 10 pb par ordre : hypothèse non vérifiée sur un compte ; sensibilité à 25, 40 et 60 pb publiée à part",
+            "règles de marché (pas, minimum) du catalogue de la date de l'archive, appliquées à tout l'historique",
+            "l'ouverture du lendemain vaut presque toujours la clôture du signal (marché continu) : exécution sans délai ; sensibilité « retard d'un jour »",
+            "une fin de cotation est vendue à la dernière clôture connue ; sensibilité avec décote de 25 % et 50 %",
+            "les montants sont en unités de la devise de cotation (USDT) : la conversion est payée à chaque ordre, mais la variation du "
+            "change EUR/USDT sur les positions n'est pas modélisée",
+            "seules les paires encore présentes dans le catalogue (cotées ou retirées, « BREAK ») sont dans l'archive",
         ],
         "implementation_sha256": implementation_sha256(root),
     }
@@ -111,6 +149,11 @@ def load_plan(directory: Path, *, root: Path | None = None, hyp: CostHypotheses 
     plan = json.loads(payload)
     if hyp is not None and hyp.sha256 != plan["costs"]["sha256"]:
         problems.append("les hypothèses de coûts ont changé depuis l'enregistrement")
+    adoption = plan["costs"].get("adoption")
+    if adoption:
+        path = directory / adoption["file"]
+        if not path.exists() or file_sha(path) != adoption["sha256"]:
+            problems.append("la décision d'adoption des coûts a changé depuis l'enregistrement")
     if data is not None and data.get("archive_manifest_sha256") != plan["data"]["archive_manifest_sha256"]:
         problems.append("l'archive de données n'est pas celle du plan")
     if root is not None:

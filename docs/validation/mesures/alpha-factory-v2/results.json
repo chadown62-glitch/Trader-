@@ -1,0 +1,4189 @@
+{
+ "benchmarks": {
+  "btc": {
+   "p1": 2.781720667720131,
+   "p2": 1.6262065721315624,
+   "total_return": 8.931579671532383,
+   "years": {
+    "2020": 3.019833973340667,
+    "2021": 0.5978952157803168,
+    "2022": -0.64207055726116,
+    "2023": 1.5560728793887235,
+    "2024": 1.2130576455446787,
+    "2025": -0.06334722578438945,
+    "2026": -0.18469536517683993
+   }
+  },
+  "majors": {
+   "p1": 7.3295820626672015,
+   "p2": 0.7843780289673126,
+   "total_return": 13.863123223103571,
+   "years": {
+    "2020": 3.954986563923792,
+    "2021": 1.9942041739104175,
+    "2022": -0.6514813743156169,
+    "2023": 1.2274260586353956,
+    "2024": 0.8332114868287364,
+    "2025": -0.06160995130743063,
+    "2026": -0.24982785638316152
+   }
+  },
+  "market": {
+   "p1": 0.980415336796683,
+   "p2": -0.5271781261155271,
+   "total_return": -0.06361630938624252,
+   "years": {
+    "2020": 1.4610268215299795,
+    "2021": 2.920966237196908,
+    "2022": -0.8442233792916596,
+    "2023": 0.9402614183794484,
+    "2024": 0.07549981752821777,
+    "2025": -0.5456970160296091,
+    "2026": -0.342908371036141
+   }
+  }
+ },
+ "can_trade": false,
+ "candidates": {
+  "breakout_20_10_slots4": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.002040418551357687,
+     "ci_low": -0.0007544357141251974,
+     "days": 2508,
+     "mean": 0.0006303796889017935
+    },
+    "p_adjusted": 0.4904,
+    "p_raw": 0.1846,
+    "t": 0.9257576348367599
+   },
+   "benchmark": "market",
+   "checks": {
+    "absolute_gain": false,
+    "holds_in_both_periods": false,
+    "relative_gain": false,
+    "survives_stressed_costs": true
+   },
+   "concentration": {
+    "assets_traded": 67,
+    "profit_factor_by_asset": 1.0071133784006268,
+    "top_asset": "SUSHI",
+    "top_share_of_gains": 0.18138868816102374,
+    "winners": 23,
+    "worst_asset": "DOT",
+    "worst_loss": -47.54079348100436
+   },
+   "costs": {
+    "cost_drag": 75.5537076899011,
+    "fees": 29.65938554738799,
+    "gross_pnl": 79.06675697000011,
+    "net_pnl": 3.513049280099011,
+    "spread_slippage": 5.39410099868805,
+    "stressed_pnl": 5.1852192820033025
+   },
+   "family": "breakout",
+   "flags": [
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM"
+   ],
+   "label": "Cassure 20 jours, sortie 10 jours, 4 emplacements",
+   "market": {
+    "alpha_annual": 0.03582389945535756,
+    "beta": 0.5425848538931849,
+    "r2": 0.4948553587034753
+   },
+   "net": {
+    "annual_volatility": 0.6515010311919593,
+    "best_day": 0.18695386847097017,
+    "blocked": {
+     "achat_sous_le_minimum_apres_arrondi": 19,
+     "liquidités_insuffisantes": 66,
+     "reliquat_sous_le_minimum": 1,
+     "vente_sous_le_minimum_après_arrondi": 28
+    },
+    "cagr": 0.01624667010553793,
+    "calmar": 0.017195673791235655,
+    "days": 2508,
+    "dust_events": 236,
+    "dust_lost": 72.68521157004017,
+    "fees": 29.65938554738799,
+    "forced_exits": 0,
+    "max_drawdown": 0.9448114858877228,
+    "mean_exposure": 0.6380431864498722,
+    "net_pnl": 3.513049280099011,
+    "profit_factor_daily": 1.0010120751699485,
+    "sharpe": 0.35316687991758666,
+    "spread_slippage": 5.39410099868805,
+    "total_return": 0.11710164266996714,
+    "trades": 696,
+    "turnover": 456.41508913516674,
+    "worst_day": -0.3358594402942706
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.0016218406100435537,
+     "return": 1.904911987472674
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": -0.00035007373589104944,
+     "return": -0.6154438938296813
+    }
+   },
+   "reasons": [
+    "NOT_SIGNIFICANT_ABSOLUTE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": 0.0004294900348710341,
+     "P2": -0.00041575031189214074
+    },
+    "exposure": 0.6380431864498722,
+    "interval": {
+     "ci_high": 0.0009104412189280258,
+     "ci_low": -0.0008717127376075042,
+     "days": 2508,
+     "mean": 4.510737714589366e-06
+    },
+    "p_adjusted": 0.9904,
+    "p_raw": 0.4922,
+    "reference": "market à 64% d'exposition",
+    "t": 0.009182233820807361
+   },
+   "risk": {
+    "cagr_at_scale": 0.0017195673791235656,
+    "limit": 0.1,
+    "scale": 0.10584121964398258,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": 0.0004236565827813878,
+    "ci_low": -0.001880860252362837,
+    "days": 2508,
+    "mean": -0.0007830885253235287
+   },
+   "years": {
+    "2020": 3.427259255403915,
+    "2021": 0.6086128650029532,
+    "2022": -0.6466590497232079,
+    "2023": 0.35565147693335186,
+    "2024": 0.03024216273614888,
+    "2025": -0.5693646167926821,
+    "2026": -0.26190010470819447
+   },
+   "years_to_prove_at_observed_sharpe": 62.93753358027186
+  },
+  "breakout_55_20_majors": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.0018330624540994454,
+     "ci_low": 0.00015252877811968056,
+     "days": 2508,
+     "mean": 0.0010054775099445836
+    },
+    "p_adjusted": 0.0546,
+    "p_raw": 0.0102,
+    "t": 2.460339954240073
+   },
+   "benchmark": "majors",
+   "checks": {
+    "absolute_gain": false,
+    "holds_in_both_periods": true,
+    "relative_gain": false,
+    "survives_stressed_costs": true
+   },
+   "concentration": {
+    "assets_traded": 2,
+    "profit_factor_by_asset": null,
+    "top_asset": "ETH",
+    "top_share_of_gains": 0.8636886897779957,
+    "winners": 2,
+    "worst_asset": "BTC",
+    "worst_loss": 25.992809304886606
+   },
+   "costs": {
+    "cost_drag": 35.82895888025848,
+    "fees": 13.730362196990717,
+    "gross_pnl": 226.5160652,
+    "net_pnl": 190.68710631974153,
+    "spread_slippage": 0.13137698791354502,
+    "stressed_pnl": 184.73924294230142
+   },
+   "family": "breakout",
+   "flags": [
+    "CONCENTRATED",
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM"
+   ],
+   "label": "Cassure 55 jours, sortie 20 jours, BTC et ETH",
+   "market": {
+    "alpha_annual": 0.1390803453878348,
+    "beta": 0.3660478532962754,
+    "r2": 0.39362764872601075
+   },
+   "net": {
+    "annual_volatility": 0.3910096177208184,
+    "best_day": 0.14141628253116223,
+    "blocked": {
+     "liquidités_insuffisantes": 37,
+     "vente_sous_le_minimum_après_arrondi": 18
+    },
+    "cagr": 0.33698988926253537,
+    "calmar": 0.6248710964871026,
+    "days": 2508,
+    "dust_events": 37,
+    "dust_lost": 12.007682995100128,
+    "fees": 13.730362196990717,
+    "forced_exits": 0,
+    "max_drawdown": 0.5392950500623626,
+    "mean_exposure": 0.4303331630822435,
+    "net_pnl": 190.68710631974153,
+    "profit_factor_daily": 1.1079062723555622,
+    "sharpe": 0.9385940255613129,
+    "spread_slippage": 0.13137698791354502,
+    "total_return": 6.356236877324718,
+    "trades": 133,
+    "turnover": 211.25310555486348,
+    "worst_day": -0.16441369444580078
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.001532736178214553,
+     "return": 3.5500023980699087
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": 0.0004840726254619102,
+     "return": 0.6167545055460151
+    }
+   },
+   "reasons": [
+    "NOT_SIGNIFICANT_ABSOLUTE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": 0.000417836840073209,
+     "P2": 0.00012654660108718426
+    },
+    "exposure": 0.4303331630822435,
+    "interval": {
+     "ci_high": 0.0009068693475206253,
+     "ci_low": -0.0003451832392836976,
+     "days": 2508,
+     "mean": 0.00027137870954634417
+    },
+    "p_adjusted": 0.8682,
+    "p_raw": 0.1956,
+    "reference": "majors à 43% d'exposition",
+    "t": 0.8443532884735139
+   },
+   "risk": {
+    "cagr_at_scale": 0.06248710964871026,
+    "limit": 0.1,
+    "scale": 0.18542725357563783,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": 0.0005609926477783521,
+    "ci_low": -0.0013732454046322116,
+    "days": 2508,
+    "mean": -0.0004079907042807382
+   },
+   "years": {
+    "2020": 1.4083565842443697,
+    "2021": 1.3648739800103553,
+    "2022": -0.2512908337729125,
+    "2023": 0.15154211044593957,
+    "2024": 0.5127167491399804,
+    "2025": 0.13764125351475776,
+    "2026": -0.12949555911997046
+   },
+   "years_to_prove_at_observed_sharpe": 8.910746440923706
+  },
+  "crypto_btc_gate_top5": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.0019643306872039247,
+     "ci_low": -0.00017038519780678368,
+     "days": 2508,
+     "mean": 0.0009065777365913245
+    },
+    "p_adjusted": 0.2314,
+    "p_raw": 0.0574,
+    "t": 1.6127100461956363
+   },
+   "benchmark": "market",
+   "checks": {
+    "absolute_gain": false,
+    "holds_in_both_periods": true,
+    "relative_gain": false,
+    "survives_stressed_costs": true
+   },
+   "concentration": {
+    "assets_traded": 32,
+    "profit_factor_by_asset": 1.59230908581823,
+    "top_asset": "ETH",
+    "top_share_of_gains": 0.3043603047832352,
+    "winners": 14,
+    "worst_asset": "XRP",
+    "worst_loss": -19.512171549921018
+   },
+   "costs": {
+    "cost_drag": 88.37182698159796,
+    "fees": 16.823951764411575,
+    "gross_pnl": 165.82141060000006,
+    "net_pnl": 77.4495836184021,
+    "spread_slippage": 2.7435402323916382,
+    "stressed_pnl": 70.26315082642873
+   },
+   "family": "crypto",
+   "flags": [
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM"
+   ],
+   "label": "Panier des 5 plus liquides quand le BTC est au-dessus de sa moyenne 100 jours",
+   "market": {
+    "alpha_annual": 0.17479811893965708,
+    "beta": 0.43599787372175197,
+    "r2": 0.4688392787051333
+   },
+   "net": {
+    "annual_volatility": 0.5378472551249125,
+    "best_day": 0.16245304486679313,
+    "blocked": {
+     "achat_sous_le_minimum_apres_arrondi": 8,
+     "liquidités_insuffisantes": 58,
+     "reliquat_sous_le_minimum": 57,
+     "vente_sous_le_minimum_après_arrondi": 3
+    },
+    "cagr": 0.2040323239490136,
+    "calmar": 0.2951689367264312,
+    "days": 2508,
+    "dust_events": 158,
+    "dust_lost": 45.60333558782999,
+    "fees": 16.823951764411575,
+    "forced_exits": 0,
+    "max_drawdown": 0.6912391466792966,
+    "mean_exposure": 0.5632948402093658,
+    "net_pnl": 77.4495836184021,
+    "profit_factor_daily": 1.0347338624535274,
+    "sharpe": 0.6152320583638254,
+    "spread_slippage": 2.7435402323916382,
+    "total_return": 2.58165278728007,
+    "trades": 372,
+    "turnover": 258.89228382684183,
+    "worst_day": -0.21290295504802914
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.001343479802441866,
+     "return": 1.868234959462693
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": 0.0004745262884425337,
+     "return": 0.24873060885884213
+    }
+   },
+   "reasons": [
+    "NOT_SIGNIFICANT_ABSOLUTE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": 0.00029081606277803483,
+     "P2": 0.0004165438866714594
+    },
+    "exposure": 0.5632948402093658,
+    "interval": {
+     "ci_high": 0.001112156510989479,
+     "ci_low": -0.00040666841344612353,
+     "days": 2508,
+     "mean": 0.00035403088970371594
+    },
+    "p_adjusted": 0.8682,
+    "p_raw": 0.1834,
+    "reference": "market à 56% d'exposition",
+    "t": 0.8333474959045654
+   },
+   "risk": {
+    "cagr_at_scale": 0.02951689367264312,
+    "limit": 0.1,
+    "scale": 0.1446677325501581,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": 0.00048578540145488916,
+    "ci_low": -0.00155350337783773,
+    "days": 2508,
+    "mean": -0.0005068904776339975
+   },
+   "years": {
+    "2020": 0.7355114857094756,
+    "2021": 1.9281829562071895,
+    "2022": -0.4401477230737866,
+    "2023": 0.3552383825444192,
+    "2024": 0.4630773343237622,
+    "2025": 0.0008271971163940073,
+    "2026": -0.3656305521093278
+   },
+   "years_to_prove_at_observed_sharpe": 20.739187678661455
+  },
+  "crypto_lowvol_top3": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.003411179513372328,
+     "ci_low": 0.0006806735617256361,
+     "days": 2508,
+     "mean": 0.0020464432251927314
+    },
+    "p_adjusted": 0.0222,
+    "p_raw": 0.0024,
+    "t": 2.902324224399057
+   },
+   "benchmark": "market",
+   "checks": {
+    "absolute_gain": true,
+    "holds_in_both_periods": true,
+    "relative_gain": false,
+    "survives_stressed_costs": true
+   },
+   "concentration": {
+    "assets_traded": 18,
+    "profit_factor_by_asset": 2.7870657882212986,
+    "top_asset": "BNB",
+    "top_share_of_gains": 0.28440746568155184,
+    "winners": 11,
+    "worst_asset": "ETH",
+    "worst_loss": -257.38387089809413
+   },
+   "costs": {
+    "cost_drag": 182.68747367572087,
+    "fees": 81.31654229893867,
+    "gross_pnl": 1222.1650588999996,
+    "net_pnl": 1039.4775852242788,
+    "spread_slippage": 12.549148769267347,
+    "stressed_pnl": 974.2908994335048
+   },
+   "family": "crypto",
+   "flags": [
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM"
+   ],
+   "label": "Les 3 actifs les moins volatils",
+   "market": {
+    "alpha_annual": 0.5087627073157474,
+    "beta": 0.6652664654575269,
+    "r2": 0.6938034898187648
+   },
+   "net": {
+    "annual_volatility": 0.6746273937184504,
+    "best_day": 0.4435850364210252,
+    "blocked": {
+     "liquidités_insuffisantes": 3,
+     "vente_sous_le_minimum_après_arrondi": 1
+    },
+    "cagr": 0.6821958533536208,
+    "calmar": 0.8978084895110473,
+    "days": 2508,
+    "dust_events": 82,
+    "dust_lost": 6.751342788440266,
+    "fees": 81.31654229893867,
+    "forced_exits": 0,
+    "max_drawdown": 0.7598456255689332,
+    "mean_exposure": 0.9935656145691646,
+    "net_pnl": 1039.4775852242788,
+    "profit_factor_daily": 1.055165686513666,
+    "sharpe": 1.1072064137186228,
+    "spread_slippage": 12.549148769267347,
+    "total_return": 34.64925284080929,
+    "trades": 279,
+    "turnover": 1251.3140409199068,
+    "worst_day": -0.3581203344871763
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.0033996225812837973,
+     "return": 19.229877073991364
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": 0.000708287271944865,
+     "return": 0.762208080178707
+    }
+   },
+   "reasons": [
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": 0.0015428853616688755,
+     "P2": 0.0006060152173518184
+    },
+    "exposure": 0.9935656145691646,
+    "interval": {
+     "ci_high": 0.0020007483379036344,
+     "ci_low": 0.00013022778821838467,
+     "days": 2508,
+     "mean": 0.0010718354206864958
+    },
+    "p_adjusted": 0.1634,
+    "p_raw": 0.007,
+    "reference": "market à 99% d'exposition",
+    "t": 2.2052399009185946
+   },
+   "risk": {
+    "cagr_at_scale": 0.08978084895110473,
+    "limit": 0.1,
+    "scale": 0.13160567967358522,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": 0.001490087720629489,
+    "ci_low": -0.00018160382307418603,
+    "days": 2508,
+    "mean": 0.0006329750109674092
+   },
+   "years": {
+    "2020": 4.040042360725828,
+    "2021": 4.476137897444689,
+    "2022": -0.4494364877541738,
+    "2023": 0.8782567063832849,
+    "2024": 0.5103563133105,
+    "2025": 0.009108209668583278,
+    "2026": -0.18047474620766446
+   },
+   "years_to_prove_at_observed_sharpe": 6.403427120304728
+  },
+  "crypto_volmanaged_btc": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.0018725301963882744,
+     "ci_low": 6.20101652753604e-05,
+     "days": 2508,
+     "mean": 0.000964591223161647
+    },
+    "p_adjusted": 0.0976,
+    "p_raw": 0.0192,
+    "t": 2.1441369767384644
+   },
+   "benchmark": "btc",
+   "checks": {
+    "absolute_gain": false,
+    "holds_in_both_periods": false,
+    "relative_gain": false,
+    "survives_stressed_costs": true
+   },
+   "concentration": {
+    "assets_traded": 1,
+    "profit_factor_by_asset": null,
+    "top_asset": "BTC",
+    "top_share_of_gains": 1.0,
+    "winners": 1,
+    "worst_asset": "BTC",
+    "worst_loss": 146.87904670378424
+   },
+   "costs": {
+    "cost_drag": 8.539599296215783,
+    "fees": 4.825061697568877,
+    "gross_pnl": 155.41864600000002,
+    "net_pnl": 146.87904670378424,
+    "spread_slippage": 0.046167326989752004,
+    "stressed_pnl": 143.82980978425488
+   },
+   "family": "crypto",
+   "flags": [
+    "CONCENTRATED",
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM"
+   ],
+   "label": "BTC à exposition pilotée par la volatilité (plafond 100 %)",
+   "market": {
+    "alpha_annual": -0.001734052296351307,
+    "beta": 0.6843227409174428,
+    "r2": 0.9062329387316335
+   },
+   "net": {
+    "annual_volatility": 0.43042845852339806,
+    "best_day": 0.12131593136512775,
+    "blocked": {
+     "achat_sous_le_minimum_apres_arrondi": 1,
+     "vente_sous_le_minimum_après_arrondi": 1
+    },
+    "cagr": 0.2946196500905647,
+    "calmar": 0.46832368233254484,
+    "days": 2508,
+    "dust_events": 1,
+    "dust_lost": 0.10576080000002272,
+    "fees": 4.825061697568877,
+    "forced_exits": 0,
+    "max_drawdown": 0.6290940672126051,
+    "mean_exposure": 0.782643206581996,
+    "net_pnl": 146.87904670378424,
+    "profit_factor_daily": 1.0648695442509644,
+    "sharpe": 0.8179658883657719,
+    "spread_slippage": 0.046167326989752004,
+    "total_return": 4.895968223459475,
+    "trades": 86,
+    "turnover": 74.23671167774776,
+    "worst_day": -0.2789208895294957
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.0009945962532611216,
+     "return": 1.391216970074606
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": 0.0009349193179007077,
+     "return": 1.4656768069338004
+    }
+   },
+   "reasons": [
+    "NOT_SIGNIFICANT_ABSOLUTE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": -0.000404025106661844,
+     "P2": 0.00011309525352345722
+    },
+    "exposure": 0.782643206581996,
+    "interval": {
+     "ci_high": 0.0001362570509440723,
+     "ci_low": -0.0004314252287926605,
+     "days": 2508,
+     "mean": -0.00014402160817952143
+    },
+    "p_adjusted": 0.9994,
+    "p_raw": 0.8348,
+    "reference": "btc à 78% d'exposition",
+    "t": -0.954576095352189
+   },
+   "risk": {
+    "cagr_at_scale": 0.04683236823325449,
+    "limit": 0.1,
+    "scale": 0.1589587395778199,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": 1.3466413853553443e-06,
+    "ci_low": -0.0009020101707922518,
+    "days": 2508,
+    "mean": -0.00044887699106367494
+   },
+   "years": {
+    "2020": 1.5795377964505577,
+    "2021": 0.20951023130957602,
+    "2022": -0.49936449699863694,
+    "2023": 1.373969700447212,
+    "2024": 1.0612942057782253,
+    "2025": -0.06652378047857122,
+    "2026": -0.17365075523874396
+   },
+   "years_to_prove_at_observed_sharpe": 11.732735264025381
+  },
+  "crypto_weekday_btc": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.00011692441626295924,
+     "ci_low": -0.0022342367255269117,
+     "days": 2508,
+     "mean": -0.0009618745367784013
+    },
+    "p_adjusted": 0.9736,
+    "p_raw": 0.9736,
+    "t": -1.590218766725355
+   },
+   "benchmark": "btc",
+   "checks": {
+    "absolute_gain": false,
+    "holds_in_both_periods": false,
+    "relative_gain": false,
+    "survives_stressed_costs": false
+   },
+   "concentration": {
+    "assets_traded": 1,
+    "profit_factor_by_asset": 0.0,
+    "top_asset": null,
+    "top_share_of_gains": null,
+    "winners": 0,
+    "worst_asset": "BTC",
+    "worst_loss": -29.96454310710941
+   },
+   "costs": {
+    "cost_drag": 106.67524740710931,
+    "fees": 15.028031506186577,
+    "gross_pnl": 76.7107042999999,
+    "net_pnl": -29.964543107109407,
+    "spread_slippage": 0.14379211334943903,
+    "stressed_pnl": -24.977943960090062
+   },
+   "family": "crypto",
+   "flags": [
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM"
+   ],
+   "label": "BTC le lundi seulement",
+   "market": {
+    "alpha_annual": -0.6090292867642901,
+    "beta": 0.4989055147847779,
+    "r2": 0.2664483034604471
+   },
+   "net": {
+    "annual_volatility": 0.5787243448086663,
+    "best_day": 0.19102267377624993,
+    "blocked": {
+     "achat_sous_le_minimum_apres_arrondi": 17,
+     "reliquat_sous_le_minimum": 988,
+     "vente_sous_le_minimum_après_arrondi": 289
+    },
+    "cagr": -0.6250615983523611,
+    "calmar": -0.6255802224726059,
+    "days": 2508,
+    "dust_events": 130,
+    "dust_lost": 42.1864132303,
+    "fees": 15.028031506186577,
+    "forced_exits": 0,
+    "max_drawdown": 0.9991709710415797,
+    "mean_exposure": 0.6235913026516661,
+    "net_pnl": -29.964543107109407,
+    "profit_factor_daily": 0.8005756783774277,
+    "sharpe": -0.606651869881488,
+    "spread_slippage": 0.14379211334943903,
+    "total_return": -0.9988181035703135,
+    "trades": 259,
+    "turnover": 231.21660665755576,
+    "worst_day": -0.9905005373391073
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": -0.0013962816673630865,
+     "return": -0.873592532716839
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": -0.0005322903243762581,
+     "return": -0.990650105922628
+    }
+   },
+   "reasons": [
+    "COSTS_EXCEED_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": -0.002510669562659321,
+     "P2": -0.0011870999931314992
+    },
+    "exposure": 0.6235913026516661,
+    "interval": {
+     "ci_high": -0.0009650219713205076,
+     "ci_low": -0.0029752507272240544,
+     "days": 2508,
+     "mean": -0.0018451906044557387
+    },
+    "p_adjusted": 1.0,
+    "p_raw": 1.0,
+    "reference": "btc à 62% d'exposition",
+    "t": -3.5220289629695625
+   },
+   "risk": {
+    "cagr_at_scale": -0.06255802224726059,
+    "limit": 0.1,
+    "scale": 0.10008297168176895,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": -0.0012860919105460687,
+    "ci_low": -0.003595592235391611,
+    "days": 2508,
+    "mean": -0.002375342751003723
+   },
+   "years": {
+    "2020": 0.3593841624917222,
+    "2021": -0.7175419628599959,
+    "2022": -0.7910614777744134,
+    "2023": 1.1166491117424782,
+    "2024": -0.07552064344747589,
+    "2025": -0.06287030497423374,
+    "2026": -0.9919662377873273
+   },
+   "years_to_prove_at_observed_sharpe": null
+  },
+  "meanrev_rsi2_slots4": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.0005960108656185935,
+     "ci_low": -0.0010070410363537962,
+     "days": 2508,
+     "mean": -0.00020638948944162744
+    },
+    "p_adjusted": 0.8556,
+    "p_raw": 0.7004,
+    "t": -0.4184387756329451
+   },
+   "benchmark": "market",
+   "checks": {
+    "absolute_gain": false,
+    "holds_in_both_periods": false,
+    "relative_gain": false,
+    "survives_stressed_costs": false
+   },
+   "concentration": {
+    "assets_traded": 43,
+    "profit_factor_by_asset": 0.36029026824803373,
+    "top_asset": "XLM",
+    "top_share_of_gains": 0.11980013971159861,
+    "winners": 21,
+    "worst_asset": "LINK",
+    "worst_loss": -5.770700924432845
+   },
+   "costs": {
+    "cost_drag": 5.141331612493918,
+    "fees": 3.3557633151079105,
+    "gross_pnl": -16.96157072000001,
+    "net_pnl": -22.10290233249393,
+    "spread_slippage": 0.6637164318500791,
+    "stressed_pnl": -27.301094476569933
+   },
+   "family": "mean_reversion",
+   "flags": [
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM"
+   ],
+   "label": "Repli brutal en tendance haussière (RSI 2), 4 emplacements",
+   "market": {
+    "alpha_annual": -0.22709300976406332,
+    "beta": 0.4238708423636432,
+    "r2": 0.5755837718214527
+   },
+   "net": {
+    "annual_volatility": 0.47191724993770334,
+    "best_day": 0.22640603829406425,
+    "blocked": {
+     "achat_sous_le_minimum": 1479,
+     "achat_sous_le_minimum_apres_arrondi": 13,
+     "liquidités_insuffisantes": 52,
+     "reliquat_sous_le_minimum": 6400,
+     "vente_sous_le_minimum_après_arrondi": 104
+    },
+    "cagr": -0.1765438004980916,
+    "calmar": -0.2335993578985108,
+    "days": 2508,
+    "dust_events": 129,
+    "dust_lost": 25.571469010100003,
+    "fees": 3.3557633151079105,
+    "forced_exits": 0,
+    "max_drawdown": 0.7557546479849166,
+    "mean_exposure": 0.3396797270811665,
+    "net_pnl": -22.10290233249393,
+    "profit_factor_daily": 0.9216987402114483,
+    "sharpe": -0.1596300276290778,
+    "spread_slippage": 0.6637164318500791,
+    "total_return": -0.7367634110831309,
+    "trades": 255,
+    "turnover": 51.64096533546947,
+    "worst_day": -0.4183060863518526
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": -0.00033088661097076813,
+     "return": -0.6704711030831312
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": -8.327457227522104e-05,
+     "return": -0.20117297335755002
+    }
+   },
+   "reasons": [
+    "NO_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": -0.0009656670248377742,
+     "P2": -0.00011823929235287829
+    },
+    "exposure": 0.3396797270811665,
+    "interval": {
+     "ci_high": 1.3804477600862887e-06,
+     "ci_low": -0.0010775415017004525,
+     "days": 2508,
+     "mean": -0.0005395879296769075
+    },
+    "p_adjusted": 0.9996,
+    "p_raw": 0.98,
+    "reference": "market à 34% d'exposition",
+    "t": -1.636035017136194
+   },
+   "risk": {
+    "cagr_at_scale": -0.023359935789851082,
+    "limit": 0.1,
+    "scale": 0.13231807474374382,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": -0.0006191769557101166,
+    "ci_low": -0.002537921618578787,
+    "days": 2508,
+    "mean": -0.0016198577036669493
+   },
+   "years": {
+    "2020": -0.3785417710423675,
+    "2021": -0.0757676346481746,
+    "2022": -0.44069993873364977,
+    "2023": 0.22367292345455914,
+    "2024": 0.059869649756115306,
+    "2025": -0.17854364469794382,
+    "2026": -0.23085898436088015
+   },
+   "years_to_prove_at_observed_sharpe": null
+  },
+  "meanrev_xs_7_bottom3": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.0011936173623793116,
+     "ci_low": -0.0013266838956262766,
+     "days": 2508,
+     "mean": -1.8545640831870885e-05
+    },
+    "p_adjusted": 0.8162,
+    "p_raw": 0.5146,
+    "t": -0.027085819281945065
+   },
+   "benchmark": "market",
+   "checks": {
+    "absolute_gain": false,
+    "holds_in_both_periods": false,
+    "relative_gain": false,
+    "survives_stressed_costs": false
+   },
+   "concentration": {
+    "assets_traded": 48,
+    "profit_factor_by_asset": 0.5077706004256696,
+    "top_asset": "BNB",
+    "top_share_of_gains": 0.19973863750385573,
+    "winners": 21,
+    "worst_asset": "ICP",
+    "worst_loss": -5.358353052124128
+   },
+   "costs": {
+    "cost_drag": -5.171661710121484,
+    "fees": 4.20149883704139,
+    "gross_pnl": -28.996348589999954,
+    "net_pnl": -23.82468687987847,
+    "spread_slippage": 0.8895070632137311,
+    "stressed_pnl": -24.331574372651694
+   },
+   "family": "mean_reversion",
+   "flags": [
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM"
+   ],
+   "label": "Les 3 plus fortes baisses de la semaine",
+   "market": {
+    "alpha_annual": -0.21687121987997443,
+    "beta": 0.5868189315392421,
+    "r2": 0.5724812396409117
+   },
+   "net": {
+    "annual_volatility": 0.6551037213583804,
+    "best_day": 0.24521949963980894,
+    "blocked": {
+     "achat_sous_le_minimum": 880,
+     "achat_sous_le_minimum_apres_arrondi": 6,
+     "liquidités_insuffisantes": 12,
+     "reliquat_sous_le_minimum": 749,
+     "vente_sous_le_minimum_après_arrondi": 10
+    },
+    "cagr": -0.2054957941713248,
+    "calmar": -0.21881067874787924,
+    "days": 2508,
+    "dust_events": 123,
+    "dust_lost": 21.115869772999996,
+    "fees": 4.20149883704139,
+    "forced_exits": 0,
+    "max_drawdown": 0.9391488356384274,
+    "mean_exposure": 0.5567218294660848,
+    "net_pnl": -23.82468687987847,
+    "profit_factor_daily": 0.9234203928699974,
+    "sharpe": -0.010332957488925244,
+    "spread_slippage": 0.8895070632137311,
+    "total_return": -0.7941562293292824,
+    "trades": 244,
+    "turnover": 64.6568136392207,
+    "worst_day": -0.44865684215247026
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": -0.0007468219107272693,
+     "return": -0.8916727314079672
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": 0.0007016450876055296,
+     "return": 0.9002027222336637
+    }
+   },
+   "reasons": [
+    "NO_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": -0.0017872022606350343,
+     "P2": 0.0006443392745808048
+    },
+    "exposure": 0.5567218294660848,
+    "interval": {
+     "ci_high": 0.00026963150398932336,
+     "ci_low": -0.0013909475760122245,
+     "days": 2508,
+     "mean": -0.0005646448938458904
+    },
+    "p_adjusted": 0.9996,
+    "p_raw": 0.9016,
+    "reference": "market à 56% d'exposition",
+    "t": -1.2590251277344413
+   },
+   "risk": {
+    "cagr_at_scale": -0.021881067874787927,
+    "limit": 0.1,
+    "scale": 0.10647939517703883,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": -0.00036268257818476,
+    "ci_low": -0.0024971407442650685,
+    "days": 2508,
+    "mean": -0.0014320138550571928
+   },
+   "years": {
+    "2020": -0.6153020270821232,
+    "2021": -0.2490632004091634,
+    "2022": -0.6474531703739832,
+    "2023": 0.47183649914450765,
+    "2024": 0.636826725196858,
+    "2025": -0.11577948650652803,
+    "2026": -0.05119979919239814
+   },
+   "years_to_prove_at_observed_sharpe": null
+  },
+  "mom_dual_90_top3": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.0018252090082612237,
+     "ci_low": -0.0018908751428386964,
+     "days": 2508,
+     "mean": -3.6596706580961146e-05
+    },
+    "p_adjusted": 0.8162,
+    "p_raw": 0.511,
+    "t": -0.03679117978753281
+   },
+   "benchmark": "market",
+   "checks": {
+    "absolute_gain": false,
+    "holds_in_both_periods": false,
+    "relative_gain": false,
+    "survives_stressed_costs": false
+   },
+   "concentration": {
+    "assets_traded": 67,
+    "profit_factor_by_asset": 0.9190926437662392,
+    "top_asset": "LUNA",
+    "top_share_of_gains": 0.23675400710706546,
+    "winners": 28,
+    "worst_asset": "WAVES",
+    "worst_loss": -39.25365717050452
+   },
+   "costs": {
+    "cost_drag": 11.483915126988975,
+    "fees": 12.14804664240537,
+    "gross_pnl": -17.453655554500056,
+    "net_pnl": -28.93757068148903,
+    "spread_slippage": 2.5930570085594495,
+    "stressed_pnl": -22.512382882143953
+   },
+   "family": "momentum",
+   "flags": [
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM",
+    "FORCED_EXITS"
+   ],
+   "label": "Momentum double sur 3 mois",
+   "market": {
+    "alpha_annual": -0.33481859691252003,
+    "beta": 0.8978459408273783,
+    "r2": 0.6349796853866769
+   },
+   "net": {
+    "annual_volatility": 0.9517184479891914,
+    "best_day": 0.3347742928724693,
+    "blocked": {
+     "achat_sous_le_minimum": 494,
+     "achat_sous_le_minimum_apres_arrondi": 1,
+     "liquidités_insuffisantes": 37,
+     "reliquat_sous_le_minimum": 578,
+     "vente_sous_le_minimum_après_arrondi": 9
+    },
+    "cagr": -0.3850274015368096,
+    "calmar": -0.3868130985713624,
+    "days": 2508,
+    "dust_events": 135,
+    "dust_lost": 43.35435330024005,
+    "fees": 12.14804664240537,
+    "forced_exits": 2,
+    "max_drawdown": 0.995383566272321,
+    "mean_exposure": 0.8168756462309578,
+    "net_pnl": -28.93757068148903,
+    "profit_factor_daily": 0.984152495866432,
+    "sharpe": -0.014035451272667273,
+    "spread_slippage": 2.5930570085594495,
+    "total_return": -0.9645856893829677,
+    "trades": 301,
+    "turnover": 186.94710296786002,
+    "worst_day": -0.5524223243344908
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.001098886924892635,
+     "return": -0.5943542780341571
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": -0.0011594738584029868,
+     "return": -0.9126964523490912
+    }
+   },
+   "reasons": [
+    "NO_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": -0.000427658875317753,
+     "P2": -0.001243558441707824
+    },
+    "exposure": 0.8168756462309578,
+    "interval": {
+     "ci_high": 0.0003596795533678465,
+     "ci_low": -0.002000036980323271,
+     "days": 2508,
+     "mean": -0.0008378858901574178
+    },
+    "p_adjusted": 0.9996,
+    "p_raw": 0.9018,
+    "reference": "market à 82% d'exposition",
+    "t": -1.3844504983961794
+   },
+   "risk": {
+    "cagr_at_scale": -0.03868130985713624,
+    "limit": 0.1,
+    "scale": 0.10046378440272702,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": 0.00010812824876966663,
+    "ci_low": -0.0029018136903459744,
+    "days": 2508,
+    "mean": -0.0014500649208062833
+   },
+   "years": {
+    "2020": 0.2193233382470885,
+    "2021": 3.555505298629395,
+    "2022": -0.9205360744430965,
+    "2023": 0.029767883950176044,
+    "2024": -0.4145739817590367,
+    "2025": -0.5506828383315225,
+    "2026": -0.7037973332921685
+   },
+   "years_to_prove_at_observed_sharpe": null
+  },
+  "mom_ts_28": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.0028554214265698445,
+     "ci_low": 0.0009475825060404051,
+     "days": 2508,
+     "mean": 0.001924735651149542
+    },
+    "p_adjusted": 0.0006,
+    "p_raw": 0.0,
+    "t": 3.9634292372418063
+   },
+   "benchmark": "majors",
+   "checks": {
+    "absolute_gain": true,
+    "holds_in_both_periods": true,
+    "relative_gain": true,
+    "survives_stressed_costs": true
+   },
+   "concentration": {
+    "assets_traded": 2,
+    "profit_factor_by_asset": null,
+    "top_asset": "ETH",
+    "top_share_of_gains": 0.6493794554972909,
+    "winners": 2,
+    "worst_asset": "BTC",
+    "worst_loss": 614.074087139313
+   },
+   "costs": {
+    "cost_drag": 373.6044687373776,
+    "fees": 145.21583648065788,
+    "gross_pnl": 2124.996669700001,
+    "net_pnl": 1751.3922009626233,
+    "spread_slippage": 1.3894751645646664,
+    "stressed_pnl": 1631.8656068542862
+   },
+   "family": "momentum",
+   "flags": [
+    "CONCENTRATED",
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM"
+   ],
+   "label": "Momentum 4 semaines, BTC et ETH",
+   "market": {
+    "alpha_annual": 0.38265830609982393,
+    "beta": 0.5137256232348029,
+    "r2": 0.549068896102138
+   },
+   "net": {
+    "annual_volatility": 0.4646331373973417,
+    "best_day": 0.1414890947455647,
+    "blocked": {
+     "achat_sous_le_minimum_apres_arrondi": 3,
+     "liquidités_insuffisantes": 3,
+     "vente_sous_le_minimum_après_arrondi": 2
+    },
+    "cagr": 0.8118623059528733,
+    "calmar": 2.138855819785287,
+    "days": 2508,
+    "dust_events": 75,
+    "dust_lost": 12.449014503999711,
+    "fees": 145.21583648065788,
+    "forced_exits": 0,
+    "max_drawdown": 0.3795778558062757,
+    "mean_exposure": 0.5573760441472668,
+    "net_pnl": 1751.3922009626233,
+    "profit_factor_daily": 1.173226166573076,
+    "sharpe": 1.51200690636234,
+    "spread_slippage": 1.3894751645646664,
+    "total_return": 58.37974003208744,
+    "trades": 298,
+    "turnover": 2234.264617558211,
+    "worst_day": -0.164158242042308
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.0028491439460597394,
+     "return": 19.24790539676809
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": 0.0010105904142320033,
+     "return": 1.9326361847564346
+    }
+   },
+   "reasons": [],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": 0.0014051042205021132,
+     "P2": 0.0005475156195348555
+    },
+    "exposure": 0.5573760441472668,
+    "interval": {
+     "ci_high": 0.0015484799551407481,
+     "ci_low": 0.0003762544113171423,
+     "days": 2508,
+     "mean": 0.0009739163314192935
+    },
+    "p_adjusted": 0.0222,
+    "p_raw": 0.0,
+    "reference": "majors à 56% d'exposition",
+    "t": 2.9734867127756615
+   },
+   "risk": {
+    "cagr_at_scale": 0.21388558197852875,
+    "limit": 0.1,
+    "scale": 0.263450563488711,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "RETENU_POUR_PROTOCOLE_PROSPECTIF",
+   "vs_hold_btc": {
+    "ci_high": 0.0014058003244236713,
+    "ci_low": -0.0003510147056785314,
+    "days": 2508,
+    "mean": 0.00051126743692422
+   },
+   "years": {
+    "2020": 3.6463124767663224,
+    "2021": 2.73411674065753,
+    "2022": -0.17535617260413272,
+    "2023": 0.870695774575013,
+    "2024": 0.5308382552299447,
+    "2025": 0.38846005772575576,
+    "2026": 0.043781779675192034
+   },
+   "years_to_prove_at_observed_sharpe": 3.4336980905848296
+  },
+  "mom_xs_28_top3": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.002726303867086752,
+     "ci_low": -0.0015769628920654674,
+     "days": 2508,
+     "mean": 0.0005955336179034627
+    },
+    "p_adjusted": 0.6188,
+    "p_raw": 0.29,
+    "t": 0.5108993422480512
+   },
+   "benchmark": "market",
+   "checks": {
+    "absolute_gain": false,
+    "holds_in_both_periods": false,
+    "relative_gain": false,
+    "survives_stressed_costs": false
+   },
+   "concentration": {
+    "assets_traded": 121,
+    "profit_factor_by_asset": 0.9460225312568235,
+    "top_asset": "LUNA",
+    "top_share_of_gains": 0.1947178430124452,
+    "winners": 44,
+    "worst_asset": "ATOM",
+    "worst_loss": -46.60282225181203
+   },
+   "costs": {
+    "cost_drag": 76.30302687183266,
+    "fees": 33.25466130611219,
+    "gross_pnl": 47.60511713749962,
+    "net_pnl": -28.69790973433303,
+    "spread_slippage": 6.8394653745330904,
+    "stressed_pnl": -20.895059710985414
+   },
+   "family": "momentum",
+   "flags": [
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM",
+    "FORCED_EXITS"
+   ],
+   "label": "Les 3 plus fortes hausses sur 4 semaines",
+   "market": {
+    "alpha_annual": -0.16303415364800786,
+    "beta": 1.0624751766114542,
+    "r2": 0.6475129662199361
+   },
+   "net": {
+    "annual_volatility": 1.11527286866037,
+    "best_day": 0.41163410544226875,
+    "blocked": {
+     "achat_sous_le_minimum": 227,
+     "achat_sous_le_minimum_apres_arrondi": 4,
+     "liquidités_insuffisantes": 50,
+     "reliquat_sous_le_minimum": 304,
+     "vente_sous_le_minimum_après_arrondi": 13
+    },
+    "cagr": -0.3665498890714427,
+    "calmar": -0.36780044057512157,
+    "days": 2508,
+    "dust_events": 378,
+    "dust_lost": 103.06603562352657,
+    "fees": 33.25466130611219,
+    "forced_exits": 1,
+    "max_drawdown": 0.996599918418468,
+    "mean_exposure": 0.9421170331955222,
+    "net_pnl": -28.69790973433303,
+    "profit_factor_daily": 0.9903120451527349,
+    "sharpe": 0.19490276921724234,
+    "spread_slippage": 6.8394653745330904,
+    "total_return": -0.9565969911444344,
+    "trades": 799,
+    "turnover": 511.75495679961233,
+    "worst_day": -0.746758731183784
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.0022438288718460257,
+     "return": 0.02998719307111264
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": -0.001034461768033394,
+     "return": -0.957860632493739
+    }
+   },
+   "reasons": [
+    "COSTS_EXCEED_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": 0.00048323678299255047,
+     "P2": -0.0011314379951080321
+    },
+    "exposure": 0.9421170331955222,
+    "interval": {
+     "ci_high": 0.0011017660918199999,
+     "ci_low": -0.0017194245191222545,
+     "days": 2508,
+     "mean": -0.0003286072740986916
+    },
+    "p_adjusted": 0.9984,
+    "p_raw": 0.6632,
+    "reference": "market à 94% d'exposition",
+    "t": -0.46932663941411573
+   },
+   "risk": {
+    "cagr_at_scale": -0.03678004405751215,
+    "limit": 0.1,
+    "scale": 0.10034116815772248,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": 0.0008947285548769167,
+    "ci_low": -0.0025062367443371624,
+    "days": 2508,
+    "mean": -0.0008179345963218592
+   },
+   "years": {
+    "2020": 0.9846113243457899,
+    "2021": 3.8268889715744274,
+    "2022": -0.9075666900603523,
+    "2023": 0.5772156526914334,
+    "2024": -0.34935020222498736,
+    "2025": -0.7564161246840627,
+    "2026": -0.8039072013504291
+   },
+   "years_to_prove_at_observed_sharpe": 206.6491566992037
+  },
+  "trend_cross_50_200": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.0020331444888727463,
+     "ci_low": -3.1185536963608926e-05,
+     "days": 2508,
+     "mean": 0.0010267415861717239
+    },
+    "p_adjusted": 0.1496,
+    "p_raw": 0.03,
+    "t": 1.8957519053331018
+   },
+   "benchmark": "majors",
+   "checks": {
+    "absolute_gain": false,
+    "holds_in_both_periods": false,
+    "relative_gain": false,
+    "survives_stressed_costs": true
+   },
+   "concentration": {
+    "assets_traded": 2,
+    "profit_factor_by_asset": null,
+    "top_asset": "ETH",
+    "top_share_of_gains": 0.6364215846709632,
+    "winners": 2,
+    "worst_asset": "BTC",
+    "worst_loss": 44.09752131201272
+   },
+   "costs": {
+    "cost_drag": 10.018808275453097,
+    "fees": 5.290531133062901,
+    "gross_pnl": 131.30631999999997,
+    "net_pnl": 121.28751172454687,
+    "spread_slippage": 0.05062106298360303,
+    "stressed_pnl": 118.34725341528969
+   },
+   "family": "trend",
+   "flags": [
+    "CONCENTRATED",
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM"
+   ],
+   "label": "Moyenne 50 jours au-dessus de la moyenne 200 jours, BTC et ETH",
+   "market": {
+    "alpha_annual": -0.012776809203016638,
+    "beta": 0.6224022542287532,
+    "r2": 0.6479587540373815
+   },
+   "net": {
+    "annual_volatility": 0.5181909808515572,
+    "best_day": 0.19981835947354787,
+    "blocked": {
+     "achat_sous_le_minimum_apres_arrondi": 16,
+     "liquidités_insuffisantes": 40,
+     "vente_sous_le_minimum_après_arrondi": 12
+    },
+    "cagr": 0.2655062685235674,
+    "calmar": 0.46171923806989024,
+    "days": 2508,
+    "dust_events": 16,
+    "dust_lost": 4.506977508099996,
+    "fees": 5.290531133062901,
+    "forced_exits": 0,
+    "max_drawdown": 0.5750383493515552,
+    "mean_exposure": 0.5769070002594323,
+    "net_pnl": 121.28751172454687,
+    "profit_factor_daily": 1.0487495885474347,
+    "sharpe": 0.7232095748498457,
+    "spread_slippage": 0.05062106298360303,
+    "total_return": 4.042917057484896,
+    "trades": 100,
+    "turnover": 81.39828453052073,
+    "worst_day": -0.4194743367864753
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.0018506865245069373,
+     "return": 3.9065822926264318
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": 0.00021194433152936726,
+     "return": 0.027786095642040154
+    }
+   },
+   "reasons": [
+    "NOT_SIGNIFICANT_ABSOLUTE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": 0.0003560463528048443,
+     "P2": -0.000267357018985616
+    },
+    "exposure": 0.5769070002594323,
+    "interval": {
+     "ci_high": 0.000636469407578258,
+     "ci_low": -0.0005789100135135328,
+     "days": 2508,
+     "mean": 4.2604705345605756e-05
+    },
+    "p_adjusted": 0.99,
+    "p_raw": 0.4468,
+    "reference": "majors à 58% d'exposition",
+    "t": 0.13193380258816267
+   },
+   "risk": {
+    "cagr_at_scale": 0.04617192380698903,
+    "limit": 0.1,
+    "scale": 0.1739014452040729,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": 0.00044850121495316965,
+    "ci_low": -0.0011547492671792824,
+    "days": 2508,
+    "mean": -0.00038672662805359844
+   },
+   "years": {
+    "2020": 1.126542558383068,
+    "2021": 1.4209943652547055,
+    "2022": -0.1961425837652333,
+    "2023": 0.2909256499922481,
+    "2024": 0.4251551630606969,
+    "2025": -0.22699339438216515,
+    "2026": -0.14318243835965538
+   },
+   "years_to_prove_at_observed_sharpe": 15.008639360330424
+  },
+  "trend_sma_200": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.002239017526493475,
+     "ci_low": 0.00023031387593620733,
+     "days": 2508,
+     "mean": 0.0012579211363694385
+    },
+    "p_adjusted": 0.0478,
+    "p_raw": 0.0076,
+    "t": 2.5216062495750378
+   },
+   "benchmark": "majors",
+   "checks": {
+    "absolute_gain": true,
+    "holds_in_both_periods": true,
+    "relative_gain": false,
+    "survives_stressed_costs": true
+   },
+   "concentration": {
+    "assets_traded": 2,
+    "profit_factor_by_asset": null,
+    "top_asset": "ETH",
+    "top_share_of_gains": 0.7087215469333961,
+    "winners": 2,
+    "worst_asset": "BTC",
+    "worst_loss": 84.00245520274834
+   },
+   "costs": {
+    "cost_drag": 63.08677043882574,
+    "fees": 25.06467406377906,
+    "gross_pnl": 351.47904360000007,
+    "net_pnl": 288.39227316117433,
+    "spread_slippage": 0.23982641983560882,
+    "stressed_pnl": 270.0974591503853
+   },
+   "family": "trend",
+   "flags": [
+    "CONCENTRATED",
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM"
+   ],
+   "label": "Au-dessus de la moyenne 200 jours, BTC et ETH",
+   "market": {
+    "alpha_annual": 0.11624733079104393,
+    "beta": 0.5507026620016391,
+    "r2": 0.5979245946032956
+   },
+   "net": {
+    "annual_volatility": 0.47729440186881716,
+    "best_day": 0.14129191774007532,
+    "blocked": {
+     "achat_sous_le_minimum_apres_arrondi": 15,
+     "liquidités_insuffisantes": 22,
+     "vente_sous_le_minimum_après_arrondi": 8
+    },
+    "cagr": 0.4102466619213314,
+    "calmar": 0.8057332947046593,
+    "days": 2508,
+    "dust_events": 50,
+    "dust_lost": 16.019371376199963,
+    "fees": 25.06467406377906,
+    "forced_exits": 0,
+    "max_drawdown": 0.5091593764555887,
+    "mean_exposure": 0.5832241577616927,
+    "net_pnl": 288.39227316117433,
+    "profit_factor_daily": 1.089187443252108,
+    "sharpe": 0.9619664780837687,
+    "spread_slippage": 0.23982641983560882,
+    "total_return": 9.613075772039144,
+    "trades": 239,
+    "turnover": 385.63896584560365,
+    "worst_day": -0.25129639971250173
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.0018773490266692017,
+     "return": 4.896712863544251
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": 0.0006453703201887848,
+     "return": 0.7998291620494582
+    }
+   },
+   "reasons": [
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": 0.00036634247811676425,
+     "P2": 0.0001608205984096504
+    },
+    "exposure": 0.5832241577616927,
+    "interval": {
+     "ci_high": 0.0008628209903069107,
+     "ci_low": -0.000368531045333813,
+     "days": 2508,
+     "mean": 0.0002630079126021428
+    },
+    "p_adjusted": 0.8682,
+    "p_raw": 0.1952,
+    "reference": "majors à 58% d'exposition",
+    "t": 0.8293076442858387
+   },
+   "risk": {
+    "cagr_at_scale": 0.08057332947046593,
+    "limit": 0.1,
+    "scale": 0.19640215740723468,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": 0.0006742026853326255,
+    "ci_low": -0.0009642881249542944,
+    "days": 2508,
+    "mean": -0.00015554707785588344
+   },
+   "years": {
+    "2020": 1.512897283813044,
+    "2021": 0.9146420681768266,
+    "2022": -0.08889787608502597,
+    "2023": 0.7023502917144189,
+    "2024": 0.6450930988975212,
+    "2025": -0.11928813522872461,
+    "2026": -0.018390811779430027
+   },
+   "years_to_prove_at_observed_sharpe": 8.483006115815915
+  },
+  "value_mom_combo_top3": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.002480297271953967,
+     "ci_low": -0.0012333375645000011,
+     "days": 2508,
+     "mean": 0.0005661719345317589
+    },
+    "p_adjusted": 0.6152,
+    "p_raw": 0.2798,
+    "t": 0.5721018836036483
+   },
+   "benchmark": "market",
+   "checks": {
+    "absolute_gain": false,
+    "holds_in_both_periods": false,
+    "relative_gain": false,
+    "survives_stressed_costs": false
+   },
+   "concentration": {
+    "assets_traded": 70,
+    "profit_factor_by_asset": 0.9286835535906767,
+    "top_asset": "ONT",
+    "top_share_of_gains": 0.12079254971379669,
+    "winners": 34,
+    "worst_asset": "XRP",
+    "worst_loss": -59.89377776351916
+   },
+   "costs": {
+    "cost_drag": 32.48453887735263,
+    "fees": 15.041433903175744,
+    "gross_pnl": 7.716092729999886,
+    "net_pnl": -24.76844614735274,
+    "spread_slippage": 3.070304239824476,
+    "stressed_pnl": -27.20308036465328
+   },
+   "family": "value",
+   "flags": [
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM",
+    "FORCED_EXITS"
+   ],
+   "label": "Value + momentum (moyenne des rangs)",
+   "market": {
+    "alpha_annual": -0.1296897746226645,
+    "beta": 0.9394108919974135,
+    "r2": 0.7022860248858845
+   },
+   "net": {
+    "annual_volatility": 0.9468586652164555,
+    "best_day": 0.30997796893213314,
+    "blocked": {
+     "achat_sous_le_minimum": 43,
+     "liquidités_insuffisantes": 7,
+     "reliquat_sous_le_minimum": 42,
+     "vente_sous_le_minimum_après_arrondi": 2
+    },
+    "cagr": -0.22444319030525972,
+    "calmar": -0.227958520647072,
+    "days": 2508,
+    "dust_events": 165,
+    "dust_lost": 37.48686339945,
+    "fees": 15.041433903175744,
+    "forced_exits": 1,
+    "max_drawdown": 0.9845790789840457,
+    "mean_exposure": 0.9555997957806448,
+    "net_pnl": -24.76844614735274,
+    "profit_factor_daily": 0.99128614053116,
+    "sharpe": 0.21825090026170946,
+    "spread_slippage": 3.070304239824476,
+    "total_return": -0.8256148715784246,
+    "trades": 335,
+    "turnover": 231.47150779825034,
+    "worst_day": -0.4359006593439495
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.0011770054678890325,
+     "return": -0.4396295258279328
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": -3.787994183344363e-05,
+     "return": -0.6888038601976223
+    }
+   },
+   "reasons": [
+    "COSTS_EXCEED_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": -0.0006087826892944483,
+     "P2": -0.00013624400863497158
+    },
+    "exposure": 0.9555997957806448,
+    "interval": {
+     "ci_high": 0.0007082959739825709,
+     "ci_low": -0.0014528207292152148,
+     "days": 2508,
+     "mean": -0.0003711944611000306
+    },
+    "p_adjusted": 0.999,
+    "p_raw": 0.7506,
+    "reference": "market à 96% d'exposition",
+    "t": -0.6871868617332377
+   },
+   "risk": {
+    "cagr_at_scale": -0.0227958520647072,
+    "limit": 0.1,
+    "scale": 0.10156624504269039,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": 0.0005564077765766648,
+    "ci_low": -0.0021619611495832494,
+    "days": 2508,
+    "mean": -0.000847296279693563
+   },
+   "years": {
+    "2020": 1.457589907738512,
+    "2021": 0.5265922629446214,
+    "2022": -0.8291168366375332,
+    "2023": 0.34780023059257714,
+    "2024": 1.1915550673896056,
+    "2025": -0.7284399569748035,
+    "2026": -0.660895216727566
+   },
+   "years_to_prove_at_observed_sharpe": 164.80013728502894
+  },
+  "value_rev_365_top3": {
+   "absolute": {
+    "interval": {
+     "ci_high": 0.0028275672976375774,
+     "ci_low": -0.001405484049346087,
+     "days": 2508,
+     "mean": 0.0006536302772485237
+    },
+    "p_adjusted": 0.6104,
+    "p_raw": 0.2796,
+    "t": 0.6124286983261934
+   },
+   "benchmark": "market",
+   "checks": {
+    "absolute_gain": false,
+    "holds_in_both_periods": false,
+    "relative_gain": false,
+    "survives_stressed_costs": false
+   },
+   "concentration": {
+    "assets_traded": 64,
+    "profit_factor_by_asset": 0.9373448864817701,
+    "top_asset": "XRP",
+    "top_share_of_gains": 0.23199327025176222,
+    "winners": 29,
+    "worst_asset": "FIL",
+    "worst_loss": -116.53182192512931
+   },
+   "costs": {
+    "cost_drag": -2.3988887803137047,
+    "fees": 17.269885897710342,
+    "gross_pnl": -29.925004350000023,
+    "net_pnl": -27.52611556968632,
+    "spread_slippage": 3.5684052517318694,
+    "stressed_pnl": -29.22467934207082
+   },
+   "family": "value",
+   "flags": [
+    "DRAWDOWN_ABOVE_RISK_LIMIT",
+    "ORDERS_BLOCKED_BY_MINIMUM"
+   ],
+   "label": "Les 3 plus fortes baisses sur un an (mois récent exclu)",
+   "market": {
+    "alpha_annual": -0.12327445325457824,
+    "beta": 1.0106523400712073,
+    "r2": 0.6988807514859845
+   },
+   "net": {
+    "annual_volatility": 1.0211436148204913,
+    "best_day": 0.36122602656935454,
+    "blocked": {
+     "achat_sous_le_minimum": 20,
+     "achat_sous_le_minimum_apres_arrondi": 2,
+     "liquidités_insuffisantes": 4,
+     "reliquat_sous_le_minimum": 22
+    },
+    "cagr": -0.30453000236253824,
+    "calmar": -0.305429115297739,
+    "days": 2508,
+    "dust_events": 125,
+    "dust_lost": 27.29185159034285,
+    "fees": 17.269885897710342,
+    "forced_exits": 0,
+    "max_drawdown": 0.9970562304306705,
+    "mean_exposure": 0.978481698731791,
+    "net_pnl": -27.52611556968632,
+    "profit_factor_daily": 0.9947862498745211,
+    "sharpe": 0.2336351593773131,
+    "spread_slippage": 3.5684052517318694,
+    "total_return": -0.9175371856562107,
+    "trades": 274,
+    "turnover": 265.7657101581464,
+    "worst_day": -0.8020108930539085
+   },
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.0019881095066325185,
+     "return": 0.4356198032326861
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": -0.0006660331637045626,
+     "return": -0.9425594338012737
+    }
+   },
+   "reasons": [
+    "NO_GROSS_EDGE",
+    "NO_VALUE_BEYOND_MARKET_EXPOSURE",
+    "UNSTABLE_ACROSS_PERIODS"
+   ],
+   "relative": {
+    "by_period_mean_daily": {
+     "P1": 0.00015956052898381538,
+     "P2": -0.0007667525648629738
+    },
+    "exposure": 0.978481698731791,
+    "interval": {
+     "ci_high": 0.00084356575217324,
+     "ci_low": -0.0015342350200688313,
+     "days": 2508,
+     "mean": -0.0003061814213115599
+    },
+    "p_adjusted": 0.9984,
+    "p_raw": 0.7162,
+    "reference": "market à 98% d'exposition",
+    "t": -0.5221831865594936
+   },
+   "risk": {
+    "cagr_at_scale": -0.030542911529773897,
+    "limit": 0.1,
+    "scale": 0.10029524609339817,
+    "within_limit_at_full_size": false
+   },
+   "verdict": "NON_RETENU",
+   "vs_hold_btc": {
+    "ci_high": 0.0008523606499267972,
+    "ci_low": -0.002352944480211777,
+    "days": 2508,
+    "mean": -0.0007598379369767983
+   },
+   "years": {
+    "2020": 2.9512360959914825,
+    "2021": 1.1711168673894599,
+    "2022": -0.889293123340437,
+    "2023": 0.6170332202803581,
+    "2024": 0.3314764147107312,
+    "2025": -0.7340385218584186,
+    "2026": -0.8483661317160557
+   },
+   "years_to_prove_at_observed_sharpe": 143.81138123515944
+  }
+ },
+ "costs": {
+  "primary": "mesure",
+  "sha256": "56da1470cf32e1603618dd52f54e22bd0a2134db08d947d0bea45d64ac179c40",
+  "status": "PROPOSÉ : mesuré et figé par COST OPTIMIZER ; à valider avant l'évaluation unique d'ALPHA FACTORY v2",
+  "stress": "tension",
+  "version": "2.0.0+1.0.0"
+ },
+ "data": {
+  "archive_manifest_sha256": "f301ffe98652c3c0d2f4a87269e1b62187612dbf0c51206bac133dc6c61feb23",
+  "end_ms": 1794528000000,
+  "endpoint": "https://data-api.binance.vision/api/v3",
+  "excluded": {
+   "leveraged": 50,
+   "pegged": 31,
+   "tokenized_security": 105
+  },
+  "invalid_bars_dropped": 0,
+  "quote": "USDT",
+  "series_loaded": 589,
+  "symbols_in_archive": 775
+ },
+ "duration_s": 137.8,
+ "generalization": {
+  "broad": {
+   "breakout_20_10_slots4": {
+    "exposure": 0.611965737159848,
+    "max_drawdown": 0.9829197015527859,
+    "net_pnl": -23.86678643878103,
+    "relative": {
+     "ci_high": 0.0008917595387983455,
+     "ci_low": -0.0012697359463027622,
+     "days": 2508,
+     "mean": -0.00021349836832917142
+    },
+    "sharpe": 0.011856828335215905,
+    "trades": 350
+   },
+   "crypto_btc_gate_top5": {
+    "exposure": 0.45936111377600636,
+    "max_drawdown": 0.8447349143716951,
+    "net_pnl": -14.666061523241629,
+    "relative": {
+     "ci_high": 0.0008495379029315166,
+     "ci_low": -0.0007992934455532843,
+     "days": 2508,
+     "mean": 2.769862830814572e-05
+    },
+    "sharpe": 0.12746636924471996,
+    "trades": 221
+   },
+   "crypto_lowvol_top3": {
+    "exposure": 0.8799811687642202,
+    "max_drawdown": 0.9914370117871512,
+    "net_pnl": -28.556777304610847,
+    "relative": {
+     "ci_high": 0.0005166597297541271,
+     "ci_low": -0.001455082202048184,
+     "days": 2508,
+     "mean": -0.0004292616183544963
+    },
+    "sharpe": -0.039853774473236125,
+    "trades": 206
+   },
+   "meanrev_rsi2_slots4": {
+    "exposure": 0.18514566470626628,
+    "max_drawdown": 0.7063027008484521,
+    "net_pnl": -17.61557163451028,
+    "relative": {
+     "ci_high": 0.00047351612607796745,
+     "ci_low": -0.0007192216467851745,
+     "days": 2508,
+     "mean": -0.00013740301748319122
+    },
+    "sharpe": -0.05489138058875235,
+    "trades": 228
+   },
+   "meanrev_xs_7_bottom3": {
+    "exposure": 0.30163145974697797,
+    "max_drawdown": 0.8377647900463168,
+    "net_pnl": -22.740853697787237,
+    "relative": {
+     "ci_high": 0.0005729225635075602,
+     "ci_low": -0.001035573964945205,
+     "days": 2508,
+     "mean": -0.00021456103674373698
+    },
+    "sharpe": -0.06295643369171462,
+    "trades": 240
+   },
+   "mom_dual_90_top3": {
+    "exposure": 0.922199270746964,
+    "max_drawdown": 0.995443727780459,
+    "net_pnl": -24.152368848738977,
+    "relative": {
+     "ci_high": 0.0023415983675784033,
+     "ci_low": -0.0007350050189056167,
+     "days": 2508,
+     "mean": 0.0007938883681573517
+    },
+    "sharpe": 0.36677261970126335,
+    "trades": 748
+   },
+   "mom_xs_28_top3": {
+    "exposure": 0.9478275009201784,
+    "max_drawdown": 0.9968782578085787,
+    "net_pnl": -26.501930715769348,
+    "relative": {
+     "ci_high": 0.0024207922890641643,
+     "ci_low": -0.0008154593851220248,
+     "days": 2508,
+     "mean": 0.0008170828266202305
+    },
+    "sharpe": 0.3620736950073655,
+    "trades": 1065
+   },
+   "value_mom_combo_top3": {
+    "exposure": 0.9204803318909911,
+    "max_drawdown": 0.9914239945253875,
+    "net_pnl": -23.9580829811427,
+    "relative": {
+     "ci_high": 0.0017249326490297932,
+     "ci_low": -0.0007527001436535574,
+     "days": 2508,
+     "mean": 0.0004761134076392208
+    },
+    "sharpe": 0.29485649059471825,
+    "trades": 378
+   },
+   "value_rev_365_top3": {
+    "exposure": 0.8823212109335078,
+    "max_drawdown": 0.997179276727294,
+    "net_pnl": -27.64679095349732,
+    "relative": {
+     "ci_high": 0.0010875808361369393,
+     "ci_low": -0.0011458553848939241,
+     "days": 2508,
+     "mean": -6.053929275833067e-05
+    },
+    "sharpe": 0.10735644109849889,
+    "trades": 194
+   }
+  },
+  "broad_positive": [],
+  "exclude_already_studied": [
+   "ADA",
+   "BNB",
+   "BTC",
+   "DOGE",
+   "ETH",
+   "LINK",
+   "SOL",
+   "XRP"
+  ],
+  "other_pairs": {
+   "breakout_55_20_majors": {
+    "BNB+TRX": {
+     "exposure": 0.4396617085751748,
+     "hold_total_return": 52.635757460782656,
+     "max_drawdown": 0.6253489805984429,
+     "net_pnl": 272.24640238774276,
+     "relative_mean_daily": 0.00024905427992233994,
+     "sharpe": 0.89539470285417,
+     "trades": 232
+    },
+    "EOS+LTC": {
+     "exposure": 0.28671423318288974,
+     "hold_total_return": -0.40243149170852743,
+     "max_drawdown": 0.8927044423134514,
+     "net_pnl": -17.223499796663994,
+     "relative_mean_daily": -0.0001458380535749262,
+     "sharpe": 0.06140568119876133,
+     "trades": 65
+    },
+    "MATIC+XRP": {
+     "exposure": 0.2604943860962464,
+     "hold_total_return": 34.09666598061197,
+     "max_drawdown": 0.7306493650257535,
+     "net_pnl": 191.36832836576457,
+     "relative_mean_daily": 0.0005647787799640664,
+     "sharpe": 0.7778457963333274,
+     "trades": 202
+    }
+   },
+   "mom_ts_28": {
+    "BNB+TRX": {
+     "exposure": 0.577578641756847,
+     "hold_total_return": 52.635757460782656,
+     "max_drawdown": 0.5388607749164713,
+     "net_pnl": 708.2129158765222,
+     "relative_mean_daily": 0.0003759367814658143,
+     "sharpe": 1.0837545709950984,
+     "trades": 301
+    },
+    "EOS+LTC": {
+     "exposure": 0.4415805330857672,
+     "hold_total_return": -0.40243149170852743,
+     "max_drawdown": 0.8603118104461419,
+     "net_pnl": -10.944511381693829,
+     "relative_mean_daily": -2.036623649327189e-05,
+     "sharpe": 0.20662733963523572,
+     "trades": 166
+    },
+    "MATIC+XRP": {
+     "exposure": 0.39239845477738244,
+     "hold_total_return": 34.09666598061197,
+     "max_drawdown": 0.5352979693878053,
+     "net_pnl": 1097.5742422420003,
+     "relative_mean_daily": 0.0009721016722422484,
+     "sharpe": 1.1144294795057008,
+     "trades": 282
+    }
+   },
+   "trend_cross_50_200": {
+    "BNB+TRX": {
+     "exposure": 0.6529995564441508,
+     "hold_total_return": 52.635757460782656,
+     "max_drawdown": 0.7807734976476648,
+     "net_pnl": 258.77953676509827,
+     "relative_mean_daily": -4.31769063884216e-05,
+     "sharpe": 0.8310317436383987,
+     "trades": 234
+    },
+    "EOS+LTC": {
+     "exposure": 0.3751468165620058,
+     "hold_total_return": -0.40243149170852743,
+     "max_drawdown": 0.9171320312589702,
+     "net_pnl": -24.915034537802697,
+     "relative_mean_daily": -0.0004490572628589835,
+     "sharpe": -0.07941474722464806,
+     "trades": 31
+    },
+    "MATIC+XRP": {
+     "exposure": 0.4566471021568548,
+     "hold_total_return": 34.09666598061197,
+     "max_drawdown": 0.7177652245491579,
+     "net_pnl": 219.33324088317906,
+     "relative_mean_daily": 0.00032898848896809757,
+     "sharpe": 0.780282586894433,
+     "trades": 338
+    }
+   },
+   "trend_sma_200": {
+    "BNB+TRX": {
+     "exposure": 0.6556505154900139,
+     "hold_total_return": 52.635757460782656,
+     "max_drawdown": 0.7827696984993201,
+     "net_pnl": 171.16195150334897,
+     "relative_mean_daily": -0.00025757004138681047,
+     "sharpe": 0.7474249855818055,
+     "trades": 340
+    },
+    "EOS+LTC": {
+     "exposure": 0.4360000985331156,
+     "hold_total_return": -0.40243149170852743,
+     "max_drawdown": 0.9339684189654682,
+     "net_pnl": -24.267383894469884,
+     "relative_mean_daily": -0.0005135324965264383,
+     "sharpe": -0.09081673665684484,
+     "trades": 76
+    },
+    "MATIC+XRP": {
+     "exposure": 0.43713739860171846,
+     "hold_total_return": 34.09666598061197,
+     "max_drawdown": 0.7406007455827686,
+     "net_pnl": 278.58107907621286,
+     "relative_mean_daily": 0.00040525352878742905,
+     "sharpe": 0.8201757547024192,
+     "trades": 465
+    }
+   }
+  },
+  "other_pairs_positive_share": {
+   "breakout_55_20_majors": 0.6666666666666666,
+   "mom_ts_28": 0.6666666666666666,
+   "trend_cross_50_200": 0.3333333333333333,
+   "trend_sma_200": 0.3333333333333333
+  }
+ },
+ "kind": "alpha-lab-experiment-report",
+ "plan_id": "alpha-factory-v2-e1",
+ "plan_sha256": "6f4f436f02ae08767a8152e6cac0568d134383154ee83c7c8538464396954208",
+ "references": {
+  "cash": {
+   "annual_volatility": 0.0,
+   "best_day": 0.0,
+   "blocked": {},
+   "cagr": 0.0,
+   "calmar": null,
+   "days": 2508,
+   "dust_events": 0,
+   "dust_lost": 0.0,
+   "fees": 0.0,
+   "forced_exits": 0,
+   "max_drawdown": 0.0,
+   "mean_exposure": 0.0,
+   "net_pnl": 0.0,
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.0,
+     "return": 0.0
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": 0.0,
+     "return": 0.0
+    }
+   },
+   "profit_factor_daily": null,
+   "sharpe": 0.0,
+   "spread_slippage": 0.0,
+   "total_return": 0.0,
+   "trades": 0,
+   "turnover": 0.0,
+   "worst_day": 0.0,
+   "years": {
+    "2020": 0.0,
+    "2021": 0.0,
+    "2022": 0.0,
+    "2023": 0.0,
+    "2024": 0.0,
+    "2025": 0.0,
+    "2026": 0.0
+   }
+  },
+  "hold_basket_top5": {
+   "annual_volatility": 0.742602672802852,
+   "best_day": 0.2236153385190076,
+   "blocked": {
+    "achat_sous_le_minimum_apres_arrondi": 2,
+    "liquidités_insuffisantes": 8,
+    "vente_sous_le_minimum_après_arrondi": 2
+   },
+   "cagr": 0.1753124104323731,
+   "calmar": 0.1989320923680547,
+   "days": 2508,
+   "dust_events": 83,
+   "dust_lost": 22.994689898500024,
+   "fees": 9.024496744587392,
+   "forced_exits": 1,
+   "max_drawdown": 0.8812676142169078,
+   "mean_exposure": 0.9757476091509433,
+   "net_pnl": 61.0250795807185,
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.0015974111959901147,
+     "return": 1.004689984808627
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": 0.0008372256292039635,
+     "return": 0.5135354305902486
+    }
+   },
+   "profit_factor_daily": 1.014054839980003,
+   "sharpe": 0.597286820225487,
+   "spread_slippage": 1.8546226013233218,
+   "total_return": 2.034169319357283,
+   "trades": 221,
+   "turnover": 138.87690190716785,
+   "worst_day": -0.3802448512556623,
+   "years": {
+    "2020": 2.168506795774918,
+    "2021": 1.475279937219463,
+    "2022": -0.8050269793969496,
+    "2023": 1.1740085078906857,
+    "2024": 0.8295863381366375,
+    "2025": -0.23053917480737507,
+    "2026": -0.3516856031064385
+   }
+  },
+  "hold_btc": {
+   "annual_volatility": 0.5985851273078607,
+   "best_day": 0.19532232726749554,
+   "blocked": {},
+   "cagr": 0.3953195272962178,
+   "calmar": 0.5159451905760709,
+   "days": 2508,
+   "dust_events": 1,
+   "dust_lost": 0.4173264000000628,
+   "fees": 0.06486801048258997,
+   "forced_exits": 0,
+   "max_drawdown": 0.7662045010145935,
+   "mean_exposure": 0.9997327579665053,
+   "net_pnl": 265.94277874128846,
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.001783946343950669,
+     "return": 2.7704702285979663
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": 0.0010471032437514853,
+     "return": 1.6163206956402631
+    }
+   },
+   "profit_factor_daily": 1.0538119507014605,
+   "sharpe": 0.8618922767302566,
+   "spread_slippage": 0.0006204944728320001,
+   "total_return": 8.864759291376282,
+   "trades": 1,
+   "turnover": 0.9977606298157612,
+   "worst_day": -0.3946625305714786,
+   "years": {
+    "2020": 3.0078074804379797,
+    "2021": 0.5977348647840277,
+    "2022": -0.6419627806242818,
+    "2023": 1.5553433485921668,
+    "2024": 1.212835086179668,
+    "2025": -0.0633419735634645,
+    "2026": -0.18760473602099237
+   }
+  },
+  "hold_majors": {
+   "annual_volatility": 0.6746625652680471,
+   "best_day": 0.20719546992077809,
+   "blocked": {},
+   "cagr": 0.4846539371277361,
+   "calmar": 0.6351934507830426,
+   "days": 2508,
+   "dust_events": 2,
+   "dust_lost": 0.1890520020001156,
+   "fees": 2.954139758046902,
+   "forced_exits": 0,
+   "max_drawdown": 0.7630021004314087,
+   "mean_exposure": 0.9995530133467091,
+   "net_pnl": 423.3130348838158,
+   "periods": {
+    "P1": {
+     "days": 1247,
+     "mean_daily": 0.002624504835033788,
+     "return": 7.4822258242117385
+    },
+    "P2": {
+     "days": 1261,
+     "mean_daily": 0.0008286089163928135,
+     "return": 0.7814232737114613
+    }
+   },
+   "profit_factor_daily": 1.0411861533151268,
+   "sharpe": 0.9313747952211648,
+   "spread_slippage": 0.028265832992340003,
+   "total_return": 14.110434496127194,
+   "trades": 84,
+   "turnover": 45.45124923509424,
+   "worst_day": -0.4242926303849718,
+   "years": {
+    "2020": 3.958250789892106,
+    "2021": 2.061981908500239,
+    "2022": -0.6526189961142413,
+    "2023": 1.2223383700078756,
+    "2024": 0.8192105116355357,
+    "2025": -0.048544630225807905,
+    "2026": -0.2551681942545079
+   }
+  }
+ },
+ "sensitivity": {
+  "base": "scénario principal du contrat adopté (commission 10 pb par ordre : HYPOTHÈSE NON VÉRIFIÉE), tout le reste inchangé",
+  "break_even_fee": {
+   "breakout_20_10_slots4": {
+    "bps": 56.4697265625,
+    "note": "commission par ordre qui annule le résultat net"
+   },
+   "breakout_55_20_majors": {
+    "bps": null,
+    "note": "résultat net encore positif à 200 pb de commission"
+   },
+   "crypto_btc_gate_top5": {
+    "bps": null,
+    "note": "résultat net encore positif à 200 pb de commission"
+   },
+   "crypto_lowvol_top3": {
+    "bps": null,
+    "note": "résultat net encore positif à 200 pb de commission"
+   },
+   "crypto_volmanaged_btc": {
+    "bps": null,
+    "note": "résultat net encore positif à 200 pb de commission"
+   },
+   "crypto_weekday_btc": {
+    "bps": 0.0244140625,
+    "note": "commission par ordre qui annule le résultat net"
+   },
+   "meanrev_rsi2_slots4": {
+    "bps": null,
+    "note": "résultat net négatif ou nul même à 0 pb de commission"
+   },
+   "meanrev_xs_7_bottom3": {
+    "bps": null,
+    "note": "résultat net négatif ou nul même à 0 pb de commission"
+   },
+   "mom_dual_90_top3": {
+    "bps": null,
+    "note": "résultat net négatif ou nul même à 0 pb de commission"
+   },
+   "mom_ts_28": {
+    "bps": null,
+    "note": "résultat net encore positif à 200 pb de commission"
+   },
+   "mom_xs_28_top3": {
+    "bps": 0.0244140625,
+    "note": "commission par ordre qui annule le résultat net"
+   },
+   "trend_cross_50_200": {
+    "bps": null,
+    "note": "résultat net encore positif à 200 pb de commission"
+   },
+   "trend_sma_200": {
+    "bps": null,
+    "note": "résultat net encore positif à 200 pb de commission"
+   },
+   "value_mom_combo_top3": {
+    "bps": 0.0244140625,
+    "note": "commission par ordre qui annule le résultat net"
+   },
+   "value_rev_365_top3": {
+    "bps": null,
+    "note": "résultat net négatif ou nul même à 0 pb de commission"
+   }
+  },
+  "definitions": [
+   {
+    "fee_bps": 25,
+    "name": "commission_25",
+    "note": "commission par ordre plus élevée (grilles publiques de petits comptes, non vérifiées)"
+   },
+   {
+    "fee_bps": 40,
+    "name": "commission_40",
+    "note": "commission par ordre plus élevée"
+   },
+   {
+    "fee_bps": 60,
+    "name": "commission_60",
+    "note": "commission par ordre très élevée"
+   },
+   {
+    "min_notional": 10.0,
+    "name": "minimum_10",
+    "note": "minimum d'ordre de 10 (règle par défaut du hub, mission 52 ; minimum historique courant)"
+   },
+   {
+    "lag": 1,
+    "name": "retard_1_jour",
+    "note": "décision exécutée un jour plus tard : l'ouverture du lendemain vaut presque toujours la clôture du signal"
+   },
+   {
+    "forced_haircut": 0.25,
+    "name": "decote_sortie_forcee_25",
+    "note": "vente imposée par une fin de cotation à 75 % de la dernière clôture"
+   },
+   {
+    "forced_haircut": 0.5,
+    "name": "decote_sortie_forcee_50",
+    "note": "vente imposée par une fin de cotation à 50 % de la dernière clôture"
+   },
+   {
+    "fee_bps": 25,
+    "forced_haircut": 0.25,
+    "lag": 1,
+    "min_notional": 10.0,
+    "name": "defavorable_cumule",
+    "note": "commission 25 pb, minimum 10, retard d'un jour et décote de 25 % cumulés"
+   }
+  ],
+  "role": "analyses de sensibilité PRÉENREGISTRÉES et DESCRIPTIVES, séparées de l'évaluation de confirmation : elles n'entrent jamais dans la règle de décision ni dans les tests corrigés des essais multiples, et ne peuvent rien « sauver »",
+  "variants": {
+   "commission_25": {
+    "breakout_20_10_slots4": {
+     "dust_lost": 64.66586241680051,
+     "fees": 48.273625654017394,
+     "forced_exits": 0,
+     "max_drawdown": 0.9505017930501723,
+     "net_pnl": 5.573484968478418,
+     "sharpe": 0.36880171936991296,
+     "trades": 678
+    },
+    "breakout_55_20_majors": {
+     "dust_lost": 8.471069522750229,
+     "fees": 22.940664191530832,
+     "forced_exits": 0,
+     "max_drawdown": 0.5453343259013614,
+     "net_pnl": 184.1780036774524,
+     "sharpe": 0.9271046947590937,
+     "trades": 136
+    },
+    "cash": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "crypto_btc_gate_top5": {
+     "dust_lost": 40.85841067515022,
+     "fees": 27.82999981564098,
+     "forced_exits": 0,
+     "max_drawdown": 0.6935352702232812,
+     "net_pnl": 72.74788744517532,
+     "sharpe": 0.6031735812568894,
+     "trades": 371
+    },
+    "crypto_lowvol_top3": {
+     "dust_lost": 7.954926878500554,
+     "fees": 130.44810003420795,
+     "forced_exits": 0,
+     "max_drawdown": 0.7624027294416317,
+     "net_pnl": 950.768920150495,
+     "sharpe": 1.0886677613675129,
+     "trades": 279
+    },
+    "crypto_volmanaged_btc": {
+     "dust_lost": 2.4792667918660527e-13,
+     "fees": 7.969964396212655,
+     "forced_exits": 0,
+     "max_drawdown": 0.6314430105869528,
+     "net_pnl": 140.95385410008797,
+     "sharpe": 0.8063224620491881,
+     "trades": 86
+    },
+    "crypto_weekday_btc": {
+     "dust_lost": 28.155708730500155,
+     "fees": 21.84851393805777,
+     "forced_exits": 0,
+     "max_drawdown": 0.9501943658860535,
+     "net_pnl": -24.991105791940107,
+     "sharpe": -0.5279693384354703,
+     "trades": 226
+    },
+    "hold_basket_top5": {
+     "dust_lost": 20.886409520025126,
+     "fees": 14.89580529255187,
+     "forced_exits": 1,
+     "max_drawdown": 0.8816518155979882,
+     "net_pnl": 57.94222649656807,
+     "sharpe": 0.5901804859597268,
+     "trades": 218
+    },
+    "hold_btc": {
+     "dust_lost": 0.6878025000000061,
+     "fees": 0.10950337526943313,
+     "forced_exits": 0,
+     "max_drawdown": 0.7660067719637548,
+     "net_pnl": 264.1465728988771,
+     "sharpe": 0.8605679712650997,
+     "trades": 1
+    },
+    "hold_majors": {
+     "dust_lost": 0.7579550300001504,
+     "fees": 4.882589198012354,
+     "forced_exits": 0,
+     "max_drawdown": 0.7632293752126228,
+     "net_pnl": 417.50949693772674,
+     "sharpe": 0.9286372325658153,
+     "trades": 83
+    },
+    "meanrev_rsi2_slots4": {
+     "dust_lost": 22.475569196500043,
+     "fees": 6.264413101311688,
+     "forced_exits": 0,
+     "max_drawdown": 0.6437022452874126,
+     "net_pnl": -16.32234556700865,
+     "sharpe": -0.04287360917413944,
+     "trades": 280
+    },
+    "meanrev_xs_7_bottom3": {
+     "dust_lost": 19.99290441050005,
+     "fees": 7.290491116544402,
+     "forced_exits": 1,
+     "max_drawdown": 0.982950320046563,
+     "net_pnl": -29.24009264888064,
+     "sharpe": -0.32893628680342674,
+     "trades": 251
+    },
+    "mom_dual_90_top3": {
+     "dust_lost": 39.73090395695015,
+     "fees": 18.513791858937033,
+     "forced_exits": 2,
+     "max_drawdown": 0.9860579814091243,
+     "net_pnl": -27.221952412711776,
+     "sharpe": 0.05023402205381593,
+     "trades": 289
+    },
+    "mom_ts_28": {
+     "dust_lost": 13.969951312000967,
+     "fees": 226.48892051207923,
+     "forced_exits": 0,
+     "max_drawdown": 0.380909897662585,
+     "net_pnl": 1551.5209437803537,
+     "sharpe": 1.4752545611063002,
+     "trades": 284
+    },
+    "mom_xs_28_top3": {
+     "dust_lost": 77.11031399160186,
+     "fees": 43.48204809045158,
+     "forced_exits": 0,
+     "max_drawdown": 0.9840634270490086,
+     "net_pnl": -24.822630929172647,
+     "sharpe": 0.23731899987236058,
+     "trades": 614
+    },
+    "trend_cross_50_200": {
+     "dust_lost": 3.0133918842500593,
+     "fees": 8.98876979936468,
+     "forced_exits": 0,
+     "max_drawdown": 0.5736214122159282,
+     "net_pnl": 119.52913465832114,
+     "sharpe": 0.719967876587013,
+     "trades": 104
+    },
+    "trend_sma_200": {
+     "dust_lost": 11.826662163000385,
+     "fees": 40.306747522031436,
+     "forced_exits": 0,
+     "max_drawdown": 0.5128905571008999,
+     "net_pnl": 266.7622656268025,
+     "sharpe": 0.9406835711445641,
+     "trades": 228
+    },
+    "value_mom_combo_top3": {
+     "dust_lost": 38.70433653140018,
+     "fees": 26.26734705907131,
+     "forced_exits": 1,
+     "max_drawdown": 0.9977818947774496,
+     "net_pnl": -29.267391651581008,
+     "sharpe": 0.14223430220722316,
+     "trades": 349
+    },
+    "value_rev_365_top3": {
+     "dust_lost": 25.476028384885165,
+     "fees": 28.255255396247694,
+     "forced_exits": 0,
+     "max_drawdown": 0.9988681545340423,
+     "net_pnl": -29.064306248476523,
+     "sharpe": 0.19544839749893353,
+     "trades": 268
+    }
+   },
+   "commission_40": {
+    "breakout_20_10_slots4": {
+     "dust_lost": 60.167675573640025,
+     "fees": 63.40356977800373,
+     "forced_exits": 0,
+     "max_drawdown": 0.9555059244811552,
+     "net_pnl": 0.22750507225019945,
+     "sharpe": 0.3298690831700183,
+     "trades": 669
+    },
+    "breakout_55_20_majors": {
+     "dust_lost": 7.187813639199966,
+     "fees": 31.20708965389498,
+     "forced_exits": 0,
+     "max_drawdown": 0.5568896758146749,
+     "net_pnl": 173.32896815713605,
+     "sharpe": 0.9078163722100596,
+     "trades": 133
+    },
+    "cash": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "crypto_btc_gate_top5": {
+     "dust_lost": 37.546344321919946,
+     "fees": 37.66607467574634,
+     "forced_exits": 0,
+     "max_drawdown": 0.693554198180216,
+     "net_pnl": 65.81289792650502,
+     "sharpe": 0.584256353261121,
+     "trades": 371
+    },
+    "crypto_lowvol_top3": {
+     "dust_lost": 7.429604996560155,
+     "fees": 173.85601071984587,
+     "forced_exits": 0,
+     "max_drawdown": 0.7646298263926381,
+     "net_pnl": 867.9893594622506,
+     "sharpe": 1.0696630060034913,
+     "trades": 279
+    },
+    "crypto_volmanaged_btc": {
+     "dust_lost": 0.020008799999974146,
+     "fees": 10.93356967354516,
+     "forced_exits": 0,
+     "max_drawdown": 0.6328943584108,
+     "net_pnl": 135.4340343181152,
+     "sharpe": 0.7954506273032116,
+     "trades": 85
+    },
+    "crypto_weekday_btc": {
+     "dust_lost": 21.893408578799963,
+     "fees": 24.4069099888378,
+     "forced_exits": 0,
+     "max_drawdown": 0.9475703404586815,
+     "net_pnl": -24.973337477973594,
+     "sharpe": -0.5696947434619424,
+     "trades": 196
+    },
+    "hold_basket_top5": {
+     "dust_lost": 19.416955387159987,
+     "fees": 20.548158971270503,
+     "forced_exits": 1,
+     "max_drawdown": 0.8833763989036062,
+     "net_pnl": 50.08542396745612,
+     "sharpe": 0.5724113408789495,
+     "trades": 219
+    },
+    "hold_btc": {
+     "dust_lost": 0.24582240000002767,
+     "fees": 0.15392287838155652,
+     "forced_exits": 0,
+     "max_drawdown": 0.7658075945630395,
+     "net_pnl": 263.06554573850434,
+     "sharpe": 0.8598385021727664,
+     "trades": 1
+    },
+    "hold_majors": {
+     "dust_lost": 0.6269406320002462,
+     "fees": 6.827412152011789,
+     "forced_exits": 0,
+     "max_drawdown": 0.7632872334773338,
+     "net_pnl": 413.9648371135423,
+     "sharpe": 0.9269347045470948,
+     "trades": 82
+    },
+    "meanrev_rsi2_slots4": {
+     "dust_lost": 23.74936633759998,
+     "fees": 8.221969538289562,
+     "forced_exits": 0,
+     "max_drawdown": 0.7600147054824226,
+     "net_pnl": -22.269509932426878,
+     "sharpe": -0.16049184428363844,
+     "trades": 267
+    },
+    "meanrev_xs_7_bottom3": {
+     "dust_lost": 30.24889978759999,
+     "fees": 12.885919744024184,
+     "forced_exits": 1,
+     "max_drawdown": 0.8717740239917433,
+     "net_pnl": -24.139309546786247,
+     "sharpe": -0.03400979674174074,
+     "trades": 292
+    },
+    "mom_dual_90_top3": {
+     "dust_lost": 34.148062749960005,
+     "fees": 23.878772420383388,
+     "forced_exits": 1,
+     "max_drawdown": 0.9738476502028091,
+     "net_pnl": -22.93220992199101,
+     "sharpe": 0.18357359708277526,
+     "trades": 272
+    },
+    "mom_ts_28": {
+     "dust_lost": 15.99803800800024,
+     "fees": 293.17058466573275,
+     "forced_exits": 0,
+     "max_drawdown": 0.3821113996883616,
+     "net_pnl": 1366.8568789472738,
+     "sharpe": 1.4365463245798924,
+     "trades": 280
+    },
+    "mom_xs_28_top3": {
+     "dust_lost": 70.58377009637196,
+     "fees": 51.52269445805554,
+     "forced_exits": 0,
+     "max_drawdown": 0.9874607935930246,
+     "net_pnl": -26.53388668313618,
+     "sharpe": 0.17474191167231604,
+     "trades": 561
+    },
+    "trend_cross_50_200": {
+     "dust_lost": 2.803820046399988,
+     "fees": 12.330257579630336,
+     "forced_exits": 0,
+     "max_drawdown": 0.5739221729274064,
+     "net_pnl": 114.5086463596389,
+     "sharpe": 0.7104216972415891,
+     "trades": 101
+    },
+    "trend_sma_200": {
+     "dust_lost": 8.114719954399977,
+     "fees": 54.309259925355114,
+     "forced_exits": 0,
+     "max_drawdown": 0.5160246324944144,
+     "net_pnl": 248.29736903707658,
+     "sharpe": 0.9213046744582518,
+     "trades": 215
+    },
+    "value_mom_combo_top3": {
+     "dust_lost": 35.508925976399965,
+     "fees": 33.031578222312916,
+     "forced_exits": 1,
+     "max_drawdown": 0.991432508397536,
+     "net_pnl": -27.274707308171966,
+     "sharpe": 0.19966803152380955,
+     "trades": 331
+    },
+    "value_rev_365_top3": {
+     "dust_lost": 18.7232465264416,
+     "fees": 38.23600829419538,
+     "forced_exits": 0,
+     "max_drawdown": 0.9930637452594855,
+     "net_pnl": -24.399071084110066,
+     "sharpe": 0.2586022707495727,
+     "trades": 261
+    }
+   },
+   "commission_60": {
+    "breakout_20_10_slots4": {
+     "dust_lost": 53.887606122279955,
+     "fees": 82.74111690157568,
+     "forced_exits": 0,
+     "max_drawdown": 0.9642056779118305,
+     "net_pnl": 3.912745797114276,
+     "sharpe": 0.357255009087709,
+     "trades": 637
+    },
+    "breakout_55_20_majors": {
+     "dust_lost": 5.963153875199883,
+     "fees": 41.16598054884135,
+     "forced_exits": 0,
+     "max_drawdown": 0.5708364717363817,
+     "net_pnl": 158.3756526737799,
+     "sharpe": 0.8795741553882694,
+     "trades": 130
+    },
+    "cash": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "crypto_btc_gate_top5": {
+     "dust_lost": 34.66142899061994,
+     "fees": 48.334562722515244,
+     "forced_exits": 0,
+     "max_drawdown": 0.6987795909151953,
+     "net_pnl": 58.01722905118113,
+     "sharpe": 0.5613840649477551,
+     "trades": 358
+    },
+    "crypto_lowvol_top3": {
+     "dust_lost": 8.363787793039698,
+     "fees": 223.70532724954177,
+     "forced_exits": 0,
+     "max_drawdown": 0.7674420382481405,
+     "net_pnl": 767.924812377403,
+     "sharpe": 1.0442645015225307,
+     "trades": 275
+    },
+    "crypto_volmanaged_btc": {
+     "dust_lost": 0.5502419999999553,
+     "fees": 14.87621595628324,
+     "forced_exits": 0,
+     "max_drawdown": 0.6358358453320494,
+     "net_pnl": 127.869044514537,
+     "sharpe": 0.7794367863379803,
+     "trades": 86
+    },
+    "crypto_weekday_btc": {
+     "dust_lost": 21.34802077879999,
+     "fees": 28.752381742669456,
+     "forced_exits": 0,
+     "max_drawdown": 0.998400568029175,
+     "net_pnl": -29.9497872870329,
+     "sharpe": -0.578425854677798,
+     "trades": 187
+    },
+    "hold_basket_top5": {
+     "dust_lost": 18.342352362159975,
+     "fees": 28.24425347896952,
+     "forced_exits": 1,
+     "max_drawdown": 0.8853665710712513,
+     "net_pnl": 50.59192688950709,
+     "sharpe": 0.5733101240834866,
+     "trades": 216
+    },
+    "hold_btc": {
+     "dust_lost": 0.37302119999995403,
+     "fees": 0.21298499842883667,
+     "forced_exits": 0,
+     "max_drawdown": 0.7656066126404721,
+     "net_pnl": 261.13051529164534,
+     "sharpe": 0.8583810388165901,
+     "trades": 1
+    },
+    "hold_majors": {
+     "dust_lost": 0.16891179199992185,
+     "fees": 9.392292210884218,
+     "forced_exits": 0,
+     "max_drawdown": 0.7634793803750428,
+     "net_pnl": 409.3877025320178,
+     "sharpe": 0.9247773772872847,
+     "trades": 83
+    },
+    "meanrev_rsi2_slots4": {
+     "dust_lost": 14.453668754399994,
+     "fees": 9.226278732442665,
+     "forced_exits": 0,
+     "max_drawdown": 0.6877028648965373,
+     "net_pnl": -18.193587358178803,
+     "sharpe": -0.08880787594633734,
+     "trades": 214
+    },
+    "meanrev_xs_7_bottom3": {
+     "dust_lost": 19.06921686040001,
+     "fees": 14.25368473417495,
+     "forced_exits": 1,
+     "max_drawdown": 0.9387255825992311,
+     "net_pnl": -27.353098031003135,
+     "sharpe": -0.2507460928444272,
+     "trades": 261
+    },
+    "mom_dual_90_top3": {
+     "dust_lost": 34.30646165844,
+     "fees": 31.102860842518187,
+     "forced_exits": 2,
+     "max_drawdown": 0.9507641772998721,
+     "net_pnl": -21.67659149854694,
+     "sharpe": 0.1920491887203185,
+     "trades": 270
+    },
+    "mom_ts_28": {
+     "dust_lost": 14.666284486000169,
+     "fees": 367.8919439853638,
+     "forced_exits": 0,
+     "max_drawdown": 0.3836252993998348,
+     "net_pnl": 1168.8352815420717,
+     "sharpe": 1.3888826724363657,
+     "trades": 277
+    },
+    "mom_xs_28_top3": {
+     "dust_lost": 61.36549365937995,
+     "fees": 56.66142339636573,
+     "forced_exits": 2,
+     "max_drawdown": 0.9786096851973588,
+     "net_pnl": -25.049473172065255,
+     "sharpe": 0.16596265219926135,
+     "trades": 434
+    },
+    "trend_cross_50_200": {
+     "dust_lost": 3.0626099078000566,
+     "fees": 16.91551886111325,
+     "forced_exits": 0,
+     "max_drawdown": 0.5743239219618834,
+     "net_pnl": 111.64399795318474,
+     "sharpe": 0.7050137709469612,
+     "trades": 97
+    },
+    "trend_sma_200": {
+     "dust_lost": 8.58039282140008,
+     "fees": 71.00936701521998,
+     "forced_exits": 0,
+     "max_drawdown": 0.519990909038915,
+     "net_pnl": 222.0131427483518,
+     "sharpe": 0.8905611618562327,
+     "trades": 212
+    },
+    "value_mom_combo_top3": {
+     "dust_lost": 33.10849074899997,
+     "fees": 44.4934819947669,
+     "forced_exits": 1,
+     "max_drawdown": 0.9909200750506058,
+     "net_pnl": -27.252258052265233,
+     "sharpe": 0.20260829587762144,
+     "trades": 333
+    },
+    "value_rev_365_top3": {
+     "dust_lost": 24.617742238896014,
+     "fees": 49.862005773277836,
+     "forced_exits": 0,
+     "max_drawdown": 0.9992010045904727,
+     "net_pnl": -29.37717527940586,
+     "sharpe": 0.2067225357104534,
+     "trades": 256
+    }
+   },
+   "decote_sortie_forcee_25": {
+    "breakout_20_10_slots4": {
+     "dust_lost": 72.68521157004017,
+     "fees": 29.65938554738799,
+     "forced_exits": 0,
+     "max_drawdown": 0.9448114858877228,
+     "net_pnl": 3.513049280099011,
+     "sharpe": 0.35316687991758666,
+     "trades": 696
+    },
+    "breakout_55_20_majors": {
+     "dust_lost": 12.007682995100128,
+     "fees": 13.730362196990717,
+     "forced_exits": 0,
+     "max_drawdown": 0.5392950500623626,
+     "net_pnl": 190.68710631974153,
+     "sharpe": 0.9385940255613129,
+     "trades": 133
+    },
+    "cash": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "crypto_btc_gate_top5": {
+     "dust_lost": 45.60333558782999,
+     "fees": 16.823951764411575,
+     "forced_exits": 0,
+     "max_drawdown": 0.6912391466792966,
+     "net_pnl": 77.4495836184021,
+     "sharpe": 0.6152320583638254,
+     "trades": 372
+    },
+    "crypto_lowvol_top3": {
+     "dust_lost": 6.751342788440266,
+     "fees": 81.31654229893867,
+     "forced_exits": 0,
+     "max_drawdown": 0.7598456255689332,
+     "net_pnl": 1039.4775852242788,
+     "sharpe": 1.1072064137186228,
+     "trades": 279
+    },
+    "crypto_volmanaged_btc": {
+     "dust_lost": 0.10576080000002272,
+     "fees": 4.825061697568877,
+     "forced_exits": 0,
+     "max_drawdown": 0.6290940672126051,
+     "net_pnl": 146.87904670378424,
+     "sharpe": 0.8179658883657719,
+     "trades": 86
+    },
+    "crypto_weekday_btc": {
+     "dust_lost": 42.1864132303,
+     "fees": 15.028031506186577,
+     "forced_exits": 0,
+     "max_drawdown": 0.9991709710415797,
+     "net_pnl": -29.964543107109407,
+     "sharpe": -0.606651869881488,
+     "trades": 259
+    },
+    "hold_basket_top5": {
+     "dust_lost": 22.994684655375025,
+     "fees": 9.024496744587392,
+     "forced_exits": 1,
+     "max_drawdown": 0.8812676142169078,
+     "net_pnl": 61.0250795807185,
+     "sharpe": 0.597286820225487,
+     "trades": 221
+    },
+    "hold_btc": {
+     "dust_lost": 0.4173264000000628,
+     "fees": 0.06486801048258997,
+     "forced_exits": 0,
+     "max_drawdown": 0.7662045010145935,
+     "net_pnl": 265.94277874128846,
+     "sharpe": 0.8618922767302566,
+     "trades": 1
+    },
+    "hold_majors": {
+     "dust_lost": 0.1890520020001156,
+     "fees": 2.954139758046902,
+     "forced_exits": 0,
+     "max_drawdown": 0.7630021004314087,
+     "net_pnl": 423.3130348838158,
+     "sharpe": 0.9313747952211648,
+     "trades": 84
+    },
+    "meanrev_rsi2_slots4": {
+     "dust_lost": 25.571469010100003,
+     "fees": 3.3557633151079105,
+     "forced_exits": 0,
+     "max_drawdown": 0.7557546479849166,
+     "net_pnl": -22.10290233249393,
+     "sharpe": -0.1596300276290778,
+     "trades": 255
+    },
+    "meanrev_xs_7_bottom3": {
+     "dust_lost": 21.115869772999996,
+     "fees": 4.20149883704139,
+     "forced_exits": 0,
+     "max_drawdown": 0.9391488356384274,
+     "net_pnl": -23.82468687987847,
+     "sharpe": -0.010332957488925244,
+     "trades": 244
+    },
+    "mom_dual_90_top3": {
+     "dust_lost": 41.34777815285002,
+     "fees": 10.341097114715776,
+     "forced_exits": 2,
+     "max_drawdown": 0.9902666995937609,
+     "net_pnl": -28.128144515264935,
+     "sharpe": 0.019245633132414848,
+     "trades": 284
+    },
+    "mom_ts_28": {
+     "dust_lost": 12.449014503999711,
+     "fees": 145.21583648065788,
+     "forced_exits": 0,
+     "max_drawdown": 0.3795778558062757,
+     "net_pnl": 1751.3922009626233,
+     "sharpe": 1.51200690636234,
+     "trades": 298
+    },
+    "mom_xs_28_top3": {
+     "dust_lost": 102.80059632852657,
+     "fees": 33.25466130611219,
+     "forced_exits": 1,
+     "max_drawdown": 0.996599918418468,
+     "net_pnl": -28.69790973433303,
+     "sharpe": 0.19490276921724234,
+     "trades": 799
+    },
+    "trend_cross_50_200": {
+     "dust_lost": 4.506977508099996,
+     "fees": 5.290531133062901,
+     "forced_exits": 0,
+     "max_drawdown": 0.5750383493515552,
+     "net_pnl": 121.28751172454687,
+     "sharpe": 0.7232095748498457,
+     "trades": 100
+    },
+    "trend_sma_200": {
+     "dust_lost": 16.019371376199963,
+     "fees": 25.06467406377906,
+     "forced_exits": 0,
+     "max_drawdown": 0.5091593764555887,
+     "net_pnl": 288.39227316117433,
+     "sharpe": 0.9619664780837687,
+     "trades": 239
+    },
+    "value_mom_combo_top3": {
+     "dust_lost": 42.106872772549984,
+     "fees": 14.964942495496489,
+     "forced_exits": 1,
+     "max_drawdown": 0.9915479564835088,
+     "net_pnl": -27.13264073036266,
+     "sharpe": 0.2071602601228799,
+     "trades": 336
+    },
+    "value_rev_365_top3": {
+     "dust_lost": 27.29185159034285,
+     "fees": 17.269885897710342,
+     "forced_exits": 0,
+     "max_drawdown": 0.9970562304306705,
+     "net_pnl": -27.52611556968632,
+     "sharpe": 0.2336351593773131,
+     "trades": 274
+    }
+   },
+   "decote_sortie_forcee_50": {
+    "breakout_20_10_slots4": {
+     "dust_lost": 72.68521157004017,
+     "fees": 29.65938554738799,
+     "forced_exits": 0,
+     "max_drawdown": 0.9448114858877228,
+     "net_pnl": 3.513049280099011,
+     "sharpe": 0.35316687991758666,
+     "trades": 696
+    },
+    "breakout_55_20_majors": {
+     "dust_lost": 12.007682995100128,
+     "fees": 13.730362196990717,
+     "forced_exits": 0,
+     "max_drawdown": 0.5392950500623626,
+     "net_pnl": 190.68710631974153,
+     "sharpe": 0.9385940255613129,
+     "trades": 133
+    },
+    "cash": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "crypto_btc_gate_top5": {
+     "dust_lost": 45.60333558782999,
+     "fees": 16.823951764411575,
+     "forced_exits": 0,
+     "max_drawdown": 0.6912391466792966,
+     "net_pnl": 77.4495836184021,
+     "sharpe": 0.6152320583638254,
+     "trades": 372
+    },
+    "crypto_lowvol_top3": {
+     "dust_lost": 6.751342788440266,
+     "fees": 81.31654229893867,
+     "forced_exits": 0,
+     "max_drawdown": 0.7598456255689332,
+     "net_pnl": 1039.4775852242788,
+     "sharpe": 1.1072064137186228,
+     "trades": 279
+    },
+    "crypto_volmanaged_btc": {
+     "dust_lost": 0.10576080000002272,
+     "fees": 4.825061697568877,
+     "forced_exits": 0,
+     "max_drawdown": 0.6290940672126051,
+     "net_pnl": 146.87904670378424,
+     "sharpe": 0.8179658883657719,
+     "trades": 86
+    },
+    "crypto_weekday_btc": {
+     "dust_lost": 42.1864132303,
+     "fees": 15.028031506186577,
+     "forced_exits": 0,
+     "max_drawdown": 0.9991709710415797,
+     "net_pnl": -29.964543107109407,
+     "sharpe": -0.606651869881488,
+     "trades": 259
+    },
+    "hold_basket_top5": {
+     "dust_lost": 22.994679412250022,
+     "fees": 9.024496744587392,
+     "forced_exits": 1,
+     "max_drawdown": 0.8812676142169078,
+     "net_pnl": 61.0250795807185,
+     "sharpe": 0.597286820225487,
+     "trades": 221
+    },
+    "hold_btc": {
+     "dust_lost": 0.4173264000000628,
+     "fees": 0.06486801048258997,
+     "forced_exits": 0,
+     "max_drawdown": 0.7662045010145935,
+     "net_pnl": 265.94277874128846,
+     "sharpe": 0.8618922767302566,
+     "trades": 1
+    },
+    "hold_majors": {
+     "dust_lost": 0.1890520020001156,
+     "fees": 2.954139758046902,
+     "forced_exits": 0,
+     "max_drawdown": 0.7630021004314087,
+     "net_pnl": 423.3130348838158,
+     "sharpe": 0.9313747952211648,
+     "trades": 84
+    },
+    "meanrev_rsi2_slots4": {
+     "dust_lost": 25.571469010100003,
+     "fees": 3.3557633151079105,
+     "forced_exits": 0,
+     "max_drawdown": 0.7557546479849166,
+     "net_pnl": -22.10290233249393,
+     "sharpe": -0.1596300276290778,
+     "trades": 255
+    },
+    "meanrev_xs_7_bottom3": {
+     "dust_lost": 21.115869772999996,
+     "fees": 4.20149883704139,
+     "forced_exits": 0,
+     "max_drawdown": 0.9391488356384274,
+     "net_pnl": -23.82468687987847,
+     "sharpe": -0.010332957488925244,
+     "trades": 244
+    },
+    "mom_dual_90_top3": {
+     "dust_lost": 45.943330226520025,
+     "fees": 6.146339691304914,
+     "forced_exits": 2,
+     "max_drawdown": 0.9864808257931924,
+     "net_pnl": -28.734603598266176,
+     "sharpe": 0.020243140893466325,
+     "trades": 210
+    },
+    "mom_ts_28": {
+     "dust_lost": 12.449014503999711,
+     "fees": 145.21583648065788,
+     "forced_exits": 0,
+     "max_drawdown": 0.3795778558062757,
+     "net_pnl": 1751.3922009626233,
+     "sharpe": 1.51200690636234,
+     "trades": 298
+    },
+    "mom_xs_28_top3": {
+     "dust_lost": 102.53515703352657,
+     "fees": 33.25466130611219,
+     "forced_exits": 1,
+     "max_drawdown": 0.996599918418468,
+     "net_pnl": -28.69790973433303,
+     "sharpe": 0.19490276921724234,
+     "trades": 799
+    },
+    "trend_cross_50_200": {
+     "dust_lost": 4.506977508099996,
+     "fees": 5.290531133062901,
+     "forced_exits": 0,
+     "max_drawdown": 0.5750383493515552,
+     "net_pnl": 121.28751172454687,
+     "sharpe": 0.7232095748498457,
+     "trades": 100
+    },
+    "trend_sma_200": {
+     "dust_lost": 16.019371376199963,
+     "fees": 25.06467406377906,
+     "forced_exits": 0,
+     "max_drawdown": 0.5091593764555887,
+     "net_pnl": 288.39227316117433,
+     "sharpe": 0.9619664780837687,
+     "trades": 239
+    },
+    "value_mom_combo_top3": {
+     "dust_lost": 38.84939249910003,
+     "fees": 14.784038234486921,
+     "forced_exits": 1,
+     "max_drawdown": 0.9848493666423447,
+     "net_pnl": -24.860141347570284,
+     "sharpe": 0.23270128408788093,
+     "trades": 330
+    },
+    "value_rev_365_top3": {
+     "dust_lost": 27.29185159034285,
+     "fees": 17.269885897710342,
+     "forced_exits": 0,
+     "max_drawdown": 0.9970562304306705,
+     "net_pnl": -27.52611556968632,
+     "sharpe": 0.2336351593773131,
+     "trades": 274
+    }
+   },
+   "defavorable_cumule": {
+    "breakout_20_10_slots4": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "breakout_55_20_majors": {
+     "dust_lost": 8.13885186275019,
+     "fees": 27.080186710122153,
+     "forced_exits": 0,
+     "max_drawdown": 0.47963272185152794,
+     "net_pnl": 233.8026699646909,
+     "sharpe": 1.0009349741407891,
+     "trades": 94
+    },
+    "cash": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "crypto_btc_gate_top5": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "crypto_lowvol_top3": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "crypto_volmanaged_btc": {
+     "dust_lost": 0.244750500000065,
+     "fees": 6.77324206918918,
+     "forced_exits": 0,
+     "max_drawdown": 0.6293152547706571,
+     "net_pnl": 116.83686424130411,
+     "sharpe": 0.7551811488391181,
+     "trades": 71
+    },
+    "crypto_weekday_btc": {
+     "dust_lost": 30.23463623425011,
+     "fees": 16.744477720301997,
+     "forced_exits": 0,
+     "max_drawdown": 0.991465666776064,
+     "net_pnl": -29.681869220734548,
+     "sharpe": -0.4213348132502008,
+     "trades": 187
+    },
+    "hold_basket_top5": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "hold_btc": {
+     "dust_lost": 0.6878025000000061,
+     "fees": 0.10950337526943313,
+     "forced_exits": 0,
+     "max_drawdown": 0.7660067719637548,
+     "net_pnl": 264.1465728988771,
+     "sharpe": 0.8605679712650997,
+     "trades": 1
+    },
+    "hold_majors": {
+     "dust_lost": 0.13706058500005164,
+     "fees": 4.118461289691226,
+     "forced_exits": 0,
+     "max_drawdown": 0.7628565954351947,
+     "net_pnl": 412.4574170399391,
+     "sharpe": 0.9270556190018053,
+     "trades": 56
+    },
+    "meanrev_rsi2_slots4": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "meanrev_xs_7_bottom3": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "mom_dual_90_top3": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "mom_ts_28": {
+     "dust_lost": 16.49015798550157,
+     "fees": 223.98098122221936,
+     "forced_exits": 0,
+     "max_drawdown": 0.4173917573847292,
+     "net_pnl": 1457.6941094288388,
+     "sharpe": 1.4579878291137107,
+     "trades": 227
+    },
+    "mom_xs_28_top3": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "trend_cross_50_200": {
+     "dust_lost": 3.060941422250057,
+     "fees": 9.068790950908628,
+     "forced_exits": 0,
+     "max_drawdown": 0.5566129121643961,
+     "net_pnl": 122.23485139140672,
+     "sharpe": 0.7240930706444854,
+     "trades": 58
+    },
+    "trend_sma_200": {
+     "dust_lost": 11.46589631425019,
+     "fees": 42.015830258418056,
+     "forced_exits": 0,
+     "max_drawdown": 0.4751084870548319,
+     "net_pnl": 263.93520223715984,
+     "sharpe": 0.9297688814531685,
+     "trades": 148
+    },
+    "value_mom_combo_top3": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "value_rev_365_top3": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    }
+   },
+   "minimum_10": {
+    "breakout_20_10_slots4": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "breakout_55_20_majors": {
+     "dust_lost": 12.293868915499955,
+     "fees": 12.56932219893401,
+     "forced_exits": 0,
+     "max_drawdown": 0.545391632189649,
+     "net_pnl": 179.9151440890318,
+     "sharpe": 0.9201606821341762,
+     "trades": 90
+    },
+    "cash": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "crypto_btc_gate_top5": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "crypto_lowvol_top3": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "crypto_volmanaged_btc": {
+     "dust_lost": 0.5852573999999643,
+     "fees": 3.830247264682359,
+     "forced_exits": 0,
+     "max_drawdown": 0.6338734392385355,
+     "net_pnl": 118.4571264266622,
+     "sharpe": 0.7608022349407513,
+     "trades": 70
+    },
+    "crypto_weekday_btc": {
+     "dust_lost": 36.10899112000002,
+     "fees": 14.910456104997268,
+     "forced_exits": 0,
+     "max_drawdown": 0.9025744433818835,
+     "net_pnl": -19.991101128444477,
+     "sharpe": -0.2271411441599713,
+     "trades": 238
+    },
+    "hold_basket_top5": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "hold_btc": {
+     "dust_lost": 0.4173264000000628,
+     "fees": 0.06486801048258997,
+     "forced_exits": 0,
+     "max_drawdown": 0.7662045010145935,
+     "net_pnl": 265.94277874128846,
+     "sharpe": 0.8618922767302566,
+     "trades": 1
+    },
+    "hold_majors": {
+     "dust_lost": 0.16713113600001966,
+     "fees": 2.827026060493496,
+     "forced_exits": 0,
+     "max_drawdown": 0.7625737492863545,
+     "net_pnl": 446.11161733910933,
+     "sharpe": 0.9421053426404965,
+     "trades": 60
+    },
+    "meanrev_rsi2_slots4": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "meanrev_xs_7_bottom3": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "mom_dual_90_top3": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "mom_ts_28": {
+     "dust_lost": 12.710201740600935,
+     "fees": 143.4264812989299,
+     "forced_exits": 0,
+     "max_drawdown": 0.3796429397969554,
+     "net_pnl": 1738.0519355533934,
+     "sharpe": 1.5096083491003256,
+     "trades": 252
+    },
+    "mom_xs_28_top3": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "trend_cross_50_200": {
+     "dust_lost": 4.406140040099966,
+     "fees": 5.693981075610727,
+     "forced_exits": 0,
+     "max_drawdown": 0.5750383493515552,
+     "net_pnl": 141.8176959465244,
+     "sharpe": 0.7584524347309657,
+     "trades": 64
+    },
+    "trend_sma_200": {
+     "dust_lost": 15.933560592000028,
+     "fees": 25.386125892272396,
+     "forced_exits": 0,
+     "max_drawdown": 0.5023787234428927,
+     "net_pnl": 303.10009239322665,
+     "sharpe": 0.969853949318672,
+     "trades": 152
+    },
+    "value_mom_combo_top3": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "value_rev_365_top3": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    }
+   },
+   "retard_1_jour": {
+    "breakout_20_10_slots4": {
+     "dust_lost": 70.40369803565005,
+     "fees": 42.109370740746904,
+     "forced_exits": 0,
+     "max_drawdown": 0.9392222572357191,
+     "net_pnl": 16.890692446525158,
+     "sharpe": 0.4255989219388762,
+     "trades": 808
+    },
+    "breakout_55_20_majors": {
+     "dust_lost": 11.163647318800109,
+     "fees": 17.956138035805207,
+     "forced_exits": 0,
+     "max_drawdown": 0.4679512174796826,
+     "net_pnl": 256.7146329457268,
+     "sharpe": 1.0328749723691844,
+     "trades": 166
+    },
+    "cash": {
+     "dust_lost": 0.0,
+     "fees": 0.0,
+     "forced_exits": 0,
+     "max_drawdown": 0.0,
+     "net_pnl": 0.0,
+     "sharpe": 0.0,
+     "trades": 0
+    },
+    "crypto_btc_gate_top5": {
+     "dust_lost": 46.47521092702998,
+     "fees": 20.91893337582909,
+     "forced_exits": 0,
+     "max_drawdown": 0.6329244678684369,
+     "net_pnl": 87.24865039914906,
+     "sharpe": 0.6377549614107132,
+     "trades": 420
+    },
+    "crypto_lowvol_top3": {
+     "dust_lost": 7.005373827499989,
+     "fees": 82.84869266160011,
+     "forced_exits": 0,
+     "max_drawdown": 0.7490956618408173,
+     "net_pnl": 1053.4228072034794,
+     "sharpe": 1.1122644229845122,
+     "trades": 272
+    },
+    "crypto_volmanaged_btc": {
+     "dust_lost": 0.33014519999992975,
+     "fees": 4.253368313539007,
+     "forced_exits": 0,
+     "max_drawdown": 0.6282418098883934,
+     "net_pnl": 122.42402669237367,
+     "sharpe": 0.7690057966545988,
+     "trades": 79
+    },
+    "crypto_weekday_btc": {
+     "dust_lost": 28.523230292400005,
+     "fees": 10.917022342223069,
+     "forced_exits": 0,
+     "max_drawdown": 0.9980962831329734,
+     "net_pnl": -29.927418009453838,
+     "sharpe": -0.643948430775618,
+     "trades": 197
+    },
+    "hold_basket_top5": {
+     "dust_lost": 23.25072907726001,
+     "fees": 8.149641433386442,
+     "forced_exits": 1,
+     "max_drawdown": 0.8802699108541353,
+     "net_pnl": 51.40192098957888,
+     "sharpe": 0.5749359566572129,
+     "trades": 208
+    },
+    "hold_btc": {
+     "dust_lost": 0.4173264000000628,
+     "fees": 0.06486801048258997,
+     "forced_exits": 0,
+     "max_drawdown": 0.7662045010145935,
+     "net_pnl": 265.94277874128846,
+     "sharpe": 0.8618922767302566,
+     "trades": 1
+    },
+    "hold_majors": {
+     "dust_lost": 0.049730746000138826,
+     "fees": 3.3816206201666366,
+     "forced_exits": 0,
+     "max_drawdown": 0.7631525748192163,
+     "net_pnl": 434.93398011614454,
+     "sharpe": 0.9370751118714973,
+     "trades": 104
+    },
+    "meanrev_rsi2_slots4": {
+     "dust_lost": 18.021605769,
+     "fees": 3.2970381848184522,
+     "forced_exits": 0,
+     "max_drawdown": 0.6843314069610761,
+     "net_pnl": -17.810320141980416,
+     "sharpe": -0.10816830701215943,
+     "trades": 248
+    },
+    "meanrev_xs_7_bottom3": {
+     "dust_lost": 39.22237799099999,
+     "fees": 8.208114681302137,
+     "forced_exits": 0,
+     "max_drawdown": 0.9933703896939717,
+     "net_pnl": -29.62091571639572,
+     "sharpe": -0.1999863816155553,
+     "trades": 391
+    },
+    "mom_dual_90_top3": {
+     "dust_lost": 36.23234755547001,
+     "fees": 8.662876687851735,
+     "forced_exits": 3,
+     "max_drawdown": 0.9394155874778474,
+     "net_pnl": -21.471152356746163,
+     "sharpe": 0.16098313200555744,
+     "trades": 232
+    },
+    "mom_ts_28": {
+     "dust_lost": 13.476763678800497,
+     "fees": 151.15406217389088,
+     "forced_exits": 0,
+     "max_drawdown": 0.40785965515617284,
+     "net_pnl": 1723.5426243046388,
+     "sharpe": 1.512540622056252,
+     "trades": 299
+    },
+    "mom_xs_28_top3": {
+     "dust_lost": 77.28439095187996,
+     "fees": 19.602357997133634,
+     "forced_exits": 1,
+     "max_drawdown": 0.9820776719100703,
+     "net_pnl": -25.433663857530746,
+     "sharpe": 0.20969689214452794,
+     "trades": 551
+    },
+    "trend_cross_50_200": {
+     "dust_lost": 4.353709130900121,
+     "fees": 5.598851204236292,
+     "forced_exits": 0,
+     "max_drawdown": 0.5566213121340717,
+     "net_pnl": 118.06510268975092,
+     "sharpe": 0.7180098045415557,
+     "trades": 112
+    },
+    "trend_sma_200": {
+     "dust_lost": 15.594023737099892,
+     "fees": 26.8487115073632,
+     "forced_exits": 0,
+     "max_drawdown": 0.4804759178713862,
+     "net_pnl": 282.6372512859454,
+     "sharpe": 0.9517353106054353,
+     "trades": 247
+    },
+    "value_mom_combo_top3": {
+     "dust_lost": 41.28741129895995,
+     "fees": 23.511126928534548,
+     "forced_exits": 2,
+     "max_drawdown": 0.9751597507062131,
+     "net_pnl": -18.699457070754544,
+     "sharpe": 0.34247851639547666,
+     "trades": 423
+    },
+    "value_rev_365_top3": {
+     "dust_lost": 29.970587824688813,
+     "fees": 17.89364825889708,
+     "forced_exits": 0,
+     "max_drawdown": 0.9987717628985809,
+     "net_pnl": -28.947771840094525,
+     "sharpe": 0.211942636996816,
+     "trades": 268
+    }
+   }
+  }
+ },
+ "status": "EXPLORATORY",
+ "summary": {
+  "by_family": {
+   "breakout": [
+    "breakout_20_10_slots4",
+    "breakout_55_20_majors"
+   ],
+   "crypto": [
+    "crypto_btc_gate_top5",
+    "crypto_volmanaged_btc",
+    "crypto_weekday_btc",
+    "crypto_lowvol_top3"
+   ],
+   "mean_reversion": [
+    "meanrev_rsi2_slots4",
+    "meanrev_xs_7_bottom3"
+   ],
+   "momentum": [
+    "mom_ts_28",
+    "mom_xs_28_top3",
+    "mom_dual_90_top3"
+   ],
+   "trend": [
+    "trend_sma_200",
+    "trend_cross_50_200"
+   ],
+   "value": [
+    "value_rev_365_top3",
+    "value_mom_combo_top3"
+   ]
+  },
+  "candidates": 15,
+  "conclusion": "1 candidat(s) retenu(s) pour un futur protocole prospectif ; aucune preuve de rentabilité",
+  "positive_gross": [
+   "mom_ts_28",
+   "mom_xs_28_top3",
+   "value_mom_combo_top3",
+   "trend_sma_200",
+   "trend_cross_50_200",
+   "breakout_20_10_slots4",
+   "breakout_55_20_majors",
+   "crypto_btc_gate_top5",
+   "crypto_volmanaged_btc",
+   "crypto_weekday_btc",
+   "crypto_lowvol_top3"
+  ],
+  "positive_net": [
+   "mom_ts_28",
+   "trend_sma_200",
+   "trend_cross_50_200",
+   "breakout_20_10_slots4",
+   "breakout_55_20_majors",
+   "crypto_btc_gate_top5",
+   "crypto_volmanaged_btc",
+   "crypto_lowvol_top3"
+  ],
+  "reason_counts": {
+   "COSTS_EXCEED_GROSS_EDGE": 3,
+   "FRAGILE_TO_COSTS": 0,
+   "NOT_SIGNIFICANT_ABSOLUTE": 5,
+   "NO_GROSS_EDGE": 4,
+   "NO_VALUE_BEYOND_MARKET_EXPOSURE": 14,
+   "UNKNOWN": 0,
+   "UNSTABLE_ACROSS_PERIODS": 10
+  },
+  "retained": [
+   "mom_ts_28"
+  ]
+ },
+ "tests": {
+  "absolute": {
+   "block_days": 7,
+   "p_adjusted": [
+    0.0006,
+    0.6188,
+    0.8162,
+    0.6104,
+    0.6152,
+    0.0478,
+    0.1496,
+    0.4904,
+    0.0546,
+    0.8556,
+    0.8162,
+    0.2314,
+    0.0976,
+    0.9736,
+    0.0222
+   ],
+   "p_raw": [
+    0.0,
+    0.29,
+    0.511,
+    0.2796,
+    0.2798,
+    0.0076,
+    0.03,
+    0.1846,
+    0.0102,
+    0.7004,
+    0.5146,
+    0.0574,
+    0.0192,
+    0.9736,
+    0.0024
+   ],
+   "reps": 5000,
+   "seed": 1701,
+   "t": [
+    3.9634292372418063,
+    0.5108993422480512,
+    -0.03679117978753281,
+    0.6124286983261934,
+    0.5721018836036483,
+    2.5216062495750378,
+    1.8957519053331018,
+    0.9257576348367599,
+    2.460339954240073,
+    -0.4184387756329451,
+    -0.027085819281945065,
+    1.6127100461956363,
+    2.1441369767384644,
+    -1.590218766725355,
+    2.902324224399057
+   ],
+   "tests": 15
+  },
+  "alpha": 0.05,
+  "candidates": 15,
+  "names": [
+   "mom_ts_28",
+   "mom_xs_28_top3",
+   "mom_dual_90_top3",
+   "value_rev_365_top3",
+   "value_mom_combo_top3",
+   "trend_sma_200",
+   "trend_cross_50_200",
+   "breakout_20_10_slots4",
+   "breakout_55_20_majors",
+   "meanrev_rsi2_slots4",
+   "meanrev_xs_7_bottom3",
+   "crypto_btc_gate_top5",
+   "crypto_volmanaged_btc",
+   "crypto_weekday_btc",
+   "crypto_lowvol_top3"
+  ],
+  "relative": {
+   "block_days": 7,
+   "p_adjusted": [
+    0.0222,
+    0.9984,
+    0.9996,
+    0.9984,
+    0.999,
+    0.8682,
+    0.99,
+    0.9904,
+    0.8682,
+    0.9996,
+    0.9996,
+    0.8682,
+    0.9994,
+    1.0,
+    0.1634
+   ],
+   "p_raw": [
+    0.0,
+    0.6632,
+    0.9018,
+    0.7162,
+    0.7506,
+    0.1952,
+    0.4468,
+    0.4922,
+    0.1956,
+    0.98,
+    0.9016,
+    0.1834,
+    0.8348,
+    1.0,
+    0.007
+   ],
+   "reps": 5000,
+   "seed": 1701,
+   "t": [
+    2.9734867127756615,
+    -0.46932663941411573,
+    -1.3844504983961794,
+    -0.5221831865594936,
+    -0.6871868617332377,
+    0.8293076442858387,
+    0.13193380258816267,
+    0.009182233820807361,
+    0.8443532884735139,
+    -1.636035017136194,
+    -1.2590251277344413,
+    0.8333474959045654,
+    -0.954576095352189,
+    -3.5220289629695625,
+    2.2052399009185946
+   ],
+   "tests": 15
+  }
+ },
+ "window": {
+  "days": 2508,
+  "end": "2026-11-12",
+  "p1_days": 1247,
+  "p2_days": 1261,
+  "split": "2023-06-01",
+  "start": "2020-01-01"
+ }
+}
