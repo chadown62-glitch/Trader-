@@ -36,7 +36,7 @@ def btc_panel(n=60, price=60_000.0):
 # -- contrat de coûts #50 -------------------------------------------------------------------------------------------------
 def test_the_cost_contract_of_pr50_is_readable_by_the_lab_and_matches_its_published_values():
     rep = alpha_lab.costs_check(PROPOSAL, ROOT / "research" / "alpha-factory-v2" / registry.COST_FILE)
-    assert rep["compatible"] and rep["adopted"] is False and "cost_contract_v1" in rep["proposal"]["source_of_truth"]
+    assert rep["compatible"] and rep["adopted"] is True and "cost_contract_v1" in rep["proposal"]["source_of_truth"]
     c = json.loads(CONTRACT.read_text(encoding="utf-8"))
     conv, conv_s = c["conversion"]["per_order"]["value"], c["conversion"]["per_order_stress"]["value"]
     assert MESURE.fx_bps == pytest.approx(conv, abs=1e-3) and TENSION.fx_bps == pytest.approx(conv_s, abs=1e-3)
@@ -48,10 +48,18 @@ def test_the_cost_contract_of_pr50_is_readable_by_the_lab_and_matches_its_publis
     assert MESURE.min_notional == 5.0 and tuple(MESURE.majors) == ("BTC", "ETH")
 
 
-def test_the_cost_contract_is_not_adopted_and_no_plan_is_registered():
+def test_the_cost_contract_of_pr50_is_adopted_byte_for_byte_with_the_coordination_decisions():
+    """Mission 54 : le fichier de coûts du laboratoire EST la proposition #50 (même empreinte) ; la décision est tracée."""
     lab = ROOT / "research" / "alpha-factory-v2"
-    assert not (lab / "preregistration.json").exists() and not (lab / "journal.jsonl").exists()
-    assert costs.load(lab / registry.COST_FILE).version == "1.0.0-provisoire"  # l'adoption attend la décision de l'utilisateur
+    adopted = lab / registry.COST_FILE
+    assert adopted.read_bytes() == PROPOSAL.read_bytes() and costs.load(adopted).sha256 == HYP.sha256
+    decision = json.loads((lab / registry.ADOPTION_FILE).read_text(encoding="utf-8"))
+    assert decision["adopted_sha256"] == HYP.sha256 and decision["adopted_file"] == registry.COST_FILE
+    assert decision["cost_contract"]["sha256"] == (ROOT / "research" / "cost-optimizer-v1" / "cost-contract-v1.sha256").read_text().split()[0]
+    assert "jamais être extrapolés à une plateforme dont les commissions sont différentes" in decision["scope"]
+    assert any("NON VÉRIFIÉE" in d for d in decision["decisions"])
+    old = costs.load(lab / "cost-hypotheses-v1.json")  # l'ancien fichier provisoire reste, pour l'historique
+    assert old.version == "1.0.0-provisoire" and decision["replaces"]["sha256"] == old.sha256
 
 
 # -- modèle de reliquats --------------------------------------------------------------------------------------------------

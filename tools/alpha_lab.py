@@ -31,6 +31,7 @@ from sentinelle.alpha.lab.experiment import FLAGS, REASONS, RETAINED, run_experi
 from sentinelle.alpha.lab.simulate import Features  # noqa: E402
 from sentinelle.alpha.lab.strategies import CANDIDATES, MIN_AGE, REFERENCES, TOP, Context  # noqa: E402
 from sentinelle.alpha.shadow.contract import sha256  # noqa: E402
+from sentinelle.alpha.shadow.protocol import file_sha  # noqa: E402
 
 DIR = ROOT / registry.DIRECTORY
 
@@ -82,9 +83,16 @@ def cmd_register(a) -> int:
         panel.index_of(registry.WINDOW[key])  # lève si la date manque dans l'archive
     now = _now_ms()
     _, rules_meta = data.load_rules(a.archive)
+    adoption = None
+    if (out / registry.ADOPTION_FILE).exists():
+        adoption = {"file": registry.ADOPTION_FILE, "sha256": file_sha(out / registry.ADOPTION_FILE)}
+        decided = json.loads((out / registry.ADOPTION_FILE).read_text(encoding="utf-8"))
+        if decided.get("adopted_sha256") != hyp.sha256 or decided.get("adopted_file") != registry.COST_FILE:
+            print("Enregistrement refusé : la décision d'adoption ne porte pas sur ce fichier de coûts.", file=sys.stderr)
+            return 2
     plan = registry.build_plan(root=ROOT, data=panel.provenance, hyp=hyp, other_pairs=other_pairs(panel, feats, registry.WINDOW["start"]),
                                registered_at=datetime.fromtimestamp(now / 1000, timezone.utc).isoformat(), registered_at_ms=now,
-                               rules_meta=rules_meta)
+                               rules_meta=rules_meta, adoption=adoption)
     digest = registry.write_plan(out, plan)
     registry.record(out, "plan_registered", {"plan_id": plan["plan_id"], "plan_sha256": digest, "candidates": len(plan["candidates"]),
                                              "cost_hypotheses_sha256": hyp.sha256, "archive_manifest_sha256": panel.provenance["archive_manifest_sha256"]}, now)
@@ -158,12 +166,13 @@ def markdown(report: dict) -> str:
     out = [f"Plan `{report['plan_id']}` · fenêtre {w['start']} → {w['end']} ({w['days']} jours ; P1 {w['p1_days']} j, P2 {w['p2_days']} j) · "
            f"coûts « {report['costs']['primary']} » (tension : « {report['costs']['stress']} ») · {report['tests']['candidates']} candidats", "",
            "#### Résultats nets (30 unités fictives, scénario principal)", "",
-           "| Candidat | Famille | Résultat net | Par an | Baisse max. | Sharpe | Exposition | Ordres | Brut | Coûts payés | Tension | P1 | P2 | p corrigée (absolu) | p corrigée (relatif) | Verdict |",
-           "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+           "| Candidat | Famille | Résultat net | Par an | Baisse max. | Sharpe | Facteur de profit (jours) | Exposition | Ordres | Brut | Coûts payés | Reliquats perdus | Tension | P1 | P2 | p corrigée (absolu) | p corrigée (relatif) | Verdict |",
+           "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for name, c in report["candidates"].items():
         n, k = c["net"], c["costs"]
         out.append(f"| {name} | {c['family']} | {_f(n['net_pnl'])} | {_f(n['cagr'], 1, pct=True)} | {_f(n['max_drawdown'], 0, False, True)} | {_f(n['sharpe'])} | "
-                   f"{_f(n['mean_exposure'], 0, False, True)} | {n['trades']} | {_f(k['gross_pnl'])} | {_f(-(k['fees'] + k['spread_slippage']))} | {_f(k['stressed_pnl'])} | "
+                   f"{_f(n.get('profit_factor_daily'), 2, False)} | {_f(n['mean_exposure'], 0, False, True)} | {n['trades']} | {_f(k['gross_pnl'])} | "
+                   f"{_f(-(k['fees'] + k['spread_slippage']))} | {_f(-n.get('dust_lost', 0.0))} | {_f(k['stressed_pnl'])} | "
                    f"{_f(c['periods']['P1']['return'], 0, pct=True)} | {_f(c['periods']['P2']['return'], 0, pct=True)} | {_f(c['absolute']['p_adjusted'], 3, False)} | "
                    f"{_f(c['relative']['p_adjusted'], 3, False)} | {'**retenu**' if c['verdict'] == RETAINED else 'non retenu'} |")
     out += ["", "#### Références simples (mêmes coûts, mêmes jours)", "", "| Référence | Résultat net | Par an | Baisse max. | Sharpe | P1 | P2 |", "|---|---|---|---|---|---|---|"]
@@ -190,6 +199,18 @@ def markdown(report: dict) -> str:
     for name, rows in g["other_pairs"].items():
         for pair, v in rows.items():
             out.append(f"| {name} | {pair} | {_f(v['net_pnl'])} | {_f(v['sharpe'])} | {_f(v['relative_mean_daily'], 3, pct=True)} | {_f(v['hold_total_return'], 0, pct=True)} |")
+    sens = report.get("sensitivity")
+    if sens:
+        names = list(sens["variants"])
+        out += ["", "#### Sensibilité (préenregistrée, DESCRIPTIVE : hors règle de décision et hors tests corrigés)", "", sens["role"] + ".", "",
+                "Résultat net (30 unités fictives) selon la variante ; base : " + sens["base"] + ".", "",
+                "| Règle | Principal | " + " | ".join(names) + " | Commission d'équilibre (pb par ordre) |",
+                "|---|---|" + "---|" * len(names) + "---|"]
+        rows = {**{n: c["net"]["net_pnl"] for n, c in report["candidates"].items()}, **{n: r["net_pnl"] for n, r in report["references"].items()}}
+        for name, base in rows.items():
+            be = sens["break_even_fee"].get(name)
+            be_txt = "—" if be is None else (_f(be["bps"], 1, False) if be["bps"] is not None else be["note"])
+            out.append(f"| {name} | {_f(base)} | " + " | ".join(_f(sens["variants"][v][name]["net_pnl"]) for v in names) + f" | {be_txt} |")
     out += ["", f"**Conclusion du banc : {report['summary']['conclusion']}.**"]
     return "\n".join(out)
 
@@ -214,8 +235,9 @@ def costs_check(proposal: Path, current: Path) -> dict:
                                        "fee_bps": sc.fee_bps, "fx_bps": sc.fx_bps, "min_notional": sc.min_notional}
     return {"compatible": not problems, "problems": problems, "proposal": {"version": new.version, "sha256": new.sha256, "status": new.status,
             "source_of_truth": new.source_of_truth}, "current": {"version": old.version, "sha256": old.sha256, "status": old.status},
-            "scenarios": rows, "adopted": False,
-            "note": "vérification seulement : l'adoption (nouveau fichier de coûts, nouveau plan) attend la décision de l'utilisateur"}
+            "scenarios": rows, "adopted": new.sha256 == old.sha256,
+            "note": ("fichier proposé identique au fichier du laboratoire : adopté (décision de la coordination, mission 54)"
+                     if new.sha256 == old.sha256 else "vérification seulement : une adoption exige un nouveau fichier de coûts et un nouveau plan")}
 
 
 def cmd_costs_check(a) -> int:
