@@ -6,7 +6,7 @@ aucune fusion sur `main`, aucune promotion de modèle.
 
 ## Mission active
 
-**M54 — évaluation unique d'ALPHA FACTORY v2** · branche `claude/alpha-factory-v2-evaluation` (base : `claude/alpha-factory-v2-readiness`, PR #53).
+**M55 — recherche de rentabilité** (à démarrer). M54 terminée : voir ci-dessous.
 
 ## Missions terminées
 
@@ -16,6 +16,16 @@ aucune fusion sur `main`, aucune promotion de modèle.
 | #51 DIRECT MARKET HUB | `claude/direct-market-hub-v1` | `f4edab8` | #51 (brouillon) |
 | #52 durcissement du hub | `claude/hub-hardening-v1` | `eec05e7` | #52 (brouillon, base #51) |
 | #52 préparation d'ALPHA FACTORY v2 | `claude/alpha-factory-v2-readiness` | `ff46509` | #53 (brouillon, base #50) |
+| M54 évaluation unique d'ALPHA FACTORY v2 | `claude/alpha-factory-v2-evaluation` | voir la PR | brouillon, base #53 |
+
+### Résultat de M54 (exécution unique, 17/11/2026)
+
+Plan `alpha-factory-v2-e1` `6f4f436f…` (commit `d4a9969`, poussé avant l'exécution) ; résultats `results.json`
+`278f320e…`. Verdict fixé d'avance : **avantage démontré sur l'historique pour `mom_ts_28` seulement** (momentum
+4 semaines BTC/ETH, hebdomadaire) : p corrigée 0,0006 (absolu) et 0,022 (relatif), positif sur les deux périodes et en
+tension ; MAIS avantage en forte baisse en période 2, 65 % des gains sur ETH, baisse maximale 38 % (> 10 %), données
+BTC/ETH déjà étudiées par le projet. 4 « prometteurs non démontrés », 10 échecs. Rapport :
+`docs/validation/alpha-factory-v2-evaluation.md`.
 
 PR préservées, non modifiées : #40, #46, #47, #48 (R1 figé), #49.
 
@@ -31,11 +41,11 @@ PR préservées, non modifiées : #40, #46, #47, #48 (R1 figé), #49.
 
 ## Prochaines actions précises
 
-1. M54 : enregistrer le plan (`python -m tools.alpha_lab register --archive data/alpha-lab/archive-20261113`), le versionner,
-   puis UNE exécution (`run --output docs/validation/mesures/alpha-factory-v2`), publier tous les résultats, PR brouillon.
-2. M55 : selon le verdict de M54 (diagnostic des échecs ou préparation prospective) ; ne jamais réutiliser la fenêtre
-   2020-01-01 → 2026-11-12 comme données vierges.
-3. M56 → M59 : voir le programme (memecoins Solana, flotte d'agents, intégration, audit global).
+1. M55 (un candidat passe) : garder `mom_ts_28` FIGÉ ; préparer son observation prospective préenregistrée (infrastructure
+   de la PR #48, données postérieures au 12/11/2026 seulement) ; analyses descriptives (régimes, qualité d'entrée et de
+   sortie, frais/latence/liquidité, taille compatible avec la limite de risque) ; diagnostic des échecs (reliquats et
+   minimum d'ordre sur 30 €). Ne jamais réutiliser la fenêtre 2020-01-01 → 2026-11-12 comme données vierges.
+2. M56 → M59 : voir le programme (memecoins Solana, flotte d'agents, intégration, audit global).
 
 ## Erreurs, blocages
 

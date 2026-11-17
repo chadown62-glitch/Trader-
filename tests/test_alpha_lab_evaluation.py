@@ -114,3 +114,18 @@ def test_the_three_verdicts_are_fixed_before_the_results_and_read_the_plan_s_own
     rep = {"candidates": {"a": cand(net=-1), "b": cand()}}
     assert alpha_lab.verdict(rep)["verdict"] == "PROMETTEUR_NON_DÉMONTRÉ"
     assert alpha_lab.verdict({"candidates": {"a": cand(net=-1)}})["verdict"] == "ÉCHEC"
+
+
+def test_published_tables_are_regenerated_exactly_from_the_published_results():
+    import hashlib, json
+    from pathlib import Path
+    from tools import alpha_lab
+    m = Path(__file__).resolve().parent.parent / "docs" / "validation" / "mesures" / "alpha-factory-v2"
+    if not (m / "results.json").exists():
+        pytest.skip("aucune exécution publiée")
+    sums = dict(reversed(line.split()) for line in (m / "SHA256SUMS").read_text().splitlines())
+    for name in ("results.json", "daily.json.gz"):
+        assert hashlib.sha256((m / name).read_bytes()).hexdigest() == sums[f"docs/validation/mesures/alpha-factory-v2/{name}"]
+    report = json.loads((m / "results.json").read_text(encoding="utf-8"))
+    assert alpha_lab.markdown(report) + "\n" == (m / "tableaux.md").read_text(encoding="utf-8")
+    assert alpha_lab.verdict(report)["verdict"] == "AVANTAGE_DÉMONTRÉ" and report["summary"]["retained"] == ["mom_ts_28"]

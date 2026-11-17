@@ -213,19 +213,30 @@ def test_lab_declares_itself_exploratory_long_only_and_unlevered():
 # ---------------------------------------------------------------------------
 
 
-def test_cli_lists_candidates_and_reports_the_preparation_state(capsys):
+def test_cli_lists_candidates_and_reports_the_registered_state(capsys):
     assert alpha_lab.main(["candidates"]) == 0
     out = json.loads(capsys.readouterr().out)
     assert len(out["candidates"]) == 15 and len(out["references"]) == 4 and all(c["source"] for c in out["candidates"])
-    assert alpha_lab.main(["verify"]) == 1
+    code = alpha_lab.main(["verify"])
     state = json.loads(capsys.readouterr().out)
-    assert state["status"] == "NOT_REGISTERED" and state["intact"] is False
+    if not (DIR / "preregistration.json").exists():
+        assert code == 1 and state["status"] == "NOT_REGISTERED" and state["intact"] is False
+    else:  # mission 54 : plan enregistré, intact (code, coûts et décision d'adoption inchangés), exécuté au plus une fois
+        assert code == 0 and state["intact"] is True and state["problems"] == [] and state["candidates"] == 15
+        assert state["journal"][0] == "plan_registered" and state["journal"].count("experiment_run") <= 1
 
 
 def test_cli_refuses_to_run_without_a_registered_plan(tmp_path, capsys):
     alpha_lab_fetch.run(tmp_path / "archive", END_MS, fake_exchange([]), max_requests=50)
-    assert alpha_lab.main(["run", "--archive", str(tmp_path / "archive"), "--output", str(tmp_path / "out")]) == 1
+    empty = tmp_path / "sans-plan"
+    empty.mkdir()
+    assert alpha_lab.main(["run", "--dir", str(empty), "--archive", str(tmp_path / "archive"), "--output", str(tmp_path / "out")]) == 1
     assert "aucun plan" in capsys.readouterr().err and not (tmp_path / "out").exists()
+    if (DIR / "preregistration.json").exists():  # le plan réel refuse toute autre archive, sans rien écrire au journal
+        before = (DIR / "journal.jsonl").read_bytes()
+        assert alpha_lab.main(["run", "--archive", str(tmp_path / "archive"), "--output", str(tmp_path / "out")]) == 1
+        assert "pas celle du plan" in capsys.readouterr().err and not (tmp_path / "out").exists()
+        assert (DIR / "journal.jsonl").read_bytes() == before
     assert alpha_lab.main(["universe", "--archive", str(tmp_path / "archive"), "--dates", "2018-02-05"]) == 0
     assert json.loads(capsys.readouterr().out)["quality"]["columns"] == 3
 
