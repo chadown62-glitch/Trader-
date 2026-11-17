@@ -211,8 +211,35 @@ def markdown(report: dict) -> str:
             be = sens["break_even_fee"].get(name)
             be_txt = "—" if be is None else (_f(be["bps"], 1, False) if be["bps"] is not None else be["note"])
             out.append(f"| {name} | {_f(base)} | " + " | ".join(_f(sens["variants"][v][name]["net_pnl"]) for v in names) + f" | {be_txt} |")
-    out += ["", f"**Conclusion du banc : {report['summary']['conclusion']}.**"]
+    v = verdict(report)
+    out += ["", f"**Conclusion du banc : {report['summary']['conclusion']}.**", "",
+            f"**Verdict : {v['verdict'].replace('_', ' ')}** — {v['meaning']}.", "",
+            "| Candidat | Lecture |", "|---|---|"] + [f"| {n} | {x.replace('_', ' ').lower()} |" for n, x in v["candidates"].items()]
     return "\n".join(out)
+
+
+VERDICTS = {
+    "AVANTAGE_DÉMONTRÉ": "au moins un candidat passe TOUTES les conditions du plan (sur l'historique : à confirmer en prospectif, jamais « rentable »)",
+    "PROMETTEUR_NON_DÉMONTRÉ": "aucun candidat retenu, mais au moins un est positif net, positif en tension, positif sur les deux périodes et "
+                               "meilleur que la détention de même exposition : il n'échoue que sur la preuve statistique (essais multiples)",
+    "ÉCHEC": "aucun candidat ne remplit même les conditions de signe : aucun avantage net, même non démontré",
+}
+
+
+def verdict_of(c: dict) -> str:
+    """Lecture d'un candidat, fixée le 17/11/2026 AVANT de connaître les résultats (commit antérieur à results.json)."""
+    if c["verdict"] == RETAINED:
+        return "AVANTAGE_DÉMONTRÉ"
+    signs = (c["net"]["net_pnl"] > 0 and c["costs"]["stressed_pnl"] > 0 and c["checks"]["holds_in_both_periods"]
+             and (c["relative"]["interval"]["mean"] or 0) > 0)
+    return "PROMETTEUR_NON_DÉMONTRÉ" if signs else "ÉCHEC"
+
+
+def verdict(report: dict) -> dict:
+    per = {n: verdict_of(c) for n, c in report["candidates"].items()}
+    order = ("AVANTAGE_DÉMONTRÉ", "PROMETTEUR_NON_DÉMONTRÉ", "ÉCHEC")
+    best = next(v for v in order if v in per.values() or v == "ÉCHEC")
+    return {"verdict": best, "meaning": VERDICTS[best], "candidates": per, "rule": VERDICTS}
 
 
 def costs_check(proposal: Path, current: Path) -> dict:

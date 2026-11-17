@@ -100,3 +100,17 @@ def test_sensitivity_is_preregistered_descriptive_and_never_changes_the_verdicts
     with pytest.raises(ValueError, match="mal formée"):
         sensitivity(panel, dict(base, sensitivity={**sens, "variants": [{"name": "x", "leverage": 2}]}), HYP, Features(panel),
                     [], 430, 799, None)
+
+
+def test_the_three_verdicts_are_fixed_before_the_results_and_read_the_plan_s_own_checks():
+    from tools import alpha_lab
+    def cand(retained=False, net=1.0, stressed=1.0, both=True, rel=0.001):
+        return {"verdict": "RETENU_POUR_PROTOCOLE_PROSPECTIF" if retained else "NON_RETENU", "net": {"net_pnl": net},
+                "costs": {"stressed_pnl": stressed}, "checks": {"holds_in_both_periods": both}, "relative": {"interval": {"mean": rel}}}
+    assert alpha_lab.verdict_of(cand(retained=True)) == "AVANTAGE_DÉMONTRÉ"
+    assert alpha_lab.verdict_of(cand()) == "PROMETTEUR_NON_DÉMONTRÉ"
+    for bad in (dict(net=-1), dict(stressed=-1), dict(both=False), dict(rel=-0.001), dict(rel=None)):
+        assert alpha_lab.verdict_of(cand(**bad)) == "ÉCHEC"
+    rep = {"candidates": {"a": cand(net=-1), "b": cand()}}
+    assert alpha_lab.verdict(rep)["verdict"] == "PROMETTEUR_NON_DÉMONTRÉ"
+    assert alpha_lab.verdict({"candidates": {"a": cand(net=-1)}})["verdict"] == "ÉCHEC"
