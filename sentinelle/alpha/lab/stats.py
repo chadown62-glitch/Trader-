@@ -34,7 +34,14 @@ def metrics(returns: np.ndarray, equity: np.ndarray, initial: float) -> dict:
     return {"days": n, "net_pnl": float(equity[-1] - initial) if n else 0.0, "total_return": total, "cagr": cagr,
             "annual_volatility": sd * np.sqrt(DAYS_PER_YEAR), "sharpe": (float(r.mean()) / sd * np.sqrt(DAYS_PER_YEAR)) if sd > 0 else 0.0,
             "max_drawdown": dd, "calmar": (cagr / dd) if dd > 0 else None, "worst_day": float(r.min()) if n else 0.0,
-            "best_day": float(r.max()) if n else 0.0}
+            "best_day": float(r.max()) if n else 0.0, "profit_factor_daily": profit_factor(np.diff(np.concatenate([[initial], equity])) if n else r)}
+
+
+def profit_factor(pnl) -> float | None:
+    """Somme des gains / somme des pertes (en valeur absolue) ; None sans perte (non défini), 0 sans gain."""
+    x = np.asarray(pnl, float)
+    gains, losses = float(x[x > 0].sum()), float(-x[x < 0].sum())
+    return (gains / losses) if losses > 0 else None
 
 
 def mean_interval(x: np.ndarray, plan: dict = PLAN) -> dict:
@@ -113,6 +120,7 @@ def concentration(by_asset: dict) -> dict:
     pos = sorted(((v, a) for a, v in gains.items() if v > 0), reverse=True)
     total = sum(v for v, _ in pos)
     return {"assets_traded": len(gains), "winners": len(pos), "top_asset": pos[0][1] if pos else None,
+            "profit_factor_by_asset": profit_factor(list(gains.values())),
             "top_share_of_gains": (pos[0][0] / total) if total > 0 else None,
             "worst_asset": min(gains, key=gains.get) if gains else None, "worst_loss": min(gains.values()) if gains else None}
 

@@ -16,6 +16,13 @@ Ce qui reste sous un pas est un RELIQUAT : compté comme PERDU à sa création (
 et rapporté à part (`dust_lost`). Sans règles, le comportement est exactement celui d'avant (tests de non-régression).
 un actif dont la cotation s'arrête est vendu à sa dernière clôture connue, coûts compris, et
 compté. Le dernier jour, les positions restantes sont valorisées nettes de leur coût de sortie.
+Avec les règles de marché, une position dont la part vendable reste sous le minimum de la plateforme ne peut
+être vendue ni à une fin de cotation ni le dernier jour : elle est comptée comme perdue (mission 54, même
+règle prudente que les reliquats ; le simulateur refusait déjà ces ventes les jours de décision).
+
+Analyses de sensibilité (mission 54, descriptives) : ``lag`` exécute à l'ouverture de ``t + 1`` la décision prise
+à la clôture de ``t - lag`` (décision retardée) ; ``forced_haircut`` applique une décote au prix de sortie imposée
+par une fin de cotation. Valeurs par défaut : comportement inchangé.
 """
 from __future__ import annotations
 
@@ -103,12 +110,14 @@ def _floor(q: float, step: float) -> float:
 
 def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: int, capital: float = CAPITAL,
              features: Features | None = None, exclude: frozenset = frozenset(), majors: tuple = MAJORS,
-             rules: dict | None = None) -> SimResult:
+             rules: dict | None = None, lag: int = 0, forced_haircut: float = 0.0) -> SimResult:
     """Évalue ``spec`` sur les jours ``start..end`` (inclus). La première décision est prise à la clôture de ``start - 1``
     pour tous (mise en place), les suivantes selon le calendrier de la règle."""
     if not 1 <= start <= end < len(panel):
         raise ValueError("Fenêtre invalide")
-    if start - 1 < spec.warmup:
+    if lag < 0 or not 0 <= forced_haircut < 1:
+        raise ValueError("Paramètres de sensibilité invalides")
+    if start - 1 - lag < spec.warmup:
         raise ValueError(f"Historique insuffisant avant le début pour {spec.name}")
     feats = features or Features(panel)
     col = {a: j for j, a in enumerate(panel.assets)}
@@ -136,7 +145,7 @@ def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: i
             res.dust_events += 1
             flows[asset] = flows.get(asset, 0.0)
 
-    def sell(asset: str, amount: float, price: float) -> float:
+    def sell(asset: str, amount: float, price: float, forced: bool = False) -> float:
         """Vend ``amount`` unités au prix de référence ``price`` ; renvoie les liquidités reçues."""
         nonlocal cash
         base = panel.base(asset)
@@ -144,9 +153,13 @@ def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: i
         if r is not None:  # modèle de reliquats : seule la part multiple du pas est vendable, commission puis conversion
             full = amount >= qty[asset] - 1e-15
             amount = _floor(min(amount, qty[asset]), float(r["step"]))
-            if amount <= 0:
-                if full:
+            if amount <= 0 or amount * price < min_notional(asset):
+                if forced:  # invendable sous le minimum à une fin de cotation : perdu (prudent)
                     lose_dust(asset, price)
+                elif amount <= 0 and full:
+                    lose_dust(asset, price)
+                else:
+                    deny("vente_sous_le_minimum_après_arrondi")
                 return 0.0
             gross = amount * price
             net_px = gross * (1 - cost.worse(base))
@@ -180,9 +193,10 @@ def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: i
     for t in range(start - 1, end):
         nxt = t + 1
         target = None
-        if t == start - 1 or is_decision_day(spec, panel, t):  # mise en place à la veille du début, puis calendrier de la règle
-            held = {a: {**v, "value": qty[a] * float(panel.close[t, col[a]])} for a, v in info.items()}
-            ctx = Context(panel.view(t), feats.age[t], feats.medvol[t], feats.vol90[t], held, exclude, majors)
+        d = t - lag  # jour de la décision exécutée à l'ouverture de t + 1 (d = t sans retard)
+        if t == start - 1 or is_decision_day(spec, panel, d):  # mise en place à la veille du début, puis calendrier de la règle
+            held = {a: {**v, "value": qty[a] * float(panel.close[d, col[a]])} for a, v in info.items()}
+            ctx = Context(panel.view(d), feats.age[d], feats.medvol[d], feats.vol90[d], held, exclude, majors)
             target = spec.fn(ctx, spec.params)
             total = sum(target.values())
             if any((not np.isfinite(w)) or w < 0 for w in target.values()) or total > 1 + 1e-9:
@@ -193,7 +207,7 @@ def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: i
         # 0) fin de cotation : vente à la dernière clôture connue (on ne détient jamais un actif sans prix)
         for asset in sorted(qty):
             if not np.isfinite(opens[col[asset]]):
-                sell(asset, qty[asset], float(panel.close[t, col[asset]]))
+                sell(asset, qty[asset], float(panel.close[t, col[asset]]) * (1 - forced_haircut), forced=True)
                 res.forced_exits += 1
         if target is not None:
             value = cash + sum(q * float(opens[col[a]]) for a, q in qty.items())
@@ -265,8 +279,10 @@ def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: i
                 invested = 0.0
                 for a, q in qty.items():
                     r = rule(a)
-                    sellable = _floor(q, float(r["step"])) if r else q
                     px = float(closes[col[a]])
+                    sellable = _floor(q, float(r["step"])) if r else q
+                    if r and sellable * px < min_notional(a):  # invendable sous le minimum : perdu (prudent)
+                        sellable = 0.0
                     invested += sellable * px * (1 - cost.worse(panel.base(a))) * (1 - cost.fee_bps / 1e4) * (1 - cost.fx_bps / 1e4)
                     if q - sellable > 0:
                         res.dust_lost += (q - sellable) * px
@@ -283,6 +299,8 @@ def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: i
     for asset, q in qty.items():
         r = rule(asset)
         sellable = _floor(q, float(r["step"])) if r else q
+        if r and sellable * float(final[col[asset]]) < min_notional(asset):
+            sellable = 0.0
         tail = (1 - cost.fee) if r is None else (1 - cost.fee_bps / 1e4) * (1 - cost.fx_bps / 1e4)
         flows[asset] = flows.get(asset, 0.0) + sellable * float(final[col[asset]]) * (1 - cost.worse(panel.base(asset))) * tail
     res.by_asset = {a: float(v) for a, v in sorted(flows.items())}

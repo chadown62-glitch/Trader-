@@ -25,9 +25,11 @@ HYP = costs.load(DIR / registry.COST_FILE)
 START = 430
 
 
-def plan_for(panel, *, reps: int = 300) -> dict:
+def plan_for(panel, *, reps: int = 300, sensitivity: bool = False) -> dict:
     plan = registry.build_plan(root=ROOT, data=panel.provenance, hyp=HYP, other_pairs=[["A03", "A04"], ["A07", "A08"]],
                                registered_at="test", registered_at_ms=1)
+    if not sensitivity:  # descriptive et coûteuse : testée à part (tests/test_alpha_lab_evaluation.py)
+        plan["sensitivity"] = None
     n = len(panel)
     plan["window"] = {"start": panel.date(START), "split": panel.date(START + (n - START) // 2), "end": panel.date(n - 1)}
     plan["analysis"]["familywise"]["reps"] = reps
@@ -157,8 +159,9 @@ def test_plan_is_write_once_and_detects_any_change(tmp_path):
     assert registry.load_plan(work, root=ROOT, hyp=hyp, data={"archive_manifest_sha256": "a" * 64}) == (plan, digest, [])
     assert registry.load_plan(work, data={"archive_manifest_sha256": "b" * 64})[2] == ["l'archive de données n'est pas celle du plan"]
     cost_file = work / registry.COST_FILE
-    cost_file.write_text(cost_file.read_text(encoding="utf-8").replace('"fee_bps": 10, "slippage_bps": 5, "half_spread_bps": {"majors": 2, "others": 8}',
-                                                                       '"fee_bps": 1, "slippage_bps": 5, "half_spread_bps": {"majors": 2, "others": 8}'), encoding="utf-8")
+    raw = json.loads(cost_file.read_text(encoding="utf-8"))
+    raw["scenarios"][raw["primary"]]["fee_bps"] = 1
+    cost_file.write_text(json.dumps(raw), encoding="utf-8")
     assert registry.load_plan(work, hyp=costs.load(cost_file))[2] == ["les hypothèses de coûts ont changé depuis l'enregistrement"]
     text = (work / "preregistration.json").read_text(encoding="utf-8")
     (work / "preregistration.json").write_text(text.replace('"alpha": 0.05', '"alpha": 0.5'), encoding="utf-8")
@@ -177,13 +180,21 @@ def test_plan_is_write_once_and_detects_any_change(tmp_path):
     assert [ln["kind"] for ln in registry.journal(work)] == ["plan_registered", "experiment_run"] and len(panel) == 600
 
 
-def test_preparation_state_no_plan_registered_and_nothing_run_on_real_data():
-    """Décision du 15/11/2026 (option B) : aucun plan enregistré, aucune exécution sur données réelles avant la
-    validation du contrat de coûts. Ce test changera quand le plan sera enregistré, pas avant."""
-    assert not (DIR / "preregistration.json").exists() and not (DIR / "journal.jsonl").exists()
-    assert not (MEASURES / "results.json").exists()
+def test_registered_state_one_plan_then_at_most_one_run_on_real_data():
+    """Mission 54 : plan enregistré une fois (contrat #50 adopté), puis au plus UNE exécution, inscrite au journal."""
     assert registry.WINDOW == {"start": "2020-01-01", "split": "2023-06-01", "end": "2026-11-12"}
-    assert "PROVISOIRE" in HYP.status  # les coûts actuels sont provisoires : ils seront remplacés par le contrat de COST OPTIMIZER
+    assert HYP.sha256 == "56da1470cf32e1603618dd52f54e22bd0a2134db08d947d0bea45d64ac179c40"
+    if not (DIR / "preregistration.json").exists():
+        assert not (DIR / "journal.jsonl").exists() and not (MEASURES / "results.json").exists()
+        return
+    plan, digest, problems = registry.load_plan(DIR, root=ROOT, hyp=HYP)
+    assert problems == [] and plan["costs"]["sha256"] == HYP.sha256 and plan["costs"]["adoption"]["file"] == registry.ADOPTION_FILE
+    kinds = [ln["kind"] for ln in registry.journal(DIR)]
+    assert kinds[0] == "plan_registered" and kinds.count("experiment_run") <= 1 and set(kinds) <= {"plan_registered", "experiment_run"}
+    if (MEASURES / "results.json").exists():
+        res = json.loads((MEASURES / "results.json").read_text(encoding="utf-8"))
+        assert kinds == ["plan_registered", "experiment_run"] and res["plan_sha256"] == digest
+        assert res["data"]["archive_manifest_sha256"] == plan["data"]["archive_manifest_sha256"]
 
 
 def test_the_frozen_r1_candidate_and_protocol_of_pr48_are_untouched():
@@ -202,19 +213,30 @@ def test_lab_declares_itself_exploratory_long_only_and_unlevered():
 # ---------------------------------------------------------------------------
 
 
-def test_cli_lists_candidates_and_reports_the_preparation_state(capsys):
+def test_cli_lists_candidates_and_reports_the_registered_state(capsys):
     assert alpha_lab.main(["candidates"]) == 0
     out = json.loads(capsys.readouterr().out)
     assert len(out["candidates"]) == 15 and len(out["references"]) == 4 and all(c["source"] for c in out["candidates"])
-    assert alpha_lab.main(["verify"]) == 1
+    code = alpha_lab.main(["verify"])
     state = json.loads(capsys.readouterr().out)
-    assert state["status"] == "NOT_REGISTERED" and state["intact"] is False
+    if not (DIR / "preregistration.json").exists():
+        assert code == 1 and state["status"] == "NOT_REGISTERED" and state["intact"] is False
+    else:  # mission 54 : plan enregistré, intact (code, coûts et décision d'adoption inchangés), exécuté au plus une fois
+        assert code == 0 and state["intact"] is True and state["problems"] == [] and state["candidates"] == 15
+        assert state["journal"][0] == "plan_registered" and state["journal"].count("experiment_run") <= 1
 
 
 def test_cli_refuses_to_run_without_a_registered_plan(tmp_path, capsys):
     alpha_lab_fetch.run(tmp_path / "archive", END_MS, fake_exchange([]), max_requests=50)
-    assert alpha_lab.main(["run", "--archive", str(tmp_path / "archive"), "--output", str(tmp_path / "out")]) == 1
+    empty = tmp_path / "sans-plan"
+    empty.mkdir()
+    assert alpha_lab.main(["run", "--dir", str(empty), "--archive", str(tmp_path / "archive"), "--output", str(tmp_path / "out")]) == 1
     assert "aucun plan" in capsys.readouterr().err and not (tmp_path / "out").exists()
+    if (DIR / "preregistration.json").exists():  # le plan réel refuse toute autre archive, sans rien écrire au journal
+        before = (DIR / "journal.jsonl").read_bytes()
+        assert alpha_lab.main(["run", "--archive", str(tmp_path / "archive"), "--output", str(tmp_path / "out")]) == 1
+        assert "pas celle du plan" in capsys.readouterr().err and not (tmp_path / "out").exists()
+        assert (DIR / "journal.jsonl").read_bytes() == before
     assert alpha_lab.main(["universe", "--archive", str(tmp_path / "archive"), "--dates", "2018-02-05"]) == 0
     assert json.loads(capsys.readouterr().out)["quality"]["columns"] == 3
 
