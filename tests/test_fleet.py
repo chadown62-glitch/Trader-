@@ -67,7 +67,8 @@ def test_stale_data_or_a_broken_journal_makes_the_fleet_abstain(tmp_path):
     assert K.Coordinator().decide(stale, CTX)["decision"] == K.ABSTENTION
     j = tmp_path / "broken.jsonl"
     j.write_text('{"seq": 0, "prev": "x", "sha": "y", "kind": "k", "body": {}, "at_ms": 1}\n', encoding="utf-8")
-    r = K.Coordinator().decide(candidate(), CTX | {"journal_path": j})
+    r = K.Coordinator().decide(candidate(), CTX | {"journal_path": j, "verify_each_event": True})
+    assert K.Coordinator().decide(A.Event("health", "système", T0, {}), CTX | {"journal_path": j})["decision"] == K.ABSTENTION
     assert r["decision"] == K.ABSTENTION and any("journal" in w for w in r["why"])
 
 
@@ -100,12 +101,16 @@ def test_a_failing_agent_is_quarantined_and_never_brings_the_fleet_down():
     assert not k.stats["Broken"].quarantined
 
 
-def test_useless_non_essential_agents_are_disabled_for_the_session_and_essentials_never_are():
-    k = K.Coordinator(disable_after_runs=5)
+def test_useless_costly_non_essential_agents_are_disabled_for_the_session_and_essentials_never_are():
+    k = K.Coordinator(disable_after_runs=5, costly_cpu_ms=0.0)  # tout agent compte comme coûteux pour ce test
     for _ in range(6):
         k.decide(candidate(), CTX)
     st = k.stats
     assert st["Portfolio Optimizer"].disabled and "jamais décisif" in st["Portfolio Optimizer"].disabled_reason
+    cheap = K.Coordinator(disable_after_runs=5)  # seuil normal : un agent bon marché reste actif
+    for _ in range(6):
+        cheap.decide(candidate(), CTX)
+    assert not cheap.stats["Portfolio Optimizer"].disabled
     assert not any(st[n].disabled for n in K.ESSENTIAL)
     rep = k.report()
     assert rep["events"] == 6 and rep["agents"]["Alpha Hunter"]["pivotal"] >= 1 and rep["agents"]["Alpha Hunter"]["cpu_ms"] > 0

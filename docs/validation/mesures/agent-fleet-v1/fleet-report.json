@@ -1,0 +1,321 @@
+{
+ "agents": {
+  "Alpha Hunter": {
+   "cpu_ms": 0.17038000000013653,
+   "disabled": false,
+   "disabled_reason": null,
+   "failures": 0,
+   "heavy": false,
+   "model": null,
+   "name": "Alpha Hunter",
+   "peak_kb": 0.3828125,
+   "pivotal": 0,
+   "quarantined": false,
+   "ram_mb": 5,
+   "reuses": [
+    "sentinelle.memecoin.lab.signals",
+    "règle mom_ts_28 (ALPHA FACTORY v2, figée)"
+   ],
+   "role": "signaux des règles figées (memecoins : module C ; BTC/ETH : momentum 4 semaines)",
+   "runs": 39,
+   "skipped": 0,
+   "tasks": [
+    "market_tick",
+    "memecoin_candidate"
+   ],
+   "wall_ms": 0.17518399954497
+  },
+  "Challenger Lab": {
+   "cpu_ms": 0.0,
+   "disabled": false,
+   "disabled_reason": null,
+   "failures": 0,
+   "heavy": false,
+   "model": null,
+   "name": "Challenger Lab",
+   "peak_kb": 0.0,
+   "pivotal": 0,
+   "quarantined": false,
+   "ram_mb": 5,
+   "reuses": [
+    "sentinelle.alpha.lab.registry (plan et journal)",
+    "protocole prospectif de la mission 55 quand il est présent"
+   ],
+   "role": "état des protocoles de recherche (lecture seule, aucune promotion)",
+   "runs": 0,
+   "skipped": 0,
+   "tasks": [
+    "research"
+   ],
+   "wall_ms": 0.0
+  },
+  "Cost Router": {
+   "cpu_ms": 0.8282229999997948,
+   "disabled": false,
+   "disabled_reason": null,
+   "failures": 0,
+   "heavy": false,
+   "model": null,
+   "name": "Cost Router",
+   "peak_kb": 0.9306640625,
+   "pivotal": 0,
+   "quarantined": false,
+   "ram_mb": 5,
+   "reuses": [
+    "sentinelle.memecoin.lab.Costs",
+    "sentinelle.dmh.router (choix robuste des routes CEX/DEX)"
+   ],
+   "role": "coût complet d'un aller-retour et route la moins chère",
+   "runs": 39,
+   "skipped": 0,
+   "tasks": [
+    "cex_order",
+    "memecoin_candidate"
+   ],
+   "wall_ms": 0.8355570003004686
+  },
+  "Exit Guardian": {
+   "cpu_ms": 0.0,
+   "disabled": false,
+   "disabled_reason": null,
+   "failures": 0,
+   "heavy": false,
+   "model": null,
+   "name": "Exit Guardian",
+   "peak_kb": 0.0,
+   "pivotal": 0,
+   "quarantined": false,
+   "ram_mb": 5,
+   "reuses": [
+    "sentinelle.memecoin.lab.EXITS",
+    "sentinelle.memecoin.lab.COLLAPSE"
+   ],
+   "role": "règles de sortie des positions ouvertes (objectif, stop, durée, effondrement)",
+   "runs": 0,
+   "skipped": 0,
+   "tasks": [
+    "position"
+   ],
+   "wall_ms": 0.0
+  },
+  "Liquidity Scout": {
+   "cpu_ms": 0.44483999999977986,
+   "disabled": false,
+   "disabled_reason": null,
+   "failures": 0,
+   "heavy": false,
+   "model": null,
+   "name": "Liquidity Scout",
+   "peak_kb": 0.63671875,
+   "pivotal": 0,
+   "quarantined": false,
+   "ram_mb": 5,
+   "reuses": [
+    "sentinelle.memecoin.lab.impact (produit constant)",
+    "profondeur des carnets du hub (sentinelle.dmh.cex)"
+   ],
+   "role": "profondeur et impact de prix d'un ordre",
+   "runs": 39,
+   "skipped": 0,
+   "tasks": [
+    "cex_order",
+    "memecoin_candidate"
+   ],
+   "wall_ms": 0.46136400169416447
+  },
+  "Market Sentinel": {
+   "cpu_ms": 0.32863200000038395,
+   "disabled": false,
+   "disabled_reason": null,
+   "failures": 0,
+   "heavy": false,
+   "model": null,
+   "name": "Market Sentinel",
+   "peak_kb": 0.53515625,
+   "pivotal": 0,
+   "quarantined": false,
+   "ram_mb": 5,
+   "reuses": [
+    "sentinelle.memecoin.collect (horodatage, empreintes)",
+    "sentinelle.dmh.observe (fraîcheur des carnets)"
+   ],
+   "role": "fraîcheur et cohérence des données de marché",
+   "runs": 39,
+   "skipped": 0,
+   "tasks": [
+    "cex_order",
+    "market_tick",
+    "memecoin_candidate",
+    "position"
+   ],
+   "wall_ms": 0.33475400050519966
+  },
+  "News & Event Analyst": {
+   "cpu_ms": 0.0,
+   "disabled": false,
+   "disabled_reason": null,
+   "failures": 0,
+   "heavy": true,
+   "model": "modèle local (Ollama)",
+   "name": "News & Event Analyst",
+   "peak_kb": 0.0,
+   "pivotal": 0,
+   "quarantined": false,
+   "ram_mb": 4000,
+   "reuses": [
+    "sentinelle.news (dépêches, IA locale Ollama)"
+   ],
+   "role": "dépêches et événements ; analyse lourde (modèle local) seulement si pertinent",
+   "runs": 0,
+   "skipped": 0,
+   "tasks": [
+    "cex_order",
+    "market_tick",
+    "memecoin_candidate"
+   ],
+   "wall_ms": 0.0
+  },
+  "Portfolio Optimizer": {
+   "cpu_ms": 1.44022399999999,
+   "disabled": false,
+   "disabled_reason": null,
+   "failures": 0,
+   "heavy": false,
+   "model": null,
+   "name": "Portfolio Optimizer",
+   "peak_kb": 1.1640625,
+   "pivotal": 0,
+   "quarantined": false,
+   "ram_mb": 5,
+   "reuses": [
+    "logique de taille de la mission 55 (limite de baisse / baisse historique)",
+    "sentinelle.dmh.security (minimum d'ordre)"
+   ],
+   "role": "taille compatible avec la limite de risque et le minimum d'ordre (30 € fictifs)",
+   "runs": 39,
+   "skipped": 0,
+   "tasks": [
+    "cex_order",
+    "memecoin_candidate"
+   ],
+   "wall_ms": 1.45994599961341
+  },
+  "Regime Detector": {
+   "cpu_ms": 0.0,
+   "disabled": false,
+   "disabled_reason": null,
+   "failures": 0,
+   "heavy": false,
+   "model": null,
+   "name": "Regime Detector",
+   "peak_kb": 0.0,
+   "pivotal": 0,
+   "quarantined": false,
+   "ram_mb": 5,
+   "reuses": [
+    "règle des régimes de la mission 55 (moyenne 200 jours, volatilité 30 jours)"
+   ],
+   "role": "régime de marché (tendance et volatilité du BTC), information de la veille",
+   "runs": 0,
+   "skipped": 0,
+   "tasks": [
+    "cex_order",
+    "market_tick",
+    "research"
+   ],
+   "wall_ms": 0.0
+  },
+  "Risk Commander": {
+   "cpu_ms": 1.2897130000000812,
+   "disabled": false,
+   "disabled_reason": null,
+   "failures": 0,
+   "heavy": false,
+   "model": null,
+   "name": "Risk Commander",
+   "peak_kb": 1.0625,
+   "pivotal": 0,
+   "quarantined": false,
+   "ram_mb": 5,
+   "reuses": [
+    "sentinelle.dmh.security (limites par défaut, plafonds)"
+   ],
+   "role": "limites du portefeuille fictif (n'ajoute que des restrictions ; ne remplace pas le moteur de veto)",
+   "runs": 39,
+   "skipped": 0,
+   "tasks": [
+    "cex_order",
+    "memecoin_candidate",
+    "position"
+   ],
+   "wall_ms": 1.2968170012754854
+  },
+  "Rug Pull Guardian": {
+   "cpu_ms": 3.3102280000001927,
+   "disabled": false,
+   "disabled_reason": null,
+   "failures": 0,
+   "heavy": false,
+   "model": null,
+   "name": "Rug Pull Guardian",
+   "peak_kb": 1.435546875,
+   "pivotal": 39,
+   "quarantined": false,
+   "ram_mb": 5,
+   "reuses": [
+    "sentinelle.memecoin.guardian.assess"
+   ],
+   "role": "veto anti-arnaque (module B)",
+   "runs": 39,
+   "skipped": 0,
+   "tasks": [
+    "memecoin_candidate"
+   ],
+   "wall_ms": 3.3755699987523258
+  },
+  "System Doctor": {
+   "cpu_ms": 0.7961589999999075,
+   "disabled": false,
+   "disabled_reason": null,
+   "failures": 0,
+   "heavy": false,
+   "model": null,
+   "name": "System Doctor",
+   "peak_kb": 2.369140625,
+   "pivotal": 0,
+   "quarantined": false,
+   "ram_mb": 5,
+   "reuses": [
+    "sentinelle.memecoin.collect.Stats (disponibilité des sources)",
+    "sentinelle.alpha.shadow.protocol.read_journal (chaîne)"
+   ],
+   "role": "santé du système : sources, coupe-circuits, disque, journal, horloge",
+   "runs": 40,
+   "skipped": 0,
+   "tasks": [
+    "cex_order",
+    "health",
+    "market_tick",
+    "memecoin_candidate",
+    "position",
+    "research"
+   ],
+   "wall_ms": 0.7237700001496705
+  }
+ },
+ "budget": {
+  "cpu_ms_per_event": 2000.0,
+  "gpu": false,
+  "heavy_min_relevance": 0.5,
+  "max_models": 1,
+  "ram_mb": 8000.0
+ },
+ "capture": "capture-1794908298.jsonl.gz",
+ "decisions": {
+  "INFO": 1,
+  "VETO": 39
+ },
+ "disagreements": 0,
+ "events": 40,
+ "wall_s": 0.09
+}

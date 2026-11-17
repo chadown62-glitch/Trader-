@@ -53,13 +53,13 @@ ESSENTIAL = {"System Doctor", "Market Sentinel", "Rug Pull Guardian", "Risk Comm
 
 class Coordinator:
     def __init__(self, agents: list[Agent] | None = None, *, budget: Budget | None = None, journal: Path | None = None,
-                 clock=time.time, quarantine_after: int = 3, disable_after_runs: int = 30):
+                 clock=time.time, quarantine_after: int = 3, disable_after_runs: int = 30, costly_cpu_ms: float = 5.0):
         assert CAN_TRADE is False and AUTO_RETRAIN is False and AUTO_PROMOTION is False
         self.agents = agents or fleet()
         self.budget = budget or Budget()
         self.journal = journal
         self.clock = clock
-        self.quarantine_after, self.disable_after_runs = quarantine_after, disable_after_runs
+        self.quarantine_after, self.disable_after_runs, self.costly_cpu_ms = quarantine_after, disable_after_runs, costly_cpu_ms
         self.stats = {a.name: AgentStats() for a in self.agents}
         self.log: list[dict] = []
 
@@ -146,13 +146,15 @@ class Coordinator:
         return [self.decide(ev, ctx) for ev in events]
 
     def _prune(self) -> None:
-        """Désactive pour la session un agent non essentiel jamais décisif après assez d'essais (réversible, consigné)."""
+        """Désactive pour la session un agent non essentiel, COÛTEUX et jamais décisif après assez d'essais (réversible,
+        consigné). Un agent bon marché reste actif : l'économie serait nulle et son avis peut redevenir utile."""
         for a in self.agents:
             st = self.stats[a.name]
-            if a.name in ESSENTIAL or st.disabled or st.runs < self.disable_after_runs:
+            if a.name in ESSENTIAL or st.disabled or st.runs < self.disable_after_runs or st.pivotal:
                 continue
-            if st.pivotal == 0:
-                st.disabled, st.disabled_reason = True, f"jamais décisif en {st.runs} essais"
+            costly = a.heavy or st.cpu_ms / st.runs >= self.costly_cpu_ms
+            if costly:
+                st.disabled, st.disabled_reason = True, f"jamais décisif en {st.runs} essais ({st.cpu_ms / st.runs:.1f} ms par essai)"
 
     def enable(self, name: str) -> None:
         st = self.stats[name]

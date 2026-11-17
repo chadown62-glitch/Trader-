@@ -289,15 +289,16 @@ class SystemDoctor(Agent):
         for src, s in (ctx.get("sources") or {}).items():
             if s.get("requests", 0) >= 3 and s.get("availability", 1.0) < self.MIN_AVAILABILITY:
                 notes.append(f"source dégradée : {src} ({s['availability']:.0%})")
+        deep = ev.kind == "health" or ctx.get("verify_each_event")  # disque et journal : contrôles plus lents, aux bilans de santé
         root = ctx.get("disk_path")
-        if root:
+        if root and deep:
             free = shutil.disk_usage(root).free / 2**20
             if free < self.MIN_FREE_MB:
                 problems.append(f"disque presque plein ({free:.0f} Mo libres)")
         if abs(ctx.get("clock_offset_ms", 0)) > 2_000:
             problems.append("horloge décalée de plus de 2 s")
         journal = ctx.get("journal_path")
-        if journal and Path(journal).exists():
+        if deep and journal and Path(journal).exists():
             from ..alpha.shadow.protocol import read_journal
             try:
                 read_journal(Path(journal))
