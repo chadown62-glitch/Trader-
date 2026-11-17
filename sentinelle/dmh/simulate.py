@@ -152,7 +152,7 @@ class PaperExecutor:
                     "counter_asset": leg["asset_in"], "counter_location": leg["loc_in"], "counter_qty": spent, "eur": eur,
                     "costs": {"commission_eur": got * fee * avg * self._eur_per(quote, book), "mid": book.mid, "avg": avg},
                     "evidence": {"book_sha256": book.sha256, "received_ms": book.received_ms, "venue": venue, "pair": pair},
-                    "mode": self.mode, "ts_ms": now}
+                    "mode": self.mode, "ts_ms": now, "step": rules.step}
             status = "FILLED" if spent >= budget * 0.98 or rules.floor_qty(budget / avg) <= got else "PARTIAL"
             return {"status": status, "fills": [fill], "carried": {"asset": leg["asset_out"], "qty": rules.floor_qty(received)},
                     "note": None if status == "FILLED" else f"exécution partielle : {spent:.4f} {quote} sur {budget:.4f}"}

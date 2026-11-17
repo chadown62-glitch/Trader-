@@ -81,20 +81,20 @@ def test_end_to_end_paper_trade_on_the_single_shared_portfolio(setup):
     for (venue, pair), b in list(view.books.items()):
         view.set_book(venue, pair, b.mid, min_notional=view.rule[(venue, pair)].min_notional,
                       taker=view.fee[venue]["taker"].value, maker=view.fee[venue]["maker"].value, step=view.rule[(venue, pair)].step)
-    pv = c.post("/api/dmh/preview", json=S.buy(n=6.0), headers=H).json()
+    pv = c.post("/api/dmh/preview", json=S.buy(n=10.0), headers=H).json()
     assert pv["decision"] == "ROUTE" and pv["verdict"]["allowed"], pv["explanation"]
     rid = "e2e-request-001"
     op = c.post("/api/dmh/orders", json={"mode": "paper", "preview_id": pv["id"], "request_id": rid, "confirm": True}, headers=H).json()
     assert op["state"] == "FILLED", op
     again = c.post("/api/dmh/orders", json={"mode": "paper", "preview_id": pv["id"], "request_id": rid, "confirm": True}, headers=H).json()
     assert again["replayed"] and again["state"] == "FILLED"  # rejouer ne ré-exécute rien
-    assert broker.balances()["EUR"] == pytest.approx(before - 6.0, abs=0.01)  # les euros du hub sont ceux du portefeuille principal
+    assert broker.balances()["EUR"] == pytest.approx(before - 10.0, abs=0.01)  # les euros du hub sont ceux du portefeuille principal
     assert c.get("/api/dmh/positions").json()["positions"]
     assert c.post("/api/dmh/reconcile", json={"mode": "paper"}, headers=H).json()["ok"]
     obs = c.get("/api/dmh/observatory").json()
     assert obs["operations"].get("FILLED") == 1 and "note" in obs["savings_validated"]
     assert c.post("/api/dmh/halt", json={"mode": "paper", "reason": "test"}, headers=H).status_code == 200
-    blocked = c.post("/api/dmh/preview", json=S.buy(n=6.0), headers=H)
+    blocked = c.post("/api/dmh/preview", json=S.buy(n=10.0), headers=H)
     assert blocked.status_code == 409 and "arrêtées" in blocked.json()["detail"]
     assert c.post("/api/dmh/resume", json={"mode": "paper"}, headers=H).status_code == 200
 
@@ -105,3 +105,21 @@ def test_the_panel_shows_the_simulation_banner_and_registers_the_hub_view(setup)
     assert "SIMULATION — ARGENT FICTIF" in js and "data-sim-banner" in js and "Arrêt immédiat" in js
     main = c.get("/js/main.js").text
     assert "views/dmh.js" in main and "id: 'dmh'" in main
+
+
+def test_caps_are_enforced_end_to_end_through_the_api(setup):
+    app, c, view = setup
+    broker = app.runtime(app.main_account()["id"]).broker
+    before = broker.balances()["EUR"]
+    view.t = int(time.time() * 1000)
+    for (venue, pair), b in list(view.books.items()):
+        view.set_book(venue, pair, b.mid, min_notional=view.rule[(venue, pair)].min_notional,
+                      taker=view.fee[venue]["taker"].value, maker=view.fee[venue]["maker"].value, step=view.rule[(venue, pair)].step)
+    assert c.post("/api/dmh/preview", json=S.buy(n=16.0), headers=H).status_code == 400  # au-delà du plafond absolu
+    for n, code in ((12.0, "position"), (9.0, "minimum")):
+        pv = c.post("/api/dmh/preview", json=S.buy(n=n), headers=H).json()
+        assert code in {v["code"] for v in pv["verdict"]["vetoes"]}, pv["verdict"]
+        op = c.post("/api/dmh/orders", json={"mode": "paper", "preview_id": pv["id"], "request_id": f"cap-api-{int(n):03d}", "confirm": True},
+                    headers=H).json()
+        assert op["state"] == "REJECTED"
+    assert broker.balances()["EUR"] == pytest.approx(before)  # rien n'a bougé

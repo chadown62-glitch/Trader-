@@ -23,6 +23,9 @@ const assert=require('node:assert/strict');
    await page.getByText(/Indiquez l'avantage brut attendu/).first().waitFor();  // sans avantage annoncé : pas de prévisualisation
    await page.getByRole('button',{name:'Limites'}).click();
    await page.getByText(/plafond/).first().waitFor();
+   await page.getByRole('button',{name:'Simulateur'}).click();
+   await page.locator('[data-capital]').waitFor();  // capital disponible, frais payés et reliquats affichés séparément
+   assert.match(await page.locator('[data-capital]').innerText(),/Capital disponible[\s\S]*frais payés[\s\S]*reliquats/);
    await page.getByRole('button',{name:'Observatoire'}).click();
    await page.getByText('Frais payés en simulation').waitFor();
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'défilement horizontal');

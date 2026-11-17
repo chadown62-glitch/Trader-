@@ -14,7 +14,6 @@ import gzip
 import hashlib
 import json
 import logging
-import resource
 import sys
 import time
 import tracemalloc
@@ -26,12 +25,24 @@ sys.path.insert(0, str(ROOT))
 from sentinelle.dmh import assumptions as A  # noqa: E402
 from sentinelle.dmh.ledger import Ledger, StandaloneCash  # noqa: E402
 from sentinelle.dmh.net import PublicClient  # noqa: E402
-from sentinelle.dmh.router import Intent, build_routes, choose  # noqa: E402
-from sentinelle.dmh.security import DEFAULT_LIMITS, Verdict, check_route, effective  # noqa: E402
+from sentinelle.dmh.router import Intent, build_routes, choose, economic_minimum  # noqa: E402
+from sentinelle.dmh.security import DEFAULT_LIMITS, Portfolio, Verdict, check_financial, check_route, effective  # noqa: E402
 from sentinelle.dmh.simulate import PaperExecutor  # noqa: E402
 from sentinelle.dmh.tokens import load_registry  # noqa: E402
 from sentinelle.dmh.view import LiveView, ReplayView  # noqa: E402
 from sentinelle.storage.db import Database  # noqa: E402
+
+try:  # module absent sous Windows : temps processeur sans mémoire du processus
+    import resource
+except ImportError:  # pragma: no cover - Windows
+    resource = None
+
+
+def _usage() -> tuple[float, float | None]:
+    if resource is None:
+        return time.process_time(), None
+    r = resource.getrusage(resource.RUSAGE_SELF)
+    return r.ru_utime + r.ru_stime, r.ru_maxrss / 1024
 
 SCENARIOS = [("BTC", ()), ("ETH", ("base", "ethereum")), ("SOL", ("solana",))]
 SIZES = (5.0, 10.0, 30.0)
@@ -105,13 +116,34 @@ def _simulate(view, reg, route_dict, n) -> dict:
             "notes": out_in.notes + out_out.notes}
 
 
+def _user_path(view, reg, asset, n, nets, edge) -> dict:
+    """PARCOURS UTILISATEUR : limites par défaut, portefeuille neuf de 30 €, même règle de choix que le hub."""
+    lim = effective(dict(DEFAULT_LIMITS)) | {"max_book_age_ms": 10**12, "max_quote_age_ms": 10**12}  # données d'archive
+    routes = build_routes(view, reg, Intent(asset, n, edge, tuple(nets), True))
+    c = choose(routes, edge, max_cost_bps=lim["max_round_trip_cost_bps"], max_immobilized_pct=lim["max_immobilized_pct"])
+    v = Verdict()
+    chosen = c.route.to_dict(edge) if c.route else None
+    pf = Portfolio(30.0, 30.0, {}, 30.0, 30.0, 30.0)
+    if chosen:
+        check_financial(v, lim, pf, side="buy", asset=asset, notional=n, route_totals=chosen["totals"], cash_needed=n)
+        check_route(v, lim, chosen, view.now_ms(), reg, {})
+    else:
+        check_financial(v, lim, pf, side="buy", asset=asset, notional=n, route_totals=None, cash_needed=n)
+    outcome = "AUTORISÉE" if chosen and v.allowed else ("REFUS DE SÉCURITÉ" if chosen else "ABSTENTION")
+    return {"limits": "par défaut (position ≤ 10 €, minimum 10 €, réserve 6 €, immobilisation ≤ 1 %, coût ≤ 150 pb)",
+            "outcome": outcome, "route": chosen["label"] if chosen else None,
+            "cost_bps": chosen["totals"]["cost_bps"] if chosen else None,
+            "immobilized_pct": chosen["totals"]["immobilized_pct"] if chosen else None,
+            "reasons": [r.message for r in v.reasons if r.veto] + c.reasons, "fee_dependent": c.fee_dependent}
+
+
 def validate(capture_path: Path, out: Path) -> dict:
     raw = capture_path.read_bytes()
     cap = json.loads(gzip.decompress(raw))
     reg = load_registry()
     rows = []
     tracemalloc.start()
-    r0 = resource.getrusage(resource.RUSAGE_SELF)
+    cpu0, _ = _usage()
     t0 = time.perf_counter()
     decisions = 0
     for asset, nets in cap["scenarios"]:
@@ -119,7 +151,9 @@ def validate(capture_path: Path, out: Path) -> dict:
             view = ReplayView(cap["per_scenario"][f"{asset}|{n:g}"])
             s = time.perf_counter()
             routes = build_routes(view, reg, Intent(asset, n, cap["edge_bps"], tuple(nets), True))
-            c = choose(routes, cap["edge_bps"], max_cost_bps=DEFAULT_LIMITS["max_round_trip_cost_bps"])
+            # 1) MESURE DE COÛT : portefeuille de mesure isolé, AUCUNE limite de l'utilisateur (montant, réserve,
+            #    immobilisation, plafond de coût) ; seule la règle de choix robuste s'applique
+            c = choose(routes, cap["edge_bps"])
             decisions += 1
             dt = time.perf_counter() - s
             chosen = c.route.to_dict(cap["edge_bps"]) if c.route else None
@@ -138,9 +172,23 @@ def validate(capture_path: Path, out: Path) -> dict:
                 if k not in best_by_kind or t["cost_bps"] < best_by_kind[k]["cost_bps"]:
                     best_by_kind[k] = {"label": r.label, "cost_bps": t["cost_bps"], "cost_low_bps": t["cost_low_bps"],
                                        "cost_high_bps": t["cost_high_bps"], "fill": t["entry_fill_probability"], "dust_eur": t["dust_eur"],
-                                       "latency_ms": t["latency_ms"], "finality_ms": t["finality_ms"]}
+                                       "latency_ms": t["latency_ms"], "finality_ms": t["finality_ms"], "fees_paid_eur": t["fees_paid_eur"],
+                                       "immobilized_eur": t["immobilized_eur"], "immobilized_pct": t["immobilized_pct"],
+                                       "adverse_bps": t["scenarios_bps"]["defavorable"]}
             impossible = [{"label": r.label, "reason": r.reasons[0]} for r in routes if r.reasons][:12]
-            rows.append({"asset": asset, "notional_eur": n, "decision": c.decision, "decision_seconds": dt,
+            user = _user_path(view, reg, asset, n, nets, cap["edge_bps"])
+            minimums = []
+            for venue in view.venues():
+                pair = f"{asset}/EUR"
+                if view.supports(venue, pair):
+                    try:
+                        b, rules = view.book(venue, pair), view.rules(venue, pair)
+                    except Exception:
+                        continue
+                    minimums.append(economic_minimum(rules, b.mid, view.fees(venue)["taker"].value / 1e4,
+                                                     max_immobilized_pct=DEFAULT_LIMITS["max_immobilized_pct"]))
+            rows.append({"asset": asset, "notional_eur": n, "measure": "coût hors limites de l'utilisateur (portefeuille de mesure isolé)",
+                         "user_path": user, "economic_minimums": minimums, "decision": c.decision, "decision_seconds": dt,
                          "chosen": None if not chosen else {"label": chosen["label"], "kind": chosen["kind"], **chosen["totals"]},
                          "security": v.to_dict(), "simulated": sim, "best_by_kind": best_by_kind, "impossible": impossible,
                          "sensitivity": c.sensitivity, "existing_engine_rt_bps": existing_rt,
@@ -148,7 +196,7 @@ def validate(capture_path: Path, out: Path) -> dict:
                          "saving_vs_existing_estimated_bps": None if not chosen else existing_rt - chosen["totals"]["cost_bps"],
                          "saving_vs_existing_simulated_bps": None if not sim.get("round_trip_cost_bps") else existing_rt - sim["round_trip_cost_bps"]})
     wall = time.perf_counter() - t0
-    r1 = resource.getrusage(resource.RUSAGE_SELF)
+    cpu1, rss = _usage()
     peak = tracemalloc.get_traced_memory()[1]
     tracemalloc.stop()
     net = cap["network"]["hosts"]
@@ -157,8 +205,8 @@ def validate(capture_path: Path, out: Path) -> dict:
     doc = {"kind": "dmh-validation", "capture": capture_path.name, "capture_sha256": hashlib.sha256(raw).hexdigest(),
            "captured_ms": cap["captured_ms"], "edge_bps_hypothesis": cap["edge_bps"], "existing_engine": EXISTING,
            "cost_optimizer_measured": MEASURED_50, "assumptions": cap["assumptions"], "rows": rows,
-           "performance": {"decisions": decisions, "replay_wall_seconds": wall, "cpu_seconds": (r1.ru_utime - r0.ru_utime) + (r1.ru_stime - r0.ru_stime),
-                           "peak_python_mb": peak / 1e6, "max_rss_mb": r1.ru_maxrss / 1024,
+           "performance": {"decisions": decisions, "replay_wall_seconds": wall, "cpu_seconds": cpu1 - cpu0,
+                           "peak_python_mb": peak / 1e6, "max_rss_mb": rss,
                            "live_decision_seconds": cap["timings"]},
            "data_availability": avail,
            "security_vetoes": sum(len(r["security"]["vetoes"]) for r in rows)}
@@ -175,7 +223,14 @@ def _f(x, d=1):
 def tables(doc: dict) -> str:
     out = [f"Capture `{doc['capture']}` (empreinte `{doc['capture_sha256'][:12]}…`), avantage brut HYPOTHÉTIQUE {doc['edge_bps_hypothesis']:.0f} pb "
            "(sert seulement à classer les routes).", "",
-           "#### Décision du hub et coût aller-retour, face au moteur existant (mêmes données)", "",
+           "#### A. Parcours utilisateur : limites par défaut appliquées, portefeuille neuf de 30 €", "",
+           "| Actif | Montant | Issue | Route | Coût (pb) | Immobilisé | Motifs |", "|---|---|---|---|---|---|---|"]
+    for r in doc["rows"]:
+        u = r["user_path"]
+        out.append(f"| {r['asset']} | {r['notional_eur']:g} € | **{u['outcome']}** | {u['route'] or '—'} | {_f(u['cost_bps'])} | "
+                   f"{_f(u['immobilized_pct'], 2)} % | {' ; '.join(u['reasons'])[:220] or '—'} |")
+    out += ["", "#### B. Mesure de coût : portefeuille de mesure isolé, limites de l'utilisateur NON appliquées", "",
+            "Ces chiffres comparent des routes ; ils ne disent pas qu'une opération de ce montant serait autorisée (voir A).", "",
            "| Actif | Montant | Décision | Route retenue | Coût estimé (pb) [bas ; haut] | Coût simulé sur les carnets (pb) | Moteur existant (pb) | Écart estimé | Écart simulé |",
            "|---|---|---|---|---|---|---|---|---|"]
     for r in doc["rows"]:
@@ -184,13 +239,28 @@ def tables(doc: dict) -> str:
         out.append(f"| {r['asset']} | {r['notional_eur']:g} € | {r['decision']} | {c.get('label', '—')} | {_f(c.get('cost_bps'))} "
                    f"[{_f(c.get('cost_low_bps'))} ; {_f(c.get('cost_high_bps'))}] | {_f(sim.get('round_trip_cost_bps'))} | "
                    f"{_f(r['existing_engine_rt_bps'])} | {_f(r['saving_vs_existing_estimated_bps'])} | {_f(r['saving_vs_existing_simulated_bps'])} |")
-    out += ["", "#### Meilleure route de chaque type (coût aller-retour estimé, pb)", "",
-            "| Actif | Montant | Type | Route | Coût | Bas | Haut | Remplissage | Reliquat (€) | Latence (s) | Finalité (s) |",
+    out += ["", "#### C. Meilleure route de chaque type (pb aller-retour ; frais payés et capital immobilisé séparés)", "",
+            "| Actif | Montant | Type | Route | Coût économique | Frais payés (€) | Immobilisé (€ ; %) | Défavorable | Remplissage | Latence (s) | Finalité (s) |",
             "|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in doc["rows"]:
         for k, b in sorted(r["best_by_kind"].items(), key=lambda kv: kv[1]["cost_bps"]):
-            out.append(f"| {r['asset']} | {r['notional_eur']:g} € | {k} | {b['label']} | {_f(b['cost_bps'])} | {_f(b['cost_low_bps'])} | "
-                       f"{_f(b['cost_high_bps'])} | {b['fill']:.0%} | {_f(b['dust_eur'], 3)} | {_f(b['latency_ms'] / 1000, 1)} | {_f(b['finality_ms'] / 1000, 0)} |")
+            out.append(f"| {r['asset']} | {r['notional_eur']:g} € | {k} | {b['label']} | {_f(b['cost_bps'])} | {_f(b['fees_paid_eur'], 4)} | "
+                       f"{_f(b['immobilized_eur'], 3)} ; {_f(b['immobilized_pct'], 2)} % | {_f(b['adverse_bps'])} | {b['fill']:.0%} | "
+                       f"{_f(b['latency_ms'] / 1000, 1)} | {_f(b['finality_ms'] / 1000, 0)} |")
+    out += ["", "#### D. Seuil économique d'achat par plateforme et par actif (règle de la mission 52)", "",
+            "Minimum = le plus grand de : plancher prudent de 10 € ; minimum de la plateforme + un pas d'arrondi, commission comprise ; "
+            "montant pour lequel un reliquat d'un pas reste ≤ 1 % du montant.", "",
+            "| Actif | Plateforme | Pas | Valeur d'un pas (€) | Minimum plateforme (€) | Minimum reliquat (€) | **Seuil économique (€)** | Contrainte |",
+            "|---|---|---|---|---|---|---|---|"]
+    seen = set()
+    for r in doc["rows"]:
+        for m in r["economic_minimums"]:
+            key = (r["asset"], m["venue"])
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(f"| {r['asset']} | {m['venue']} | {m['step']:g} | {_f(m['step_value_eur'], 4)} | {_f(m['venue_min_eur'], 2)} | "
+                       f"{_f(m['dust_min_eur'], 2)} | **{_f(m['economic_min_eur'], 2)}** | {m['binding']} |")
     p = doc["performance"]
     out += ["", "#### Ressources", "", f"- {p['decisions']} décisions rejouées en {_f(p['replay_wall_seconds'], 2)} s, CPU {_f(p['cpu_seconds'], 2)} s, "
             f"mémoire Python maximale {_f(p['peak_python_mb'], 1)} Mo, mémoire du processus {_f(p['max_rss_mb'], 0)} Mo ;",
