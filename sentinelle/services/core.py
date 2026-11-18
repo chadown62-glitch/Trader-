@@ -29,14 +29,19 @@ from ..market.history import HistoryStore
 from ..market.hub import MarketHub
 from ..market.sources import build_source
 from ..risk.manager import RiskManager
+from ..safety import is_paper_runtime, require_paper_account, require_paper_runtime
 from ..storage.db import Database, dumps, loads
 from .agents import AgentsMixin
 from .bus import EventBus
-from .common import AGENTS, EMERGENCY_CONFIRM, LIVE_CONFIRM, AccountRuntime, LivePrices, UserError  # noqa: F401
+from .champion import ChampionMixin
+from .journal import JournalMixin
+from .common import AGENTS, EMERGENCY_CONFIRM, RETIRED_AGENTS, AccountRuntime, UserError  # noqa: F401
 from .jobs import JobManager
 from .learning import LearningMixin
 from .live_ops import LiveMixin
 from .models import ModelStore
+from .performance import PerformanceMixin
+from .portfolio import PortfolioMixin
 from .secrets import SecretStore
 from .trading import TradingMixin
 from .training import TrainingMixin
@@ -48,7 +53,7 @@ class Engine(threading.Thread):
         super().__init__(name="sentinelle-moteur", daemon=True)
         self.app = app
         self.q: queue.Queue = queue.Queue()
-        self._stop = threading.Event()
+        self._stop_event = threading.Event()
         self.ready = threading.Event()
         self.heartbeat = 0.0
 
@@ -64,7 +69,7 @@ class Engine(threading.Thread):
         return fut
 
     def stop(self) -> None:
-        self._stop.set()
+        self._stop_event.set()
         self.q.put(None)
 
     def drain(self, timeout: float = 0.0) -> None:
@@ -90,9 +95,9 @@ class Engine(threading.Thread):
         app = self.app
         app._startup()
         self.ready.set()
-        nxt = {"poll": 0.0, "equity": 0.0, "sync": 0.0, "reconcile": time.time() + 60, "maint": time.time() + 600, "heartbeat": time.time() + 30, "liq": time.time() + 20,
+        nxt = {"poll": 0.0, "equity": 0.0, "sweep": 0.0, "fx": 0.0, "maint": time.time() + 600, "heartbeat": time.time() + 30, "liq": time.time() + 20,
                "learn": time.time() + 300, "markets": 0.0}
-        while not self._stop.is_set():
+        while not self._stop_event.is_set():
             self.heartbeat = time.time()
             now = time.time()
             due = min(nxt.values())
@@ -109,17 +114,16 @@ class Engine(threading.Thread):
                 if now >= nxt["poll"]:
                     if app.hub.markets:
                         app.hub.poll(between=lambda: self.drain(0.0))
-                        app._poll_live()
                     nxt["poll"] = time.time() + app.settings["market"]["poll_seconds"]
                 if now >= nxt["equity"]:
                     app._snapshot_equity()
                     nxt["equity"] = now + 60
-                if now >= nxt["sync"]:
-                    app._sync_live()
-                    nxt["sync"] = now + 10
-                if now >= nxt["reconcile"]:
-                    app._reconcile_live()
-                    nxt["reconcile"] = now + 300
+                if now >= nxt["sweep"]:
+                    app.paper_runtimes()  # sécurité : écarte tout compte actif qui ne serait pas simulé
+                    nxt["sweep"] = now + 10
+                if now >= nxt["fx"]:
+                    app._refresh_fx()
+                    nxt["fx"] = now + 30
                 if now >= nxt["maint"]:
                     app._maintenance()
                     nxt["maint"] = now + 3600
@@ -138,14 +142,14 @@ class Engine(threading.Thread):
             self.drain(timeout=0.0)
 
 
-class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
+class App(LiveMixin, PortfolioMixin, PerformanceMixin, ChampionMixin, JournalMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
     """Application complète. Les méthodes sont réparties par thème dans les modules *Mixin."""
 
     def __init__(self, data_dir: Path, *, source=None, start: bool = True, settings_override: dict | None = None):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.db = Database(self.data_dir / "sentinelle.db")
-        self.bus = EventBus()
+        self.bus = EventBus(self.db)
         self.secrets = SecretStore(self.data_dir / "secrets.json")
         self.settings = self._load_settings(settings_override)
         self.source = source or build_source(self.settings)
@@ -159,8 +163,8 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
         self.agents: dict[str, TradingAgent] = {}
         self.agent_state: dict[str, dict] = {name: {"status": "arrêté", "message": None} for name in AGENTS}
         self.snapshots: dict[int, dict] = {}
-        self.live_status: dict = {"connected": False, "error": None}
-        self.live_prices: LivePrices | None = None
+        # Ancien état du « portefeuille réel » : purement informatif, aucune décision n'en dépend.
+        self.live_status: dict = {"connected": False, "locked": True, "error": None}
         self.started_at = time.time()
         self.extensions: list[Any] = []  # actualités, Telegram (démarrés par le serveur)
         self._feat_cache: dict[tuple, tuple[float, Any]] = {}
@@ -176,7 +180,8 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
             from ..market.crosscheck import CrossChecker
 
             self.crosscheck = CrossChecker(self.settings["market"]["source"])
-        self._ensure_default_accounts()
+        self.fx = self._build_fx()
+        self._init_portfolio()
         self.engine = Engine(self)
         if start:
             self.engine.start()
@@ -244,34 +249,35 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
             self._refresh_watch()
             for name in list(self.agents):
                 self._restart_agent_later(name)
-        for rt in self.runtimes.values():
-            if isinstance(rt.broker, PaperBroker):
-                rt.broker.fee_rate = new["paper"]["fee_rate"]
-                rt.broker.slip = new["paper"]["slippage_bps"] / 10_000
+        for _aid, rt in self.paper_runtimes():  # écarte au passage tout compte actif non simulé
+            rt.broker.trade_quote = new["general"]["quote"]
+            rt.broker.fee_rate = new["paper"]["fee_rate"]
+            rt.broker.slip = new["paper"]["slippage_bps"] / 10_000
+            if rt.broker.fx_fn is not None:
+                rt.broker.fx_cost = new["portfolio"]["fx_cost_bps"] / 10_000
         self.bus.publish("settings", {})
         return new
 
     # ======================================================================
     # Démarrage
     # ======================================================================
-    def _ensure_default_accounts(self) -> None:
-        quote = self.settings["general"]["quote"]
-        initial = self.settings["paper"]["initial_balance"]
-        for role, name in (("ai_training", "Entraînement IA"), ("manual", "Mon compte papier")):
-            if not self.db.one("SELECT id FROM accounts WHERE role = ? AND archived = 0", (role,)):
-                acc = self.db.insert("accounts", {"name": name, "kind": "paper", "role": role, "quote": quote,
-                                                  "initial_balance": initial, "created_at": time.time(), "data": "{}"})
-                self.db.execute("INSERT INTO balances(account_id, asset, total) VALUES (?, ?, ?)", (acc, quote, initial))
-
     def _startup(self) -> None:
         self._load_markets()
-        for acc in self.db.query("SELECT * FROM accounts WHERE archived = 0 AND kind = 'paper'"):
+        for acc in self.tradable_accounts():  # portefeuille principal, ou anciens comptes avant la migration
             self._make_paper_runtime(acc)
-        if self.secrets.get("exchange_api_key"):
-            self._connect_live()
+        # Simulation uniquement : aucune connexion à un exchange, même si d'anciennes clés existent.
+        self._connect_live()
+        status = self.paper_only_status()
+        if status["legacy_accounts"] or status["legacy_keys"]:
+            self.db.log("warning", "sécurité",
+                        "Simulation uniquement : anciens comptes réels et anciennes clés API conservés mais ignorés",
+                        {"comptes": [a["id"] for a in status["legacy_accounts"]], "anciennes_cles": status["legacy_keys"]})
         self._refresh_watch()
         for row in self.db.query("SELECT * FROM agents WHERE enabled = 1"):
-            if row["name"] in AGENTS:
+            if row["name"] in RETIRED_AGENTS:
+                self.db.update("agents", row["name"], {"enabled": 0}, key="name")
+                self.db.log("warning", "sécurité", f"{RETIRED_AGENTS[row['name']]} non relancée : simulation uniquement")
+            elif row["name"] in AGENTS:
                 try:
                     self.start_agent(row["name"], auto=True)
                 except UserError as exc:
@@ -289,15 +295,38 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
     def _refresh_watch(self) -> None:
         wl = list(self.settings["general"]["watchlist"])
         quote = self.settings["general"]["quote"]
-        extra = {p["symbol"] for p in self.db.query("SELECT DISTINCT symbol FROM positions WHERE status IN ('open', 'pending')")}
+        extra = {p["symbol"] for p in self.db.query(
+            "SELECT DISTINCT p.symbol FROM positions p JOIN accounts a ON a.id = p.account_id "
+            "WHERE p.status IN ('open', 'pending') AND a.kind = 'paper'")}
         btc = f"BTC/{quote}"
         syms = set(wl) | extra | ({btc} if not self.hub.markets or btc in self.hub.markets else set())
         self.hub.set_watch(syms)
 
     def _make_paper_runtime(self, acc: dict) -> AccountRuntime:
+        require_paper_account(acc, "ouverture d'un compte non simulé", self.db)
+        if not self.is_tradable(acc):
+            raise UserError("Seul le portefeuille principal est actif")
         p = self.settings["paper"]
         clock = self.market_clock
-        broker = PaperBroker(self.db, acc["id"], acc["quote"], self.hub.market, self.hub.price, p["fee_rate"], p["slippage_bps"], clock)
+        trade_quote = self.settings["general"]["quote"]
+        cross = acc["quote"] != trade_quote  # portefeuille en euros, paires cotées en USDC : conversion explicite
+        from ..execution.book_execution import read_public_book
+        from ..market.sources import SyntheticSource
+        book_fn = None if isinstance(self.source, SyntheticSource) else lambda symbol: read_public_book(self.source, symbol)
+
+        def fresh_price(symbol):
+            return self.hub.price(symbol) if self.hub.is_fresh(symbol, 180) else None
+
+        broker = PaperBroker(self.db, acc["id"], acc["quote"], self.hub.market, fresh_price, p["fee_rate"], p["slippage_bps"], clock,
+                             fx_fn=self._fx_quote if acc["role"] == "main" else None,
+                             fx_cost_bps=self.settings["portfolio"]["fx_cost_bps"] if cross else 0.0,
+                             trade_quote=trade_quote, spread_fn=self._half_spread, book_fn=book_fn)
+        if not self.db.scalar("SELECT COUNT(*) FROM ledger WHERE account_id = ?", (acc["id"],), 0):
+            # compte créé avant le grand livre : ses soldes y sont repris tels quels (rien n'est modifié)
+            for row in self.db.query("SELECT asset, total FROM balances WHERE account_id = ?", (acc["id"],)):
+                self.db.insert("ledger", {"account_id": acc["id"], "ts": clock(), "kind": "ajustement", "asset": row["asset"],
+                                          "amount": row["total"], "balance_after": row["total"],
+                                          "note": "Solde repris à la mise en place du grand livre"})
         rt = AccountRuntime(acc, broker, PositionManager(self.db, broker, self.bus, clock),
                             RiskManager(self.db, acc["id"], lambda: self.settings, clock))
         rt.positions.close_listeners.append(self._on_position_closed)
@@ -308,9 +337,8 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
     # Flux de marché
     # ======================================================================
     def _on_tick(self, symbol, o, h, l, c, start_ms, end_ms) -> None:
-        for rt in list(self.runtimes.values()):
-            if isinstance(rt.broker, PaperBroker):
-                rt.broker.process_bar(symbol, o, h, l, c, start_ms, end_ms)
+        for _aid, rt in self.paper_runtimes():
+            rt.broker.process_bar(symbol, o, h, l, c, start_ms, end_ms)
 
     def _features_for(self, symbol: str, tf: str):
         series = self.hub.series(symbol, tf)
@@ -338,7 +366,7 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
 
     def _snapshot_equity(self) -> None:
         now = self.market_clock()
-        for aid, rt in list(self.runtimes.items()):
+        for aid, rt in self.paper_runtimes():
             try:
                 eq, cash = rt.broker.equity()
             except OrderError as exc:
@@ -346,9 +374,20 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
                 continue
             except Exception:
                 continue
-            if eq <= 0 and not isinstance(rt.broker, PaperBroker):
-                continue
-            self.db.execute("INSERT OR REPLACE INTO equity(account_id, ts, equity, cash) VALUES (?, ?, ?, ?)", (aid, now, eq, cash))
+            remaining = 0.0
+            for pos in rt.positions.open_positions():
+                if not pos["qty"]:
+                    continue
+                if rt.broker.price_fn(pos["symbol"]) is None or rt.broker.fx_rate(pos["symbol"]) is None:
+                    remaining = None
+                    break
+                pnl = rt.positions.unrealized(pos)["pnl"]
+                if pnl is None:
+                    remaining = None
+                    break
+                remaining += pnl - pos["realized_pnl"]
+            self.db.execute("INSERT OR REPLACE INTO equity(account_id, ts, equity, cash, unrealized) VALUES (?, ?, ?, ?, ?)",
+                            (aid, now, eq, cash, remaining))
             self.snapshots[aid] = {"equity": eq, "cash": cash, "ts": now, "error": None}
             self.bus.publish("equity", {"account_id": aid, "equity": eq, "cash": cash, "ts": now})
 
@@ -420,19 +459,27 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
     # Comptes
     # ======================================================================
     def runtime(self, account_id: int) -> AccountRuntime:
-        rt = self.runtimes.get(int(account_id))
+        """Compte actif, TOUJOURS simulé. Tout autre cas est refusé (et journalisé)."""
+        aid = int(account_id)
+        rt = self.runtimes.get(aid)
         if rt is None:
-            acc = self.db.one("SELECT * FROM accounts WHERE id = ?", (account_id,))
+            acc = self.db.one("SELECT * FROM accounts WHERE id = ?", (aid,))
             if acc is None:
                 raise UserError("Compte introuvable")
-            if acc["kind"] == "live":
-                raise UserError("Portefeuille réel non connecté : renseignez vos clés API dans les réglages")
+            require_paper_account(acc, "utilisation d'un compte non simulé", self.db)
+            if not self.is_tradable(acc):
+                raise UserError("Ancien compte papier en lecture seule : le trading se fait sur le portefeuille principal")
             if not self.hub.markets:
                 raise UserError("Données de marché pas encore disponibles, patientez quelques secondes")
             rt = self._make_paper_runtime(acc)
+        if not is_paper_runtime(rt):
+            self._evict_runtime(aid, "compte actif non simulé écarté")
+            require_paper_runtime(rt, "utilisation d'un compte non simulé", self.db)
         return rt
 
     def create_paper_account(self, name: str, initial: float) -> dict:
+        if self.portfolio_mode() == "main":
+            raise UserError("Un seul portefeuille papier : le portefeuille principal. Pour changer son capital, réinitialisez-le.")
         name = (name or "").strip()[:60] or "Compte papier"
         if not (10 <= initial <= 10_000_000):
             raise UserError("Capital de départ entre 10 et 10 000 000")
@@ -447,35 +494,45 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
 
     def reset_paper_account(self, account_id: int, initial: float | None) -> None:
         rt = self.runtime(account_id)
-        if not isinstance(rt.broker, PaperBroker):
-            raise UserError("Seul un compte papier peut être réinitialisé")
         if any(agent.account_id == account_id for agent in self.agents.values()):
             raise UserError("Arrêtez d'abord l'IA qui utilise ce compte")
-        amount = float(initial or rt.account["initial_balance"] or self.settings["paper"]["initial_balance"])
-        rt.broker.reset(amount)
-        self.db.execute("DELETE FROM equity WHERE account_id = ?", (account_id,))
-        self.db.execute("UPDATE accounts SET initial_balance = ?, data = '{}' WHERE id = ?", (amount, account_id))
+        if initial is not None and float(initial) != 30:
+            raise UserError("Le portefeuille principal se réinitialise à 30 EUR fictifs")
+        amount = 30.0
+        with self.db.transaction():
+            rt.broker.reset(amount)
+            self.db.execute("DELETE FROM equity WHERE account_id = ?", (account_id,))
+            self.db.execute("UPDATE accounts SET initial_balance = ?, data = '{}' WHERE id = ?", (amount, account_id))
+        rt.account["initial_balance"] = amount
         self.db.log("info", "comptes", f"Compte {rt.account['name']} réinitialisé à {amount:,.2f}")
 
     def account_summary(self, account_id: int) -> dict:
         acc = self.db.one("SELECT * FROM accounts WHERE id = ?", (account_id,))
         if acc is None:
             raise UserError("Compte introuvable")
-        rt = self.runtimes.get(account_id)
-        snap = self.snapshots.get(account_id, {})
         out = {k: acc[k] for k in ("id", "name", "kind", "role", "quote", "initial_balance", "created_at")}
-        out["connected"] = rt is not None
-        if rt is None:
+        if acc["kind"] != "paper":
+            # ancien compte réel : affiché pour mémoire, jamais connecté ni utilisé
+            out.update(connected=False, legacy=True, error="Ancien compte réel : conservé pour mémoire, inutilisable (simulation uniquement)")
             return out
-        if isinstance(rt.broker, PaperBroker):
-            eq, cash = rt.broker.equity()
-            balances = rt.broker.balances()
-        else:
-            eq, cash = snap.get("equity"), snap.get("cash")
-            balances = {}
-            cached = rt.broker._balance[1]
-            if cached:
-                balances = {k: float(v) for k, v in (cached.get("total") or {}).items() if v}
+        rt = self.runtimes.get(account_id)
+        if rt is not None and not is_paper_runtime(rt):
+            self._evict_runtime(account_id, "compte actif non simulé écarté")
+            rt = None
+        snap = self.snapshots.get(account_id, {})
+        out["connected"] = rt is not None
+        out["tradable"] = self.is_tradable(acc)
+        if rt is None:
+            if not out["tradable"]:  # ancien compte papier : dernière valeur connue, pour mémoire
+                last = self.db.one("SELECT equity, cash FROM equity WHERE account_id = ? ORDER BY ts DESC LIMIT 1", (account_id,))
+                balances = {r["asset"]: r["total"] for r in self.db.query("SELECT asset, total FROM balances WHERE account_id=?", (account_id,))}
+                out.update(legacy=True, balances=balances, equity=last["equity"] if last else acc["initial_balance"], cash=last["cash"] if last else None,
+                           positions=[], archived_paper=True,
+                           total_pnl=(last["equity"] - acc["initial_balance"]) if last and acc["initial_balance"] else None)
+            return out
+        parts = rt.broker.breakdown()
+        eq, cash = parts["equity"], parts["cash"]
+        balances = rt.broker.balances()
         risk = rt.risk.state(eq) if eq else {}
         positions = []
         for p in rt.positions.open_positions():
@@ -488,13 +545,19 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
         day_pnl = (eq - risk.get("day_start_equity", eq)) if eq else None
         total_pnl = (eq - acc["initial_balance"]) if (eq and acc["initial_balance"] and acc["kind"] == "paper") else None
         out.update(equity=eq, cash=cash, balances=balances, positions=positions, orders=orders, risk=risk,
-                   day_pnl=day_pnl, total_pnl=total_pnl, error=snap.get("error"))
+                   day_pnl=day_pnl, total_pnl=total_pnl, error=snap.get("error"),
+                   available=parts["available"], reserved=parts["reserved"], invested=parts["invested"],
+                   trade_quote=rt.broker.trade_quote)
+        if rt.broker.fx_fn is not None and rt.broker.trade_quote != rt.broker.quote:
+            q = self.fx.latest(rt.broker.trade_quote)
+            out["fx"] = q.to_dict(self.market_clock()) if q else None
         return out
 
     # ======================================================================
     # Vue d'ensemble
     # ======================================================================
     def overview(self) -> dict:
+        self.paper_runtimes()  # sécurité : écarte tout compte actif qui ne serait pas simulé
         accounts = []
         for acc in self.db.query("SELECT * FROM accounts WHERE archived = 0 ORDER BY id"):
             try:
@@ -510,7 +573,9 @@ class App(LiveMixin, TradingMixin, AgentsMixin, TrainingMixin, LearningMixin):
             "market": self.hub.snapshot(),
             "accounts": accounts,
             "agents": self.agents_status(),
-            "live": dict(self.live_status),
+            "live": {"connected": False, "locked": True},
+            "paper_only": self.paper_only_status(),
+            "portfolio": self.portfolio_status(),
             "jobs": self.jobs.list()[:5],
             "settings_summary": {"watchlist": self.settings["general"]["watchlist"], "timeframe": self.settings["ai"]["timeframe"],
                                  "quote": self.settings["general"]["quote"], "source": self.settings["market"]["source"]},

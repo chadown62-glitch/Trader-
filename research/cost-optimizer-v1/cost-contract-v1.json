@@ -1,0 +1,1096 @@
+{
+ "bar_touch_optimism": {
+  "join/300s/conservative/cancel": {
+   "bar_touch": 445,
+   "bar_touch_rate": 1.0,
+   "n": 445,
+   "tape_fill": 348,
+   "tape_fill_rate": 0.7820224719101123
+  },
+  "join/300s/optimistic/cancel": {
+   "bar_touch": 445,
+   "bar_touch_rate": 1.0,
+   "n": 445,
+   "tape_fill": 412,
+   "tape_fill_rate": 0.9258426966292135
+  },
+  "join/30s/conservative/cancel": {
+   "bar_touch": 445,
+   "bar_touch_rate": 1.0,
+   "n": 445,
+   "tape_fill": 241,
+   "tape_fill_rate": 0.5415730337078651
+  },
+  "join/30s/optimistic/cancel": {
+   "bar_touch": 445,
+   "bar_touch_rate": 1.0,
+   "n": 445,
+   "tape_fill": 347,
+   "tape_fill_rate": 0.7797752808988764
+  },
+  "join/60s/conservative/cancel": {
+   "bar_touch": 445,
+   "bar_touch_rate": 1.0,
+   "n": 445,
+   "tape_fill": 285,
+   "tape_fill_rate": 0.6404494382022472
+  },
+  "join/60s/optimistic/cancel": {
+   "bar_touch": 445,
+   "bar_touch_rate": 1.0,
+   "n": 445,
+   "tape_fill": 382,
+   "tape_fill_rate": 0.8584269662921349
+  }
+ },
+ "can_trade": false,
+ "classes": {
+  "eur_direct": {
+   "fee_maker": {
+    "as_of": null,
+    "interval": null,
+    "level": "HYPOTHETICAL",
+    "method": null,
+    "n": null,
+    "note": "commission maker 0,10 % ; grille publique connue, non vérifiée dans cet environnement",
+    "sha256": null,
+    "source": "https://www.binance.com/en/fee/schedule",
+    "unit": "bps",
+    "value": 10.0
+   },
+   "fee_taker": {
+    "as_of": null,
+    "interval": null,
+    "level": "HYPOTHETICAL",
+    "method": null,
+    "n": null,
+    "note": "commission taker 0,10 % ; grille publique connue, non vérifiée dans cet environnement",
+    "sha256": null,
+    "source": "https://www.binance.com/en/fee/schedule",
+    "unit": "bps",
+    "value": 10.0
+   },
+   "half_spread": {
+    "as_of": null,
+    "interval": [
+     0.706738074527081,
+     1.4060011628088902
+    ],
+    "level": "ESTIMATED",
+    "method": "borne haute à 95 % de la moyenne, échantillons d'ouverture (bootstrap par dates)",
+    "n": 145,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 1.4060011628088902
+   },
+   "half_spread_stress": {
+    "as_of": null,
+    "interval": null,
+    "level": "ESTIMATED",
+    "method": "90e centile du demi-écart, tous échantillons",
+    "n": 281,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 3.420908593322191
+   },
+   "no_quote_share": 0.16369047619047616,
+   "slippage": {
+    "as_of": null,
+    "interval": [
+     -1.629789466659568,
+     -0.8828328602718164
+    ],
+    "level": "ESTIMATED",
+    "method": "max(0, borne haute à 95 % de la moyenne du coût au marché à 1 s moins demi-écart et commission), 10 €",
+    "n": 526,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 0.0
+   },
+   "slippage_stress": {
+    "as_of": null,
+    "interval": null,
+    "level": "ESTIMATED",
+    "method": "90e centile du coût au marché à 5 s moins demi-écart et commission, 30 €",
+    "n": 522,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 5.387585833448877
+   }
+  },
+  "fx_eurusdt": {
+   "fee_maker": {
+    "as_of": null,
+    "interval": null,
+    "level": "HYPOTHETICAL",
+    "method": null,
+    "n": null,
+    "note": "commission maker 0,10 % ; grille publique connue, non vérifiée dans cet environnement",
+    "sha256": null,
+    "source": "https://www.binance.com/en/fee/schedule",
+    "unit": "bps",
+    "value": 10.0
+   },
+   "fee_taker": {
+    "as_of": null,
+    "interval": null,
+    "level": "HYPOTHETICAL",
+    "method": null,
+    "n": null,
+    "note": "commission taker 0,10 % ; grille publique connue, non vérifiée dans cet environnement",
+    "sha256": null,
+    "source": "https://www.binance.com/en/fee/schedule",
+    "unit": "bps",
+    "value": 10.0
+   },
+   "half_spread": {
+    "as_of": null,
+    "interval": [
+     0.8050406173036763,
+     1.5624669771257085
+    ],
+    "level": "ESTIMATED",
+    "method": "borne haute à 95 % de la moyenne, échantillons d'ouverture (bootstrap par dates)",
+    "n": 56,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 1.5624669771257085
+   },
+   "half_spread_stress": {
+    "as_of": null,
+    "interval": null,
+    "level": "ESTIMATED",
+    "method": "90e centile du demi-écart, tous échantillons",
+    "n": 111,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 4.39947206335289
+   },
+   "no_quote_share": 0.07499999999999996,
+   "slippage": {
+    "as_of": null,
+    "interval": [
+     -0.29704997338901984,
+     0.10870513880383748
+    ],
+    "level": "ESTIMATED",
+    "method": "max(0, borne haute à 95 % de la moyenne du coût au marché à 1 s moins demi-écart et commission), 10 €",
+    "n": 222,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 0.10870513880383748
+   },
+   "slippage_stress": {
+    "as_of": null,
+    "interval": null,
+    "level": "ESTIMATED",
+    "method": "90e centile du coût au marché à 5 s moins demi-écart et commission, 30 €",
+    "n": 222,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 0.10870513880383748
+   }
+  },
+  "majors_usdt": {
+   "fee_maker": {
+    "as_of": null,
+    "interval": null,
+    "level": "HYPOTHETICAL",
+    "method": null,
+    "n": null,
+    "note": "commission maker 0,10 % ; grille publique connue, non vérifiée dans cet environnement",
+    "sha256": null,
+    "source": "https://www.binance.com/en/fee/schedule",
+    "unit": "bps",
+    "value": 10.0
+   },
+   "fee_taker": {
+    "as_of": null,
+    "interval": null,
+    "level": "HYPOTHETICAL",
+    "method": null,
+    "n": null,
+    "note": "commission taker 0,10 % ; grille publique connue, non vérifiée dans cet environnement",
+    "sha256": null,
+    "source": "https://www.binance.com/en/fee/schedule",
+    "unit": "bps",
+    "value": 10.0
+   },
+   "half_spread": {
+    "as_of": null,
+    "interval": [
+     0.06503332581210981,
+     0.20734994993468422
+    ],
+    "level": "ESTIMATED",
+    "method": "borne haute à 95 % de la moyenne, échantillons d'ouverture (bootstrap par dates)",
+    "n": 120,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 0.20734994993468422
+   },
+   "half_spread_stress": {
+    "as_of": null,
+    "interval": null,
+    "level": "ESTIMATED",
+    "method": "90e centile du demi-écart, tous échantillons",
+    "n": 240,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 0.41679959343147305
+   },
+   "no_quote_share": 0.0,
+   "slippage": {
+    "as_of": null,
+    "interval": [
+     -0.20481195102508745,
+     -0.10679880072740398
+    ],
+    "level": "ESTIMATED",
+    "method": "max(0, borne haute à 95 % de la moyenne du coût au marché à 1 s moins demi-écart et commission), 10 €",
+    "n": 480,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 0.0
+   },
+   "slippage_stress": {
+    "as_of": null,
+    "interval": null,
+    "level": "ESTIMATED",
+    "method": "90e centile du coût au marché à 5 s moins demi-écart et commission, 30 €",
+    "n": 480,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 2.5540053823568725
+   }
+  },
+  "memecoin_usdt": {
+   "fee_maker": {
+    "as_of": null,
+    "interval": null,
+    "level": "HYPOTHETICAL",
+    "method": null,
+    "n": null,
+    "note": "commission maker 0,10 % ; grille publique connue, non vérifiée dans cet environnement",
+    "sha256": null,
+    "source": "https://www.binance.com/en/fee/schedule",
+    "unit": "bps",
+    "value": 10.0
+   },
+   "fee_taker": {
+    "as_of": null,
+    "interval": null,
+    "level": "HYPOTHETICAL",
+    "method": null,
+    "n": null,
+    "note": "commission taker 0,10 % ; grille publique connue, non vérifiée dans cet environnement",
+    "sha256": null,
+    "source": "https://www.binance.com/en/fee/schedule",
+    "unit": "bps",
+    "value": 10.0
+   },
+   "half_spread": {
+    "as_of": null,
+    "interval": [
+     2.139302741861573,
+     4.6854107829036735
+    ],
+    "level": "ESTIMATED",
+    "method": "borne haute à 95 % de la moyenne, échantillons d'ouverture (bootstrap par dates)",
+    "n": 74,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 4.6854107829036735
+   },
+   "half_spread_stress": {
+    "as_of": null,
+    "interval": null,
+    "level": "ESTIMATED",
+    "method": "90e centile du demi-écart, tous échantillons",
+    "n": 145,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 7.713417383893496
+   },
+   "no_quote_share": 0.058441558441558406,
+   "slippage": {
+    "as_of": null,
+    "interval": [
+     -1.7954555765667162,
+     -0.8538661531108461
+    ],
+    "level": "ESTIMATED",
+    "method": "max(0, borne haute à 95 % de la moyenne du coût au marché à 1 s moins demi-écart et commission), 10 €",
+    "n": 279,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 0.0
+   },
+   "slippage_stress": {
+    "as_of": null,
+    "interval": null,
+    "level": "ESTIMATED",
+    "method": "90e centile du coût au marché à 5 s moins demi-écart et commission, 30 €",
+    "n": 280,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 5.427551724139788
+   }
+  },
+  "others_usdt": {
+   "fee_maker": {
+    "as_of": null,
+    "interval": null,
+    "level": "HYPOTHETICAL",
+    "method": null,
+    "n": null,
+    "note": "commission maker 0,10 % ; grille publique connue, non vérifiée dans cet environnement",
+    "sha256": null,
+    "source": "https://www.binance.com/en/fee/schedule",
+    "unit": "bps",
+    "value": 10.0
+   },
+   "fee_taker": {
+    "as_of": null,
+    "interval": null,
+    "level": "HYPOTHETICAL",
+    "method": null,
+    "n": null,
+    "note": "commission taker 0,10 % ; grille publique connue, non vérifiée dans cet environnement",
+    "sha256": null,
+    "source": "https://www.binance.com/en/fee/schedule",
+    "unit": "bps",
+    "value": 10.0
+   },
+   "half_spread": {
+    "as_of": null,
+    "interval": [
+     1.3831954467993237,
+     2.021292385375109
+    ],
+    "level": "ESTIMATED",
+    "method": "borne haute à 95 % de la moyenne, échantillons d'ouverture (bootstrap par dates)",
+    "n": 195,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 2.021292385375109
+   },
+   "half_spread_stress": {
+    "as_of": null,
+    "interval": null,
+    "level": "ESTIMATED",
+    "method": "90e centile du demi-écart, tous échantillons",
+    "n": 382,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 4.190939443654404
+   },
+   "no_quote_share": 0.027989821882951627,
+   "slippage": {
+    "as_of": null,
+    "interval": [
+     -1.6649047764837015,
+     -0.9476820259928536
+    ],
+    "level": "ESTIMATED",
+    "method": "max(0, borne haute à 95 % de la moyenne du coût au marché à 1 s moins demi-écart et commission), 10 €",
+    "n": 754,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 0.0
+   },
+   "slippage_stress": {
+    "as_of": null,
+    "interval": null,
+    "level": "ESTIMATED",
+    "method": "90e centile du coût au marché à 5 s moins demi-écart et commission, 30 €",
+    "n": 753,
+    "note": "",
+    "sha256": null,
+    "source": "archive publique officielle Binance (transactions agrégées)",
+    "unit": "bps",
+    "value": 5.731302113195499
+   }
+  }
+ },
+ "contract": "cost_contract_v1",
+ "conversion": {
+  "alternative": "devise de cotation conservée : une conversion au départ et une à la fin ; risque de change rapporté à part",
+  "per_order": {
+   "as_of": null,
+   "interval": null,
+   "level": "HYPOTHETICAL",
+   "method": "somme des composantes du scénario principal",
+   "n": 56,
+   "note": "appliquée à chaque ordre d'une paire non cotée en euros, comme le moteur actuel",
+   "sha256": null,
+   "source": "demi-écart et glissement EUR/USDT mesurés + commission preneur",
+   "unit": "bps",
+   "value": 11.671172115929545
+  },
+  "per_order_stress": {
+   "as_of": null,
+   "interval": null,
+   "level": "HYPOTHETICAL",
+   "method": "somme des composantes de tension",
+   "n": 111,
+   "note": "tension : conversion à chaque ordre aux 90e centiles",
+   "sha256": null,
+   "source": "composantes de tension EUR/USDT + commission",
+   "unit": "bps",
+   "value": 14.508177202156727
+  }
+ },
+ "coverage": {
+  "eur_direct": {
+   "samples": 336,
+   "share": 0.8363095238095238,
+   "with_quote": 281
+  },
+  "fx_eurusdt": {
+   "samples": 120,
+   "share": 0.925,
+   "with_quote": 111
+  },
+  "majors_usdt": {
+   "samples": 240,
+   "share": 1.0,
+   "with_quote": 240
+  },
+  "memecoin_usdt": {
+   "samples": 154,
+   "share": 0.9415584415584416,
+   "with_quote": 145
+  },
+  "others_usdt": {
+   "samples": 393,
+   "share": 0.9720101781170484,
+   "with_quote": 382
+  }
+ },
+ "created_at": "2026-11-16T08:14:36.575000+00:00",
+ "execution": {
+  "confirmatory": {
+   "candidates": [
+    "improve/300s/conservative/market",
+    "improve/30s/conservative/market",
+    "improve/60s/conservative/market",
+    "join/300s/conservative/market",
+    "join/30s/conservative/market",
+    "join/60s/conservative/market"
+   ],
+   "chosen": "improve/300s/conservative/market",
+   "demonstrated": false,
+   "estimation_mean_shortfall": {
+    "improve/300s/conservative/market": 11.325168488997061,
+    "improve/30s/conservative/market": 11.46056994209088,
+    "improve/60s/conservative/market": 11.624731428761056,
+    "join/300s/conservative/market": 12.076353813794729,
+    "join/30s/conservative/market": 11.893858738067072,
+    "join/60s/conservative/market": 12.200696536733686
+   },
+   "reference": "market@1000ms",
+   "validation_market_minus_chosen": {
+    "ci_high": -1.1619941581298574,
+    "ci_low": -2.827615317130094,
+    "clusters": 127,
+    "estimate": -1.9430028168969118,
+    "n": 1053,
+    "share_a_better": 0.3855650522317189
+   },
+   "validation_optimistic_bound": {
+    "ci_high": 0.3970331135556324,
+    "ci_low": -1.6250454162241599,
+    "clusters": 127,
+    "estimate": -0.6174857545961219,
+    "n": 1055,
+    "share_a_better": 0.32606635071090045
+   }
+  },
+  "passive_improvement_demonstrated": false,
+  "recommended": "market@1000ms",
+  "rule": "une seule comparaison confirmatoire : la variante passive (repli au marché, règle prudente) au plus petit coût moyen sur la moitié d'estimation, contre le marché à 1 s, sur la moitié de validation ; amélioration démontrée si la borne basse à 95 % de (coût marché − coût variante) est > 0 ; sinon le contrat garde l'ordre au marché"
+ },
+ "export_rule": "majors = classe majors_usdt ; others = maximum des classes others_usdt et memecoin_usdt ; glissement = maximum des classes de cryptos en USDT ; conversion par ordre = coût de conversion principal ; minimum d'ordre 5",
+ "fees": {
+  "discounted_taker": {
+   "as_of": null,
+   "interval": null,
+   "level": "HYPOTHETICAL",
+   "method": null,
+   "n": null,
+   "note": "remise de 25 % si les frais sont payés en BNB ; grille publique connue, non vérifiée dans cet environnement",
+   "sha256": null,
+   "source": "https://www.binance.com/en/fee/schedule",
+   "unit": "bps",
+   "value": 7.5
+  },
+  "fee_asset_rule": {
+   "as_of": null,
+   "interval": null,
+   "level": "HYPOTHETICAL",
+   "method": null,
+   "n": null,
+   "note": "sans BNB, la commission est prélevée dans l'actif reçu (achat : actif acheté ; vente : devise de cotation)",
+   "sha256": null,
+   "source": "https://www.binance.com/en/support/faq",
+   "unit": "rule",
+   "value": 1.0
+  },
+  "maker": {
+   "as_of": null,
+   "interval": null,
+   "level": "HYPOTHETICAL",
+   "method": null,
+   "n": null,
+   "note": "commission maker 0,10 % ; grille publique connue, non vérifiée dans cet environnement",
+   "sha256": null,
+   "source": "https://www.binance.com/en/fee/schedule",
+   "unit": "bps",
+   "value": 10.0
+  },
+  "schedule": "binance spot VIP 0",
+  "taker": {
+   "as_of": null,
+   "interval": null,
+   "level": "HYPOTHETICAL",
+   "method": null,
+   "n": null,
+   "note": "commission taker 0,10 % ; grille publique connue, non vérifiée dans cet environnement",
+   "sha256": null,
+   "source": "https://www.binance.com/en/fee/schedule",
+   "unit": "bps",
+   "value": 10.0
+  }
+ },
+ "filters": {
+  "as_of": "2026-11-16",
+  "level": "OBSERVED",
+  "sha256": "4819432ccacd53e1d6f2a6abd9061058b768befe2afacdd571cf3b68aa8fd003"
+ },
+ "inventory": {
+  "eur_direct": {
+   "dust_share": {
+    "max": 0.11011111111111112,
+    "mean": 0.02845419680802712,
+    "median": 0.019408163265306123,
+    "min": 0.00030548302872062663,
+    "n": 145,
+    "p10": 0.006924409448818897,
+    "p90": 0.06002941176470586,
+    "p95": 0.094384615384615,
+    "p99": 0.099
+   },
+   "n": 145,
+   "sizing_error": {
+    "max": -3.4e-05,
+    "mean": -0.015451477655172415,
+    "median": -0.00989952,
+    "min": -0.0886514,
+    "n": 145,
+    "p10": -0.035863102,
+    "p90": -0.0013366800000000005,
+    "p95": -0.0005696000000000002,
+    "p99": -9.366399999999981e-05
+   }
+  },
+  "fx_eurusdt": {
+   "dust_share": {
+    "max": 0.009101010101010101,
+    "mean": 0.00905050505050505,
+    "median": 0.00905050505050505,
+    "min": 0.009,
+    "n": 56,
+    "p10": 0.009,
+    "p90": 0.009101010101010101,
+    "p95": 0.009101010101010101,
+    "p99": 0.009101010101010101
+   },
+   "n": 56,
+   "sizing_error": {
+    "max": 0.0,
+    "mean": -0.004901314348054932,
+    "median": -0.0049889578479237395,
+    "min": -0.00991904489328645,
+    "n": 56,
+    "p10": -0.009908691609930222,
+    "p90": 0.0,
+    "p95": 0.0,
+    "p99": 0.0
+   }
+  },
+  "majors_usdt": {
+   "dust_share": {
+    "max": 0.11011111111111112,
+    "mean": 0.03345904832294429,
+    "median": 0.026027027027027028,
+    "min": 0.00045348837209302327,
+    "n": 120,
+    "p10": 0.012092105263157895,
+    "p90": 0.06566666666666666,
+    "p95": 0.099,
+    "p99": 0.099
+   },
+   "n": 120,
+   "sizing_error": {
+    "max": -0.0002230675909878683,
+    "mean": -0.01707101282034785,
+    "median": -0.01128825565442913,
+    "min": -0.089116821980978,
+    "n": 120,
+    "p10": -0.04384290053392262,
+    "p90": -0.001592281961371901,
+    "p95": -0.0011529012926883033,
+    "p99": -0.00033919591389005395
+   }
+  },
+  "memecoin_usdt": {
+   "dust_share": {
+    "max": 0.036037037037037034,
+    "mean": 0.005006154636635249,
+    "median": 1.819793309996993e-06,
+    "min": 1.4458040357209984e-08,
+    "n": 74,
+    "p10": 1.6085069653561083e-07,
+    "p90": 0.017084415584415587,
+    "p95": 0.021727272727272727,
+    "p99": 0.02927777777777774
+   },
+   "n": 74,
+   "sizing_error": {
+    "max": 0.0,
+    "mean": -0.002611884708779836,
+    "median": -3.405234066417293e-06,
+    "min": -0.01902439024390244,
+    "n": 74,
+    "p10": -0.008031733714407635,
+    "p90": -1.6077543479488634e-07,
+    "p95": -7.055994469455462e-08,
+    "p99": -1.862720081653493e-08
+   }
+  },
+  "others_usdt": {
+   "dust_share": {
+    "max": 0.3323333333333333,
+    "mean": 0.020973956887023158,
+    "median": 0.00800900900900901,
+    "min": 1.7984390906006108e-05,
+    "n": 195,
+    "p10": 0.0008629051870896015,
+    "p90": 0.0523333333333333,
+    "p95": 0.08460606060606048,
+    "p99": 0.16766666666666674
+   },
+   "n": 195,
+   "sizing_error": {
+    "max": -6.754474839581222e-06,
+    "mean": -0.009333762059574481,
+    "median": -0.0048489840746842395,
+    "min": -0.13044444444444445,
+    "n": 195,
+    "p10": -0.021564265978284067,
+    "p90": -0.0003925416102065487,
+    "p95": -0.00019339816717647512,
+    "p99": -5.9347490406322016e-05
+   }
+  }
+ },
+ "kind": "cost-contract",
+ "limits": [
+  "grille de frais non archivable ici (page publique inaccessible) : commission traitée comme une hypothèse",
+  "pas de carnets historiques : écart et prix estimés à partir des transactions, erreur mesurée par des sondes récentes",
+  "file d'attente inconnue : les ordres passifs sont bornés (prudent / optimiste), jamais supposés exécutés",
+  "filtres de marché observés au 16/11/2026, appliqués au passé (les pas de quantité ont pu changer)"
+ ],
+ "measures_sha256": "25a475a07f5ce14c92de4bd5ea093d0c00bff479b24ab961853744788181f9b9",
+ "memecoin_dex": {
+  "mev_bps": {
+   "as_of": null,
+   "interval": [
+    0.0,
+    200.0
+   ],
+   "level": "HYPOTHETICAL",
+   "method": null,
+   "n": null,
+   "note": "perte face aux robots qui s'intercalent autour d'un ordre visible",
+   "sha256": null,
+   "source": "hypothèse du laboratoire",
+   "unit": "bps",
+   "value": 0.0
+  },
+  "network_fee_eur_bsc": {
+   "as_of": null,
+   "interval": [
+    0.01,
+    0.5
+   ],
+   "level": "HYPOTHETICAL",
+   "method": null,
+   "n": null,
+   "note": "frais de transaction sur BNB Smart Chain",
+   "sha256": null,
+   "source": "hypothèse du laboratoire",
+   "unit": "EUR",
+   "value": 0.05
+  },
+  "network_fee_eur_ethereum": {
+   "as_of": null,
+   "interval": [
+    0.2,
+    20.0
+   ],
+   "level": "HYPOTHETICAL",
+   "method": null,
+   "n": null,
+   "note": "frais de transaction d'un échange sur Ethereum, très variables selon l'encombrement",
+   "sha256": null,
+   "source": "hypothèse du laboratoire",
+   "unit": "EUR",
+   "value": 1.0
+  },
+  "network_fee_eur_solana": {
+   "as_of": null,
+   "interval": [
+    0.0005,
+    0.5
+   ],
+   "level": "HYPOTHETICAL",
+   "method": null,
+   "n": null,
+   "note": "frais de base et de priorité d'une transaction Solana",
+   "sha256": null,
+   "source": "hypothèse du laboratoire",
+   "unit": "EUR",
+   "value": 0.002
+  },
+  "pool_fee_bps": {
+   "as_of": null,
+   "interval": [
+    25.0,
+    100.0
+   ],
+   "level": "HYPOTHETICAL",
+   "method": null,
+   "n": null,
+   "note": "frais du pool d'échange (souvent 0,25 à 1 %)",
+   "sha256": null,
+   "source": "hypothèse du laboratoire",
+   "unit": "bps",
+   "value": 30.0
+  },
+  "price_impact": {
+   "as_of": null,
+   "interval": null,
+   "level": "HYPOTHETICAL",
+   "method": null,
+   "n": null,
+   "note": "dépend des réserves du pool, non collectées : non estimable ici",
+   "sha256": null,
+   "source": "hypothèse du laboratoire",
+   "unit": "unknown",
+   "value": 0.0
+  },
+  "token_tax_bps": {
+   "as_of": null,
+   "interval": [
+    0.0,
+    2000.0
+   ],
+   "level": "HYPOTHETICAL",
+   "method": null,
+   "n": null,
+   "note": "taxe de transfert codée dans certains jetons ; peut être confiscatoire (jetons piégés)",
+   "sha256": null,
+   "source": "hypothèse du laboratoire",
+   "unit": "bps",
+   "value": 0.0
+  }
+ },
+ "missing_classes": [],
+ "not_covered": [
+  "equity",
+  "etf",
+  "forex",
+  "commodity"
+ ],
+ "plan_id": "cost-optimizer-v1-m1",
+ "plan_sha256": "1880fac08245ac33afc64b032209b81d6344c0a7b1c53c23ea599f6dde4e6791",
+ "routing": {
+  "BTC": {
+   "direct": {
+    "max": 14.868360867268333,
+    "mean": 10.153315598303886,
+    "median": 10.342272133176818,
+    "min": 2.4085462718807444,
+    "n": 53,
+    "p10": 6.823420058551523,
+    "p90": 12.807124161691373,
+    "p95": 14.064521046788231,
+    "p99": 14.643936684324096
+   },
+   "pairs": 53,
+   "via_minus_direct": {
+    "ci_high": 11.688910003823633,
+    "ci_low": 10.065955384350248,
+    "clusters": 53,
+    "estimate": 10.849201671040634,
+    "n": 53,
+    "share_a_better": 0.0
+   },
+   "via_usdt": {
+    "max": 25.934247430834404,
+    "mean": 21.002517269344516,
+    "median": 20.459938227968383,
+    "min": 17.18069176505118,
+    "n": 53,
+    "p10": 18.88275484891684,
+    "p90": 24.513500841780047,
+    "p95": 24.66672956040511,
+    "p99": 25.7538171337428
+   }
+  },
+  "ETH": {
+   "direct": {
+    "max": 21.95861104870263,
+    "mean": 9.791305330128349,
+    "median": 9.903576004136754,
+    "min": -1.4372205112679983,
+    "n": 51,
+    "p10": 2.811296160998029,
+    "p90": 15.376235146200885,
+    "p95": 18.615347259057884,
+    "p99": 21.396058655427332
+   },
+   "pairs": 51,
+   "via_minus_direct": {
+    "ci_high": 12.867352990373075,
+    "ci_low": 10.001573751394282,
+    "clusters": 51,
+    "estimate": 11.426884871883285,
+    "n": 51,
+    "share_a_better": 0.0196078431372549
+   },
+   "via_usdt": {
+    "max": 28.05052512919491,
+    "mean": 21.21819020201163,
+    "median": 20.50792702746387,
+    "min": 15.449462625387948,
+    "n": 51,
+    "p10": 18.262739539915586,
+    "p90": 24.562156534748947,
+    "p95": 25.33895026990559,
+    "p99": 27.41422703239884
+   }
+  },
+  "SOL": {
+   "direct": {
+    "max": 42.903191602162465,
+    "mean": 11.986872344919343,
+    "median": 12.764408385331489,
+    "min": -17.432500059576032,
+    "n": 30,
+    "p10": -3.3916826190728466,
+    "p90": 25.291610691383934,
+    "p95": 26.83150516539994,
+    "p99": 38.599806898582024
+   },
+   "pairs": 30,
+   "via_minus_direct": {
+    "ci_high": 14.106975694779488,
+    "ci_low": 6.034789029905284,
+    "clusters": 30,
+    "estimate": 10.076899829794055,
+    "n": 30,
+    "share_a_better": 0.13333333333333333
+   },
+   "via_usdt": {
+    "max": 28.528000578229857,
+    "mean": 22.0637721747134,
+    "median": 21.411085921985556,
+    "min": 16.955825714240127,
+    "n": 30,
+    "p10": 19.180568678652175,
+    "p90": 25.09614006679193,
+    "p95": 25.986065352859583,
+    "p99": 27.941177071426434
+   }
+  }
+ },
+ "rules": {
+  "conversion_alternative": "devise de cotation conservée : une conversion au départ et une à la fin ; risque de change rapporté à part",
+  "conversion_primary": "par ordre, comme le moteur actuel : demi-écart EUR/USDT (borne haute) + commission preneur",
+  "dust": "reliquat d'un aller-retour de 10 € calculé avec les filtres observés et la règle « frais dans l'actif reçu » ; rapporté à part, non ajouté aux coûts (la valeur reste détenue)",
+  "estimator_correction": "si les sondes montrent une sous-estimation moyenne du demi-écart (borne haute de l'erreur < 0), le demi-écart du contrat est augmenté de la valeur absolue de la borne basse de l'erreur",
+  "execution_confirmatory": "une seule comparaison confirmatoire : la variante passive (repli au marché, règle prudente) au plus petit coût moyen sur la moitié d'estimation, contre le marché à 1 s, sur la moitié de validation ; amélioration démontrée si la borne basse à 95 % de (coût marché − coût variante) est > 0 ; sinon le contrat garde l'ordre au marché",
+  "export_alpha_lab": "majors = classe majors_usdt ; others = maximum des classes others_usdt et memecoin_usdt ; glissement = maximum des classes de cryptos en USDT ; conversion par ordre = coût de conversion principal ; minimum d'ordre 5",
+  "fees": "commission preneur du niveau VIP 0, sans remise (hypothèse : la grille n'a pas pu être archivée) ; remise BNB = variante",
+  "half_spread_primary": "borne haute à 95 % de la moyenne du demi-écart estimé, échantillons d'ouverture, par classe",
+  "half_spread_stress": "90e centile du demi-écart estimé, tous échantillons de la classe",
+  "missing_quote": "un échantillon sans estimation possible est compté (part des échantillons sans liquidité visible), jamais remplacé",
+  "slippage_primary": "max(0, borne haute à 95 % de la moyenne de (coût au marché à 1 s − demi-écart − commission)), ordre de 10 €",
+  "slippage_stress": "90e centile de (coût au marché à 5 s − demi-écart − commission), ordre de 30 €"
+ },
+ "schema": 1,
+ "status": "PROPOSED_FROZEN",
+ "stress_states": {
+  "after_10pct_day": {
+   "half_spread": {
+    "max": 15.999999999999659,
+    "mean": 2.362438141538725,
+    "median": 1.6898552357349321,
+    "min": -2.0029890760056617,
+    "n": 55,
+    "p10": 0.0,
+    "p90": 4.858293918521647,
+    "p95": 7.559934672677652,
+    "p99": 15.100400744151726
+   },
+   "samples": 55,
+   "shortfall": {
+    "max": 36.55982189148762,
+    "mean": 9.189284028918966,
+    "median": 9.474707253343317,
+    "min": -14.682806545616705,
+    "n": 55,
+    "p10": 0.7723707772260139,
+    "p90": 14.997001383274663,
+    "p95": 17.05468456698543,
+    "p99": 30.174266870084708
+   }
+  },
+  "prior_day_move": {
+   "high": {
+    "max": 44.418575748790104,
+    "mean": 10.047877127630093,
+    "median": 10.023017555835063,
+    "min": -20.261869892816126,
+    "n": 287,
+    "p10": 4.901493652617221,
+    "p90": 15.937861945931564,
+    "p95": 19.60034919507587,
+    "p99": 28.40817647734307
+   },
+   "high_half_spread": {
+    "max": 15.999999999999659,
+    "mean": 1.48945218004255,
+    "median": 0.7036394756338339,
+    "min": -3.8095238095238253,
+    "n": 290,
+    "p10": -0.24880666196389964,
+    "p90": 4.490426423932192,
+    "p95": 5.975091571655021,
+    "p99": 12.592401739851384
+   },
+   "rest": {
+    "max": 55.29411764705972,
+    "mean": 10.599333723950549,
+    "median": 10.35122900049443,
+    "min": -17.432500059576032,
+    "n": 846,
+    "p10": 7.399864962402084,
+    "p90": 14.405810712666401,
+    "p95": 16.158461339536167,
+    "p99": 22.080693540911874
+   },
+   "rest_half_spread": {
+    "max": 46.51162790697729,
+    "mean": 1.3046492134333882,
+    "median": 0.4745859237814484,
+    "min": -4.422666824306237,
+    "n": 869,
+    "p10": 0.0,
+    "p90": 4.162635945240485,
+    "p95": 5.051016490923428,
+    "p99": 9.731116902097368
+   },
+   "threshold": 0.04243929191643847
+  },
+  "vol30": {
+   "high": {
+    "max": 42.903191602162465,
+    "mean": 10.479394498668025,
+    "median": 10.370055452862621,
+    "min": -20.261869892816126,
+    "n": 289,
+    "p10": 5.321330962157722,
+    "p90": 16.468416620601314,
+    "p95": 20.247190867896574,
+    "p99": 28.181360211064632
+   },
+   "high_half_spread": {
+    "max": 15.999999999999659,
+    "mean": 1.8815775096338059,
+    "median": 1.3000520020807482,
+    "min": -4.422666824306237,
+    "n": 293,
+    "p10": 0.0,
+    "p90": 4.752840282926154,
+    "p95": 6.888944914079796,
+    "p99": 12.852801743943308
+   },
+   "rest": {
+    "max": 55.29411764705972,
+    "mean": 10.45288158291107,
+    "median": 10.239846796544466,
+    "min": -17.432500059576032,
+    "n": 844,
+    "p10": 7.349562456665948,
+    "p90": 14.311682270638894,
+    "p95": 15.541819038284512,
+    "p99": 22.801453596385652
+   },
+   "rest_half_spread": {
+    "max": 46.51162790697729,
+    "mean": 1.1713384392185318,
+    "median": 0.44386692559616364,
+    "min": -4.28108372576646,
+    "n": 866,
+    "p10": 0.0,
+    "p90": 3.599119650550811,
+    "p95": 4.888405886992832,
+    "p99": 9.519557462122174
+   },
+   "threshold": 0.05348567352440532
+  }
+ },
+ "version": "1.0.0"
+}

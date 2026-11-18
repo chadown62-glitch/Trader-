@@ -20,6 +20,7 @@ from typing import Callable, Protocol
 import numpy as np
 
 from ..config import timeframe_ms
+from ..safety import forbid
 from .markets import MarketInfo, generic_market
 
 BINANCE_PUBLIC_MIRROR = "https://data-api.binance.vision/api/v3"
@@ -37,17 +38,75 @@ class MarketSource(Protocol):
     def now_ms(self) -> int: ...
 
 
-def make_ccxt_exchange(
-    exchange_id: str,
-    *,
-    api_key: str | None = None,
-    secret: str | None = None,
-    password: str | None = None,
-    testnet: bool = False,
-    public_mirror: bool = False,
-    timeout_ms: int = 15000,
-):
-    """Crée une instance CCXT synchrone configurée prudemment (spot uniquement)."""
+# Seules ces fonctions de CCXT sont accessibles : des lectures PUBLIQUES de marché.
+# Tout le reste (ordres, annulations, soldes, retraits, transferts…) est refusé.
+PUBLIC_METHODS = frozenset({
+    "load_markets", "fetch_markets", "fetch_ohlcv", "fetch_ticker", "fetch_tickers",
+    "fetch_order_book", "fetch_trades", "fetch_time", "milliseconds",
+})
+PUBLIC_ATTRIBUTES = frozenset({"id", "name", "precisionMode", "markets", "symbols", "timeframes", "rateLimit"})
+# Champs d'identification de CCXT : ils doivent rester vides en permanence.
+CREDENTIAL_FIELDS = ("apiKey", "secret", "password", "uid", "login", "privateKey", "walletAddress", "token", "twofa")
+
+
+class PublicExchange:
+    """Façade en lecture seule autour d'un client CCXT **sans identifiants**.
+
+    - seules les lectures publiques listées ci-dessus passent ;
+    - toute autre fonction (create_order, cancel_order, fetch_balance, withdraw…) est refusée ;
+    - si des identifiants apparaissaient sur le client, même les lectures seraient refusées.
+    """
+
+    __slots__ = ("_ex",)
+
+    def __init__(self, ex):
+        object.__setattr__(self, "_ex", ex)
+        self._assert_no_credentials("création d'un client de marché avec identifiants")
+
+    def __getattribute__(self, name):
+        # Do not expose the underlying CCXT client through normal access.
+        if name == "_ex":
+            forbid("accès au client interne de marché")
+        return object.__getattribute__(self, name)
+
+    def _assert_no_credentials(self, operation: str) -> None:
+        try:
+            ex = object.__getattribute__(self, "_ex")
+            clean = all(not getattr(ex, field, None) for field in CREDENTIAL_FIELDS)
+        except Exception:
+            clean = False
+        if not clean:
+            forbid(operation)
+
+    def __getattr__(self, name: str):
+        if name.startswith("__") and name.endswith("__"):
+            raise AttributeError(name)  # protocoles internes de Python (copie, etc.) : rien à exposer
+        if name in PUBLIC_METHODS:
+            self._assert_no_credentials(f"lecture de marché « {name} » avec identifiants")
+            # Never return CCXT's bound method: __self__ would reveal the client.
+            # Recheck on invocation too, in case this callable was retained.
+            def public_call(*args, **kwargs):
+                self._assert_no_credentials(f"lecture de marché « {name} » avec identifiants")
+                ex = object.__getattribute__(self, "_ex")
+                return getattr(ex, name)(*args, **kwargs)
+            return public_call
+        if name in PUBLIC_ATTRIBUTES:
+            self._assert_no_credentials(f"lecture de marché « {name} » avec identifiants")
+            return getattr(object.__getattribute__(self, "_ex"), name)
+        forbid(f"appel non public à l'exchange « {name} »")
+
+    def __setattr__(self, name: str, value) -> None:
+        forbid(f"modification du client de marché « {name} »")
+
+    def __delattr__(self, name: str) -> None:
+        forbid(f"modification du client de marché « {name} »")
+
+
+def make_ccxt_exchange(exchange_id: str, *, public_mirror: bool = False, timeout_ms: int = 15000) -> PublicExchange:
+    """Crée un client CCXT **public** (cours, carnet, transactions) : spot uniquement, sans aucune clé.
+
+    Cette fonction n'accepte aucun identifiant : il est impossible de lui passer une clé API.
+    """
     import ccxt  # import local : dépendance lourde
 
     cls = getattr(ccxt, exchange_id)
@@ -62,17 +121,10 @@ def make_ccxt_exchange(
         cfg["options"]["fetchMarkets"] = {"types": ["spot"]}
         # évite des appels aux API de produits dérivés (inutiles ici)
         cfg["options"]["fetchCurrencies"] = False
-    if api_key:
-        cfg["apiKey"] = api_key
-        cfg["secret"] = secret or ""
-        if password:
-            cfg["password"] = password
     ex = cls(cfg)
-    if testnet:
-        ex.set_sandbox_mode(True)
-    elif public_mirror and exchange_id == "binance" and not api_key:
+    if public_mirror and exchange_id == "binance":
         ex.urls["api"]["public"] = BINANCE_PUBLIC_MIRROR
-    return ex
+    return PublicExchange(ex)
 
 
 def market_from_ccxt(m: dict, precision_mode: int) -> MarketInfo:
@@ -134,7 +186,7 @@ class CcxtSource:
     def fetch_order_book(self, symbol: str, limit: int = 50) -> dict:
         with self._lock:
             ob = self._ex.fetch_order_book(symbol, limit=limit)
-        return {"bids": ob.get("bids") or [], "asks": ob.get("asks") or []}
+        return {"bids": ob.get("bids") or [], "asks": ob.get("asks") or [], "timestamp": ob.get("timestamp")}
 
     def fetch_trade_flow(self, symbol: str, minutes: int = 15) -> dict:
         """Volumes achetés et vendus « au marché » (acheteurs et vendeurs agressifs) sur les dernières minutes.
@@ -261,14 +313,11 @@ class SyntheticSource:
             l = l.copy()
             c = c.copy()
             if n and ts[-1] == cur_min:
-                # minute en cours : on ne révèle qu'une partie de la bougie
-                f = min(1.0, max(0.0, (now - cur_min) / 60_000))
-                o_, H, L, C = o[-1], h[-1], l[-1], c[-1]
-                cp = o_ + (C - o_) * f
-                h[-1] = max(o_, cp) + (H - max(o_, C)) * f
-                l[-1] = min(o_, cp) - (min(o_, C) - L) * f
-                c[-1] = cp
-                v[-1] = v[-1] * f
+                # No intraminute trades have been generated as observable
+                # events. Until the minute closes, reveal its opening only;
+                # never interpolate from the already-generated future OHLCV.
+                h[-1] = l[-1] = c[-1] = o[-1]
+                v[-1] = 0.0
         tf = timeframe_ms(timeframe)
         if tf == 60_000:
             rows = np.column_stack([ts.astype(float), o, h, l, c, v])

@@ -11,18 +11,21 @@ import logging
 import os
 import time
 from contextlib import asynccontextmanager
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .. import __version__
 from ..config import SettingsError
 from ..execution.base import OrderError
-from ..services.core import EMERGENCY_CONFIRM, LIVE_CONFIRM, App, UserError
+from ..safety import RealTradingForbidden, forbid
+from ..services.core import EMERGENCY_CONFIRM, App, UserError
+from ..services.secrets import LEGACY_IGNORED
 from ..storage.db import loads
 from .auth import COOKIE, CSRF_HEADER, Auth
 
@@ -63,18 +66,33 @@ class ResetBody(BaseModel):
     initial_balance: float | None = Field(default=None, gt=0, le=10_000_000)
 
 
+class FXBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    base: Literal['EUR', 'USD', 'USDC', 'USDT']
+    target: Literal['EUR', 'USD', 'USDC', 'USDT']
+    amount: Decimal = Field(gt=0, le=10_000_000, max_digits=16, decimal_places=8, allow_inf_nan=False)
+    via: Literal['EUR', 'USD', 'USDC', 'USDT'] | None = None
+    request_id: str = Field(min_length=16, max_length=80, pattern=r'^[A-Za-z0-9_-]+$')
+
+
 class OrderBody(BaseModel):
+    expires_at: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     account_id: int
     symbol: str = Field(max_length=30)
     side: Literal["buy", "sell"]
     type: Literal["market", "limit", "stop"] = "market"
     amount: float | None = Field(default=None, gt=0)
-    quote_amount: float | None = Field(default=None, gt=0)
+    quote_amount: float | None = Field(default=None, gt=0)  # montant dans la monnaie de la paire (USDC)
+    cash_amount: float | None = Field(default=None, gt=0)  # montant dans la monnaie du compte (euros), frais compris
     price: float | None = Field(default=None, gt=0)
     stop_price: float | None = Field(default=None, gt=0)
     stop_loss: float | None = Field(default=None, gt=0)
     take_profit: float | None = Field(default=None, gt=0)
     note: str | None = Field(default=None, max_length=200)
+    confirm: bool = False
+
+
+class ConfirmBody(BaseModel):
     confirm: bool = False
 
 
@@ -106,6 +124,7 @@ class TrainBody(BaseModel):
 class BacktestBody(BaseModel):
     days: int = Field(default=90, ge=30, le=3000)
     use_model: bool = True
+    capital: float | None = Field(default=None, ge=10, le=10_000_000)  # monnaie du portefeuille ; défaut : son capital de départ
 
 
 class EmergencyBody(BaseModel):
@@ -159,7 +178,7 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         if path.startswith("/api/"):
             if request.method not in ("GET", "HEAD", "OPTIONS") and request.headers.get(CSRF_HEADER) != "1":
                 return JSONResponse({"detail": "Requête refusée (protection CSRF)"}, status_code=403)
-            if path not in PUBLIC and not auth.valid(request.cookies.get(COOKIE)):
+            if path not in PUBLIC and not auth.valid(request.cookies.get(COOKIE), refresh=path != "/api/observation/preflight"):
                 return JSONResponse({"detail": "Connexion requise"}, status_code=401)
         response = await call_next(request)
         response.headers["X-Frame-Options"] = "DENY"
@@ -172,6 +191,11 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         if path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
         return response
+
+    @api.exception_handler(RealTradingForbidden)
+    async def _paper_only(_: Request, exc: RealTradingForbidden):
+        # refus de sécurité explicite (à ne pas confondre avec une donnée manquante ou une saisie invalide)
+        return JSONResponse({"detail": exc.message, "code": exc.code, "operation": exc.operation}, status_code=403)
 
     @api.exception_handler(UserError)
     async def _user_error(_: Request, exc: UserError):
@@ -345,9 +369,40 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         step = max(1, len(rows) // 600)
         return [[r["ts"], r["equity"]] for r in rows[::step]]
 
+    @api.get("/api/accounts/{account_id}/ledger")
+    async def ledger(account_id: int, limit: int = 200):
+        """Grand livre : chaque variation de solde, avec le solde obtenu et le contrôle comptable."""
+        return await app.acall(app.ledger, account_id, limit)
+
+    @api.get("/api/portfolio/evaluation")
+    async def evaluation_dashboard():
+        return await app.acall(app.evaluation_dashboard)
+
+    @api.get("/api/performance")
+    async def performance(account_id: int | None = None, period: str = "all"):
+        """Tableau de rentabilité : capital, résultats nets, rendements par trade et par jour, refus."""
+        return await app.acall(app.performance, account_id, period)
+
+    @api.get("/api/portfolio")
+    async def portfolio_status():
+        return await app.acall(app.portfolio_status)
+
+    @api.post("/api/portfolio/activate")
+    async def portfolio_activate(body: ConfirmBody):
+        """Passage explicite au portefeuille principal (anciens comptes conservés en lecture seule)."""
+        return await app.acall(app.activate_main_portfolio, body.confirm)
+
     @api.get("/api/accounts/{account_id}/fills")
     async def fills(account_id: int, limit: int = 100):
         return app.db.query("SELECT * FROM fills WHERE account_id = ? ORDER BY ts DESC LIMIT ?", (account_id, min(limit, 1000)))
+
+    @api.post("/api/accounts/{account_id}/fx")
+    async def convert_fx(account_id: int, body: FXBody):
+        return await app.acall(app.convert_paper_currency, account_id, body.base, body.target, body.amount, body.via, body.request_id)
+
+    @api.get("/api/accounts/{account_id}/fx")
+    async def fx_history(account_id: int):
+        return await app.acall(app.paper_fx_history, account_id)
 
     # -- ordres et positions ----------------------------------------------------------
     @api.post("/api/orders/preview")
@@ -389,11 +444,23 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
 
     @api.get("/api/ai/readiness")
     async def readiness():
-        return {**(await app.acall(app.readiness)), "confirm_phrase": LIVE_CONFIRM}
+        return await app.acall(app.readiness)
 
     @api.get("/api/ai/models")
     async def models():
         return app.models.list()
+
+    @api.get("/api/ai/champion")
+    async def champion_status():
+        return await app.acall(app.learning_status)
+
+    @api.get("/api/ai/journal")
+    async def decision_journal(limit: int = 50, decision: str | None = None, symbol: str | None = None):
+        return await app.acall(app.decision_journal, limit, decision, symbol)
+
+    @api.get("/api/ai/experiments")
+    async def experiments(limit: int = 100):
+        return await app.acall(app.experiments, limit)
 
     @api.get("/api/ai/models/{version}/report")
     async def model_report(version: str):
@@ -418,7 +485,7 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
 
     @api.post("/api/ai/backtest")
     async def backtest(body: BacktestBody):
-        return app.start_backtest(body.days, body.use_model)
+        return app.start_backtest(body.days, body.use_model, body.capital)
 
     @api.get("/api/ai/last-training")
     async def last_training():
@@ -589,12 +656,20 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
 
     @api.put("/api/secrets")
     async def put_secrets(body: SecretsBody):
+        # Simulation uniquement : on ne peut plus enregistrer de clé d'exchange (on peut seulement effacer les anciennes).
+        if any(k in LEGACY_IGNORED and v for k, v in body.values.items()):
+            forbid("enregistrement d'une clé API d'exchange", db=app.db)
         app.secrets.set(body.values)
         app.db.log("info", "sécurité", "Secrets modifiés : " + ", ".join(sorted(body.values)))
         return app.secrets.status()
 
+    @api.get("/api/security")
+    async def security_status():
+        return await app.acall(app.paper_only_status)
+
     @api.post("/api/live/connect")
     async def live_connect():
+        # ancien point d'accès : toujours refusé (403), aucune connexion n'est tentée
         return await app.acall(app.reconnect_live)
 
     # -- urgence et journal ----------------------------------------------------------------------
@@ -612,6 +687,27 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
     for ext in app.extensions:
         if hasattr(ext, "register_routes"):
             ext.register_routes(api)
+
+    # Read-only shadow view: no fetch, no mutation of the frozen trading protocol.
+    from ..news.shadow.service import MacroShadow
+    if not hasattr(app, "macro_shadow"):
+        app.macro_shadow = MacroShadow(app.data_dir)
+        app.extensions.append(app.macro_shadow)
+    macro_shadow = app.macro_shadow
+
+    @api.get("/api/macro-shadow")
+    async def macro_shadow_context(as_of: float | None = None):
+        import math
+        if as_of is not None and (not math.isfinite(as_of) or as_of > time.time()):
+            raise UserError("Date de contexte invalide")
+        return await app.acall(macro_shadow.dashboard, as_of)
+
+    # Préparation de l'observation prospective : lecture seule (aucun réseau, aucune écriture, aucun démarrage).
+    @api.get("/api/observation/preflight")
+    async def observation_preflight():
+        from ..preflight import observation_preflight as run_preflight
+
+        return await app.acall(run_preflight, app)
 
     # -- temps réel --------------------------------------------------------------------------------
     @api.websocket("/api/ws")

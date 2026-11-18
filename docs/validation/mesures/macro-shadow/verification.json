@@ -1,0 +1,38 @@
+{
+  "base_pr": 24,
+  "base_commit": "118b19b6729dfb9b5995b56841d425a6a44d52e3",
+  "suite": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "409",
+    "time": "104.802",
+    "timestamp": "2026-11-12T16:58:59.824357+01:00",
+    "hostname": "034a1d3649bd"
+  },
+  "network": "seccomp; socket creation separately refused with PermissionError",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "ccxt": "4.4.99 complete sync/async/pro",
+  "extra_environment_dependency": "socksio 1.0.0 for public proxy probes, not required by offline tests",
+  "v2_files_sha256": {
+    "model.joblib": "539cd42346456db9f36f3f9f46f64fcbef33da6e96922fa5a5d10d58094b741b",
+    "evaluation-plan.json": "1ba39d4b5911df7dde84420b0cddd2a17c9622d230cc3e3ce242c44e6f721743",
+    "settings.json": "98eb77c15f61875cacfd78a606a7db50663addfb33a0c35d0681a742327ec747",
+    "protocol.sha256": "bff98e2b3c29d04afbf28dd34d14bbaff4d2c86703db9950296a34665196f564",
+    "model-card.json": "e38c68d0f0f87e12acf1cecd8d8bb918f84956770156ba527503ae69baba864e",
+    "protocol.json": "efecc21d9344d64ec351f2c9e5062b3adc4ed510730e29884f7df9f7357324ac"
+  },
+  "v2_git_diff": "empty against base commit",
+  "browser": "not verified: Chromium Unix socket denied",
+  "windows": "not executed",
+  "shadow_observations_started": false,
+  "permanent_service_started": false,
+  "limits": [
+    "FF rights not confirmed; no live FF export downloaded",
+    "No real Ollama inference executed",
+    "BLS CPI index is separate, not an FF actual",
+    "Financial ablation not executed"
+  ]
+}

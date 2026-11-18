@@ -1,0 +1,61 @@
+{
+  "base_pr": 27,
+  "base_commit": "d3704b1d06f0d162b6c576473e90e2a3c71936e1",
+  "source_claude_pr": 26,
+  "source_claude_commit": "1880ef6084f32827787df52a6e265fcc52045466",
+  "reference_suite": {
+    "tests": "409",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "98.700",
+    "timestamp": "2026-11-12T18:45:45.644896+01:00"
+  },
+  "integrated_suite": {
+    "tests": "433",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "107.107",
+    "timestamp": "2026-11-12T19:05:33.919290+01:00"
+  },
+  "new_tests": 24,
+  "xfail": 0,
+  "network": "seccomp; independent socket creation probe returned PermissionError",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "versions": {
+    "numpy": "2.3.5",
+    "pandas": "2.2.3",
+    "sklearn": "1.8.0",
+    "ccxt": "4.4.99"
+  },
+  "ccxt_complete_sync_async_pro": true,
+  "frozen_files_identical_to_base": {
+    "research/macro-shadow-v3/protocol.json": "7becacbdc7fa4fd0157a04c0f30ba4b55d79830c56a31da6171ca0ace6d2fb0c",
+    "research/macro-shadow-v3/protocol.json.sha256": "858d42907dfc20645384ff9080b61d4a86c2b80c191e960c05dffafbe85b5fd4",
+    "research/prospective-v2/evaluation-plan.json": "1ba39d4b5911df7dde84420b0cddd2a17c9622d230cc3e3ce242c44e6f721743",
+    "research/prospective-v2/model-card.json": "e38c68d0f0f87e12acf1cecd8d8bb918f84956770156ba527503ae69baba864e",
+    "research/prospective-v2/model.joblib": "539cd42346456db9f36f3f9f46f64fcbef33da6e96922fa5a5d10d58094b741b",
+    "research/prospective-v2/protocol.json": "efecc21d9344d64ec351f2c9e5062b3adc4ed510730e29884f7df9f7357324ac",
+    "research/prospective-v2/protocol.sha256": "bff98e2b3c29d04afbf28dd34d14bbaff4d2c86703db9950296a34665196f564",
+    "research/prospective-v2/settings.json": "98eb77c15f61875cacfd78a606a7db50663addfb33a0c35d0681a742327ec747",
+    "sentinelle/news/shadow/__init__.py": "cc635a5c1fe6f17d6c63e4ded396d0bd95ad4d132e0bc2bd70cb604fc2d33079",
+    "sentinelle/news/shadow/parsers.py": "1d417243d76b61f6cc9f3700d24e32ffd7124d3e36a13fd3100afe1febcc7f75",
+    "sentinelle/news/shadow/service.py": "daf14a3bd29d9c76f77745b87bbf1a5dc801d76d7e2b7ff1c0f24bebecf4a8d5",
+    "sentinelle/news/shadow/sources.py": "8c4ebabd1ced369e438961b53fb7f5d7c6ddd33c6fe7b39630208b34047a74c4",
+    "sentinelle/news/shadow/store.py": "91d8761860642a1f7b33e296ef82bac8804305ea25313cded6d58f5ba080eaf2"
+  },
+  "pip_check": "No broken requirements found",
+  "ruff_changed_python": "passed",
+  "ruff_global": "2 preexisting F401: news/shadow/sources.py:7, tests/test_public_archive.py:1; no suppressions",
+  "javascript": "main/view syntax and Vue template compilation passed; no browser rendering",
+  "browser": "1440/390 harness attempted, Chromium fails before first page: socket() Operation not permitted; temporary server stopped",
+  "windows": "not executed; Linux only, existing diagnostic/procedure preserved",
+  "new_authentic_training_experiments": 0,
+  "model_promotions": 0,
+  "public_prospective_observations_started": false,
+  "permanent_service_started": false,
+  "new_runtime_dependencies": false,
+  "main_commit_read_only_verified": "5fa6b3656fdd132080f76e716c08003659843db0"
+}

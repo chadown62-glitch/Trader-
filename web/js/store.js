@@ -32,13 +32,20 @@ export function confirmBox({ title, message, confirmLabel = 'Confirmer', danger 
 const nf = (min, max) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: min, maximumFractionDigits: max });
 const nf2 = nf(2, 2);
 
+const unit = (quote) => (quote === 'EUR' ? '\u00a0€' : quote ? ' ' + quote : '');
 export function money(x, quote = '') {
   if (x === null || x === undefined || Number.isNaN(x)) return '—';
-  return nf2.format(x) + (quote ? ' ' + quote : '');
+  return nf2.format(x) + unit(quote);
 }
 export function signed(x, quote = '') {
   if (x === null || x === undefined || Number.isNaN(x)) return '—';
-  return (x > 0 ? '+' : '') + nf2.format(x) + (quote ? ' ' + quote : '');
+  return (x > 0 ? '+' : '') + nf2.format(x) + unit(quote);
+}
+// Taux de change : « 1 USDC = 0,8978 € (source, il y a 12 s) »
+export function fxLine(fx) {
+  if (!fx || !fx.rate) return '';
+  const age = fx.age_s === undefined ? '' : fx.age_s < 90 ? `il y a ${Math.round(fx.age_s)} s` : fx.age_s < 5400 ? `il y a ${Math.round(fx.age_s / 60)} min` : `il y a ${Math.round(fx.age_s / 3600)} h`;
+  return `1 ${fx.quote} = ${nf(4, 4).format(fx.rate)}${unit(fx.base)} · source : ${fx.source}${age ? ' · ' + age : ''}${fx.approx ? ' · approximation' : ''}${fx.stale ? ' · taux ancien' : ''}`;
 }
 export function price(x) {
   if (x === null || x === undefined || Number.isNaN(x)) return '—';
@@ -68,6 +75,17 @@ export function cls(x) { return x > 0 ? 'up' : x < 0 ? 'down' : ''; }
 const dtf = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 const df = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 export function dt(tsSeconds) { return tsSeconds ? dtf.format(new Date(tsSeconds * 1000)) : '—'; }
+// Date complète en temps universel, pour les journaux d'audit (« 12/11/2026 20:24 UTC »)
+const utcf = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+export function utc(tsSeconds, missing = 'Inconnue') {
+  if (tsSeconds === null || tsSeconds === undefined || !Number.isFinite(Number(tsSeconds))) return missing;
+  return utcf.format(new Date(Number(tsSeconds) * 1000)).replace(',', '') + ' UTC';
+}
+// Libellé lisible d'un code interne ; le code brut reste visible s'il n'est pas connu
+export function label(map, code, fallback = 'Non disponible') {
+  if (code === null || code === undefined || code === '') return fallback;
+  return map[code] ?? String(code);
+}
 export function dtMs(ms) { return ms ? dtf.format(new Date(ms)) : '—'; }
 export function date(tsSeconds) { return tsSeconds ? df.format(new Date(tsSeconds * 1000)) : '—'; }
 export function ago(tsSeconds) {
@@ -92,7 +110,7 @@ export const STRATEGY_LABELS = {
   momentum: 'Élan haussier',
   trend_follow: 'Suivi de tendance',
 };
-export const ROLE_LABELS = { ai_training: 'Entraînement IA', manual: 'Papier', live: 'Réel', backtest: 'Backtest' };
+export const ROLE_LABELS = { main: 'Partagé entre vous et l’IA', ai_training: 'Entraînement IA', manual: 'Papier', live: 'Ancien compte réel (inerte)', backtest: 'Backtest' };
 export const REASON_ICONS = { pris: '🟢', refusé: '⚪', sortie: '🔵', stop_relevé: '🛡️', erreur: '🔴' };
 export const FEATURE_LABELS = {
   r1: 'Rendement 1 bougie', r3: 'Rendement 3 bougies', r6: 'Rendement 6 bougies', r12: 'Rendement 12 bougies',
@@ -109,5 +127,5 @@ export const FEATURE_LABELS = {
 
 export function accountLabel(a) {
   if (!a) return '';
-  return a.kind === 'live' ? `${a.name} (RÉEL)` : `${a.name}`;
+  return a.kind === 'paper' ? `${a.name}` : `${a.name} (ancien compte réel, inerte)`;
 }

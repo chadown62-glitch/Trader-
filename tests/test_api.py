@@ -19,7 +19,9 @@ def app(tmp_path_factory):
     src = SyntheticSource(["BTC/USDC", "ETH/USDC", "SOL/USDC"], days=40)
     a = App(d, source=src, settings_override={"market": {"source": "synthetic", "poll_seconds": 2, "history_days": 120},
                                               "general": {"watchlist": ["BTC/USDC", "ETH/USDC", "SOL/USDC"]},
-                                              "ai": {"timeframe": "1h"}})
+                                              "ai": {"timeframe": "1h"},
+                                              # capital fictif élevé : ces tests portent sur l'API, pas sur les petits montants
+                                              "portfolio": {"initial": 30.0}})
     assert a.engine.ready.wait(30)
     deadline = time.time() + 20
     while time.time() < deadline and len(a.hub.prices) < 3:
@@ -65,22 +67,24 @@ def test_overview_and_accounts(client):
     _login(client)
     ov = client.get("/api/overview").json()
     roles = {a["role"] for a in ov["accounts"]}
-    assert {"ai_training", "manual"} <= roles
+    assert roles == {"main"}  # un seul portefeuille, partagé entre le trading manuel et l'IA
+    assert ov["portfolio"]["mode"] == "main" and ov["portfolio"]["currency"] == "EUR"
     assert ov["engine_alive"] is True
-    assert {a["name"] for a in ov["agents"]} == {"ia_entrainement", "ia_reel"}
+    assert {a["name"] for a in ov["agents"]} == {"ia_entrainement"}  # simulation uniquement : plus d'IA « réelle »
+    assert ov["paper_only"]["paper_only"] is True and ov["live"] == {"connected": False, "locked": True}
     m = client.get("/api/markets").json()
     assert "BTC/USDC" in m["prices"]
 
 
 def _manual_account(client):
-    return next(a for a in client.get("/api/accounts").json() if a["role"] == "manual")
+    return next(a for a in client.get("/api/accounts").json() if a["role"] == "main")
 
 
 def test_manual_trade_round_trip(client, app):
     _login(client)
     acc = _manual_account(client)
     price = app.hub.price("ETH/USDC")
-    body = {"account_id": acc["id"], "symbol": "ETH/USDC", "side": "buy", "type": "market", "quote_amount": 500,
+    body = {"account_id": acc["id"], "symbol": "ETH/USDC", "side": "buy", "type": "market", "cash_amount": 12,
             "stop_loss": round(price * 0.95, 2), "take_profit": round(price * 1.10, 2)}
     prev = client.post("/api/orders/preview", json=body, headers=H).json()
     assert prev["error"] is None and prev["qty"] > 0
@@ -123,10 +127,10 @@ def test_settings_validation_and_secrets(client):
     client.put("/api/secrets", json={"values": {"telegram_token": None}}, headers=H)
 
 
-def test_live_agent_locked_without_readiness(client):
+def test_live_agent_is_refused(client):
     _login(client)
     r = client.post("/api/agents/ia_reel/start", json={"confirm": "JE COMPRENDS LES RISQUES"}, headers=H)
-    assert r.status_code == 400
+    assert r.status_code == 403 and r.json()["code"] == "paper_only"
     rd = client.get("/api/ai/readiness").json()
     assert rd["unlocked"] is False and rd["criteria"]
 
@@ -143,6 +147,32 @@ def test_training_agent_start_stop(client, app):
     assert st["ia_entrainement"]["running"] is True
     r = client.post("/api/agents/ia_entrainement/stop", json={}, headers=H)
     assert r.status_code == 200 and "ia_entrainement" not in app.agents
+
+
+def test_accelerated_simulation_runs_in_portfolio_conditions(client, app):
+    """Simulation accélérée lancée par l'API : compte à part, capital du portefeuille, exécution à l'ouverture suivante."""
+    _login(client)
+    main = next(a for a in client.get("/api/accounts").json() if a["role"] == "main")
+    before = client.get(f"/api/accounts/{main['id']}/ledger").json()["check"]["entries"]
+    r = client.post("/api/ai/backtest", json={"days": 30, "use_model": False, "capital": 500}, headers=H)
+    assert r.status_code == 200, r.text
+    job_id = r.json()["id"]
+    deadline = time.time() + 120
+    job = {}
+    while time.time() < deadline:
+        job = client.get(f"/api/jobs/{job_id}").json()
+        if job.get("status") != "running":
+            break
+        time.sleep(0.3)
+    assert job.get("status") == "done", job
+    res = job["result"]
+    cond = res["conditions"]
+    assert cond["capital"] == 500 and cond["currency"] == "EUR" and cond["quote"] == "USDC" and cond["fx"]["source"]
+    assert res["initial"] == 500 and cond["extra_cost"] == pytest.approx(0.0005)
+    assert res["execution"] == "ouverture de la bougie suivant le signal" and res["skipped_bars"] == 0
+    # le portefeuille principal n'a pas bougé
+    assert client.get(f"/api/accounts/{main['id']}/ledger").json()["check"]["entries"] == before
+    assert client.post("/api/ai/backtest", json={"days": 30, "use_model": False, "capital": 5}, headers=H).status_code == 422
 
 
 def test_emergency_requires_confirmation(client):
@@ -184,3 +214,23 @@ def test_two_factor_login(client, app):
     # on désactive pour ne pas gêner les autres tests
     app.db.set_meta("totp_last_step", "0")
     assert client.post("/api/auth/2fa/disable", json={"password": PASSWORD, "code": totp(setup["secret"])}, headers=H).status_code == 200
+
+
+def test_evaluation_endpoint_requires_login_and_reads_the_main_wallet(tmp_path):
+    app = App(tmp_path, source=SyntheticSource(["BTC/EUR"], days=2), start=False,
+              settings_override={"market": {"source": "synthetic"}, "general": {"quote": "EUR", "watchlist": ["BTC/EUR"]}})
+    try:
+        app._startup()
+        with TestClient(create_api(app)) as client:
+            assert client.get("/api/portfolio/evaluation").status_code in (401, 403)
+            assert client.post("/api/auth/setup", json={"password": PASSWORD}, headers=H).status_code == 200
+            app._snapshot_equity()
+            overview = client.get("/api/overview")
+            assert overview.status_code == 200 and overview.json()["accounts"][0]["quote"] == "EUR"
+            rep = client.get("/api/portfolio/evaluation")
+            assert rep.status_code == 200
+            values = rep.json()
+            assert values["currency"] == "EUR" and values["equity"] == 30.
+            assert values["as_of"] and values["trades"] == [] and values["verdict"] == "NON TESTÉ"
+    finally:
+        app.close()

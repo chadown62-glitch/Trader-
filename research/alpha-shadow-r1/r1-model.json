@@ -1,0 +1,264 @@
+{
+ "cells": [
+  {
+   "climate": 0,
+   "n": 168,
+   "sum_net_r": 111.50415323155299,
+   "teacher": "breakout"
+  },
+  {
+   "climate": 1,
+   "n": 120,
+   "sum_net_r": 78.45938470301381,
+   "teacher": "breakout"
+  },
+  {
+   "climate": 2,
+   "n": 75,
+   "sum_net_r": 34.039935141679535,
+   "teacher": "breakout"
+  },
+  {
+   "climate": 3,
+   "n": 178,
+   "sum_net_r": 26.81514385971684,
+   "teacher": "breakout"
+  },
+  {
+   "climate": 4,
+   "n": 119,
+   "sum_net_r": 62.619570801251804,
+   "teacher": "breakout"
+  },
+  {
+   "climate": 5,
+   "n": 159,
+   "sum_net_r": 69.14531987642279,
+   "teacher": "breakout"
+  },
+  {
+   "climate": 0,
+   "n": 14,
+   "sum_net_r": -1.36598750561486,
+   "teacher": "mean_reversion"
+  },
+  {
+   "climate": 1,
+   "n": 9,
+   "sum_net_r": -0.44220107237530026,
+   "teacher": "mean_reversion"
+  },
+  {
+   "climate": 2,
+   "n": 7,
+   "sum_net_r": 0.9934553325352604,
+   "teacher": "mean_reversion"
+  },
+  {
+   "climate": 3,
+   "n": 192,
+   "sum_net_r": -16.759517509732216,
+   "teacher": "mean_reversion"
+  },
+  {
+   "climate": 4,
+   "n": 142,
+   "sum_net_r": -9.761794705332564,
+   "teacher": "mean_reversion"
+  },
+  {
+   "climate": 5,
+   "n": 189,
+   "sum_net_r": -3.7568169548404073,
+   "teacher": "mean_reversion"
+  },
+  {
+   "climate": 3,
+   "n": 370,
+   "sum_net_r": -50.652858317111715,
+   "teacher": "pullback"
+  },
+  {
+   "climate": 4,
+   "n": 261,
+   "sum_net_r": -35.067534014693244,
+   "teacher": "pullback"
+  },
+  {
+   "climate": 5,
+   "n": 339,
+   "sum_net_r": -21.34441328682905,
+   "teacher": "pullback"
+  },
+  {
+   "climate": 3,
+   "n": 254,
+   "sum_net_r": 57.67426815590169,
+   "teacher": "trend"
+  },
+  {
+   "climate": 4,
+   "n": 154,
+   "sum_net_r": -1.0883889932335344,
+   "teacher": "trend"
+  },
+  {
+   "climate": 5,
+   "n": 133,
+   "sum_net_r": -1.6653691205913816,
+   "teacher": "trend"
+  }
+ ],
+ "hyperparameters": {
+  "climate": "3 * (ema50 > ema200) + tercile(atr_rank_120 ; seuils 1/3 et 2/3 ; inconnu = 0,5)",
+  "exit": "sortie de l'enseignant",
+  "margins": [
+   "-inf",
+   0.0,
+   0.05,
+   0.1,
+   0.2
+  ],
+  "min_taken": 15,
+  "one_position_per_symbol": "premier enseignant retenu par ordre alphabétique",
+  "prior": 20.0
+ },
+ "kind": "alpha-shadow-r1-model",
+ "margin_r": 0.0,
+ "name": "RegimeRouter-R1",
+ "reference_teacher": "breakout",
+ "rules": {
+  "abstention": {
+   "atr_rank_at_least": 0.97,
+   "spread_bps_above": 25.0,
+   "volume_ratio_below": 0.25
+  },
+  "teachers": {
+   "breakout": {
+    "exit_rule": "close_below_low10",
+    "max_bars": 120,
+    "stop_atr": 2.0,
+    "target_atr": null,
+    "trail_atr": null
+   },
+   "mean_reversion": {
+    "exit_rule": "close_above_sma5",
+    "max_bars": 15,
+    "stop_atr": 3.0,
+    "target_atr": null,
+    "trail_atr": null
+   },
+   "pullback": {
+    "exit_rule": "close_above_ema20",
+    "max_bars": 30,
+    "stop_atr": 1.5,
+    "target_atr": null,
+    "trail_atr": null
+   },
+   "trend": {
+    "exit_rule": "close_below_ema50",
+    "max_bars": 180,
+    "stop_atr": 3.0,
+    "target_atr": null,
+    "trail_atr": 3.0
+   }
+  }
+ },
+ "schema": 1,
+ "training": {
+  "bars": 11946,
+  "cost": {
+   "default_spread_bps": 4.0,
+   "fee_rate": 0.001,
+   "fx_bps": 0.0,
+   "slippage_bps": 5.0
+  },
+  "data": {
+   "BTC/EUR": {
+    "bars": 11946,
+    "dataset_sha256": "b34e4c8814d16c025302a586d4090beeca6112e01238c6bc1036ad3300c7a57a",
+    "end_ms": 1794528000000,
+    "observed_at_ms": 1794605428480,
+    "source": "Binance public spot REST",
+    "start_ms": 1622505600000
+   },
+   "ETH/EUR": {
+    "bars": 11946,
+    "dataset_sha256": "6722134b4084743d7826315605571e1834c9a97eba7abe59679d4ec7d133168b",
+    "end_ms": 1794528000000,
+    "observed_at_ms": 1794605431832,
+    "source": "Binance public spot REST",
+    "start_ms": 1622505600000
+   },
+   "SOL/EUR": {
+    "bars": 11946,
+    "dataset_sha256": "4151bb81be76126fbfa504e886fea3c5ba5bf2aa43f33b6186f5db66b99cdc02",
+    "end_ms": 1794528000000,
+    "observed_at_ms": 1794605434148,
+    "source": "Binance public spot REST",
+    "start_ms": 1622505600000
+   }
+  },
+  "embargo_bars": 30,
+  "fractions": [
+   0.5,
+   0.15,
+   0.15,
+   0.2
+  ],
+  "period_ms": [
+   1622505600000,
+   1794528000000
+  ],
+  "preselection": {
+   "entries": 265,
+   "margin_r": 0.0,
+   "mean_net_r": 0.08014301505492444,
+   "tries": 5,
+   "window": "selection"
+  },
+  "reference_teacher_rule": "meilleur R net moyen des issues mûres non refusées, apprentissage + calibration",
+  "rules": {
+   "capital": 30.0,
+   "max_position_frac": 0.34,
+   "max_positions": 3,
+   "min_notional": 5.0,
+   "min_order_max_risk": 0.01,
+   "risk_frac": 0.005
+  },
+  "situations": {
+   "calibration": 729,
+   "evaluation": 726,
+   "purged": 75,
+   "selection": 702,
+   "train": 2154
+  },
+  "status": "développement sur périodes déjà étudiées : exploratoire",
+  "symbols": [
+   "BTC/EUR",
+   "ETH/EUR",
+   "SOL/EUR"
+  ],
+  "windows": {
+   "bounds": {
+    "calibration": [
+     1708531200000,
+     1734321600000
+    ],
+    "evaluation": [
+     1760140800000,
+     1794528000000
+    ],
+    "selection": [
+     1734336000000,
+     1760126400000
+    ],
+    "train": [
+     1622520000000,
+     1708516800000
+    ]
+   },
+   "embargo_ms": 432000000
+  }
+ }
+}

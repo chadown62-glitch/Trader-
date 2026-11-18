@@ -1,6 +1,17 @@
 """Backtest événementiel : rejoue l'historique bougie par bougie avec exactement
 le même agent, le même gestionnaire de risque et le même broker simulé que
 l'entraînement en direct. C'est la « simulation accélérée ».
+
+Déroulement d'une bougie k (contrat d'exécution unique, execution/contract.py) :
+1. à son OUVERTURE, premier prix disponible après la clôture de la bougie k−1 : l'agent
+   applique les décisions fondées sur la bougie k−1 (entrées, sorties à la durée maximale,
+   relèvement des stops). Un achat est donc exécuté à l'ouverture de k, jamais à la clôture
+   de la bougie qui a donné le signal ;
+2. PENDANT la bougie : les stops puis les objectifs touchés sont exécutés ;
+3. à sa CLÔTURE : le capital est relevé.
+
+La simulation tourne dans sa propre base de données en mémoire : elle ne peut pas
+toucher au portefeuille principal.
 """
 
 from __future__ import annotations
@@ -18,6 +29,8 @@ from ..ai.metrics import equity_metrics, trade_metrics
 from ..ai.model import MetaModel
 from ..ai.strategies import STRATEGIES
 from ..config import timeframe_ms
+from ..execution.contract import valid_bar
+from ..execution.base import OrderError
 from ..execution.paper import PaperBroker
 from ..execution.positions import PositionManager
 from ..market.markets import MarketInfo, generic_market
@@ -41,20 +54,35 @@ def run_backtest(
     *,
     start_ts: int | None = None,
     end_ts: int | None = None,
-    initial: float = 10_000.0,
+    initial: float = 30.0,
     exploration: bool = False,
     markets: dict[str, MarketInfo] | None = None,
     btc: pd.DataFrame | None = None,
     progress: Callable[[float, str], None] | None = None,
+    extra_cost: float = 0.0,
+    account_currency: str | None = None,
+    historical_fx=None,
+    research_trace: bool = False,
+    reference_policy: str | None = None,
+    entry_gate=None,
+    book_provider=None,
+    book_events=None,
 ) -> dict:
+    """`initial` : capital de départ, dans la monnaie de cotation. `extra_cost` : coût supplémentaire par
+    opération (fraction), par exemple la conversion en euros du portefeuille principal."""
+    if reference_policy not in (None, "cash", "passive"):
+        raise ValueError("Référence de portefeuille inconnue")
     t_run = time.time()
     tf = timeframe_ms(timeframe)
     cfg = copy.deepcopy(settings)
     cfg["ai"]["exploration"] = exploration
+    if not account_currency:
+        cfg["paper"]["fee_rate"] += max(0.0, extra_cost)
     quote = cfg["general"]["quote"]
+    currency = account_currency or quote
     db = Database(":memory:")
     clock = SimClock(0.0)
-    acc = db.insert("accounts", {"name": "backtest", "kind": "paper", "role": "backtest", "quote": quote, "initial_balance": initial, "created_at": 0})
+    acc = db.insert("accounts", {"name": "backtest", "kind": "paper", "role": "backtest", "quote": currency, "initial_balance": initial, "created_at": 0})
     prices: dict[str, float] = {}
     mk = dict(markets or {})
 
@@ -63,11 +91,15 @@ def run_backtest(
             mk[symbol] = generic_market(symbol)
         return mk[symbol]
 
-    broker = PaperBroker(db, acc, quote, market_fn, prices.get, cfg["paper"]["fee_rate"], cfg["paper"]["slippage_bps"], clock)
-    broker.set_balance(quote, initial)
+    broker = PaperBroker(db, acc, currency, market_fn, prices.get, cfg["paper"]["fee_rate"], cfg["paper"]["slippage_bps"], clock,
+                         trade_quote=quote, fx_cost_bps=extra_cost * 10000 if account_currency else 0,
+                         fx_fn=(lambda cur, _trading: historical_fx(cur, clock())) if historical_fx else None,
+                         book_fn=(lambda symbol: book_provider(symbol,clock())) if book_provider else None)
+    broker.set_balance(currency, initial)
     pm = PositionManager(db, broker, clock=clock)
     risk = RiskManager(db, acc, lambda: cfg, clock)
-    agent = TradingAgent("backtest", "backtest", db, pm, risk, lambda: cfg, lambda: model, timeframe=timeframe, clock=clock, record=False)
+    agent = TradingAgent("backtest", "backtest", db, pm, risk, lambda: cfg, lambda: model, timeframe=timeframe, clock=clock, record=False,
+                         entry_gate=entry_gate)
     agent.running = True
 
     # Pré-calcul (sans fuite d'information : chaque valeur n'utilise que le passé)
@@ -90,24 +122,71 @@ def run_backtest(
 
     equity_curve: list[list[float]] = []
     bh_start: dict[str, float] = {}
+    # A six-way split of 30 EUR would fall below typical minimums. Predetermine
+    # the basket by symbol, allocating up to the identical portfolio/asset caps.
+    limits = cfg["risk"]
+    count = max(1, int(np.ceil(limits["max_exposure"] / limits["max_exposure_per_asset"])))
+    count = min(count, limits["max_positions"])
+    passive_basket = set(sorted(data)[:count])
+    passive_attempted = set()
+    observed_valid = {}
+    skipped = 0
     n = len(all_ts)
     for step_i, ts in enumerate(all_ts):
         ts = int(ts)
-        active = [(sym, pos_index[sym][ts]) for sym in data if ts in pos_index[sym]]
-        # 1) pendant la bougie : déclenchement des stops et objectifs
-        clock.t = ts / 1000
-        for sym, k in active:
+        bars = []
+        for sym in data:
+            k = pos_index[sym].get(ts)
+            if k is None:
+                continue
             f = data[sym][0]
             o, h, l, c = (float(f[col].iat[k]) for col in ("open", "high", "low", "close"))
-            prices[sym] = o
+            bars.append((sym, k, o, h, l, c))
+        # 1) ouverture de la bougie : premier prix disponible après les décisions de la clôture précédente
+        clock.t = ts / 1000
+        if bars and currency != quote:
+            # An unavailable historical conversion makes this replay unverifiable.
+            broker.fx(quote)
+        for sym, _k, o, _h, _l, _c in bars:
+            if np.isfinite(o) and o > 0:
+                prices[sym] = o
+                bh_start.setdefault(sym, o)
+        for sym, k, o, *_ in bars:
+            if reference_policy == "cash":
+                continue
+            if reference_policy == "passive":
+                if sym in passive_basket and sym not in passive_attempted and np.isfinite(o) and o > 0:
+                    passive_attempted.add(sym)
+                    allocation = min(cfg["risk"]["max_exposure"] / len(passive_basket), cfg["risk"]["max_exposure_per_asset"])
+                    rate = broker.fx(sym.split("/")[1]).cash_leg(1, "buy", clock())[0]
+                    qty = initial * allocation / (o * float(rate) * (1 + broker.slip) * (1 + broker.fee_rate))
+                    try:
+                        pm.open(sym, qty, origin="benchmark", strategy="passive")
+                    except OrderError:
+                        agent.stats["refused"] += 1
+                continue
+            # At the open, only the preceding completed bar can qualify the signal.
+            if k >= 1 and np.isfinite(o) and o > 0 and observed_valid.get(sym, True):
+                feat, sig = data[sym]
+                agent.on_bar(sym, feat.iloc[:k], idx=k - 1, sig_at={name: bool(sig[name][k - 1]) for name in enabled})
+        # 2) pendant la bougie : stops puis objectifs
+        for sym, _k, o, h, l, c in bars:
+            observed_valid[sym] = valid_bar(o, h, l, c)
+            if not observed_valid[sym]:
+                skipped += 1
+                continue
             broker.process_bar(sym, o, h, l, c, ts)
             prices[sym] = c
-            bh_start.setdefault(sym, o)
-        # 2) à la clôture : décisions de l'agent
+        if book_events is not None:
+            # Recorded L2 events only; do not invent intrabar depth from OHLC extremes.
+            for stamp,sym,book in sorted(book_events(ts/1000,(ts+tf)/1000),key=lambda e:(e[0],e[1])):
+                if not ts/1000 < stamp <= (ts+tf)/1000 or book.timestamp != stamp:
+                    raise ValueError('Future or unordered L2 replay event')
+                clock.t=stamp
+                prices[sym]=(float(book.bids[0][0])+float(book.asks[0][0]))/2
+                broker.process_book(sym,book)
+        # 3) clôture : relevé du capital
         clock.t = (ts + tf) / 1000
-        for sym, k in active:
-            feat, sig = data[sym]
-            agent.on_bar(sym, feat, idx=k, sig_at={n: bool(sig[n][k]) for n in enabled})
         eq, cash = broker.equity()
         db.execute("INSERT OR REPLACE INTO equity(account_id, ts, equity, cash) VALUES (?, ?, ?, ?)", (acc, clock.t, eq, cash))
         equity_curve.append([ts + tf, eq])
@@ -132,18 +211,30 @@ def run_backtest(
         "final_equity": eqs[-1],
         "equity": equity_curve[::step] + ([equity_curve[-1]] if equity_curve and (len(equity_curve) - 1) % step else []),
         "trades": [
-            {k: p[k] for k in ("symbol", "strategy", "entry_ts", "exit_ts", "entry_price", "exit_price", "realized_pnl", "pnl_r", "reason_close", "p_win", "expected_r")}
+            {k: p[k] for k in ("symbol", "strategy", "entry_ts", "exit_ts", "entry_price", "exit_price", "realized_pnl", "pnl_r", "reason_close", "p_win", "expected_r",
+                               "initial_stop", "target_price", "qty", "initial_qty", "fees", "risk_amount")}
             for p in closed[-500:]
         ],
         "metrics": trade_metrics(rs),
         "equity_metrics": equity_metrics(eqs),
         "buy_hold_pct": bh,
         "open_positions": len(open_left),
-        "fees_paid": float(sum(p["fees"] for p in closed)),
+        "fees_paid": -float(db.scalar("SELECT SUM(amount) FROM ledger WHERE kind IN ('frais','conversion') AND asset=?",
+                                      (currency,), 0.0)),
+        "currency": currency,
         "exposure_pct": None,
         "duration_s": round(time.time() - t_run, 1),
         "agent_stats": agent.stats,
         "halted": risk.halted()[0],
+        "skipped_bars": skipped,
+        "execution": "ouverture de la bougie suivant le signal",
     }
+    if research_trace:
+        result["equity"] = equity_curve
+        result["refusal_reasons"] = dict(agent.refusal_reasons)
+        result["equity_cash"] = [[int(r["ts"] * 1000), r["equity"], r["cash"]] for r in db.query("SELECT ts,equity,cash FROM equity WHERE account_id=? ORDER BY ts", (acc,))]
+        result["closed_positions"] = closed
+        result["fills"] = db.query("SELECT * FROM fills ORDER BY id")
+        result["unrealized_positions"] = open_left
     db.close()
     return result

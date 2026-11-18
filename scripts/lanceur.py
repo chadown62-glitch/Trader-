@@ -66,7 +66,13 @@ def main(argv: list[str]) -> int:
     py = ensure_env()
     os.chdir(ROOT)
     if "--diagnostic" in argv:
-        return subprocess.run([str(py), "-m", "sentinelle.diagnostic"]).returncode
+        # 1) contrôle rapide de l'installation et des sources en ligne ;
+        # 2) diagnostic complet à exécution finie (dossier temporaire, panel démarré puis arrêté,
+        #    modèles gelés, lecture seule de vos données) avec verdict READY / BLOCKED.
+        quick = subprocess.run([str(py), "-m", "sentinelle.diagnostic"]).returncode
+        print()
+        full = subprocess.run([str(py), "-m", "tools.diagnose_windows", "--reseau", "--rapport"]).returncode
+        return quick or full
     say("Démarrage… le panel va s'ouvrir dans votre navigateur (http://127.0.0.1:8765).")
     say("Pour arrêter Sentinelle : fermez cette fenêtre ou appuyez sur Ctrl+C.")
     try:

@@ -21,9 +21,12 @@ DAY = 86_400
 class RiskDecision:
     approved: bool
     qty: float = 0.0
-    risk_amount: float = 0.0
+    risk_amount: float = 0.0  # perte si le stop est touché, dans la monnaie du compte
     reasons: list[str] = field(default_factory=list)
     checks: list[dict] = field(default_factory=list)
+    notional: float = 0.0  # montant de l'achat, dans la monnaie du compte
+    costs: float = 0.0  # frais, glissement et conversion estimés pour l'aller-retour, dans la monnaie du compte
+    bumped: bool = False  # vrai si la taille a été portée au minimum de la plateforme
 
     def refuse(self, name: str, message: str) -> "RiskDecision":
         self.approved = False
@@ -139,7 +142,13 @@ class RiskManager:
         agent: str | None = None,
         budget: float | None = None,
         risk_factor: float = 1.0,
+        fx: float = 1.0,
+        fx_cost: float = 0.0,
     ) -> RiskDecision:
+        """`entry`, `stop`, `target` : prix de la paire. `equity`, `cash` : monnaie du compte.
+
+        `fx` convertit la monnaie de cotation dans celle du compte (1.0 si ce sont les mêmes) ;
+        `fx_cost` est le coût de conversion par opération (fraction)."""
         cfg = self.settings_fn()["risk"]
         now = self.clock()
         dec = RiskDecision(approved=True)
@@ -169,7 +178,8 @@ class RiskManager:
                 return dec.refuse("serie_pertes", f"{n_losses} pertes d'affilée : pause jusqu'au {time.strftime('%d/%m %H:%M', time.localtime(until))}.")
 
         open_pos = self.db.query(
-            "SELECT symbol, qty, entry_price FROM positions WHERE account_id = ? AND status IN ('pending', 'open')",
+            "SELECT symbol, qty, entry_price, COALESCE(entry_fx, 1.0) AS entry_fx FROM positions "
+            "WHERE account_id = ? AND status IN ('pending', 'open')",
             (self.account_id,),
         )
         if len(open_pos) >= cfg["max_positions"]:
@@ -190,43 +200,84 @@ class RiskManager:
             return dec.refuse("stop", "Le stop doit être sous le prix d'entrée.")
         if target is not None and target <= entry:
             return dec.refuse("objectif", "L'objectif doit être au-dessus du prix d'entrée.")
+        if not (fx > 0):
+            return dec.refuse("change", "Taux de change indisponible : aucun ordre par prudence.")
         if target is None:
-            costs = entry * (2 * fee_rate + 2 * slip)
+            costs = entry * (2 * fee_rate + 2 * slip + 2 * fx_cost)
             ratio = (entry - stop) / costs if costs > 0 else float("inf")
             if ratio < cfg["min_reward_to_fees"]:
                 return dec.refuse("frais", f"Mouvement attendu trop faible face aux frais ({ratio:.1f}× les frais).")
             dec.ok("frais", f"risque = {ratio:.1f}× les frais (stop suiveur, pas d'objectif fixe)")
         if target is not None:
-            costs = entry * (2 * fee_rate + 2 * slip)
+            costs = entry * (2 * fee_rate + 2 * slip + 2 * fx_cost)
             ratio = (target - entry) / costs if costs > 0 else float("inf")
             if ratio < cfg["min_reward_to_fees"]:
                 return dec.refuse("frais", f"Gain visé trop faible face aux frais ({ratio:.1f}× les frais, minimum {cfg['min_reward_to_fees']:.0f}×).")
             dec.ok("frais", f"gain visé = {ratio:.1f}× les frais")
 
         base_capital = min(equity, budget) if budget else equity
+        unit_risk = (entry - stop) * fx  # perte par unité achetée si le stop est touché, monnaie du compte
+        unit_cost = entry * fx  # prix d'une unité, monnaie du compte
         risk_amount = base_capital * cfg["risk_per_trade"] * max(0.0, min(1.0, risk_factor))
-        qty = risk_amount / (entry - stop)
-        exposure = sum((p["qty"] or 0) * (p["entry_price"] or 0) for p in open_pos)
+        qty = risk_amount / unit_risk
+        exposure = sum((p["qty"] or 0) * (p["entry_price"] or 0) * p["entry_fx"] for p in open_pos)
         caps = {
-            "par crypto": base_capital * cfg["max_exposure_per_asset"] / entry,
-            "exposition totale": max(0.0, base_capital * cfg["max_exposure"] - exposure) / entry,
-            "liquidités": max(0.0, cash) / (entry * (1 + fee_rate + slip)),
+            "par crypto": base_capital * cfg["max_exposure_per_asset"] / unit_cost,
+            "exposition totale": max(0.0, base_capital * cfg["max_exposure"] - exposure) / unit_cost,
+            "liquidités": max(0.0, cash) / (unit_cost * (1 + fee_rate + slip + fx_cost)),
         }
         limiting = None
         for name, cap in caps.items():
             if cap < qty:
                 qty, limiting = cap, name
         qty = market.floor_amount(qty)
-        err = market.validate(qty, entry)
-        if err:
-            return dec.refuse("taille", f"Taille de position trop petite ({err}).")
+
+        # Faisabilité : l'achat ET le stop doivent respecter les minimums de la plateforme.
+        # Le stop est vérifié à son prix de déclenchement, là où le montant est le plus faible.
+        if market.validate(qty, entry) or market.validate(qty, stop):
+            need = self._minimum_qty(market, entry, stop)
+            hard_cap = market.floor_amount(min(caps.values()))
+            unit = market.quote
+            if need is None or need > hard_cap:
+                blocker = min(caps, key=caps.get)  # la règle qui empêche d'atteindre le minimum
+                return dec.refuse("taille", (
+                    f"Ordre impossible avec ce capital : la plateforme exige au moins {market.min_notional:g} {unit} par ordre "
+                    f"(stop compris), et la règle « {blocker} » limite l'achat à {hard_cap * entry:.2f} {unit}."))
+            bumped_risk = need * unit_risk
+            ceiling = base_capital * cfg.get("min_order_max_risk", 0.01)
+            if bumped_risk > ceiling:
+                return dec.refuse("taille", (
+                    f"Ordre trop petit pour la plateforme (minimum {market.min_notional:g} {unit}, stop compris). "
+                    f"Au minimum, le risque serait de {bumped_risk / equity * 100:.2f} % du capital, "
+                    f"au-dessus du plafond de {cfg.get('min_order_max_risk', 0.01) * 100:.2f} % : trade refusé."))
+            qty, dec.bumped = need, True
         dec.qty = qty
-        dec.risk_amount = qty * (entry - stop)
+        dec.risk_amount = qty * unit_risk
+        dec.notional = qty * unit_cost
+        dec.costs = dec.notional * (2 * fee_rate + 2 * slip + 2 * fx_cost)
         detail = f"risque {dec.risk_amount:,.2f} ({dec.risk_amount / equity * 100:.2f} % du capital)"
-        if limiting:
+        if dec.bumped:
+            detail += ", taille portée au minimum accepté par la plateforme"
+        elif limiting:
             detail += f", taille limitée par la règle « {limiting} »"
         dec.ok("taille", detail)
         return dec
+
+    @staticmethod
+    def _minimum_qty(market: MarketInfo, entry: float, stop: float) -> float | None:
+        """Plus petite quantité acceptée par la plateforme à l'achat ET pour le stop (marge de 2 %)."""
+        if stop <= 0:
+            return None
+        step = market.amount_step or 1e-8
+        need = max(market.min_amount or 0.0, (market.min_notional or 0.0) * 1.02 / min(entry, stop))
+        steps = int(need / step)
+        qty = market.floor_amount(steps * step)
+        while qty + 1e-15 < need:  # arrondi au pas supérieur
+            steps += 1
+            qty = market.floor_amount(steps * step + step / 2)
+        if market.validate(qty, entry) or market.validate(qty, stop):
+            return None
+        return qty
 
     # -- conseils pour le trading manuel ---------------------------------------------
     def manual_warnings(self, symbol: str, qty: float, price: float, stop: float | None, equity: float) -> list[str]:

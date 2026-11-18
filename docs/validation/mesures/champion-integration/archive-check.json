@@ -1,0 +1,33 @@
+{
+  "network": "seccomp denied",
+  "download": false,
+  "archives": {
+    "BTC": {
+      "bars": 7662,
+      "start_utc": "2023-01-01T00:00:00+00:00",
+      "end_exclusive_utc": "2026-07-01T00:00:00+00:00",
+      "manifest_sha256": "bccd22f2a2001785d82066dfa0db940490d101c8144c270e0377730ea52edab6",
+      "data_sha256": "d91edafacf6b389a2e9a0004d775b55369e074cb04188abbe986097fb79799ff",
+      "unchanged_files": 12,
+      "missing_count": 0
+    },
+    "ETH": {
+      "bars": 7662,
+      "start_utc": "2023-01-01T00:00:00+00:00",
+      "end_exclusive_utc": "2026-07-01T00:00:00+00:00",
+      "manifest_sha256": "ba7f7f727a58388a43d68521e1bf59e779b074001b4c8207f470046c968a93d9",
+      "data_sha256": "77c10d12ad9d27050e531561e686990142512e7a66231c22a00efd40980efd66",
+      "unchanged_files": 12,
+      "missing_count": 0
+    },
+    "SOL": {
+      "bars": 7662,
+      "start_utc": "2023-01-01T00:00:00+00:00",
+      "end_exclusive_utc": "2026-07-01T00:00:00+00:00",
+      "manifest_sha256": "4832f6576987a1eb5ea466fa8a0c1686a563625d2a837e2f9ecd5efa95d4d248",
+      "data_sha256": "afe3a1b45584596837714f952d72d19b2fa5ccf2d43a7b724336b1e03b629b24",
+      "unchanged_files": 12,
+      "missing_count": 0
+    }
+  }
+}

@@ -114,7 +114,7 @@ export const LearningTab = {
         <li>l'IA garde un <b>petit avantage réel</b> pour trier les signaux des stratégies : faible, et inégal d'une période à l'autre ;</li>
         <li>connaître le passé d'une crypto <b>ne prédit presque rien</b> de ses résultats futurs : les fiches par crypto servent à doser le risque, pas à choisir les trades.</li>
       </ul>
-      <p class="faint small" style="margin-bottom:0">C'est pourquoi l'IA reste prudente et que le mode réel exige des preuves obtenues en direct.</p>
+      <p class="faint small" style="margin-bottom:0">C'est pourquoi l'IA reste prudente. Cette version ne peut de toute façon passer aucun ordre réel : tout se passe en argent fictif.</p>
     </div>
   </div>`,
 };
