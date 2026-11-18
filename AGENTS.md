@@ -8,7 +8,7 @@
 ## 2. ANTI-BOUCLE INFINIE (RÈGLES D'EXÉCUTION)
 - Interdiction formelle de diviser le projet en nouvelles missions autonomes.
 - Travaille UNIQUEMENT sur le Sprint marqué `[EN COURS]` dans `SPEC.md`.
-- **Limite stricte :** Maximum 6 fichiers créés ou modifiés par Pull Request.
+- **Limite stricte :** Maximum 6 fichiers créés ou modifiés par Pull Request pour toutes les futures fonctionnalités. Dérogation unique : la PR d’assemblage initial #50–#52, branche `feat/sprint1-assemble-50-52`, peut dépasser cette limite. Cette exception ne s’applique à aucune autre PR.
 - Une seule PR active à la fois. Une fois le critère de validation atteint, arrête-toi et attends la validation humaine.
 
 ## 3. CONTRAINTES MATÉRIELLES & ENVIRONNEMENT
