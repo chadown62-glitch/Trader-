@@ -67,14 +67,15 @@ class FakeView(MarketView):
         return (venue, pair) in self.books
 
     def set_book(self, venue, pair, mid, *, hs_bps=1.0, qty=1e6, levels=10, age_ms=0, step=1e-8, min_notional=1.0, tick=None,
-                 taker=10.0, maker=10.0, trading=True):
+                 taker=10.0, maker=10.0, trading=True, taker_range=None):
         h = mid * hs_bps / 1e4
         tick = tick or mid * 1e-6
         bids = [(mid - h - i * tick, qty) for i in range(levels)]
         asks = [(mid + h + i * tick, qty) for i in range(levels)]
         self.books[(venue, pair)] = Book.build(venue, pair, bids, asks, received_ms=self.t - age_ms, sha256="a" * 64)
         self.rule[(venue, pair)] = Rules(venue, pair, step, tick, 0.0, min_notional, trading)
-        self.fee[venue] = {"taker": hypothesis(taker, "test", low=taker, high=taker), "maker": hypothesis(maker, "test", low=maker, high=maker)}
+        lo, hi = taker_range or (taker, taker)
+        self.fee[venue] = {"taker": hypothesis(taker, "test", low=lo, high=hi), "maker": hypothesis(maker, "test", low=maker, high=maker)}
 
     def book(self, venue, pair):
         if (venue, pair) in self.down or venue in self.down:
@@ -141,5 +142,5 @@ def service(db, view, *, risk=None, reg=None, account_id=1, clock=None):
                       client=PublicClient(transport=no_network), clock=clock or time.time)
 
 
-def buy(asset="BTC", n=8.0, edge=200.0, **extra):
+def buy(asset="BTC", n=10.0, edge=200.0, **extra):
     return {"mode": "paper", "side": "buy", "asset": asset, "notional_eur": n, "edge_bps": edge, "networks": [], **extra}

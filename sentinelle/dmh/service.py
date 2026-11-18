@@ -13,6 +13,7 @@ Toutes les valeurs affichées sont FICTIVES : prix réels publics, exécution si
 from __future__ import annotations
 
 import logging
+import math
 import re
 import threading
 import time
@@ -237,7 +238,8 @@ class HubService:
         lim = self.limits()
         if side == "buy":
             routes = build_routes(view, self.registry, intent, ledger=self.ledger)
-            choice = choose(routes, intent.edge_bps, max_cost_bps=lim["max_round_trip_cost_bps"], allow_limit=intent.prefer_limit)
+            choice = choose(routes, intent.edge_bps, max_cost_bps=lim["max_round_trip_cost_bps"], allow_limit=intent.prefer_limit,
+                            max_immobilized_pct=lim["max_immobilized_pct"])
             edge = intent.edge_bps
         else:
             routes = self._exit_routes(view, extra["holding"], extra["fraction"])
@@ -272,9 +274,19 @@ class HubService:
                                 route_totals=None, held_qty_value=chosen["notional_eur"])
             check_route(verdict, lim, chosen, view.now_ms(), self.registry, risks)
             check_clock(verdict, lim, self._clock_offsets(view))
+        money = None
+        if chosen and chosen.get("totals"):
+            t = chosen["totals"]
+            pf_now = self.portfolio()
+            spend = reservation(chosen)[1] if side == "buy" else 0.0
+            money = {"fees_paid_eur": t["fees_paid_eur"], "immobilized_eur": t["immobilized_eur"], "immobilized_pct": t["immobilized_pct"],
+                     "risk_eur": t["risk_eur"], "unverified_fees_eur": t["unverified_fees_eur"],
+                     "cash_available_now_eur": pf_now.cash_available, "cash_available_after_eur": pf_now.cash_available - spend,
+                     "note": "frais réellement payés, capital immobilisé (reliquats, provision, dépôts) et risques sont séparés"}
         data = {"label": LABEL, "mode": view.mode, "side": side, "origin": origin, "body": body, "decision": choice.decision,
                 "route": chosen, "alternatives": [r.to_dict(edge) for r in choice.ranked if r is not choice.route][:12],
                 "choice_reasons": choice.reasons, "sensitivity": choice.sensitivity, "verdict": verdict.to_dict(),
+                "fee_dependent": choice.fee_dependent, "scenario_winners": choice.scenario_winners, "money": money,
                 "token_risks": risks, "config_hash": self.config_hash(), "assumptions": A.VERSION, "edge_bps": edge,
                 "explanation": self._explain(choice, verdict, edge)}
         pid = self.ledger.save_preview(data, int(lim["preview_ttl_ms"]))
@@ -587,15 +599,29 @@ class HubService:
         return {"label": LABEL, "mode": view.mode, "ts_ms": now, "books": rows, "networks": nets, "health": self.client.health()}
 
     def positions(self) -> dict:
-        marks = {(m["asset"], m["location"]): m for m in self.db.query("SELECT * FROM dmh_marks WHERE account_id = ?", (self.ledger.account_id,))}
-        rows = []
+        """Positions avec, SÉPARÉMENT : part revendable, reliquat (valeur immobilisée), frais payés et capital disponible."""
+        vals = {(v["asset"], v["location"]): v for v in self.ledger.valuation()}
+        rows, dust_total = [], 0.0
         for h in self.ledger.holdings():
-            m = marks.get((h["asset"], h["location"]))
-            rows.append(h | {"logical": self.logical(h["asset"]), "value_eur": m["value_eur"] if m else None,
-                             "mark_ts_ms": m["ts_ms"] if m else None, "mark_method": m["method"] if m else None,
-                             "unrealized_eur": (m["value_eur"] - h["cost_eur"]) if m else None,
+            v = vals.get((h["asset"], h["location"]), {})
+            step = float(h.get("step") or 0.0)
+            sellable = math.floor(h["qty"] / step + 1e-9) * step if step > 0 else h["qty"]
+            dust_qty = max(0.0, h["qty"] - sellable)
+            unit = (v.get("value_eur", h["cost_eur"]) / h["qty"]) if h["qty"] > 0 else 0.0
+            dust_eur = dust_qty * unit
+            dust_total += dust_eur
+            rows.append(h | {"logical": self.logical(h["asset"]), "value_eur": v.get("value_eur"), "valuation_method": v.get("method"),
+                             "valuation_stale": v.get("stale"), "mark_ts_ms": v.get("mark_ts_ms"),
+                             "unrealized_eur": (v["value_eur"] - h["cost_eur"]) if v else None, "sellable_qty": sellable,
+                             "dust_qty": dust_qty, "dust_eur": dust_eur,
                              "final": h["final_ms"] <= self.ledger.now_ms(), "available": self.ledger.available_holding(h["asset"], h["location"])})
-        return {"label": LABEL, "positions": rows, "cash_total": self.ledger.cash.total(), "cash_available": self.ledger.cash.available()}
+        fees = 0.0
+        for f in self.ledger.fills():
+            c = f["costs"] or {}
+            fees += sum(float(c.get(k, 0) or 0) for k in ("commission_eur", "gaz_eur", "frais_eur"))
+        return {"label": LABEL, "positions": rows, "cash_total": self.ledger.cash.total(), "cash_available": self.ledger.cash.available(),
+                "fees_paid_eur": fees, "dust_value_eur": dust_total,
+                "note": "frais payés, valeur des reliquats (immobilisée, invendable seule) et capital disponible sont distincts"}
 
     def history(self, limit: int = 100) -> dict:
         ops = self.ledger.operations(limit)

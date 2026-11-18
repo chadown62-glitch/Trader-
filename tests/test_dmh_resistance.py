@@ -209,10 +209,11 @@ def test_11_network_failure_during_an_operation_resumes_idempotently(db, view):
     view.down.clear()
     # panne APRÈS l'enregistrement de la transaction simulée sur la chaîne, avant le règlement
     del view.books[("kraken", "SOL/EUR")], view.books[("coinbase", "SOL/EUR")]
-    view.set_book("kraken", "SOL/EUR", 70.0, taker=40.0, maker=25.0, min_notional=0.45)
+    view.set_book("kraken", "SOL/EUR", 70.0, taker=300.0, maker=300.0, min_notional=0.45)  # plateforme hors de prix : route sur la chaîne
     seed(svc, S.USDC_S.key, "chain:solana", 20.0, 18.4, "seed-usdc-s")
     seed(svc, "native:solana", "chain:solana", 0.02, 1.4, "seed-gas-s")
-    pv = svc.preview({"mode": "paper", "side": "buy", "asset": "SOL", "notional_eur": 8.0, "edge_bps": 200, "networks": ["solana"]})
+    svc.set_limits({"max_immobilized_pct": 2.0, "max_position_eur": 15.0}, "user")  # choix explicites de l'utilisateur (sous les plafonds)
+    pv = svc.preview({"mode": "paper", "side": "buy", "asset": "SOL", "notional_eur": 10.0, "edge_bps": 200, "networks": ["solana"]})
     assert pv["route"]["kind"] == "dex_onchain" and pv["verdict"]["allowed"], pv["explanation"]
     real_settle = svc.ledger.settle
     svc.ledger.settle = lambda *a, **k: (_ for _ in ()).throw(ConnectionError("coupure au moment du règlement"))
@@ -263,7 +264,7 @@ def test_13_a_desynchronised_portfolio_blocks_until_reconciled(svc, db):
         svc.preview(S.buy())
     db.execute("UPDATE dmh_holdings SET qty = qty / 2")
     assert svc.ledger.reconcile()["ok"] and svc.ledger.state("desync") is None
-    assert svc.preview(S.buy(n=6.0))["decision"] == "ROUTE"
+    assert svc.preview(S.buy(n=10.0))["decision"] == "ROUTE"
 
 
 # 14 ------------------------------------------------------------------------------------------------------------------
@@ -272,9 +273,11 @@ def test_14_an_unsellable_token_blocks_entries_and_is_reported(db, view):
                        {"goplus": {"honeypot": True, "cannot_sell": True, "sell_tax": 0.99}})
     assert rep["status"] == "UNSAFE" and any("revendre" in f for f in rep["flags"])
     svc = S.service(db, view, risk=S.FakeRisk({S.BONK.key: "impossible à revendre (pot de miel)"}))
+    view.set_book("bitvavo", "BONK/EUR", 0.000012, taker=300.0, maker=300.0, min_notional=5.0, step=1.0)
     seed(svc, S.USDC_S.key, "chain:solana", 20.0, 18.4, "seed-usdc-s")
     seed(svc, "native:solana", "chain:solana", 0.02, 1.4, "seed-gas-s")
-    pv = svc.preview({"mode": "paper", "side": "buy", "asset": "BONK", "notional_eur": 6.0, "edge_bps": 300, "networks": ["solana"]})
+    svc.set_limits({"max_immobilized_pct": 2.0}, "user")
+    pv = svc.preview({"mode": "paper", "side": "buy", "asset": "BONK", "notional_eur": 10.0, "edge_bps": 300, "networks": ["solana"]})
     assert pv["route"]["kind"] == "dex_onchain"
     assert any(v["code"] == "token_risque" and "revendre" in v["message"] for v in pv["verdict"]["vetoes"])
 

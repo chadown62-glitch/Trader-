@@ -45,6 +45,7 @@ ABSOLUTE = MappingProxyType({
     "max_clock_skew_ms": 2_000,
     "min_order_eur": 1.0,
     "preview_ttl_ms": 60_000,
+    "max_immobilized_pct": 5.0,
 })
 # sens de la contrainte : « max » = la limite réglable doit être ≤ au plafond ; « min » = ≥ au plancher
 _DIRECTION = {k: ("min" if k in ("min_cash_reserve_eur", "min_order_eur") else "max") for k in ABSOLUTE if k != "capital_eur"}
@@ -53,7 +54,10 @@ DEFAULT_LIMITS = MappingProxyType({
     "max_total_loss_eur": 6.0, "max_drawdown_pct": 20.0, "max_memecoin_exposure_pct": 30.0, "max_round_trip_cost_bps": 150.0,
     "max_spread_bps": 50.0, "max_price_impact_bps": 50.0, "max_network_fee_eur": 0.20, "max_slippage_tolerance_bps": 50.0,
     "max_book_age_ms": 3_000, "max_quote_age_ms": 10_000, "max_price_move_bps": 30.0, "max_open_positions": 4,
-    "max_orders_per_minute": 3, "max_clock_skew_ms": 1_500, "min_order_eur": 5.0, "preview_ttl_ms": 30_000,
+    "max_orders_per_minute": 3, "max_clock_skew_ms": 1_500, "preview_ttl_ms": 30_000,
+    # Mission 52 : refus par défaut sous 10 € tant que l'exécution économique n'est pas démontrée (minimums des
+    # plateformes, arrondis, reliquats) ; capital immobilisé (reliquats, provision de gaz, dépôts) ≤ 1 % du montant.
+    "min_order_eur": 10.0, "max_immobilized_pct": 1.0,
 })
 HUMAN_ORIGINS = frozenset({"user"})
 AI_ORIGINS = frozenset({"ai", "llm", "agent", "strategy"})
@@ -210,6 +214,10 @@ def check_route(v: Verdict, lim: dict, route: dict, now_ms: int, registry, token
     if route.get("exit") is None:
         v.veto("sortie_absente", "devis sans sortie : comparaison rejetée", "economique")
         return
+    t = route.get("totals") or {}
+    if t.get("immobilized_pct") is not None and t["immobilized_pct"] > lim["max_immobilized_pct"]:
+        v.veto("immobilisation", f"capital immobilisé {t['immobilized_eur']:.4f} € ({t['immobilized_pct']:.2f} %) > limite "
+               f"{lim['max_immobilized_pct']:g} % (reliquats, provision de gaz, dépôts)", "economique")
     for leg in route["entry"] + route["exit"]:
         d = leg.get("data", {})
         if leg["kind"] == "cex":

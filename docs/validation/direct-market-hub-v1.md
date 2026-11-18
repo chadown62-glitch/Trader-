@@ -4,6 +4,8 @@
 réel, aucune transaction diffusée, aucune clé, aucun service permanent, aucune fusion. Architecture et audit :
 `docs/architecture/direct-market-hub-v1.md`.
 
+> **Révision (mission 52)** : les règles de choix ont été durcies (reliquat compté comme capital immobilisé, choix au scénario défavorable, minimum de 10 €). Les fichiers `docs/validation/mesures/market-hub-v1/validation.json` et `tableaux.md` sont régénérés avec ces règles à partir de la même capture ; les chiffres de la section 3 ci-dessous sont ceux de la mission 51 et sont révisés dans `docs/validation/hub-hardening-v1.md`.
+
 ## 1. Résumé
 
 Le hub permet de préparer une opération, de comparer ses routes d'exécution aller ET retour, puis de l'exécuter en
