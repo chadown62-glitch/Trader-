@@ -327,6 +327,11 @@ class App(LiveMixin, PortfolioMixin, PerformanceMixin, ChampionMixin, JournalMix
                 self.db.insert("ledger", {"account_id": acc["id"], "ts": clock(), "kind": "ajustement", "asset": row["asset"],
                                           "amount": row["total"], "balance_after": row["total"],
                                           "note": "Solde repris à la mise en place du grand livre"})
+        hub = getattr(self, "dmh", None)
+        if hub is not None and acc["role"] == "main" and hub.ledger.account_id == acc["id"]:
+            # un seul portefeuille : les réservations et la valeur prudente du hub de marché restent branchées
+            broker.external_reserved = hub.ledger.reserved_by_asset
+            broker.external_value = hub.ledger.liquidation_value
         rt = AccountRuntime(acc, broker, PositionManager(self.db, broker, self.bus, clock),
                             RiskManager(self.db, acc["id"], lambda: self.settings, clock))
         rt.positions.close_listeners.append(self._on_position_closed)

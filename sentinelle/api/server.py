@@ -695,6 +695,16 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         app.extensions.append(app.macro_shadow)
     macro_shadow = app.macro_shadow
 
+    # Hub de marché (mission 51) : lectures publiques et exécution FICTIVE uniquement (voir sentinelle/dmh).
+    from ..dmh.api import register_routes as register_dmh
+    from ..dmh.service import HubService
+
+    def _dmh():
+        if getattr(app, "dmh", None) is None:
+            app.dmh = HubService.for_app(app)
+        return app.dmh
+    register_dmh(api, app, _dmh)
+
     @api.get("/api/macro-shadow")
     async def macro_shadow_context(as_of: float | None = None):
         import math

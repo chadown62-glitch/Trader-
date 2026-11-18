@@ -334,3 +334,11 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .wrap-anywhere .table-wrap th, .wrap-anywhere .table-wrap td { overflow-wrap: normal; word-break: normal; }
 .wrap-anywhere .table-wrap td:first-child { min-width: 9rem; }
 .wrap-anywhere .table-wrap .hash { overflow-wrap: anywhere; }
+
+/* Hub de marché (mission 51) : bandeau permanent « argent fictif » */
+.sim-banner { position: sticky; top: 0; z-index: 5; background: #7c2d12; color: #fff; font-weight: 700; text-align: center;
+  padding: 8px 12px; border-radius: 8px; letter-spacing: .02em; }
+.dmh .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.dmh .tabs button.active { outline: 2px solid currentColor; }
+.dmh textarea { width: 100%; box-sizing: border-box; }
+@media (max-width: 640px) { .dmh .grid.cols-3 { grid-template-columns: 1fr; } .dmh table { font-size: 12px; } }

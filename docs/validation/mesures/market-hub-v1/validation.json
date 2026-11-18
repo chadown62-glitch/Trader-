@@ -1,0 +1,1144 @@
+{
+ "kind": "dmh-validation",
+ "capture": "capture-1794851893380.json.gz",
+ "capture_sha256": "92611d8fa0d7ffe70510d49013fe59c4930f37031dd8db12bc94ba3e0eda0e08",
+ "captured_ms": 1794851893380,
+ "edge_bps_hypothesis": 100.0,
+ "existing_engine": {
+  "eur_pair_order_bps": 15.0,
+  "usdc_pair_order_bps": 20.0,
+  "touch_fill": 1.0
+ },
+ "cost_optimizer_measured": {
+  "eur_direct_order_bps": 11.41,
+  "majors_usdt_order_bps": 21.88,
+  "others_usdt_order_bps": 23.69
+ },
+ "assumptions": {
+  "sha256": "7d7c61f17b98e1f922fedcadf4beee8572d8efe818c1d168ada96efec979ded6",
+  "version": "hub-cost-assumptions-1.0.0"
+ },
+ "rows": [
+  {
+   "asset": "BTC",
+   "notional_eur": 5.0,
+   "decision": "ROUTE",
+   "decision_seconds": 0.008058619999701477,
+   "chosen": {
+    "label": "kraken — BTC/EUR direct",
+    "kind": "cex_direct",
+    "cost_eur": 0.03992472192401491,
+    "cost_low_eur": 0.024956125202514903,
+    "cost_high_eur": 0.047047007405855254,
+    "cost_bps": 79.84944384802982,
+    "cost_low_bps": 49.9122504050298,
+    "cost_high_bps": 94.09401481171051,
+    "entry_fill_probability": 1.0,
+    "failure_probability": 0.0,
+    "latency_ms": 500,
+    "finality_ms": 500,
+    "dust_eur": 4.4801999999938454e-05,
+    "deposit_eur": 0.0,
+    "level": "HYPOTHETICAL"
+   },
+   "security": {
+    "allowed": true,
+    "vetoes": [],
+    "warnings": []
+   },
+   "simulated": {
+    "simulated": true,
+    "entry_state": "FILLED",
+    "exit_state": "FILLED",
+    "spent_eur": 4.999557981,
+    "final_cash_eur": 29.960030493,
+    "leftover_cost_eur": 4.4982004016002467e-05,
+    "round_trip_cost_eur": 0.03992452499598257,
+    "round_trip_cost_bps": 79.85610957550485,
+    "reconciled": true,
+    "notes": []
+   },
+   "best_by_kind": {
+    "cex_direct": {
+     "label": "kraken — BTC/EUR direct",
+     "cost_bps": 79.84944384802982,
+     "cost_low_bps": 49.9122504050298,
+     "cost_high_bps": 94.09401481171051,
+     "fill": 1.0,
+     "dust_eur": 4.4801999999938454e-05,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_limit": {
+     "label": "kraken — BTC/EUR à cours limité",
+     "cost_bps": 63.36241973546118,
+     "cost_low_bps": 23.10613861967718,
+     "cost_high_bps": 72.59743360217988,
+     "fill": 0.82,
+     "dust_eur": 4.4801999999938454e-05,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_via_stable": {
+     "label": "kraken — EUR → USDT → BTC",
+     "cost_bps": 160.13290955390497,
+     "cost_low_bps": 100.49918801760886,
+     "cost_high_bps": 180.35879216931124,
+     "fill": 1.0,
+     "dust_eur": 0.00011548629071020601,
+     "latency_ms": 1000,
+     "finality_ms": 500
+    }
+   },
+   "impossible": [
+    {
+     "label": "binance — BTC/EUR direct",
+     "reason": "route impossible : montant inférieur au minimum de binance (4.72 < 5 EUR)"
+    },
+    {
+     "label": "binance — BTC/EUR à cours limité",
+     "reason": "route impossible : montant inférieur au minimum de binance (4.72 < 5 EUR)"
+    },
+    {
+     "label": "binance — EUR → USDT → BTC",
+     "reason": "route impossible : montant inférieur au minimum de binance (4.54 < 5 USDT)"
+    },
+    {
+     "label": "binance — EUR → USDC → BTC",
+     "reason": "route impossible : montant inférieur au minimum de binance (4.54 < 5 USDC)"
+    },
+    {
+     "label": "kraken — EUR → USDT → BTC",
+     "reason": "coût aller-retour 160.1 pb > plafond 150 pb"
+    },
+    {
+     "label": "coinbase — BTC/EUR direct",
+     "reason": "coût aller-retour 239.0 pb > plafond 150 pb"
+    },
+    {
+     "label": "bitstamp — BTC/EUR direct",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (5.00 < 10 EUR)"
+    },
+    {
+     "label": "bitstamp — BTC/EUR à cours limité",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (5.00 < 10 EUR)"
+    },
+    {
+     "label": "bitstamp — EUR → USDT → BTC",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (5.00 < 10 EUR)"
+    },
+    {
+     "label": "bitvavo — BTC/EUR direct",
+     "reason": "route impossible : montant inférieur au minimum de bitvavo (5.00 < 5 EUR)"
+    },
+    {
+     "label": "bitvavo — BTC/EUR à cours limité",
+     "reason": "route impossible : montant inférieur au minimum de bitvavo (5.00 < 5 EUR)"
+    }
+   ],
+   "sensitivity": [],
+   "existing_engine_rt_bps": 40.0,
+   "existing_engine_rt_eur": 0.02,
+   "saving_vs_existing_estimated_bps": -39.84944384802982,
+   "saving_vs_existing_simulated_bps": -39.856109575504846
+  },
+  {
+   "asset": "BTC",
+   "notional_eur": 10.0,
+   "decision": "ROUTE",
+   "decision_seconds": 0.011432780999712122,
+   "chosen": {
+    "label": "binance — BTC/EUR direct",
+    "kind": "cex_direct",
+    "cost_eur": 0.018265834000004595,
+    "cost_low_eur": 0.013699763000004597,
+    "cost_high_eur": 0.6108756508280687,
+    "cost_bps": 18.265834000004595,
+    "cost_low_bps": 13.699763000004598,
+    "cost_high_bps": 610.8756508280687,
+    "entry_fill_probability": 1.0,
+    "failure_probability": 0.0,
+    "latency_ms": 500,
+    "finality_ms": 500,
+    "dust_eur": 0.5797436736,
+    "deposit_eur": 0.0,
+    "level": "HYPOTHETICAL"
+   },
+   "security": {
+    "allowed": true,
+    "vetoes": [],
+    "warnings": []
+   },
+   "simulated": {
+    "simulated": true,
+    "entry_state": "FILLED",
+    "exit_state": "FILLED",
+    "spent_eur": 9.426728,
+    "final_cash_eur": 29.401990444,
+    "leftover_cost_eur": 0.5803240960960961,
+    "round_trip_cost_eur": 0.0176854599039048,
+    "round_trip_cost_bps": 18.7609740133637,
+    "reconciled": true,
+    "notes": []
+   },
+   "best_by_kind": {
+    "cex_direct": {
+     "label": "binance — BTC/EUR direct",
+     "cost_bps": 18.265834000004595,
+     "cost_low_bps": 13.699763000004598,
+     "cost_high_bps": 610.8756508280687,
+     "fill": 1.0,
+     "dust_eur": 0.5797436736,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_limit": {
+     "label": "binance — BTC/EUR à cours limité",
+     "cost_bps": 16.86987825593596,
+     "cost_low_bps": 12.002151959935961,
+     "cost_high_bps": 604.7569043560001,
+     "fill": 0.82,
+     "dust_eur": 0.5797436736,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_via_stable": {
+     "label": "binance — EUR → USDC → BTC",
+     "cost_bps": 37.922124166102485,
+     "cost_low_bps": 28.655551958414364,
+     "cost_high_bps": 728.200061991682,
+     "fill": 1.0,
+     "dust_eur": 0.6710049016854656,
+     "latency_ms": 1000,
+     "finality_ms": 500
+    }
+   },
+   "impossible": [
+    {
+     "label": "kraken — EUR → USDT → BTC",
+     "reason": "coût aller-retour 160.1 pb > plafond 150 pb"
+    },
+    {
+     "label": "coinbase — BTC/EUR direct",
+     "reason": "coût aller-retour 239.7 pb > plafond 150 pb"
+    },
+    {
+     "label": "bitstamp — BTC/EUR direct",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (10.00 < 10 EUR)"
+    },
+    {
+     "label": "bitstamp — BTC/EUR à cours limité",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (10.00 < 10 EUR)"
+    },
+    {
+     "label": "bitstamp — EUR → USDT → BTC",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (10.00 < 10 EUR)"
+    }
+   ],
+   "sensitivity": [
+    "aux bornes hautes des coûts, la meilleure route serait « bitvavo — BTC/EUR direct » : choix sensible aux hypothèses"
+   ],
+   "existing_engine_rt_bps": 40.0,
+   "existing_engine_rt_eur": 0.04,
+   "saving_vs_existing_estimated_bps": 21.734165999995405,
+   "saving_vs_existing_simulated_bps": 21.2390259866363
+  },
+  {
+   "asset": "BTC",
+   "notional_eur": 30.0,
+   "decision": "ROUTE",
+   "decision_seconds": 0.012451226999928622,
+   "chosen": {
+    "label": "binance — BTC/EUR direct",
+    "kind": "cex_direct",
+    "cost_eur": 0.05996135636399452,
+    "cost_low_eur": 0.04538020243899452,
+    "cost_high_eur": 0.6609333139445013,
+    "cost_bps": 19.987118787998174,
+    "cost_low_bps": 15.126734146331508,
+    "cost_high_bps": 220.3111046481671,
+    "entry_fill_probability": 1.0,
+    "failure_probability": 0.0,
+    "latency_ms": 500,
+    "finality_ms": 500,
+    "dust_eur": 0.5596649499999976,
+    "deposit_eur": 0.0,
+    "level": "HYPOTHETICAL"
+   },
+   "security": {
+    "allowed": true,
+    "vetoes": [],
+    "warnings": []
+   },
+   "simulated": {
+    "simulated": true,
+    "entry_state": "FILLED",
+    "exit_state": "FILLED",
+    "spent_eur": 29.457686699999996,
+    "final_cash_eur": 29.38037537100001,
+    "leftover_cost_eur": 0.5602563036036011,
+    "round_trip_cost_eur": 0.0593683253963887,
+    "round_trip_cost_bps": 20.15376360031309,
+    "reconciled": true,
+    "notes": []
+   },
+   "best_by_kind": {
+    "cex_direct": {
+     "label": "binance — BTC/EUR direct",
+     "cost_bps": 19.987118787998174,
+     "cost_low_bps": 15.126734146331508,
+     "cost_high_bps": 220.3111046481671,
+     "fill": 1.0,
+     "dust_eur": 0.5596649499999976,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_limit": {
+     "label": "binance — BTC/EUR à cours limité",
+     "cost_bps": 17.989109356063594,
+     "cost_low_bps": 12.814509389596926,
+     "cost_high_bps": 213.39366153733258,
+     "fill": 0.82,
+     "dust_eur": 0.5596649499999976,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_via_stable": {
+     "label": "binance — EUR → USDT → BTC",
+     "cost_bps": 39.934496806617624,
+     "cost_low_bps": 30.173761917850836,
+     "cost_high_bps": 270.6209789751934,
+     "fill": 1.0,
+     "dust_eur": 0.630918233253894,
+     "latency_ms": 1000,
+     "finality_ms": 500
+    }
+   },
+   "impossible": [
+    {
+     "label": "kraken — EUR → USDT → BTC",
+     "reason": "coût aller-retour 160.1 pb > plafond 150 pb"
+    },
+    {
+     "label": "coinbase — BTC/EUR direct",
+     "reason": "coût aller-retour 239.6 pb > plafond 150 pb"
+    },
+    {
+     "label": "bitstamp — EUR → USDT → BTC",
+     "reason": "coût aller-retour 163.1 pb > plafond 150 pb"
+    }
+   ],
+   "sensitivity": [
+    "aux bornes hautes des coûts, la meilleure route serait « bitvavo — BTC/EUR direct » : choix sensible aux hypothèses"
+   ],
+   "existing_engine_rt_bps": 40.0,
+   "existing_engine_rt_eur": 0.12,
+   "saving_vs_existing_estimated_bps": 20.012881212001826,
+   "saving_vs_existing_simulated_bps": 19.84623639968691
+  },
+  {
+   "asset": "ETH",
+   "notional_eur": 5.0,
+   "decision": "ROUTE",
+   "decision_seconds": 0.03549417899967011,
+   "chosen": {
+    "label": "binance — EUR → USDT → ETH",
+    "kind": "cex_via_stable",
+    "cost_eur": 0.019920083003249652,
+    "cost_low_eur": 0.01505688252420953,
+    "cost_high_eur": 0.28564608642256506,
+    "cost_bps": 39.84016600649931,
+    "cost_low_bps": 30.11376504841906,
+    "cost_high_bps": 571.2921728451302,
+    "entry_fill_probability": 1.0,
+    "failure_probability": 0.0,
+    "latency_ms": 1000,
+    "finality_ms": 500,
+    "dust_eur": 0.255638123898392,
+    "deposit_eur": 0.0,
+    "level": "HYPOTHETICAL"
+   },
+   "security": {
+    "allowed": true,
+    "vetoes": [],
+    "warnings": []
+   },
+   "simulated": {
+    "simulated": true,
+    "entry_state": "FILLED",
+    "exit_state": "FILLED",
+    "spent_eur": 5.0,
+    "final_cash_eur": 29.6953,
+    "leftover_cost_eur": 0.28494627104269826,
+    "round_trip_cost_eur": 0.019753728957302152,
+    "round_trip_cost_bps": 39.5074579146043,
+    "reconciled": true,
+    "notes": []
+   },
+   "best_by_kind": {
+    "cex_via_stable": {
+     "label": "binance — EUR → USDT → ETH",
+     "cost_bps": 39.84016600649931,
+     "cost_low_bps": 30.11376504841906,
+     "cost_high_bps": 571.2921728451302,
+     "fill": 1.0,
+     "dust_eur": 0.255638123898392,
+     "latency_ms": 1000,
+     "finality_ms": 500
+    },
+    "cex_direct": {
+     "label": "kraken — ETH/EUR direct",
+     "cost_bps": 79.90008554516727,
+     "cost_low_bps": 49.960191915867284,
+     "cost_high_bps": 94.04114012632391,
+     "fill": 1.0,
+     "dust_eur": 3.2401739999578153e-06,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_limit": {
+     "label": "kraken — ETH/EUR à cours limité",
+     "cost_bps": 63.389843809217496,
+     "cost_low_bps": 23.129952343815095,
+     "cost_high_bps": 72.52089944087092,
+     "fill": 0.82,
+     "dust_eur": 3.2401739999578153e-06,
+     "latency_ms": 500,
+     "finality_ms": 500
+    }
+   },
+   "impossible": [
+    {
+     "label": "binance — ETH/EUR direct",
+     "reason": "route impossible : montant inférieur au minimum de binance (4.96 < 5 EUR)"
+    },
+    {
+     "label": "binance — ETH/EUR à cours limité",
+     "reason": "route impossible : montant inférieur au minimum de binance (4.96 < 5 EUR)"
+    },
+    {
+     "label": "kraken — EUR → USDT → ETH",
+     "reason": "coût aller-retour 161.4 pb > plafond 150 pb"
+    },
+    {
+     "label": "coinbase — ETH/EUR direct",
+     "reason": "coût aller-retour 240.1 pb > plafond 150 pb"
+    },
+    {
+     "label": "bitstamp — ETH/EUR direct",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (5.00 < 10 EUR)"
+    },
+    {
+     "label": "bitstamp — ETH/EUR à cours limité",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (5.00 < 10 EUR)"
+    },
+    {
+     "label": "bitstamp — EUR → USDT → ETH",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (5.00 < 10 EUR)"
+    },
+    {
+     "label": "bitvavo — ETH/EUR direct",
+     "reason": "route impossible : montant inférieur au minimum de bitvavo (5.00 < 5 EUR)"
+    },
+    {
+     "label": "bitvavo — ETH/EUR à cours limité",
+     "reason": "route impossible : montant inférieur au minimum de bitvavo (5.00 < 5 EUR)"
+    },
+    {
+     "label": "base — EUR → USDC → retrait → échange",
+     "reason": "route impossible : montant inférieur au minimum de binance (4.84 < 5 USDC)"
+    },
+    {
+     "label": "ethereum — EUR → USDC → retrait → échange",
+     "reason": "route impossible : montant inférieur au minimum de binance (0.99 < 5 USDC)"
+    }
+   ],
+   "sensitivity": [
+    "aux bornes hautes des coûts, la meilleure route serait « kraken — ETH/EUR direct » : choix sensible aux hypothèses"
+   ],
+   "existing_engine_rt_bps": 40.0,
+   "existing_engine_rt_eur": 0.02,
+   "saving_vs_existing_estimated_bps": 0.1598339935006905,
+   "saving_vs_existing_simulated_bps": 0.4925420853956979
+  },
+  {
+   "asset": "ETH",
+   "notional_eur": 10.0,
+   "decision": "ROUTE",
+   "decision_seconds": 0.035852759999670525,
+   "chosen": {
+    "label": "binance — ETH/EUR direct",
+    "kind": "cex_direct",
+    "cost_eur": 0.019738947001511666,
+    "cost_low_eur": 0.014819085251511665,
+    "cost_high_eur": 0.18910418541770363,
+    "cost_bps": 19.738947001511665,
+    "cost_low_bps": 14.819085251511666,
+    "cost_high_bps": 189.10418541770363,
+    "entry_fill_probability": 1.0,
+    "failure_probability": 0.0,
+    "latency_ms": 500,
+    "finality_ms": 500,
+    "dust_eur": 0.15545062000000057,
+    "deposit_eur": 0.0,
+    "level": "HYPOTHETICAL"
+   },
+   "security": {
+    "allowed": true,
+    "vetoes": [],
+    "warnings": []
+   },
+   "simulated": {
+    "simulated": true,
+    "entry_state": "FILLED",
+    "exit_state": "FILLED",
+    "spent_eur": 9.92244,
+    "final_cash_eur": 29.824809993,
+    "leftover_cost_eur": 0.15560716716716771,
+    "round_trip_cost_eur": 0.019582839832833487,
+    "round_trip_cost_bps": 19.735911562915458,
+    "reconciled": true,
+    "notes": []
+   },
+   "best_by_kind": {
+    "cex_direct": {
+     "label": "binance — ETH/EUR direct",
+     "cost_bps": 19.738947001511665,
+     "cost_low_bps": 14.819085251511666,
+     "cost_high_bps": 189.10418541770363,
+     "fill": 1.0,
+     "dust_eur": 0.15545062000000057,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_limit": {
+     "label": "binance — ETH/EUR à cours limité",
+     "cost_bps": 18.240425790808604,
+     "cost_low_bps": 13.003045960808603,
+     "cost_high_bps": 182.63452176700056,
+     "fill": 0.82,
+     "dust_eur": 0.15545062000000057,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_via_stable": {
+     "label": "binance — EUR → USDT → ETH",
+     "cost_bps": 40.327660239573,
+     "cost_low_bps": 30.48290457808038,
+     "cost_high_bps": 306.58790449894457,
+     "fill": 1.0,
+     "dust_eur": 0.24574331845258407,
+     "latency_ms": 1000,
+     "finality_ms": 500
+    },
+    "dex_funded": {
+     "label": "base — EUR → USDC → retrait → échange",
+     "cost_bps": 840.2806450548836,
+     "cost_low_bps": 27.773113719030416,
+     "cost_high_bps": 4478.834172669311,
+     "fill": 0.98,
+     "dust_eur": 0.0906032232536756,
+     "latency_ms": 1803000,
+     "finality_ms": 900000
+    }
+   },
+   "impossible": [
+    {
+     "label": "kraken — EUR → USDT → ETH",
+     "reason": "coût aller-retour 160.3 pb > plafond 150 pb"
+    },
+    {
+     "label": "coinbase — ETH/EUR direct",
+     "reason": "coût aller-retour 241.8 pb > plafond 150 pb"
+    },
+    {
+     "label": "bitstamp — ETH/EUR direct",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (10.00 < 10 EUR)"
+    },
+    {
+     "label": "bitstamp — ETH/EUR à cours limité",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (10.00 < 10 EUR)"
+    },
+    {
+     "label": "bitstamp — EUR → USDT → ETH",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (10.00 < 10 EUR)"
+    },
+    {
+     "label": "base — EUR → USDC → retrait → échange",
+     "reason": "coût aller-retour 840.3 pb > plafond 150 pb"
+    },
+    {
+     "label": "ethereum — EUR → USDC → retrait → échange",
+     "reason": "coût aller-retour 6208.7 pb > plafond 150 pb"
+    }
+   ],
+   "sensitivity": [
+    "aux bornes hautes des coûts, la meilleure route serait « bitvavo — ETH/EUR direct » : choix sensible aux hypothèses"
+   ],
+   "existing_engine_rt_bps": 40.0,
+   "existing_engine_rt_eur": 0.04,
+   "saving_vs_existing_estimated_bps": 20.261052998488335,
+   "saving_vs_existing_simulated_bps": 20.264088437084542
+  },
+  {
+   "asset": "ETH",
+   "notional_eur": 30.0,
+   "decision": "ROUTE",
+   "decision_seconds": 0.03787010199994256,
+   "chosen": {
+    "label": "binance — ETH/EUR direct",
+    "kind": "cex_direct",
+    "cost_eur": 0.060192664165000145,
+    "cost_low_eur": 0.04526462191500014,
+    "cost_high_eur": 0.23763909424456192,
+    "cost_bps": 20.064221388333383,
+    "cost_low_bps": 15.088207305000047,
+    "cost_high_bps": 79.21303141485397,
+    "entry_fill_probability": 1.0,
+    "failure_probability": 0.0,
+    "latency_ms": 500,
+    "finality_ms": 500,
+    "dust_eur": 0.1354691519999989,
+    "deposit_eur": 0.0,
+    "level": "HYPOTHETICAL"
+   },
+   "security": {
+    "allowed": true,
+    "vetoes": [],
+    "warnings": []
+   },
+   "simulated": {
+    "simulated": true,
+    "entry_state": "FILLED",
+    "exit_state": "FILLED",
+    "spent_eur": 29.939029,
+    "final_cash_eur": 29.80433786,
+    "leftover_cost_eur": 0.13560557657657546,
+    "round_trip_cost_eur": 0.060056563423424136,
+    "round_trip_cost_bps": 20.059622983572424,
+    "reconciled": true,
+    "notes": []
+   },
+   "best_by_kind": {
+    "cex_direct": {
+     "label": "binance — ETH/EUR direct",
+     "cost_bps": 20.064221388333383,
+     "cost_low_bps": 15.088207305000047,
+     "cost_high_bps": 79.21303141485397,
+     "fill": 1.0,
+     "dust_eur": 0.1354691519999989,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_limit": {
+     "label": "binance — ETH/EUR à cours limité",
+     "cost_bps": 18.557062533145714,
+     "cost_low_bps": 13.261698807145715,
+     "cost_high_bps": 72.7060547166663,
+     "fill": 0.82,
+     "dust_eur": 0.1354691519999989,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_via_stable": {
+     "label": "binance — EUR → USDT → ETH",
+     "cost_bps": 40.76145161638363,
+     "cost_low_bps": 30.81066946246776,
+     "cost_high_bps": 130.12196141559963,
+     "fill": 1.0,
+     "dust_eur": 0.2057590334735544,
+     "latency_ms": 1000,
+     "finality_ms": 500
+    },
+    "dex_funded": {
+     "label": "base — EUR → USDC → retrait → échange",
+     "cost_bps": 295.89162865227627,
+     "cost_low_bps": 21.67692044525571,
+     "cost_high_bps": 1349.7988088135585,
+     "fill": 0.98,
+     "dust_eur": 0.07060790503986655,
+     "latency_ms": 1803000,
+     "finality_ms": 900000
+    }
+   },
+   "impossible": [
+    {
+     "label": "kraken — EUR → USDT → ETH",
+     "reason": "coût aller-retour 160.2 pb > plafond 150 pb"
+    },
+    {
+     "label": "coinbase — ETH/EUR direct",
+     "reason": "coût aller-retour 242.4 pb > plafond 150 pb"
+    },
+    {
+     "label": "bitstamp — EUR → USDT → ETH",
+     "reason": "coût aller-retour 169.9 pb > plafond 150 pb"
+    },
+    {
+     "label": "base — EUR → USDC → retrait → échange",
+     "reason": "coût aller-retour 295.9 pb > plafond 150 pb"
+    },
+    {
+     "label": "ethereum — EUR → USDC → retrait → échange",
+     "reason": "coût aller-retour 2089.5 pb > plafond 150 pb"
+    }
+   ],
+   "sensitivity": [
+    "aux bornes hautes des coûts, la meilleure route serait « bitvavo — ETH/EUR direct » : choix sensible aux hypothèses"
+   ],
+   "existing_engine_rt_bps": 40.0,
+   "existing_engine_rt_eur": 0.12,
+   "saving_vs_existing_estimated_bps": 19.935778611666617,
+   "saving_vs_existing_simulated_bps": 19.940377016427576
+  },
+  {
+   "asset": "SOL",
+   "notional_eur": 5.0,
+   "decision": "ROUTE",
+   "decision_seconds": 0.016960075000042707,
+   "chosen": {
+    "label": "binance — EUR → USDT → SOL",
+    "kind": "cex_via_stable",
+    "cost_eur": 0.020933854892822762,
+    "cost_low_eur": 0.01598646760135272,
+    "cost_high_eur": 0.19067191428142635,
+    "cost_bps": 41.86770978564552,
+    "cost_low_bps": 31.972935202705436,
+    "cost_high_bps": 381.3438285628527,
+    "entry_fill_probability": 1.0,
+    "failure_probability": 0.0,
+    "latency_ms": 1000,
+    "finality_ms": 500,
+    "dust_eur": 0.154751973161532,
+    "deposit_eur": 0.0,
+    "level": "HYPOTHETICAL"
+   },
+   "security": {
+    "allowed": true,
+    "vetoes": [],
+    "warnings": []
+   },
+   "simulated": {
+    "simulated": true,
+    "entry_state": "FILLED",
+    "exit_state": "FILLED",
+    "spent_eur": 5.0,
+    "final_cash_eur": 29.8951,
+    "leftover_cost_eur": 0.08402293924320278,
+    "round_trip_cost_eur": 0.020877060756797877,
+    "round_trip_cost_bps": 41.754121513595756,
+    "reconciled": true,
+    "notes": []
+   },
+   "best_by_kind": {
+    "cex_via_stable": {
+     "label": "binance — EUR → USDT → SOL",
+     "cost_bps": 41.86770978564552,
+     "cost_low_bps": 31.972935202705436,
+     "cost_high_bps": 381.3438285628527,
+     "fill": 1.0,
+     "dust_eur": 0.154751973161532,
+     "latency_ms": 1000,
+     "finality_ms": 500
+    },
+    "cex_direct": {
+     "label": "kraken — SOL/EUR direct",
+     "cost_bps": 81.37753312247683,
+     "cost_low_bps": 51.43984459127683,
+     "cost_high_bps": 94.77094173865137,
+     "fill": 1.0,
+     "dust_eur": 1.2410879950408572e-07,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_limit": {
+     "label": "kraken — SOL/EUR à cours limité",
+     "cost_bps": 64.12407820930926,
+     "cost_low_bps": 23.866389744157264,
+     "cost_high_bps": 72.5074868575478,
+     "fill": 0.82,
+     "dust_eur": 1.2410879950408572e-07,
+     "latency_ms": 500,
+     "finality_ms": 500
+    }
+   },
+   "impossible": [
+    {
+     "label": "binance — SOL/EUR direct",
+     "reason": "route impossible : montant inférieur au minimum de binance (4.98 < 5 EUR)"
+    },
+    {
+     "label": "binance — SOL/EUR à cours limité",
+     "reason": "route impossible : montant inférieur au minimum de binance (4.98 < 5 EUR)"
+    },
+    {
+     "label": "kraken — EUR → USDT → SOL",
+     "reason": "coût aller-retour 161.5 pb > plafond 150 pb"
+    },
+    {
+     "label": "coinbase — SOL/EUR direct",
+     "reason": "coût aller-retour 240.4 pb > plafond 150 pb"
+    },
+    {
+     "label": "bitstamp — SOL/EUR direct",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (5.00 < 10 EUR)"
+    },
+    {
+     "label": "bitstamp — SOL/EUR à cours limité",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (5.00 < 10 EUR)"
+    },
+    {
+     "label": "bitvavo — SOL/EUR direct",
+     "reason": "route impossible : montant inférieur au minimum de bitvavo (5.00 < 5 EUR)"
+    },
+    {
+     "label": "bitvavo — SOL/EUR à cours limité",
+     "reason": "route impossible : montant inférieur au minimum de bitvavo (5.00 < 5 EUR)"
+    },
+    {
+     "label": "solana — EUR → USDC → retrait → échange",
+     "reason": "route impossible : montant inférieur au minimum de binance (4.29 < 5 USDC)"
+    }
+   ],
+   "sensitivity": [
+    "aux bornes hautes des coûts, la meilleure route serait « kraken — SOL/EUR direct » : choix sensible aux hypothèses"
+   ],
+   "existing_engine_rt_bps": 40.0,
+   "existing_engine_rt_eur": 0.02,
+   "saving_vs_existing_estimated_bps": -1.8677097856455234,
+   "saving_vs_existing_simulated_bps": -1.7541215135957557
+  },
+  {
+   "asset": "SOL",
+   "notional_eur": 10.0,
+   "decision": "ROUTE",
+   "decision_seconds": 0.01814182099997197,
+   "chosen": {
+    "label": "binance — SOL/EUR direct",
+    "kind": "cex_direct",
+    "cost_eur": 0.021371810386907844,
+    "cost_low_eur": 0.01641260788690784,
+    "cost_high_eur": 0.08933975303368816,
+    "cost_bps": 21.371810386907843,
+    "cost_low_bps": 16.412607886907843,
+    "cost_high_bps": 89.33975303368817,
+    "entry_fill_probability": 1.0,
+    "failure_probability": 0.0,
+    "latency_ms": 500,
+    "finality_ms": 500,
+    "dust_eur": 0.054660060000000864,
+    "deposit_eur": 0.0,
+    "level": "HYPOTHETICAL"
+   },
+   "security": {
+    "allowed": true,
+    "vetoes": [],
+    "warnings": []
+   },
+   "simulated": {
+    "simulated": true,
+    "entry_state": "FILLED",
+    "exit_state": "FILLED",
+    "spent_eur": 9.95148,
+    "final_cash_eur": 29.92396467,
+    "leftover_cost_eur": 0.0547232432432441,
+    "round_trip_cost_eur": 0.021312086756755742,
+    "round_trip_cost_bps": 21.415997175049082,
+    "reconciled": true,
+    "notes": []
+   },
+   "best_by_kind": {
+    "cex_direct": {
+     "label": "binance — SOL/EUR direct",
+     "cost_bps": 21.371810386907843,
+     "cost_low_bps": 16.412607886907843,
+     "cost_high_bps": 89.33975303368817,
+     "fill": 1.0,
+     "dust_eur": 0.054660060000000864,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_limit": {
+     "label": "binance — SOL/EUR à cours limité",
+     "cost_bps": 19.128931763220542,
+     "cost_low_bps": 13.851281903220544,
+     "cost_high_bps": 82.11118293000087,
+     "fill": 0.82,
+     "dust_eur": 0.054660060000000864,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_via_stable": {
+     "label": "binance — EUR → USDT → SOL",
+     "cost_bps": 41.93122555735731,
+     "cost_low_bps": 32.02168672558603,
+     "cost_high_bps": 216.8187409367344,
+     "fill": 1.0,
+     "dust_eur": 0.14486008641688738,
+     "latency_ms": 1000,
+     "finality_ms": 500
+    },
+    "dex_funded": {
+     "label": "solana — EUR → USDC → retrait → échange",
+     "cost_bps": 1536.7218995038245,
+     "cost_low_bps": 175.90284819044118,
+     "cost_high_bps": 3744.033266539406,
+     "fill": 0.95,
+     "dust_eur": 0.14408426003181002,
+     "latency_ms": 28000,
+     "finality_ms": 13000
+    }
+   },
+   "impossible": [
+    {
+     "label": "kraken — EUR → USDT → SOL",
+     "reason": "coût aller-retour 162.9 pb > plafond 150 pb"
+    },
+    {
+     "label": "coinbase — SOL/EUR direct",
+     "reason": "coût aller-retour 240.4 pb > plafond 150 pb"
+    },
+    {
+     "label": "bitstamp — SOL/EUR direct",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (10.00 < 10 EUR)"
+    },
+    {
+     "label": "bitstamp — SOL/EUR à cours limité",
+     "reason": "route impossible : montant inférieur au minimum de bitstamp (10.00 < 10 EUR)"
+    },
+    {
+     "label": "solana — EUR → USDC → retrait → échange",
+     "reason": "coût aller-retour 1536.7 pb > plafond 150 pb"
+    }
+   ],
+   "sensitivity": [
+    "aux bornes hautes des coûts, la meilleure route serait « bitvavo — SOL/EUR direct » : choix sensible aux hypothèses"
+   ],
+   "existing_engine_rt_bps": 40.0,
+   "existing_engine_rt_eur": 0.04,
+   "saving_vs_existing_estimated_bps": 18.628189613092157,
+   "saving_vs_existing_simulated_bps": 18.584002824950918
+  },
+  {
+   "asset": "SOL",
+   "notional_eur": 30.0,
+   "decision": "ROUTE",
+   "decision_seconds": 0.01983164700004636,
+   "chosen": {
+    "label": "binance — SOL/EUR direct",
+    "kind": "cex_direct",
+    "cost_eur": 0.06450530038708915,
+    "cost_low_eur": 0.04953772538708916,
+    "cost_high_eur": 0.13930143598826483,
+    "cost_bps": 21.501766795696387,
+    "cost_low_bps": 16.51257512902972,
+    "cost_high_bps": 46.43381199608828,
+    "entry_fill_probability": 1.0,
+    "failure_probability": 0.0,
+    "latency_ms": 500,
+    "finality_ms": 500,
+    "dust_eur": 0.034614879999998766,
+    "deposit_eur": 0.0,
+    "level": "HYPOTHETICAL"
+   },
+   "security": {
+    "allowed": true,
+    "vetoes": [],
+    "warnings": []
+   },
+   "simulated": {
+    "simulated": true,
+    "entry_state": "FILLED",
+    "exit_state": "FILLED",
+    "spent_eur": 29.969760000000004,
+    "final_cash_eur": 29.900879459999995,
+    "leftover_cost_eur": 0.034654894894893665,
+    "round_trip_cost_eur": 0.06446564510511114,
+    "round_trip_cost_bps": 21.510230680896722,
+    "reconciled": true,
+    "notes": []
+   },
+   "best_by_kind": {
+    "cex_direct": {
+     "label": "binance — SOL/EUR direct",
+     "cost_bps": 21.501766795696387,
+     "cost_low_bps": 16.51257512902972,
+     "cost_high_bps": 46.43381199608828,
+     "fill": 1.0,
+     "dust_eur": 0.034614879999998766,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_limit": {
+     "label": "binance — SOL/EUR à cours limité",
+     "cost_bps": 19.249865432941032,
+     "cost_low_bps": 13.94099632627436,
+     "cost_high_bps": 39.176960713332925,
+     "fill": 0.82,
+     "dust_eur": 0.034614879999998766,
+     "latency_ms": 500,
+     "finality_ms": 500
+    },
+    "cex_via_stable": {
+     "label": "binance — EUR → USDT → SOL",
+     "cost_bps": 42.15419470135581,
+     "cost_low_bps": 32.191936897457055,
+     "cost_high_bps": 107.33580296000937,
+     "fill": 1.0,
+     "dust_eur": 0.10487998674497245,
+     "latency_ms": 1000,
+     "finality_ms": 500
+    },
+    "dex_funded": {
+     "label": "solana — EUR → USDC → retrait → échange",
+     "cost_bps": 526.4903614952723,
+     "cost_low_bps": 69.3848060504492,
+     "cost_high_bps": 1332.6952847878997,
+     "fill": 0.95,
+     "dust_eur": 0.12406056891615666,
+     "latency_ms": 28000,
+     "finality_ms": 13000
+    }
+   },
+   "impossible": [
+    {
+     "label": "kraken — EUR → USDT → SOL",
+     "reason": "coût aller-retour 162.9 pb > plafond 150 pb"
+    },
+    {
+     "label": "coinbase — SOL/EUR direct",
+     "reason": "coût aller-retour 239.8 pb > plafond 150 pb"
+    },
+    {
+     "label": "solana — EUR → USDC → retrait → échange",
+     "reason": "coût aller-retour 526.5 pb > plafond 150 pb"
+    }
+   ],
+   "sensitivity": [],
+   "existing_engine_rt_bps": 40.0,
+   "existing_engine_rt_eur": 0.12,
+   "saving_vs_existing_estimated_bps": 18.498233204303613,
+   "saving_vs_existing_simulated_bps": 18.489769319103278
+  }
+ ],
+ "performance": {
+  "decisions": 9,
+  "replay_wall_seconds": 0.3390342100001362,
+  "cpu_seconds": 0.336661,
+  "peak_python_mb": 0.520774,
+  "max_rss_mb": 34.0234375,
+  "live_decision_seconds": [
+   {
+    "asset": "BTC",
+    "notional_eur": 5.0,
+    "routes": 14,
+    "seconds": 11.150339395000174
+   },
+   {
+    "asset": "BTC",
+    "notional_eur": 10.0,
+    "routes": 14,
+    "seconds": 11.980088057000103
+   },
+   {
+    "asset": "BTC",
+    "notional_eur": 30.0,
+    "routes": 14,
+    "seconds": 12.003479711000182
+   },
+   {
+    "asset": "ETH",
+    "notional_eur": 5.0,
+    "routes": 16,
+    "seconds": 27.166541283999777
+   },
+   {
+    "asset": "ETH",
+    "notional_eur": 10.0,
+    "routes": 16,
+    "seconds": 26.42515381999965
+   },
+   {
+    "asset": "ETH",
+    "notional_eur": 30.0,
+    "routes": 16,
+    "seconds": 26.27862262000008
+   },
+   {
+    "asset": "SOL",
+    "notional_eur": 5.0,
+    "routes": 14,
+    "seconds": 11.340148510999825
+   },
+   {
+    "asset": "SOL",
+    "notional_eur": 10.0,
+    "routes": 14,
+    "seconds": 11.351934949000224
+   },
+   {
+    "asset": "SOL",
+    "notional_eur": 30.0,
+    "routes": 14,
+    "seconds": 11.372223864000262
+   }
+  ]
+ },
+ "data_availability": {
+  "api.bitvavo.com": {
+   "calls": 60,
+   "errors": 0,
+   "availability": 1.0,
+   "latency_ms_median": 199.76340399989567
+  },
+  "api.exchange.coinbase.com": {
+   "calls": 78,
+   "errors": 0,
+   "availability": 1.0,
+   "latency_ms_median": 79.29636300013954
+  },
+  "api.jup.ag": {
+   "calls": 6,
+   "errors": 0,
+   "availability": 1.0,
+   "latency_ms_median": 522.8275869999379
+  },
+  "api.kraken.com": {
+   "calls": 96,
+   "errors": 0,
+   "availability": 1.0,
+   "latency_ms_median": 134.12315799996577
+  },
+  "api.mainnet-beta.solana.com": {
+   "calls": 6,
+   "errors": 0,
+   "availability": 1.0,
+   "latency_ms_median": 939.7500740001306
+  },
+  "data-api.binance.vision": {
+   "calls": 114,
+   "errors": 0,
+   "availability": 1.0,
+   "latency_ms_median": 138.55035799997495
+  },
+  "ethereum-rpc.publicnode.com": {
+   "calls": 51,
+   "errors": 0,
+   "availability": 1.0,
+   "latency_ms_median": 94.22098100003495
+  },
+  "mainnet.base.org": {
+   "calls": 57,
+   "errors": 0,
+   "availability": 1.0,
+   "latency_ms_median": 46.66552900016541
+  },
+  "www.bitstamp.net": {
+   "calls": 90,
+   "errors": 0,
+   "availability": 1.0,
+   "latency_ms_median": 131.7693720002353
+  }
+ },
+ "security_vetoes": 0
+}
