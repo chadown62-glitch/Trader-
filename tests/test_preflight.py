@@ -57,7 +57,7 @@ def test_frozen_v2_matches_existing_check_and_v1_is_rejected():
     assert V2["ok"], V2["error"]
     reference = check(ROOT / "research/prospective-v2")
     assert V2["model_sha256"] == reference["model_sha256"] and V2["settings_sha256"] == reference["settings_sha256"]
-    assert V2["protocol_sha256"] == (ROOT / "research/prospective-v2/protocol.sha256").read_text().strip()
+    assert V2["protocol_sha256"] == (ROOT / "research/prospective-v2/protocol.sha256").read_text(encoding="utf-8").strip()
     assert V2["launch_status"] == "PREPARED_NOT_STARTED" and V2["promotion_allowed"] is False
     v1 = preflight.verify_prospective(ROOT / "research/prospective-v1")
     assert v1["invalid"] and not v1["ok"]
@@ -69,7 +69,7 @@ def test_tampered_snapshot_is_refused_without_touching_the_original(tmp_path):
     before = fingerprint(ROOT / "research/prospective-v2")
     settings = json.loads((copy / "settings.json").read_bytes())
     settings["portfolio"]["initial"] = 1000
-    (copy / "settings.json").write_text(json.dumps(settings))
+    (copy / "settings.json").write_text(json.dumps(settings), encoding="utf-8")
     out = preflight.verify_prospective(copy)
     assert not out["ok"] and "réglages gelés" in out["error"]
     (copy / "protocol.json").write_bytes((copy / "protocol.json").read_bytes() + b" ")
@@ -90,7 +90,7 @@ def test_macro_v3_integrity_matches_the_shadow_tool(monkeypatch, tmp_path):
     assert shadow_tool.load_protocol(path)["name"] == "macro-shadow-v3"  # même verdict que l'outil gelé
     impl = tmp_path / "shadow"
     shutil.copytree(ROOT / "sentinelle/news/shadow", impl, ignore=shutil.ignore_patterns("__pycache__"))
-    (impl / "store.py").write_text((impl / "store.py").read_text() + "\n# modifié\n")
+    (impl / "store.py").write_text((impl / "store.py").read_text(encoding="utf-8") + "\n# modifié\n", encoding="utf-8")
     altered = preflight.verify_macro_shadow(path, implementation=impl)
     assert not altered["ok"] and "store.py" in altered["error"]
 
@@ -214,7 +214,7 @@ def test_history_file_reading_counts_bars(tmp_path):
     import gzip
 
     path = tmp_path / "h.csv.gz"
-    with gzip.open(path, "wt") as fh:
+    with gzip.open(path, "wt", encoding="utf-8") as fh:
         fh.write("ts,open,high,low,close,volume\n" + "".join(f"{1000 * i},1,1,1,1,1\n" for i in range(5)))
     assert preflight._history_file_info(path) == {"bars": 5, "last_ms": 4000, "error": None}
     (tmp_path / "bad.csv.gz").write_bytes(b"pas du gzip")
@@ -223,12 +223,12 @@ def test_history_file_reading_counts_bars(tmp_path):
 
 def test_latest_diagnostic_reads_only_sentinelle_reports(tmp_path):
     assert preflight.latest_diagnostic(tmp_path) is None
-    (tmp_path / "diagnostic-1.json").write_text("{pas du json")
-    (tmp_path / "diagnostic-2.json").write_text(json.dumps({"kind": "autre"}))
+    (tmp_path / "diagnostic-1.json").write_text("{pas du json", encoding="utf-8")
+    (tmp_path / "diagnostic-2.json").write_text(json.dumps({"kind": "autre"}), encoding="utf-8")
     assert preflight.latest_diagnostic(tmp_path) is None
     (tmp_path / "diagnostic-3.json").write_text(json.dumps({"kind": "sentinelle-diagnostic", "generated_at": 1.0, "platform": "Windows-11",
                                                            "windows_actually_tested": True, "installation": {"ok": True},
-                                                           "observation": {"verdict": "BLOCKED"}}))
+                                                           "observation": {"verdict": "BLOCKED"}}), encoding="utf-8")
     got = preflight.latest_diagnostic(tmp_path)
     assert got["file"] == "diagnostic-3.json" and got["windows_actually_tested"] and got["installation_ok"]
 

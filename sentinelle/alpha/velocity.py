@@ -172,10 +172,10 @@ def preregister(cfg: ChallengeConfig, output: Path | None, learners: list[str]) 
     if output is not None:
         output.mkdir(parents=True, exist_ok=True)
         path = output / "preregistration.json"
-        if path.exists() and json.loads(path.read_text())["config_sha256"] != plan["config_sha256"]:
+        if path.exists() and json.loads(path.read_text(encoding="utf-8"))["config_sha256"] != plan["config_sha256"]:
             raise ValueError("Un autre plan est déjà enregistré dans ce dossier : utilisez un nouveau dossier")
         if not path.exists():
-            path.write_text(json.dumps(plan, indent=2, ensure_ascii=False))
+            path.write_text(json.dumps(plan, indent=2, ensure_ascii=False), encoding="utf-8")
     return plan
 
 
@@ -202,7 +202,7 @@ def run_challenge(cfg: ChallengeConfig = ChallengeConfig(), *, output: Path | No
     report["_markets_raw"] = markets
     if output is not None:
         (output / "report.json").write_text(json.dumps({k: v for k, v in report.items() if not k.startswith("_")},
-                                                       indent=2, ensure_ascii=False, default=float))
+                                                       indent=2, ensure_ascii=False, default=float), encoding="utf-8")
     return report
 
 

@@ -127,7 +127,7 @@ def load_archive(root: Path, *, end_ms: int | None = None) -> Panel:
     root = Path(root)
     payload = (root / "manifest.json").read_bytes()
     digest = hashlib.sha256(payload).hexdigest()
-    if digest != (root / "manifest.sha256").read_text().strip():
+    if digest != (root / "manifest.sha256").read_text(encoding="utf-8").strip():
         raise ValueError("Manifeste de l'archive altéré")
     manifest = json.loads(payload)
     if manifest.get("kind") != "alpha-lab-daily-archive" or manifest.get("interval") != "1d" or not manifest.get("complete"):

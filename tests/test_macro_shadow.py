@@ -277,7 +277,7 @@ def test_annotation_only_reads_committed_paper_decisions_and_is_idempotent(tmp_p
     db.decision(live,'fixture','BTC/EUR','pris','must not enter shadow',{})
     rows=db.query('SELECT * FROM decisions');clock=rows[0]['ts']
     p=tmp_path/'protocol.json'
-    p.write_text(json.dumps({'mode':'shadow_only','can_trade':False,'observation_start':clock-10,'observation_end':clock+10}))
+    p.write_text(json.dumps({'mode':'shadow_only','can_trade':False,'observation_start':clock-10,'observation_end':clock+10}), encoding="utf-8")
     before=db.query('SELECT * FROM decisions');model_before=db.query('SELECT * FROM models')
     service=MacroShadow(tmp_path/'sidecar')
     try:
@@ -313,7 +313,7 @@ def test_shadow_protocol_refuses_ingestion_before_its_own_future_window(tmp_path
         tool.load_protocol(path)
     raw=path.read_bytes();p=json.loads(raw)
     p['source_catalogue']['fed']['interval']=0
-    altered=tmp_path/'altered.json';altered.write_text(json.dumps(p))
-    Path(str(altered)+'.sha256').write_text(sha(altered.read_bytes()))
+    altered=tmp_path/'altered.json';altered.write_text(json.dumps(p), encoding="utf-8")
+    Path(str(altered)+'.sha256').write_text(sha(altered.read_bytes()), encoding="utf-8")
     with pytest.raises(ValueError,match='Source catalogue changed'):
         tool.load_protocol(altered)

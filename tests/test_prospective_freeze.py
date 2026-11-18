@@ -22,7 +22,7 @@ def test_prepared_real_model_adapter_refuses_early_observation(tmp_path):
     from sentinelle.market.sources import SyntheticSource
     from tools.prospective import SupervisedObserver
     root=Path(__file__).resolve().parents[1]/'research/prospective-v2'
-    cfg=json.loads((root/'settings.json').read_text())
+    cfg=json.loads((root/'settings.json').read_text(encoding="utf-8"))
     app=App(tmp_path,start=False,source=SyntheticSource(['BTC/EUR'],days=2),settings_override=cfg)
     try:
         app._startup()  # initialize the real paper runtime with an offline source

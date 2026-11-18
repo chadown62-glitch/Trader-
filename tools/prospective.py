@@ -37,7 +37,7 @@ def check(root):
     root=Path(root)
     if (root/'INVALID.txt').exists():raise ValueError('Invalid preparation; use the corrected prospective-v2 snapshot')
     raw=(root/'protocol.json').read_bytes()
-    if digest(raw)!=(root/'protocol.sha256').read_text().strip():raise ValueError('Protocol integrity failure')
+    if digest(raw)!=(root/'protocol.sha256').read_text(encoding="utf-8").strip():raise ValueError('Protocol integrity failure')
     p=json.loads(raw)
     for name in ('model','settings'):
         path=root/('model.joblib' if name=='model' else 'settings.json')
@@ -49,7 +49,7 @@ def main():
     c=argparse.ArgumentParser(description=__doc__);c.add_argument('action',choices=['prepare','check'])
     c.add_argument('--root',type=Path,required=True);c.add_argument('--model',type=Path)
     c.add_argument('--settings',type=Path);c.add_argument('--start');c.add_argument('--end');a=c.parse_args()
-    p=check(a.root) if a.action=='check' else prepare(a.model,json.loads(a.settings.read_text()),a.root,a.start,a.end)
+    p=check(a.root) if a.action=='check' else prepare(a.model,json.loads(a.settings.read_text(encoding="utf-8")),a.root,a.start,a.end)
     print(json.dumps(p,indent=2))
 if __name__=='__main__':main()
 
