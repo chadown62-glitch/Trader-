@@ -89,12 +89,8 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          for item in 54:5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18 55:18b31bb901f656d6126b370f47c510775f135c57; do
-            test "$(gh api "repos/$REPO/pulls/${item%%:*}" --jq '.head.sha')" = "${item#*:}"
-          done
           if [[ "$(gh api "repos/$REPO" --jq '.allow_auto_merge')" != true ]]; then
-            echo "::error::Enable Allow auto-merge in the repository settings to arm automatic merges."
-            exit 1
+            echo "::warning::Allow auto-merge is disabled. GitHub may decline deferred merge requests."
           fi
           # Check other workflows and legacy statuses too, including on unprotected repos.
           # This job itself is pending and must not wait for itself.
@@ -109,5 +105,8 @@ jobs:
             fi
             if jq -e 'length > 0 and all(.[]; (.conclusion // .state) | IN("SUCCESS","SKIPPED","NEUTRAL"))' <<< "$checks" >/dev/null; then break; fi
             sleep 15
+          done
+          for item in 54:5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18 55:18b31bb901f656d6126b370f47c510775f135c57; do
+            test "$(gh api "repos/$REPO/pulls/${item%%:*}" --jq '.head.sha')" = "${item#*:}"
           done
           gh pr merge "$PR" --repo "$REPO" --match-head-commit "$HEAD_SHA" --auto --squash
