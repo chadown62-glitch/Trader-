@@ -21,7 +21,7 @@ from typing import Any, Callable
 from .. import __version__
 from ..agent.agent import TradingAgent
 from ..ai.features import compute_features, warmup_bars
-from ..config import DEFAULT_SETTINGS, SETTINGS_REV, apply_update, deep_merge, migrate_settings, validate_settings
+from ..config import DEFAULT_SETTINGS, SETTINGS_REV, SettingsError, apply_update, deep_merge, migrate_settings, paper_capital, validate_settings
 from ..execution.base import OrderError
 from ..execution.paper import PaperBroker
 from ..execution.positions import PositionManager
@@ -483,32 +483,76 @@ class App(LiveMixin, PortfolioMixin, PerformanceMixin, ChampionMixin, JournalMix
         return rt
 
     def create_paper_account(self, name: str, initial: float) -> dict:
-        if self.portfolio_mode() == "main":
-            raise UserError("Un seul portefeuille papier : le portefeuille principal. Pour changer son capital, réinitialisez-le.")
+        """Nouveau portefeuille principal ; l'ancien, sans engagement en cours, est archivé sans réécrire ses comptes."""
+        amount = self._paper_capital(initial)
         name = (name or "").strip()[:60] or "Compte papier"
-        if not (10 <= initial <= 10_000_000):
-            raise UserError("Capital de départ entre 10 et 10 000 000")
-        quote = self.settings["general"]["quote"]
-        aid = self.db.insert("accounts", {"name": name, "kind": "paper", "role": "manual", "quote": quote,
-                                          "initial_balance": initial, "created_at": time.time(), "data": "{}"})
-        self.db.execute("INSERT INTO balances(account_id, asset, total) VALUES (?, ?, ?)", (aid, quote, initial))
+        quote = self.settings["portfolio"]["currency"]
+        now = self.market_clock()
+        with self.db.transaction():
+            old = self.main_account()
+            if old:
+                oid = old["id"]
+                self._check_paper_capital_change(oid)
+                if (self.db.scalar("SELECT COUNT(*) FROM positions WHERE account_id=? AND status IN ('open','pending')", (oid,), 0)
+                        or self.db.scalar("SELECT COUNT(*) FROM orders WHERE account_id=? AND status IN ('new','open','partially_filled')", (oid,), 0)
+                        or self.db.scalar("SELECT COUNT(*) FROM balances WHERE account_id=? AND asset!=? AND total>0", (oid, quote), 0)):
+                    raise UserError("Fermez les positions et les ordres avant d'archiver le portefeuille principal")
+                self.db.update("accounts", oid, {"archived": 1})
+            aid = self.db.insert("accounts", {"name": name, "kind": "paper", "role": "main", "quote": quote,
+                                              "initial_balance": amount, "created_at": now, "data": "{}"})
+            self.db.execute("INSERT INTO balances(account_id, asset, total) VALUES (?, ?, ?)", (aid, quote, amount))
+            self.db.insert("ledger", {"account_id": aid, "ts": now, "kind": "depot", "asset": quote, "amount": amount,
+                                      "balance_after": amount, "note": "Capital de départ (argent fictif)"})
+            self.db.set_meta("portfolio_mode", "main")
+            self._invalidate_paper_capital()
+        if old:
+            rt = self.runtimes.pop(old["id"], None)
+            if rt:
+                rt.account["archived"] = 1
+            self.snapshots.pop(old["id"], None)
+        self.dmh = None  # le prochain accès API branche le hub sur le nouveau compte, sans démarrer de service
         acc = self.db.one("SELECT * FROM accounts WHERE id = ?", (aid,))
         if self.hub.markets:
             self._make_paper_runtime(acc)
         return acc
 
+    @staticmethod
+    def _paper_capital(value) -> float:
+        try:
+            return paper_capital(value)
+        except SettingsError as exc:
+            raise UserError(str(exc)) from None
+
+    def _check_paper_capital_change(self, account_id: int) -> None:
+        if (any(agent.account_id == account_id for agent in self.agents.values())
+                or self.db.scalar("SELECT COUNT(*) FROM agents WHERE account_id=? AND enabled=1", (account_id,), 0)):
+            raise UserError("Arrêtez d'abord l'IA qui utilise ce compte")
+        # Le broker ne peut pas effacer des positions/réservations appartenant au hub indépendant.
+        if self.db.one("SELECT 1 FROM sqlite_master WHERE type='table' AND name='dmh_holdings'"):
+            if (self.db.scalar("SELECT COUNT(*) FROM dmh_holdings WHERE account_id=? AND qty>0", (account_id,), 0)
+                    or self.db.scalar("SELECT COUNT(*) FROM dmh_operations WHERE account_id=? AND state IN ('RESERVED','OPEN','SUBMITTED')",
+                                      (account_id,), 0)):
+                raise UserError("Clôturez les positions et les opérations du hub avant de changer le capital")
+
+    def _invalidate_paper_capital(self) -> None:
+        """Invalide les devis et les bases de pertes, sans lever un arrêt manuel ni une désynchronisation."""
+        revision = int(self.db.get_meta("paper_capital_revision", "0") or 0) + 1
+        self.db.set_meta("paper_capital_revision", str(revision))
+        if self.db.one("SELECT 1 FROM sqlite_master WHERE type='table' AND name='dmh_state'"):
+            self.db.execute("UPDATE dmh_state SET value='null' WHERE key IN ('day_start','peak_equity','capital_epoch')")
+
     def reset_paper_account(self, account_id: int, initial: float | None) -> None:
         rt = self.runtime(account_id)
-        if any(agent.account_id == account_id for agent in self.agents.values()):
-            raise UserError("Arrêtez d'abord l'IA qui utilise ce compte")
-        if initial is not None and float(initial) != 30:
-            raise UserError("Le portefeuille principal se réinitialise à 30 EUR fictifs")
-        amount = 30.0
         with self.db.transaction():
+            self._check_paper_capital_change(account_id)
+            account = self.db.one("SELECT initial_balance FROM accounts WHERE id=?", (account_id,))
+            amount = self._paper_capital(account["initial_balance"] if initial is None else initial)
             rt.broker.reset(amount)
             self.db.execute("DELETE FROM equity WHERE account_id = ?", (account_id,))
             self.db.execute("UPDATE accounts SET initial_balance = ?, data = '{}' WHERE id = ?", (amount, account_id))
+            self._invalidate_paper_capital()
         rt.account["initial_balance"] = amount
+        self.snapshots.pop(account_id, None)
         self.db.log("info", "comptes", f"Compte {rt.account['name']} réinitialisé à {amount:,.2f}")
 
     def account_summary(self, account_id: int) -> dict:

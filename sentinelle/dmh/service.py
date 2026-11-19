@@ -27,8 +27,8 @@ from .ledger import Ledger, StandaloneCash, MainAccountCash
 from .net import PublicClient, SourceUnavailable
 from .observe import consensus
 from .router import Intent, Route, RouteError, build_routes, cex_leg, choose, dex_leg
-from .security import (ABSOLUTE, DEFAULT_LIMITS, Portfolio, SecurityRefusal, Verdict, check_clock, check_execution_drift,
-                       check_financial, check_route, config_hash, effective, validate_limits)
+from .security import (ABSOLUTE, Portfolio, SecurityRefusal, Verdict, check_clock, check_execution_drift,
+                       absolute_limits, check_financial, check_route, config_hash, effective, scale_limits, validate_limits)
 from .simulate import PaperExecutor
 from .tokens import TokenId, TokenRegistry, load_registry
 from .view import LiveView, MarketView
@@ -107,20 +107,37 @@ class HubService:
         return svc
 
     # -- réglages ------------------------------------------------------------------------------------------------
+    def capital_eur(self) -> float:
+        acc = self.db.one("SELECT * FROM accounts WHERE id=?", (self.ledger.account_id,))
+        if acc is None and not isinstance(self.ledger.cash, MainAccountCash):
+            return ABSOLUTE["capital_eur"]  # hub autonome de test historique, sans compte applicatif
+        if not acc or acc["kind"] != "paper" or acc["quote"] != "EUR" or acc["archived"]:
+            raise HubError("portefeuille fictif actif introuvable")
+        capital = acc["initial_balance"]
+        absolute_limits(capital)  # refuse une valeur corrompue plutôt que de revenir silencieusement à 30
+        return capital
+
     def limits(self) -> dict:
-        return effective(self.ledger.state("limits") or dict(DEFAULT_LIMITS))
+        capital = self.capital_eur()
+        saved = self.ledger.state("limits") or {}
+        reference = self.ledger.state("limits_capital_eur", ABSOLUTE["capital_eur"])
+        return effective(scale_limits(saved, capital, reference), capital)
 
     def set_limits(self, patch: dict, origin: str) -> dict:
         if not isinstance(patch, dict):
             raise SecurityRefusal("limites illisibles")
-        new = validate_limits(patch, self.limits(), origin)
+        capital = self.capital_eur()
+        new = validate_limits(patch, self.limits(), origin, capital)
         with self.db.transaction():
             self.ledger.set_state("limits", new)
+            self.ledger.set_state("limits_capital_eur", capital)
             self.ledger.journal(None, "limites", {"patch": patch, "origin": origin})
         return self.limits()
 
     def config_hash(self) -> str:
-        return config_hash(self.limits(), A.digest(), self.registry.meta.get("sha256"))
+        context = {**self.limits(), "capital_eur": self.capital_eur(), "account_id": self.ledger.account_id,
+                   "capital_revision": self.db.get_meta("paper_capital_revision", "0")}
+        return config_hash(context, A.digest(), self.registry.meta.get("sha256"))
 
     # -- état du portefeuille vu par la sécurité --------------------------------------------------------------------
     def logical(self, asset_key: str) -> str:
@@ -158,6 +175,13 @@ class HubService:
             equity = cash.total() + self.ledger.liquidation_value()
         day = datetime.now(timezone.utc).strftime("%Y-%m-%d") if self.clock is time.time else \
             datetime.fromtimestamp(self.clock(), timezone.utc).strftime("%Y-%m-%d")
+        epoch = {"account_id": self.ledger.account_id, "initial": self.capital_eur(),
+                 "revision": self.db.get_meta("paper_capital_revision", "0")}
+        previous = self.ledger.state("capital_epoch")
+        if previous is not None and previous != epoch:
+            self.ledger.set_state("day_start", None)
+            self.ledger.set_state("peak_equity", None)
+        self.ledger.set_state("capital_epoch", epoch)
         ds = self.ledger.state("day_start") or {}
         if ds.get("day") != day:
             ds = {"day": day, "equity": equity}
@@ -169,7 +193,7 @@ class HubService:
         recent = self.db.scalar("SELECT COUNT(*) FROM dmh_operations WHERE account_id = ? AND state != 'REJECTED' AND created_ms > ?",
                                 (self.ledger.account_id, self.ledger.now_ms() - 60_000), 0)
         return Portfolio(cash.total(), cash.available(), positions, equity, float(ds["equity"]), peak,
-                         ABSOLUTE["capital_eur"], busy, int(recent))
+                         epoch["initial"], busy, int(recent))
 
     # -- prévisualisation ---------------------------------------------------------------------------------------------
     def _intent(self, body: dict) -> tuple[str, Intent | None, dict]:
@@ -184,8 +208,9 @@ class HubService:
             if asset not in ASSETS:
                 raise HubError(f"actif non pris en charge : {asset or '—'}")
             n = body.get("notional_eur")
-            if isinstance(n, bool) or not isinstance(n, (int, float)) or not 0 < n <= ABSOLUTE["max_position_eur"]:
-                raise HubError(f"montant en euros attendu, entre 0 et {ABSOLUTE['max_position_eur']:.0f} €")
+            cap = absolute_limits(self.capital_eur())["max_position_eur"]
+            if isinstance(n, bool) or not isinstance(n, (int, float)) or not 0 < n <= cap:
+                raise HubError(f"montant en euros attendu, entre 0 et {cap:.2f} €")
             nets = tuple(x for x in body.get("networks", ("solana", "base", "ethereum")) if x in ("solana", "base", "ethereum"))
             return side, Intent(asset, float(n), None if edge is None else float(edge), nets, bool(body.get("include_limit", True)),
                                 bool(body.get("prefer_limit", False))), {}
@@ -550,7 +575,7 @@ class HubService:
             pf_err = str(exc)
         return {"label": LABEL, "version": VERSION, "paper_only": True, "can_sign": False, "can_broadcast": False,
                 "halted": self.ledger.state("halted"), "desync": self.ledger.state("desync"), "limits": self.limits(),
-                "absolute": dict(ABSOLUTE), "assumptions": {"version": A.VERSION, "sha256": A.digest()},
+                "absolute": absolute_limits(self.capital_eur()), "assumptions": {"version": A.VERSION, "sha256": A.digest()},
                 "registry": {"tokens": len(self.registry), **{k: v for k, v in self.registry.meta.items() if k != "tokens"}},
                 "portfolio": None if pf is None else {"cash_total": pf.cash_total, "cash_available": pf.cash_available,
                                                       "equity": pf.equity, "positions": pf.positions, "initial": pf.initial},
@@ -680,5 +705,7 @@ class HubService:
         model = self.llm_cfg.get("model") or ""
         if not model:
             return {"available": False, "error": "aucun modèle local configuré (réglages : actualités → modèle Ollama)", "draft": None}
-        return draft_strategy(message, url=url, model=model, assets=set(ASSETS), max_capital=self.limits()["max_position_eur"],
+        pf = self.portfolio()
+        return draft_strategy(message, url=url, model=model, assets=set(ASSETS), max_capital=min(self.limits()["max_position_eur"], pf.cash_available),
+                              initial_capital=pf.initial, current_balance=pf.cash_available,
                               transport=self.llm_cfg.get("transport"))

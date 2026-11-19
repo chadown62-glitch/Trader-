@@ -23,7 +23,7 @@ SCHEMA = {"type": "object", "additionalProperties": False, "properties": {
     "objective_bps": {"type": "number"}, "max_loss_eur": {"type": "number"}, "horizon": {"type": "string"},
     "entry_conditions": {"type": "string"}, "exit_conditions": {"type": "string"}, "explanation": {"type": "string"}},
     "required": ["asset", "side", "capital_eur", "objective_bps", "horizon", "entry_conditions", "exit_conditions", "explanation"]}
-SYSTEM = ("Tu aides à préparer une stratégie d'achat FICTIVE (simulation, argent fictif, 30 € au total). Réponds uniquement "
+SYSTEM = ("Tu aides à préparer une stratégie d'achat FICTIVE (simulation, argent fictif). Réponds uniquement "
           "en JSON selon le schéma. N'invente aucun prix, aucun rendement passé. L'objectif (objective_bps) est une "
           "hypothèse que l'utilisateur devra valider ; dis-le dans l'explication. Tu ne peux ni exécuter d'ordre, ni changer "
           "les limites de risque, ni passer en argent réel.")
@@ -75,15 +75,22 @@ def validate_draft(obj, *, assets: set[str], max_capital: float) -> dict:
     return out
 
 
-def draft_strategy(message: str, *, url: str, model: str, assets: set[str], max_capital: float, transport=None, timeout: float = 60.0) -> dict:
+def draft_strategy(message: str, *, url: str, model: str, assets: set[str], max_capital: float, initial_capital: float = 30.0,
+                   current_balance: float | None = None, transport=None, timeout: float = 60.0) -> dict:
     if not is_loopback_url(url):
         raise SecurityRefusal("IA distante refusée : le cerveau de l'IA doit rester sur cet ordinateur")
     if scan_secrets({"message": message}):
         raise SecurityRefusal("message refusé : il contient ce qui ressemble à un secret")
     import httpx
 
+    balance = max_capital if current_balance is None else current_balance
+    if any(isinstance(x, bool) or not isinstance(x, (int, float)) or not math.isfinite(x) or x < 0
+           for x in (initial_capital, balance, max_capital)) or initial_capital <= 0:
+        raise SecurityRefusal("contexte de capital fictif invalide")
+    context = (f" Capital initial : {initial_capital:.2f} EUR fictifs. Solde actuel disponible, réservations déduites : "
+               f"{balance:.2f} EUR fictifs. Budget maximal de cette proposition : {max_capital:.2f} EUR.")
     payload = {"model": model, "stream": False, "format": SCHEMA, "options": {"temperature": 0},
-               "messages": [{"role": "system", "content": SYSTEM},
+               "messages": [{"role": "system", "content": SYSTEM + context},
                             {"role": "user", "content": f"<demande>\n{message[:2000]}\n</demande>\nActifs possibles : {', '.join(sorted(assets))}."}]}
     try:
         with httpx.Client(timeout=timeout, transport=transport, trust_env=False) as c:

@@ -62,7 +62,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "portfolio": {
         # Portefeuille principal en argent fictif : une seule poche, partagée entre le trading manuel et l'IA.
         "currency": "EUR",
-        "initial": 30.0,
+        "initial": 30.0,  # défaut historique ; capital des nouveaux portefeuilles uniquement
         # Coût de conversion entre l'euro et la monnaie de cotation, appliqué à chaque achat et à chaque vente
         # (hypothèse prudente : 0,05 %, en plus des frais de la plateforme).
         "fx_cost_bps": 5.0,
@@ -339,6 +339,11 @@ def _check(path: str, value: Any) -> Any:
             raise SettingsError(f"{path} : 50 éléments au maximum")
         return [v.strip() for v in value if v.strip()]
     raise SettingsError(f"Spécification inconnue pour {path}")  # pragma: no cover
+
+
+def paper_capital(value: Any) -> float:
+    """Capital fictif explicite, fini et borné (10 à 1 000 000 EUR), jamais un dépôt implicite."""
+    return _check("portfolio.initial", value)
 
 
 def validate_settings(settings: dict) -> dict:
