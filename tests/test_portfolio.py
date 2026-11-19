@@ -391,8 +391,8 @@ def test_new_install_has_one_shared_portfolio_of_30_euros(app):
     status = app.overview()["portfolio"]
     assert status["mode"] == "main" and status["migration_available"] is False and status["legacy_accounts"] == []
     assert status["fx"]["rates"]["USDC"]["source"]
-    with pytest.raises(UserError):  # un seul portefeuille papier
-        app.create_paper_account("Deuxième compte", 1_000)
+    second = app.create_paper_account("Deuxième compte", 1_000)
+    assert second["id"] != main["id"] and app.main_account()["initial_balance"] == 1_000
 
 
 def test_manual_order_in_euros_and_impossible_orders(app):
@@ -451,9 +451,8 @@ def test_reset_returns_to_the_starting_capital_and_keeps_a_trace(app):
     assert s["equity"] == s["cash"] == 30.0 and s["balances"] == {"EUR": 30.0} and s["positions"] == []
     kinds = [r["kind"] for r in app.ledger(main)["rows"]]
     assert kinds.count("reinitialisation") == 2 and "achat" in kinds and app.ledger(main)["check"]["ok"] is True
-    with pytest.raises(UserError):
-        app.reset_paper_account(main, 50.0)
-    assert app.main_account()["initial_balance"] == 30.0
+    app.reset_paper_account(main, 50.0)
+    assert app.main_account()["initial_balance"] == 50.0
     with pytest.raises(UserError):
         app.reset_paper_account(main, 5.0)
 
