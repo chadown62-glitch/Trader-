@@ -1,6 +1,12 @@
-"""Bounded finalized-transaction samples. Eligibility uses observed, fully closed WSOL round trips."""
+"""Bounded finalized-transaction samples. Eligibility uses observed, fully closed WSOL round trips.
+
+Recency: closed cycles are weighted by age (half-life 24 h, nothing counts beyond 72 h); a wallet qualifies only on its
+recent record. Anti-manipulation: a wallet that resold within seconds of its own buy INTO later buyers (followers who
+bought after it) is flagged as a dumper and excluded for good, whatever its profits.
+"""
 
 import hashlib
+import math
 from collections import defaultdict
 
 from .dex import _rpc
@@ -10,6 +16,18 @@ from .tokens import b58decode
 
 DOMAIN = "memecoin"
 WSOL = "So11111111111111111111111111111111111111112"
+HALF_LIFE_S = 24 * 3600  # a 24 h old cycle counts half as much as a fresh one
+HORIZON_S = 72 * 3600  # older cycles no longer count toward eligibility
+DUMP_WINDOW_S = 30  # a resale within 30 s of the wallet's own buy...
+DUMP_SHARE = 0.5  # ...of at least half of the lot...
+MAX_BUY_LOG = 16  # buys remembered per wallet and mint (to recognise followers)
+
+
+def recency_weight(age_s: float) -> float:
+    """Exponential decay with a 24 h half-life; zero beyond 72 h or for an unknown / future date."""
+    if age_s is None or age_s < 0 or age_s > HORIZON_S:
+        return 0.0
+    return math.pow(0.5, age_s / HALF_LIFE_S)
 
 
 def recent(client, address, limit=6, *, before=None):
@@ -117,6 +135,15 @@ def funding_origin(client, wallet, first_trade):
     return None
 
 
+def _followers(wallets, mint, wallet, after, until):
+    """Other memecoin wallets that bought ``mint`` strictly after ``after`` and no later than ``until``."""
+    return sorted(
+        k
+        for k, w in wallets.items()
+        if k != wallet and w.get("asset_domain") == DOMAIN and any(after < t <= until for t in w.get("buys", {}).get(mint, ()))
+    )
+
+
 def record(wallets, mint, trade, created, eligible):
     w = wallets.setdefault(trade["wallet"], {"asset_domain": DOMAIN, "cycles": [], "lots": {}, "last_buy": {}})
     watermark = w.setdefault("last_trade_ts", {}).get(mint)
@@ -129,29 +156,72 @@ def record(wallets, mint, trade, created, eligible):
     if qty > 0:
         if not lot["qty"]:
             lot["early"] = 0 <= trade["ts"] - created <= 300
+            lot["opened_ts"] = trade["ts"]
         lot["qty"] += qty
         lot["spent"] -= sol
+        lot["last_buy_ts"] = trade["ts"]
+        buys = w.setdefault("buys", {}).setdefault(mint, [])
+        buys.append(trade["ts"])
+        del buys[:-MAX_BUY_LOG]
         if eligible and trade["ts"] > w.get("qualified_since", trade["ts"]):
             w["last_buy"][mint] = trade["ts"]
     elif 0 < -qty <= lot["qty"] + 1e-10:
+        bought = lot.get("last_buy_ts")
+        if bought is not None and 0 <= trade["ts"] - bought <= DUMP_WINDOW_S and -qty >= DUMP_SHARE * lot["qty"] - 1e-10:
+            followers = _followers(wallets, mint, trade["wallet"], bought, trade["ts"])
+            if followers:  # resold into the wallets that followed it: manipulation, excluded for good
+                w["dumper"] = True
+                w.setdefault("dumps", []).append({"mint": mint, "bought": bought, "sold": trade["ts"], "followers": followers[:8]})
         lot["qty"] += qty
         lot["received"] += sol
         if abs(lot["qty"]) <= 1e-10 and lot["spent"] > 0:
-            w["cycles"].append({"mint": mint, "pnl_sol": lot["received"] - lot["spent"], "early": lot["early"]})
+            w["cycles"].append({"mint": mint, "pnl_sol": lot["received"] - lot["spent"], "early": lot["early"], "ts": trade["ts"],
+                                "opened_ts": lot.get("opened_ts")})
             del w["lots"][mint]
     else:
         w["lots"].pop(mint, None)  # incomplete history cannot establish profitability
 
 
-def profitable(w, winners):
+def recent_record(w, now):
+    """Recency-weighted record over the last 72 h: weighted win rate, weighted P&L (SOL) and weighted cycle count.
+    Cycles without a date (recorded before this rule) count as old: they no longer qualify a wallet."""
+    rows = [(c, recency_weight(now - c["ts"]) if now is not None and c.get("ts") is not None else 0.0) for c in w.get("cycles", [])]
+    weight = sum(k for _, k in rows)
+    return {
+        "weight": weight,
+        "recent_cycles": sum(1 for _, k in rows if k > 0),
+        "win_rate": sum(k for c, k in rows if c["pnl_sol"] > 0) / weight if weight else None,
+        "pnl_sol": sum(k * c["pnl_sol"] for c, k in rows),
+    }
+
+
+def profitable(w, winners, now=None):
+    """Eligibility. Without ``now`` (legacy call): the whole record. With ``now``: only the last 72 h, weighted by age.
+    A flagged dumper or a wallet of another asset domain is never eligible."""
     cycles = w["cycles"]
     w["win_rate"] = sum(c["pnl_sol"] > 0 for c in cycles) / len(cycles) if cycles else None
-    return (
+    if w.get("dumper") or w.get("asset_domain", DOMAIN) != DOMAIN:
+        return False
+    base = (
         len(cycles) >= 2
         and w["win_rate"] > 0.5
         and sum(c["pnl_sol"] for c in cycles) > 0
         and any(c["early"] and c["pnl_sol"] > 0 and c["mint"] in winners for c in cycles)
     )
+    if not base or now is None:
+        return base
+    rec = recent_record(w, now)
+    w["recent"] = rec
+    return rec["recent_cycles"] >= 2 and rec["win_rate"] > 0.5 and rec["pnl_sol"] > 0 and any(
+        c["early"] and c["pnl_sol"] > 0 and c["mint"] in winners and recency_weight(now - c.get("ts", float("-inf"))) > 0 for c in cycles
+    )
+
+
+def ranking(wallets, now):
+    """Qualified, non-dumper memecoin wallets ordered by recency-weighted P&L (best first)."""
+    rows = [(k, recent_record(w, now)) for k, w in wallets.items() if w.get("qualified") and not w.get("dumper")
+            and w.get("asset_domain") == DOMAIN]
+    return [k for k, r in sorted(rows, key=lambda kr: (-kr[1]["pnl_sol"], kr[0]))]
 
 
 def confluence(wallets, mint, now, excluded):
@@ -159,6 +229,8 @@ def confluence(wallets, mint, now, excluded):
         k: w["origin"]
         for k, w in wallets.items()
         if w.get("qualified")
+        and not w.get("dumper")
+        and w.get("asset_domain") == DOMAIN
         and w.get("origin")
         and k not in excluded
         and w["origin"] not in excluded
@@ -175,7 +247,7 @@ def follow(client, asset, wallets, winners, now):
         return False
     seen = set(asset.get("seen", []))
     rows = recent(client, asset["pool"])
-    qualified_wallets = sorted(k for k, w in wallets.items() if w.get("qualified"))
+    qualified_wallets = ranking(wallets, now)  # best recent performers are watched first
     offset = asset.get("wallet_cursor", 0) % max(1, len(qualified_wallets))
     batch = (qualified_wallets[offset:] + qualified_wallets[:offset])[:4]
     asset["wallet_cursor"] = offset + len(batch)
@@ -193,7 +265,7 @@ def follow(client, asset, wallets, winners, now):
         seen.add(sig)
     asset["seen"] = sorted(seen)
     for owner, w in wallets.items():
-        qualified = profitable(w, winners)
+        qualified = profitable(w, winners, now)
         if qualified and not w.get("qualified"):
             w["qualified_since"] = now
         if not qualified:
