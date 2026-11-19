@@ -9,10 +9,13 @@
 from __future__ import annotations
 
 import asyncio
+import threading
+import time
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from .solana_scanner import scan_once
 from .guard import inspect_request
 from .ledger import Blocked, LedgerError
 from .security import SecurityRefusal
@@ -53,6 +56,30 @@ def register_routes(api, app, service_factory) -> None:
             data = None
         inspect_request(data, operation, db=app.db)  # RealTradingForbidden -> 403 (gestionnaire de l'application)
         return data
+
+    scan_lock = threading.Lock()
+    next_scan = 0.0
+
+    def scan(minimum):
+        nonlocal next_scan
+        if not scan_lock.acquire(blocking=False):
+            return JSONResponse({"detail": "Scan déjà en cours"}, status_code=429)
+        try:
+            now = time.monotonic()
+            if now < next_scan:
+                return JSONResponse({"detail": "Un scan par minute"}, status_code=429)
+            next_scan = now + 60
+            hub = svc()
+            return scan_once(hub.client, app.db, app.bus, min_liquidity_usd=minimum, registry=hub.registry)
+        finally:
+            scan_lock.release()
+
+    @api.post("/api/dmh/solana/scan")
+    async def dmh_scan(request: Request):
+        data = await body(request, "observation des pools Solana")
+        if data.keys() - {"mode", "min_liquidity_usd"}:
+            return JSONResponse({"detail": "Champ de scan inconnu"}, status_code=400)
+        return await run(scan, data.get("min_liquidity_usd", 25000))
 
     @api.get("/api/dmh/status")
     async def dmh_status():
