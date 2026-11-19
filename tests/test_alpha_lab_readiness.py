@@ -115,7 +115,7 @@ def test_load_rules_reads_the_archived_catalogue_with_its_fingerprint(tmp_path):
     raw = json.dumps(info).encode()
     import hashlib
     (tmp_path / "exchangeInfo.json").write_bytes(raw)
-    (tmp_path / "manifest.json").write_text(json.dumps({"exchange_info_sha256": hashlib.sha256(raw).hexdigest(), "quote": "USDT"}))
+    (tmp_path / "manifest.json").write_text(json.dumps({"exchange_info_sha256": hashlib.sha256(raw).hexdigest(), "quote": "USDT"}), encoding="utf-8")
     rules, meta = data.load_rules(tmp_path)
     assert rules == {"BTC": {"symbol": "BTCUSDT", "step": 1e-5, "min_notional": 5.0}} and meta["assets"] == 1
     (tmp_path / "exchangeInfo.json").write_bytes(raw + b" ")
