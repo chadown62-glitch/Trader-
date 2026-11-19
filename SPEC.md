@@ -8,7 +8,7 @@
 
 ---
 
-## SPRINT 1 : CONSOLIDATION & FUSION SUR `main` `[EN COURS]`
+## SPRINT 1 : CONSOLIDATION & FUSION SUR `main` `[TERMINÉ]`
 - **Objectif :** Rendre `main` exécutable et à jour avec les briques déjà développées, sans altérer PR #54 et PR #55.
 - **Périmètre :**
   1. Audit des branches PR #50 (Cost Optimizer), PR #51-#52 (Direct Market Hub), PR #53 (Alpha Factory v2).
@@ -16,7 +16,7 @@
   3. Fusion ordonnée sur `main` et vérification de compatibilité Windows 11.
 - **Critère de validation :** `pytest` passe sur `main` et le serveur FastAPI démarre localement sans erreur.
 
-## SPRINT 2 : CAPITAL CONFIGURABLE & API `[À VENIR]`
+## SPRINT 2 : CAPITAL CONFIGURABLE & API `[EN COURS]`
 - **Objectif :** Supprimer le plafond global codé en dur de 30 € fictifs sans réécrire les archives historiques.
 - **Périmètre :**
   1. Paramétrage dynamique du capital de simulation (`30 €`, `100 €`, `1 000 €`, `10 000 €` ou montant libre).

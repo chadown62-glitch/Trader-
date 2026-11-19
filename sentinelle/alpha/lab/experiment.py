@@ -73,9 +73,14 @@ def _sim_summary(res: SimResult) -> dict:
             "mean_exposure": float(res.exposure.mean()), "blocked": res.blocked, "forced_exits": res.forced_exits}
 
 
-def run_experiment(panel: Panel, plan: dict, hyp: CostHypotheses, *, features: Features | None = None) -> dict:
+def run_experiment(panel: Panel, plan: dict, hyp: CostHypotheses, *, features: Features | None = None, rules: dict | None = None) -> dict:
     """Exécute le plan tel qu'enregistré. Refuse un candidat absent du plan ou un scénario de coûts inconnu."""
     feats = features or Features(panel)
+    model = (plan.get("execution") or {}).get("dust_model")
+    if model and rules is None:
+        raise ValueError("Le plan exige le modèle de reliquats : règles de marché de l'archive manquantes")
+    if not model:
+        rules = None  # plan sans modèle de reliquats : exécution telle qu'enregistrée
     start, split, end = panel.index_of(plan["window"]["start"]), panel.index_of(plan["window"]["split"]), panel.index_of(plan["window"]["end"])
     if not start < split <= end:
         raise ValueError("Fenêtres incohérentes")
@@ -97,7 +102,7 @@ def run_experiment(panel: Panel, plan: dict, hyp: CostHypotheses, *, features: F
                   "bootstrap_seed": plan["analysis"]["bootstrap_seed"], "confidence": plan["analysis"]["confidence"]}
 
     def sim(spec: Spec, cost, **kw) -> SimResult:
-        return simulate(panel, spec, cost, start=start, end=end, capital=CAPITAL, features=feats, **kw)
+        return simulate(panel, spec, cost, start=start, end=end, capital=CAPITAL, features=feats, rules=rules, **kw)
 
     runs = {s.name: sim(s, primary) for s in specs}
     refs = {n: sim(BY_NAME[n], primary) for n in plan["references"]}
@@ -161,7 +166,7 @@ def run_experiment(panel: Panel, plan: dict, hyp: CostHypotheses, *, features: F
             "vs_hold_btc": stats.mean_interval(res.returns - refs["hold_btc"].returns, plan_stats) if "hold_btc" in refs else None,
             "years_to_prove_at_observed_sharpe": (7.85 / sharpe ** 2) if sharpe > 0 else None,
         }
-    generalization = _generalization(panel, plan, feats, specs, primary, start, end, plan_stats)
+    generalization = _generalization(panel, plan, feats, specs, primary, start, end, plan_stats, rules)
     retained = [n for n, c in candidates.items() if c["verdict"] == RETAINED]
     by_family = {}
     for n, c in candidates.items():
@@ -189,7 +194,7 @@ def run_experiment(panel: Panel, plan: dict, hyp: CostHypotheses, *, features: F
     }
 
 
-def _generalization(panel, plan, feats, specs, cost, start, end, plan_stats) -> dict:
+def _generalization(panel, plan, feats, specs, cost, start, end, plan_stats, rules=None) -> dict:
     """La règle tient-elle ailleurs ? Univers privé des cryptos déjà étudiées par le projet ; autres paires pour les règles « majeurs »."""
     g = plan["generalization"]
     exclude = frozenset(g["exclude_already_studied"])
@@ -197,7 +202,7 @@ def _generalization(panel, plan, feats, specs, cost, start, end, plan_stats) -> 
     bench_ex = benchmark_returns(panel, feats, start, end, majors=tuple(plan["universe"]["majors"]), exclude=exclude)
     for spec in specs:
         if spec.benchmark == "market":
-            res = simulate(panel, spec, cost, start=start, end=end, features=feats, exclude=exclude)
+            res = simulate(panel, spec, cost, start=start, end=end, features=feats, exclude=exclude, rules=rules)
             ref, e = stats.exposure_matched(res.exposure, bench_ex["market"])
             m = stats.metrics(res.returns, res.equity, res.initial)
             out["broad"][spec.name] = {"net_pnl": m["net_pnl"], "sharpe": m["sharpe"], "max_drawdown": m["max_drawdown"], "trades": res.trades,
@@ -206,7 +211,7 @@ def _generalization(panel, plan, feats, specs, cost, start, end, plan_stats) -> 
             rows = {}
             for pair in g["other_pairs"]:
                 pair = tuple(pair)
-                res = simulate(panel, spec, cost, start=start, end=end, features=feats, majors=pair)
+                res = simulate(panel, spec, cost, start=start, end=end, features=feats, majors=pair, rules=rules)
                 b = benchmark_returns(panel, feats, start, end, majors=pair)["majors"]
                 ref, e = stats.exposure_matched(res.exposure, b)
                 m = stats.metrics(res.returns, res.equity, res.initial)
