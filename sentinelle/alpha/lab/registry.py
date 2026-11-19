@@ -37,8 +37,14 @@ def implementation_sha256(root: Path) -> dict[str, str]:
     return {name: file_sha(Path(root) / name) for name in IMPLEMENTATION}
 
 
-def build_plan(*, root: Path, data: dict, hyp: CostHypotheses, other_pairs: list[list[str]], registered_at: str, registered_at_ms: int) -> dict:
+DUST_MODEL = ("pas de quantité de la plateforme ; commission prélevée dans l'actif reçu ; conversion payée en liquidités ; "
+              "reliquat sous un pas compté comme perdu à sa création (règle prudente, mission 52, mesures de COST OPTIMIZER #50)")
+
+
+def build_plan(*, root: Path, data: dict, hyp: CostHypotheses, other_pairs: list[list[str]], registered_at: str, registered_at_ms: int,
+               rules_meta: dict | None = None) -> dict:
     return {
+        "execution": {"dust_model": DUST_MODEL if rules_meta else None, "rules": rules_meta},
         "kind": "alpha-lab-preregistration", "schema": 1, "plan_id": PLAN_ID, "status": STATUS, "can_trade": CAN_TRADE,
         "promotion_allowed": False, "no_permanent_service": True, "long_only": LONG_ONLY, "leverage": LEVERAGE, "capital": CAPITAL,
         "registered_at": registered_at, "registered_at_ms": registered_at_ms,
