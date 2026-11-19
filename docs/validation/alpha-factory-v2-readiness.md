@@ -73,3 +73,90 @@ négatifs.
 - Pas de Windows : l'évaluation tourne dans cet environnement Linux ; Windows 11 n'est pas testé.
 - Les filtres de marché sont ceux du jour de l'archive, appliqués à tout l'historique (les pas ont pu changer).
 - La règle « reliquat perdu » est prudente : en réalité il peut être regroupé ou converti (avec des frais).
+
+## 5. Intégration Sprint 1 sur main — 19 novembre 2026
+
+Cette section décrit les contrôles réexécutés pour l'intégration ; les sections précédentes sont le rapport
+historique de #53, et ne constituent pas une nouvelle évaluation financière.
+
+- Base : `main` après #57, `0cfff6469540fcc88ab67ae94db10edf9ac430db`.
+- Source #53 : `ff4650933eceb915e1c45d011da36b4dec280e54`, intégrée par fusion sans conflit.
+  L'encodage UTF-8 déjà présent sur main dans `data.py` a été conservé.
+- `sentinelle/alpha/lab/simulate.py` est strictement identique à #53 (blob Git
+  `124eb58a26139eb02bc674ec35850fb75b5743a1`) : `lose_dust()` et le modèle conservateur restent intacts.
+- Audit AST des six fichiers Python importés/modifiés : sept accès texte, tous explicitement UTF-8.
+  Un seul ajout nécessaire : `encoding="utf-8"` sur le manifeste JSON du test de catalogue.
+  Les lectures binaires de JSON restent indépendantes de l'encodage système Windows.
+- `SPEC.md` propose Sprint 1 `[TERMINÉ]` / Sprint 2 `[EN COURS]` ; cette transition reste soumise à la
+  validation et à la fusion humaines. Aucune fonctionnalité Sprint 2 n'est développée ici.
+- Huit fichiers au total, avec la dérogation ponctuelle autorisée par le propriétaire pour intégrer #53.
+  `CLAUDE.md` et `AGENTS.md` sont conservés tels qu'ils sont sur main.
+- Le chemin `docs/coordination/development-campaign.md` cité dans SPEC est absent sur main et dans cette
+  intégration ; aucun contenu de coordination n'a été inventé pour le remplacer.
+
+### Validation réellement exécutée
+
+Environnement Linux x86_64, Python 3.12.14, pytest 8.3.5, NumPy 2.3.5, pandas 2.2.3,
+scikit-learn 1.8.0, FastAPI 0.141.1, CCXT 4.4.99. Code testé au commit local
+`5bb624e3f1e1390ac25391443a0ff2a47368b3f5` ; seul ce rapport est ajouté ensuite.
+
+Commande de suite complète réellement exécutée depuis la racine de la branche :
+
+```bash
+env -i PATH=/usr/bin:/bin OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /workspace/scratch/6168c8d38e5c/sprint1-offline /workspace/scratch/6168c8d38e5c/trader-ai/.venv/bin/python -m pytest -o addopts='' -q --junitxml=/workspace/scratch/6168c8d38e5c/integrate53-full.xml
+```
+
+Le lanceur `sprint1-offline` est compilé depuis `tools/security/offline_exec.c` ; il interdit les sockets
+réseau au processus testé et à ses enfants. Les fichiers JUnit locaux ont été lus : 0 erreur, 0 échec.
+
+| Vérification | Résultat observé |
+|---|---|
+| Suite complète | **1041 passed, 1 skipped, 8 warnings in 493.40s (0:08:13)** |
+| `tests/test_alpha_lab_readiness.py tests/test_alpha_lab.py tests/test_windows_utf8.py` | **78 passed in 5.38s** |
+| `tests/test_diagnostic.py::test_real_panel_starts_answers_stops_and_restarts_in_a_temporary_folder`, séparément sans filtre de sockets | **1 passed in 6.43s** |
+| `python -m tools.alpha_lab costs-check`, sous filtre réseau | code retour 0 ; `compatible: true`, `problems: []`, `adopted: false` |
+| `git diff --check` | aucune erreur |
+
+Le seul test ignoré par la suite complète exige des sockets locales ; il est précisément celui passé séparément.
+Ce contrôle utilise une API de démonstration dans un dossier temporaire, puis vérifie son arrêt et son redémarrage.
+Les huit avertissements sont une dépréciation Starlette/httpx et sept avertissements scikit-learn pour des
+estimateurs archivés en 1.9.1, relus avec 1.8.0. Ils existaient déjà dans la validation #57 ; aucun modèle n'est
+réentraîné ou réécrit pour les masquer. La compatibilité des artefacts sérialisés reste une limite à traiter séparément.
+
+### Gel scientifique et limites
+
+HEAD GitHub contrôlés avant l'intégration et après les changements :
+
+| PR | HEAD attendu et observé, inchangé |
+|---|---|
+| #54 | `5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18` |
+| #55 | `18b31bb901f656d6126b370f47c510775f135c57` |
+
+Aucune écriture, aucun rebase, aucun push sur ces branches ; aucun changement à leurs artefacts.
+Aucune adoption du nouveau fichier de coûts, aucun préenregistrement, aucune nouvelle évaluation historique ou
+prospective, aucune promotion. Aucun trading réel ni service permanent activé. Capital de simulation inchangé : 30 EUR.
+Windows 11 et Edge ne sont pas disponibles ici : les tests Linux et l'audit UTF-8 ne valent pas une attestation Windows.
+
+### Vérification locale Windows 11 / PowerShell
+
+Sur une copie de travail propre, après publication de la branche :
+
+```powershell
+git fetch origin
+git switch --track origin/feat/sprint1-integrate-53
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest -o addopts='' -q
+.\.venv\Scripts\python.exe -m tools.alpha_lab costs-check
+
+# API en demonstration synthetique, donnees temporaires separees
+$demoData = Join-Path $env:TEMP ('sentinelle-sprint1-' + [guid]::NewGuid().ToString())
+.\.venv\Scripts\python.exe -m sentinelle --demo --no-browser --data $demoData --port 8765
+# Deuxieme fenetre PowerShell :
+Invoke-RestMethod http://127.0.0.1:8765/api/health
+Start-Process msedge.exe http://127.0.0.1:8765/
+# Arreter le serveur avec Ctrl+C.
+```
+
+Le lancement manuel en mode démo est borné par Ctrl+C et utilise un dossier temporaire distinct des données utilisateur.
+Arrêt de cette mission après l'ouverture de la PR brouillon ; validation humaine avant toute fusion.
