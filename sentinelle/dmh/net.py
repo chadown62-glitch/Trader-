@@ -37,7 +37,7 @@ EVM_READ = frozenset({"eth_call", "eth_chainId", "eth_blockNumber", "eth_gasPric
                       "eth_maxPriorityFeePerGas", "eth_getBlockByNumber"})
 SOLANA_READ = frozenset({"getSlot", "getRecentPrioritizationFees", "getMinimumBalanceForRentExemption", "getAccountInfo",
                          "getTokenSupply", "getTokenLargestAccounts", "getHealth", "getBlockTime", "getGenesisHash",
-                         "getEpochInfo"})
+                         "getEpochInfo", "getSignaturesForAddress", "getTransaction"})
 # Paramètres qui transformeraient un devis en transaction à signer : refusés.
 # (comparaison sans tenir compte de la casse)
 FORBIDDEN_PARAMS = frozenset({"taker", "payer", "userpublickey", "wallet", "feeaccount", "referralaccount", "signature",
@@ -191,7 +191,7 @@ class PublicClient:
             safety.forbid(f"paramètre de transaction « {bad[0]} » sur {host}")
         if rpc_method is not None:
             if rpc_method in WRITE_RPC or rpc_method.startswith(("personal_", "wallet_")) or "send" in rpc_method.lower() \
-                    or "sign" in rpc_method.lower():
+                    or ("sign" in rpc_method.lower() and rpc_method != "getSignaturesForAddress"):
                 safety.forbid(f"méthode d'écriture « {rpc_method} » sur {host}")
             if rpc_method not in h.rpc:
                 raise RequestNotAllowed(f"méthode non autorisée sur {host} : {rpc_method}")
