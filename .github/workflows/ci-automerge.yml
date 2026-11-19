@@ -1,0 +1,113 @@
+name: Sentinelle CI
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinelle-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: pytest (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      PYTHONUTF8: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Retrieve frozen Git objects and check live heads
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/pull/53/head:refs/audit/53 refs/pull/54/head:refs/audit/54 refs/pull/55/head:refs/audit/55
+          test "$(git rev-parse refs/audit/54)" = 5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18
+          test "$(git rev-parse refs/audit/55)" = 18b31bb901f656d6126b370f47c510775f135c57
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Verify SHA-256 of the frozen file manifests
+        run: python -m pytest tests/test_configurable_capital.py::test_frozen_scientific_files
+      - name: Run full suite
+        run: python -m pytest
+
+  cockpit:
+    name: Vue cockpit (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt
+      - name: Install isolated Chromium test runner
+        run: |
+          npm install --prefix "$RUNNER_TEMP/ui" --no-save playwright@1.56.1
+          "$RUNNER_TEMP/ui/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Check desktop and mobile cockpit
+        run: NODE_PATH="$RUNNER_TEMP/ui/node_modules" python tests/e2e/run.py memecoin_check.js
+
+  merge:
+    name: Request squash merge
+    needs: [test, cockpit]
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == github.repository_owner &&
+      github.event.pull_request.number != 54 && github.event.pull_request.number != 55
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: read
+      statuses: read
+    steps:
+      # No checkout or PR-controlled commands in this job with write access.
+      - name: Wait for other checks and request a squash merge of the tested head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          for item in 54:5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18 55:18b31bb901f656d6126b370f47c510775f135c57; do
+            test "$(gh api "repos/$REPO/pulls/${item%%:*}" --jq '.head.sha')" = "${item#*:}"
+          done
+          if [[ "$(gh api "repos/$REPO" --jq '.allow_auto_merge')" != true ]]; then
+            echo "::error::Enable Allow auto-merge in the repository settings to arm automatic merges."
+            exit 1
+          fi
+          # Check other workflows and legacy statuses too, including on unprotected repos.
+          # This job itself is pending and must not wait for itself.
+          while true; do
+            view=$(gh pr view "$PR" --repo "$REPO" --json headRefOid,isDraft,state,statusCheckRollup)
+            jq -e --arg sha "$HEAD_SHA" '.headRefOid == $sha and .isDraft == false and .state == "OPEN"' <<< "$view" >/dev/null
+            checks=$(jq --arg run "/actions/runs/$GITHUB_RUN_ID/" '[.statusCheckRollup[] |
+              select((.name == "Request squash merge" and ((.detailsUrl // "") | contains($run))) | not)]' <<< "$view")
+            if jq -e 'any(.[]; (.conclusion // .state) | IN("FAILURE","ERROR","CANCELLED","TIMED_OUT","ACTION_REQUIRED","STALE","STARTUP_FAILURE"))' <<< "$checks" >/dev/null; then
+              echo "::error::Another PR check failed."
+              exit 1
+            fi
+            if jq -e 'length > 0 and all(.[]; (.conclusion // .state) | IN("SUCCESS","SKIPPED","NEUTRAL"))' <<< "$checks" >/dev/null; then break; fi
+            sleep 15
+          done
+          gh pr merge "$PR" --repo "$REPO" --match-head-commit "$HEAD_SHA" --auto --squash

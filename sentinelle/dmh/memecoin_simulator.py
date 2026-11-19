@@ -4,6 +4,7 @@ import json
 import math
 
 from ..ai.features_memecoin import extract_features
+from ..config import paper_capital
 from . import smart_wallets
 from .dex import _rpc
 from .memecoin_strategies import MemecoinIsolatedLearner, NAMES, evaluate
@@ -31,6 +32,48 @@ def load(db):
         else {"revision": 0, "cash": INITIAL, "assets": {}, "positions": {}, "fills": [], "completed": [], "curve": [], "errors": []}
     )
     return state, wallets
+
+
+def configure(db, client, amount, currency):
+    """Convert the initial fictitious deposit once; all trading and P&L use USD."""
+    if amount is None and currency is None:
+        return
+    if type(amount) not in (int, float) or currency not in ("EUR", "USD"):
+        raise ValueError("Montant numérique et devise USD ou EUR requis")
+    amount = paper_capital(amount)
+
+    def matches(state):
+        deposit = state.get("deposit", {"amount": INITIAL, "currency": "USD"})
+        return deposit["currency"] == currency and deposit["amount"] == amount
+
+    state, _ = load(db)
+    if state["revision"]:
+        if not matches(state):
+            raise ValueError("Le capital de cette session existe déjà")
+        return
+    fx = {"rate": 1.0, "source": "USD"}
+    if currency == "EUR":
+        response = client.get("api.kraken.com", "/0/public/Ticker", {"pair": "EURUSD"})
+        try:
+            ticker = response.json()
+            if ticker["error"]:
+                raise ValueError
+            rate = float(ticker["result"]["ZEURZUSD"]["b"][0])
+            if not math.isfinite(rate) or rate <= 0:
+                raise ValueError
+        except (KeyError, IndexError, TypeError, ValueError) as exc:
+            raise ValueError("Cours acheteur EUR/USD indisponible") from exc
+        fx = {"rate": rate, "source": "Kraken EUR/USD bid", "observed_ms": response.received_ms, "sha256": response.sha256}
+    with db.transaction():
+        state, _ = load(db)
+        if state["revision"]:
+            if not matches(state):
+                raise ValueError("Le capital de cette session existe déjà")
+            return
+        state.update(
+            cash=amount * fx["rate"], initial=amount * fx["rate"], revision=1, deposit={"amount": amount, "currency": currency, "fx": fx}
+        )
+        db.set_meta(KEY, json.dumps(state, allow_nan=False))
 
 
 def quote(client, asset, now):
@@ -189,10 +232,19 @@ def report(state, wallets):
         latent = pos["mark"] - pos["basis"]
         tokens[pos["mint"]] += latent
         strategies[pos["strategy"]]["pnl"] += latent
+    completed = state["completed"]
+    # Realized exits include partial sales; subtract their P&L on still-open lots.
+    closed_pnl = sum(f["pnl"] for f in state["fills"]) - sum(p["pnl"] for p in state["positions"].values())
     return {
+        "revision": state["revision"],
+        "deposit": state.get("deposit", {"amount": INITIAL, "currency": "USD"}),
+        "closed_trades": len(completed),
+        "win_rate": sum(t["return"] > 0 for t in completed) / len(completed) if completed else None,
+        "mean_closed_pnl": closed_pnl / len(completed) if completed else None,
+        "tracked_wallet_count": sum(bool(w.get("qualified")) for w in wallets.values()),
         "asset_domain": DOMAIN,
         "currency": "USD",
-        "initial_capital": INITIAL,
+        "initial_capital": state.get("initial", INITIAL),
         "cash": state["cash"],
         "equity": None if state.get("stale_marks") else equity(state),
         "last_marked_equity": equity(state),

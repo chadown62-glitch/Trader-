@@ -165,7 +165,10 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         app.bus.bind_loop(asyncio.get_running_loop())
-        yield
+        try:
+            yield
+        finally:
+            await memecoin_worker.stop()
 
     api = FastAPI(title="Sentinelle", version=__version__, lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -676,6 +679,7 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
     # -- urgence et journal ----------------------------------------------------------------------
     @api.post("/api/emergency")
     async def emergency(body: EmergencyBody):
+        await memecoin_worker.stop()
         return {**(await app.acall(app.emergency, body.action, body.confirm, body.scope)), "confirm_phrase": EMERGENCY_CONFIRM}
 
     @api.get("/api/logs")
@@ -727,7 +731,7 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
                 return await call_next(request)
         return await call_next(request)
 
-    register_dmh(api, app, active_wallet_hub)
+    memecoin_worker = register_dmh(api, app, active_wallet_hub)
 
     @api.get("/api/macro-shadow")
     async def macro_shadow_context(as_of: float | None = None):

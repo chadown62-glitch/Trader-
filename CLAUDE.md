@@ -8,8 +8,9 @@
 ## 2. ANTI-BOUCLE INFINIE (RÈGLES D'EXÉCUTION)
 - Interdiction formelle de diviser le projet en nouvelles missions autonomes.
 - Travaille UNIQUEMENT sur le Sprint marqué `[EN COURS]` dans `SPEC.md`.
-- **Limite stricte :** Maximum 6 fichiers créés ou modifiés par Pull Request pour toutes les futures fonctionnalités. Dérogation unique : la PR d’assemblage initial #50–#52, branche `feat/sprint1-assemble-50-52`, peut dépasser cette limite. Cette exception ne s’applique à aucune autre PR.
-- Une seule PR active à la fois. Une fois le critère de validation atteint, arrête-toi et attends la validation humaine.
+- Une PR peut modifier tous les fichiers nécessaires à la tâche autorisée. Documenter le périmètre et les tests.
+- Enchaîner les tâches déjà autorisées sans arrêt intermédiaire. Le gel scientifique, le mode fictif et la validation humaine de toute promotion de modèle restent obligatoires.
+- La CI teste les PR vers main et vérifie les deux manifestes SHA-256. La fusion squash automatique respecte les contrôles et revues exigés sur main. Activer Allow auto-merge et rendre obligatoires les jobs pytest (ubuntu-latest) et pytest (windows-latest) dans les paramètres GitHub.
 
 ## 3. CONTRAINTES MATÉRIELLES & ENVIRONNEMENT
 - Cible d'exécution : **Windows 11**, Python 3.12, FastAPI, SQLite, Vue 3.
