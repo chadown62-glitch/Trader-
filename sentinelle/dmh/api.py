@@ -15,6 +15,7 @@ import time
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from . import memecoin_simulator
 from .solana_scanner import scan_once
 from .guard import inspect_request
 from .ledger import Blocked, LedgerError
@@ -60,7 +61,7 @@ def register_routes(api, app, service_factory) -> None:
     scan_lock = threading.Lock()
     next_scan = 0.0
 
-    def scan(minimum):
+    def scan(minimum, session=False):
         nonlocal next_scan
         if not scan_lock.acquire(blocking=False):
             return JSONResponse({"detail": "Scan déjà en cours"}, status_code=429)
@@ -70,6 +71,8 @@ def register_routes(api, app, service_factory) -> None:
                 return JSONResponse({"detail": "Un scan par minute"}, status_code=429)
             next_scan = now + 60
             hub = svc()
+            if session:
+                return memecoin_simulator.tick(hub, app.db, app.bus)
             return scan_once(hub.client, app.db, app.bus, min_liquidity_usd=minimum, registry=hub.registry)
         finally:
             scan_lock.release()
@@ -80,6 +83,17 @@ def register_routes(api, app, service_factory) -> None:
         if data.keys() - {"mode", "min_liquidity_usd"}:
             return JSONResponse({"detail": "Champ de scan inconnu"}, status_code=400)
         return await run(scan, data.get("min_liquidity_usd", 25000))
+
+    @api.post("/api/dmh/memecoin/session/tick")
+    async def memecoin_tick(request: Request):
+        data = await body(request, "cycle memecoin simulé")
+        if set(data) != {"mode"}:
+            return JSONResponse({"detail": "Champ de session inconnu"}, status_code=400)
+        return await run(scan, 25000, True)
+
+    @api.get("/api/dmh/memecoin/session")
+    async def memecoin_session():
+        return await run(lambda: memecoin_simulator.report(*memecoin_simulator.load(app.db)))
 
     @api.get("/api/dmh/status")
     async def dmh_status():
