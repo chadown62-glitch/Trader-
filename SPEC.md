@@ -16,7 +16,7 @@
   3. Fusion ordonnée sur `main` et vérification de compatibilité Windows 11.
 - **Critère de validation :** `pytest` passe sur `main` et le serveur FastAPI démarre localement sans erreur.
 
-## SPRINT 2 : CAPITAL CONFIGURABLE & API `[EN COURS]`
+## SPRINT 2 : CAPITAL CONFIGURABLE & API `[TERMINÉ]`
 - **Objectif :** Supprimer le plafond global codé en dur de 30 € fictifs sans réécrire les archives historiques.
 - **Périmètre :**
   1. Paramétrage dynamique du capital de simulation (`30 €`, `100 €`, `1 000 €`, `10 000 €` ou montant libre).
@@ -24,7 +24,7 @@
   3. Exposition des portefeuilles et simulations via endpoints FastAPI.
 - **Critère de validation :** Lancer deux simulations distinctes (ex: 30 € vs 1 000 €) via l'API et vérifier que les archives PR #54 restent intactes.
 
-## SPRINT 3 : COCKPIT VUE 3 & ORCHESTRATEUR 4 AGENTS `[À VENIR]`
+## SPRINT 3 : COCKPIT VUE 3 & ORCHESTRATEUR 4 AGENTS `[EN COURS]`
 - **Objectif :** Connecter l'interface visuelle et activer une flotte d'agents légère compatible 8 Go VRAM.
 - **Périmètre :**
   1. Connexion du frontend Vue 3 + Lightweight Charts aux endpoints FastAPI (courbes, positions fictives, métriques nettes après frais).

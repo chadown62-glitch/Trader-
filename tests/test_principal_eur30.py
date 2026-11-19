@@ -264,11 +264,10 @@ def test_default_backtest_starts_at_30_without_touching_principal(eur_app):
     assert eur_app.runtime(account["id"]).broker.balances() == before
 
 
-def test_reset_rejects_arbitrary_funding(eur_app):
+def test_reset_accepts_explicit_paper_capital(eur_app):
     account = principal(eur_app)
-    with pytest.raises(UserError, match="30"):
-        eur_app.reset_paper_account(account["id"], 10000)
-    assert eur_app.runtime(account["id"]).broker.balances() == {"EUR": 30.0}
+    eur_app.reset_paper_account(account["id"], 10000)
+    assert eur_app.runtime(account["id"]).broker.balances() == {"EUR": 10000.0}
 
 
 def test_two_concurrent_orders_cannot_spend_the_same_euros(db):
