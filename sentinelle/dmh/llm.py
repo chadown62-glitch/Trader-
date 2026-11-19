@@ -11,10 +11,13 @@ from __future__ import annotations
 import ipaddress
 import json
 import math
+from threading import Lock
 from urllib.parse import urlparse
 
 from .guard import FORBIDDEN_FIELDS, scan_secrets
 from .security import SecurityRefusal
+
+_INFERENCE_LOCK = Lock()
 
 ALLOWED = {"asset": str, "side": str, "capital_eur": (int, float), "objective_bps": (int, float), "max_loss_eur": (int, float),
            "horizon": str, "entry_conditions": str, "exit_conditions": str, "explanation": str}
@@ -89,11 +92,11 @@ def draft_strategy(message: str, *, url: str, model: str, assets: set[str], max_
         raise SecurityRefusal("contexte de capital fictif invalide")
     context = (f" Capital initial : {initial_capital:.2f} EUR fictifs. Solde actuel disponible, réservations déduites : "
                f"{balance:.2f} EUR fictifs. Budget maximal de cette proposition : {max_capital:.2f} EUR.")
-    payload = {"model": model, "stream": False, "format": SCHEMA, "options": {"temperature": 0},
+    payload = {"model": model, "stream": False, "keep_alive": 0, "format": SCHEMA, "options": {"temperature": 0},
                "messages": [{"role": "system", "content": SYSTEM + context},
                             {"role": "user", "content": f"<demande>\n{message[:2000]}\n</demande>\nActifs possibles : {', '.join(sorted(assets))}."}]}
     try:
-        with httpx.Client(timeout=timeout, transport=transport, trust_env=False) as c:
+        with _INFERENCE_LOCK, httpx.Client(timeout=timeout, transport=transport, trust_env=False) as c:
             r = c.post(f"{url.rstrip('/')}/api/chat", json=payload)
             r.raise_for_status()
             content = r.json().get("message", {}).get("content", "")

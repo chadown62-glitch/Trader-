@@ -24,14 +24,15 @@
   3. Exposition des portefeuilles et simulations via endpoints FastAPI.
 - **Critère de validation :** Lancer deux simulations distinctes (ex: 30 € vs 1 000 €) via l'API et vérifier que les archives PR #54 restent intactes.
 
-## SPRINT 3 : COCKPIT VUE 3 & ORCHESTRATEUR 4 AGENTS `[EN COURS]`
+## SPRINT 3 : COCKPIT VUE 3 & ORCHESTRATEUR 4 AGENTS `[TERMINÉ]`
 - **Objectif :** Connecter l'interface visuelle et activer une flotte d'agents légère compatible 8 Go VRAM.
 - **Périmètre :**
   1. Connexion du frontend Vue 3 + Lightweight Charts aux endpoints FastAPI (courbes, positions fictives, métriques nettes après frais).
   2. Orchestrateur événementiel limité à 4 spécialistes à la demande : `Regime Detector`, `Alpha Hunter`, `Risk Commander` (moteur déterministe indépendant), `Cost Router`.
+- **Exécution locale :** Les quatre étapes partagent le cycle de vie de `ia_entrainement` et fonctionnent sans Ollama. L’assistant DMH à la demande sérialise ses inférences et demande le déchargement après chaque réponse. Si plusieurs clients utilisent la même instance Ollama, configurer le processus serveur avec `OLLAMA_MAX_LOADED_MODELS=1` et `OLLAMA_NUM_PARALLEL=1`. Le pic de VRAM dépend du modèle et du contexte et se vérifie sur la machine cible.
 - **Critère de validation :** Visualisation en direct des signaux et des décisions tracées des 4 agents dans le navigateur sous Windows 11.
 
-## SPRINT 4 : SCANNER MEMECOIN V0 & STABILISATION `[À VENIR]`
+## SPRINT 4 : SCANNER MEMECOIN SOLANA V0 & ANTI-RUG PULL `[EN COURS]`
 - **Objectif :** Poser la première brique Memecoin Solana en observation pure (zéro exécution complexe).
 - **Périmètre :**
   1. Collecte de nouveaux tokens/pools Solana et filtre déterministe `Anti-Rug Pull Guardian` (permissions mint/freeze, liquidité, concentration détenteurs, droit de refus).
