@@ -426,22 +426,27 @@ class PositionManager:
 
     def unrealized(self, pos: dict) -> dict:
         last = self.broker.price_fn(pos["symbol"])
-        if not last or not pos["entry_price"] or pos["status"] != "open":
-            return {"price": last, "pnl": 0.0, "pnl_pct": 0.0, "r": None, "value": 0.0}
+        if pos["status"] != "open":
+            return {"price": last, "pnl": 0.0, "pnl_pct": 0.0, "pnl_net_pct": None, "r": None, "value": 0.0}
+        if not last or not pos["entry_price"]:
+            return {"price": last, "pnl": None, "pnl_pct": None, "pnl_net_pct": None, "r": None, "value": None}
         try:
             entry_fx = settlement_rate(pos["symbol"], self.quote, pos.get("entry_fx"))
         except OrderError as exc:
-            return {"price": last, "pnl": None, "pnl_pct": None, "r": None, "value": None, "fx": None, "error": exc.message}
+            return {"price": last, "pnl": None, "pnl_pct": None, "pnl_net_pct": None, "r": None, "value": None, "fx": None, "error": exc.message}
         fx = self.broker.fx_rate(pos["symbol"])
         if fx is None:
-            return {"price": last, "pnl": None, "pnl_pct": None, "r": None, "value": None, "fx": None}
+            return {"price": last, "pnl": None, "pnl_pct": None, "pnl_net_pct": None, "r": None, "value": None, "fx": None}
         value = last * pos["qty"] * fx  # valeur actuelle dans la monnaie du compte
         gross = value - pos["entry_price"] * pos["qty"] * entry_fx
         est_exit_cost = value * (getattr(self.broker, "fee_rate", 0.001) + self.broker.conversion_cost(pos["symbol"]))
-        pnl = gross - pos["entry_fees"] * (pos["qty"] / (pos["initial_qty"] or pos["qty"])) - est_exit_cost + pos["realized_pnl"]
+        initial_qty = pos["initial_qty"] or pos["qty"]
+        invested = pos["entry_price"] * initial_qty * entry_fx + pos["entry_fees"]
+        pnl = gross - pos["entry_fees"] * (pos["qty"] / initial_qty) - est_exit_cost + pos["realized_pnl"]
         return {
             "price": last,
             "pnl": pnl,
+            "pnl_net_pct": 100 * pnl / invested if invested > 0 else None,
             "pnl_pct": ((last * fx) / (pos["entry_price"] * entry_fx) - 1) * 100,
             "r": pnl / pos["risk_amount"] if pos["risk_amount"] else None,
             "value": value,
