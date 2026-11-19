@@ -36,6 +36,12 @@ class AgentsMixin:
                 model = self.models.trial(tf)
                 st["model_trial"] = model is not None
             st["model"] = model.version if model else None
+            # One lifecycle and one execution context for all four logical stages.
+            st["specialists"] = [
+                {"stage": stage, "name": key, "label": label, "status": st["status"],
+                 "running": bool(agent and agent.running)}
+                for stage, (key, label) in d["specialists"].items()
+            ]
             out.append(st)
         return out
 
@@ -63,11 +69,13 @@ class AgentsMixin:
         symbols = self._agent_symbols()
         days = max(self.settings["market"]["history_days"], 260 if tf != "15m" else 220)
 
+        preparation = self.agent_state[name]
+
         def prepare(progress):
             for k, sym in enumerate(symbols):
                 progress(k / max(1, len(symbols)), f"Historique {sym}")
                 self.history.update(sym, tf, days)
-            self.call(self._activate_agent, name, acc["id"], tf, symbols, days).result(timeout=600)
+            self.call(self._activate_agent, name, acc["id"], tf, symbols, days, preparation).result(timeout=600)
             return {"symbols": symbols}
 
         try:
@@ -85,7 +93,9 @@ class AgentsMixin:
             syms.append(btc)  # contexte de marché
         return syms
 
-    def _activate_agent(self, name: str, account_id: int, tf: str, symbols: list[str], days: int) -> None:
+    def _activate_agent(self, name: str, account_id: int, tf: str, symbols: list[str], days: int, preparation=None) -> None:
+        if preparation is not None and self.agent_state.get(name) is not preparation:
+            return  # stopped or superseded while the price history was loading
         try:
             for sym in symbols:
                 self.hub.track(sym, tf, days)
