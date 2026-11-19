@@ -15,6 +15,14 @@ export const store = reactive({
   selectedAccount: null,
 });
 
+export const selectedAccount = Vue.toRef(store, 'selectedAccount');
+Vue.watch(() => store.overview?.accounts, accounts => {
+  if (!accounts || accounts.some(a => a.id === selectedAccount.value)) return;
+  const active = accounts.filter(a => a.kind === 'paper' && a.tradable !== false && a.connected !== false);
+  const preferred = active.find(a => a.role === 'main') || active.find(a => a.role === 'manual');
+  selectedAccount.value = (preferred || active[0] || accounts[0])?.id ?? null;
+}, { immediate: true, flush: 'sync' });
+
 let toastId = 0;
 export function toast(message, kind = 'info', ms = 5000) {
   const id = ++toastId;
