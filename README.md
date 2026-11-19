@@ -2,21 +2,30 @@
 
 Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et téléphone), une IA qui apprend en argent fictif, et le pilotage par Telegram.
 
+> 🔒 **Simulation uniquement.** Cette version ne peut ni envoyer, ni modifier, ni annuler un ordre réel : les cours sont réels, l'argent est toujours fictif. Ce n'est pas un réglage, le code d'exécution réelle a été retiré. Détails et preuves : **[docs/SECURITE.md](docs/SECURITE.md)**.
+
 > **Avertissement.** Le trading comporte un risque de perte en capital. Aucun bot ne peut garantir des gains, et les résultats passés, réels ou simulés, ne préjugent pas des résultats futurs.
 > Ce logiciel ne constitue ni un conseil financier, ni un conseil fiscal.
+
+> **Observation gelée #34 : préparée, non démarrée.** Le mode continu nécessite le diagnostic
+> du vrai PC Windows 11 puis votre accord distinct. Les fonctionnalités générales ci-dessous
+> ne sont pas toutes actives dans cette campagne : modèle figé, macro en observation parallèle,
+> aucune promotion ni réentraînement automatique. Voir [la procédure actuelle](docs/WINDOWS.md).
 
 ## Ce que vous pouvez faire
 
 - **Trader vous-même** sur des graphiques en temps réel :
-  - en **argent fictif** sur les prix réels (comptes « papier »), ou en **argent réel** sur votre exchange ;
+  - en **argent fictif** sur les prix réels, avec un **portefeuille unique de 30 €** tenu en euros et partagé avec l'IA ([docs/PORTEFEUILLE.md](docs/PORTEFEUILLE.md)) ;
   - avec un **calculateur de taille selon le risque**, un stop-loss et un objectif visibles sur le graphique ;
   - avec **l'avis de l'IA** sur chaque crypto.
 - **Entraîner l'IA** :
   - sur des années d'historique, avec une validation honnête sur une période qu'elle n'a jamais vue ;
   - **vérifier qu'elle sait apprendre** : un banc d'essai lui cache des règles dans des marchés artificiels et mesure ce qu'elle retrouve ;
   - puis **en direct, 24 h/24, avec de l'argent fictif**. Chaque décision, prise ou refusée, est expliquée, et chaque signal est suivi jusqu'à son issue.
-- **Lancer l'IA sur votre portefeuille réel**, seulement quand le bulletin de préparation est au vert : modèle validé, 30 jours de résultats en direct, gains nets, baisse contenue.
-- **Simulation accélérée** : rejouer des mois de marché en quelques secondes, avec exactement les mêmes règles.
+- **Suivre le bulletin de fiabilité** de l'IA : modèle validé, 30 jours de résultats en direct, gains nets, baisse contenue. Il mesure des preuves en argent fictif et n'ouvre aucun mode réel.
+- **Page « Préparation »** : en lecture seule, dit si l'observation prospective gelée (30 € fictifs) peut commencer, avec chaque raison de blocage (protocoles gelés et leurs empreintes, réglages, prix publics, historique, Windows 11). Aucun bouton de démarrage.
+- **Page « Performances »** : résultat net par trade et par jour (jours sans trade compris), réalisé et latent séparés, baisse maximale, résultats par stratégie, signaux refusés et leurs raisons. Aucune projection, aucun chiffre « annualisé ».
+- **Simulation accélérée** : rejouer des mois de marché en quelques secondes, avec exactement les mêmes règles que l'apprentissage et le trading fictif, dans les conditions de votre portefeuille ([docs/EXECUTION.md](docs/EXECUTION.md)).
 - **Fiches cryptos** : tout ce que Sentinelle sait de chaque crypto suivie (ampleur normale des mouvements, pires chutes, lien avec le Bitcoin, liquidité, résultats passés de chaque stratégie).
 - **Canaux de signaux Telegram** lus en **observation** : Sentinelle mesure la vraie fiabilité de chaque canal, sur les vrais prix.
 - **Contexte de marché** (Fear & Greed, indices boursiers, taux de financement) et **calendrier économique automatique** : pas de nouvelle position autour des annonces importantes (inflation, emploi, Fed, BCE).
@@ -32,8 +41,7 @@ Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et tél�
   - **arrêt complet** à −10 % depuis le plus haut ;
   - pause après une série de pertes ;
   - **aucun levier**.
-- **Stop-loss posé chez l'exchange** : il protège même si le PC s'éteint. Les positions sont réconciliées avec l'exchange au redémarrage, et un stop manquant est reposé.
-- **Clés API** stockées uniquement sur votre PC. Utilisez-les **sans droit de retrait**.
+- **Verrou « simulation uniquement »** à toutes les couches (courtier, client de marché, comptes, positions, agents, API, Telegram), sans interrupteur. Aucune clé de plateforme d'échange n'est demandée, lue ou utilisée.
 - **Panel** protégé par mot de passe, résistant aux requêtes forgées, jamais exposé sur internet.
 - **Bouton 🛑 Urgence** : arrêter les IA, ou tout revendre.
 - **Vérification des prix** sur une seconde plateforme avant chaque entrée.
@@ -48,14 +56,20 @@ Bot de trading crypto **prudent**, avec un panel de gestion complet (PC et tél�
 
 Autres lanceurs :
 - **`demo.bat`** : démo hors-ligne sur un marché simulé.
-- **`diagnostic.bat`** : vérification de l'installation.
+- **`diagnostic.bat`** : vérification de l'installation, puis diagnostic complet avec verdict READY / BLOCKED pour l'observation ([docs/WINDOWS.md](docs/WINDOWS.md)).
 - Mac et Linux : `./lancer.sh`.
 
 Mode d'emploi complet : **[docs/GUIDE.md](docs/GUIDE.md)**. Ce qu'il reste à faire : **[docs/PLAN.md](docs/PLAN.md)**. Sources d'information retenues et écartées : **[docs/SOURCES.md](docs/SOURCES.md)**.
 
 ## Résultats mesurés
 
-Les résultats, y compris les mauvais, sont dans **[docs/RESULTATS.md](docs/RESULTATS.md)**. En résumé, sur données réelles et frais compris :
+**Résultats historiques non revalidés après les corrections temporelles et d'exécution.**
+Les chiffres ci-dessous et **[docs/RESULTATS.md](docs/RESULTATS.md)** sont conservés pour
+l'historique ; ils ne démontrent pas les capacités de la version intégrée actuelle. Aucun avantage
+net durable sur marché authentique ni promotion de modèle n'est démontré par cette livraison.
+Les preuves actuelles et leurs limites sont dans [le rapport #34](docs/validation/autonomous-supervisor.md).
+
+Résumé historique, avant revalidation :
 - les stratégies de court terme perdent de l'argent ; le **suivi de tendance en 4 h** garde un léger avantage ;
 - exemple : un croisement de moyennes « EMA 9/21 » en 1 minute fait environ 1 000 trades par mois et perd **80 à 89 %** en un mois une fois les frais payés ;
 - sur 2018-2022 (années jamais utilisées pour concevoir les stratégies), le suivi de tendance est **positif** (+0,33 R par trade en 4 h) ;
@@ -64,14 +78,14 @@ Les résultats, y compris les mauvais, sont dans **[docs/RESULTATS.md](docs/RESU
 - **l'IA sait apprendre** : sur le banc d'essai, elle retrouve en moyenne 86 % d'une règle cachée (75 % avec l'ancien modèle) et ne « découvre » rien dans du bruit pur ;
 - **le vrai marché contient très peu d'information stable** : même avec 475 000 exemples, un modèle fait à peine mieux que le hasard sur la période suivante ;
 - le tri de l'IA aide tout de même : sur 18 mois jamais vus, **+0,19 R par trade contre +0,02 R sans tri**, portefeuille simulé à +6,6 % pendant que le marché perdait 43 % ;
-- ce n'est pas encore prouvé à 95 % : l'IA est donc **« non validée »**, son modèle est **« à l'essai » en argent fictif** et le mode réel reste verrouillé.
+- ce n'est pas encore prouvé à 95 % : l'IA est donc **« non validée »**, son modèle est **« à l'essai » en argent fictif**.
 
 ## Pour les développeurs
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
 pip install -r requirements-dev.txt
-python -m pytest            # 92 tests : brokers, IA, risque, API, flux temps réel, Telegram, actualités
+python -m pytest            # brokers, IA, risque, API, flux temps réel, Telegram, actualités, verrou de sécurité
 python -m sentinelle --demo # panel sur un marché simulé
 node tests/e2e/ui_check.js  # vérification du panel dans un navigateur (Playwright)
 ```
@@ -79,12 +93,13 @@ node tests/e2e/ui_check.js  # vérification du panel dans un navigateur (Playwri
 | Dossier | Contenu |
 |---------|---------|
 | `sentinelle/market` | Données de marché (Binance, marché simulé), historique, centrale temps réel |
-| `sentinelle/execution` | Brokers simulé et réel (CCXT), gestion des positions |
+| `sentinelle/safety.py` | Verrou « simulation uniquement » (refus inconditionnels, journal des tentatives) |
+| `sentinelle/execution` | Courtier simulé, gestion des positions (l'ancien courtier réel n'est plus qu'une butée qui refuse tout) |
 | `sentinelle/ai` | Indicateurs, features, stratégies, étiquetage, méta-modèle, entraînement walk-forward |
 | `sentinelle/risk` | Gestionnaire de risque |
-| `sentinelle/agent` | Agent de trading (commun à l'entraînement, au réel et aux backtests) |
+| `sentinelle/agent` | Agent de trading (commun à l'entraînement en direct et aux backtests) |
 | `sentinelle/backtest` | Simulation accélérée |
-| `sentinelle/services` | Application, moteur temps réel, comptes, entraînement, bulletin de préparation |
+| `sentinelle/services` | Application, moteur temps réel, comptes, entraînement, bulletin de fiabilité |
 | `sentinelle/api` | Serveur web sécurisé et WebSocket |
 | `sentinelle/news`, `sentinelle/notify` | Actualités (Ollama) et Telegram |
 | `web/` | Panel (Vue 3 et Lightweight Charts, sans compilation) |
@@ -92,3 +107,5 @@ node tests/e2e/ui_check.js  # vérification du panel dans un navigateur (Playwri
 Dossier de conception : [docs/CONCEPTION.md](docs/CONCEPTION.md).
 
 Graphiques : TradingView Lightweight Charts™ (Apache 2.0), Copyright © TradingView, Inc. — [tradingview.com](https://www.tradingview.com/).
+
+Superviseur #34 préparé, non démarré : [intégration et reprises](docs/validation/autonomous-supervisor.md), [validation PC et accord distinct](docs/WINDOWS.md#6-plan-de-lancement-reproductible--à-utiliser-après-revue-et-accord). Aucun service permanent lancé.

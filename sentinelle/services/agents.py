@@ -6,7 +6,8 @@ import time
 
 from ..agent.agent import TradingAgent
 from ..execution.base import OrderError
-from .common import AGENTS, EMERGENCY_CONFIRM, LIVE_CONFIRM, UserError
+from ..safety import forbid, is_paper_runtime
+from .common import AGENTS, EMERGENCY_CONFIRM, RETIRED_AGENTS, UserError
 from .readiness import compute_readiness
 
 
@@ -21,7 +22,7 @@ class AgentsMixin:
         for name, d in AGENTS.items():
             agent = self.agents.get(name)
             st = {"name": name, "label": d["label"], "mode": d["mode"], **self.agent_state.get(name, {})}
-            acc = self.db.one("SELECT id, name FROM accounts WHERE role = ? AND archived = 0", (d["role"],))
+            acc = self.ai_account()
             st["account_id"] = acc["id"] if acc else None
             st["account_name"] = acc["name"] if acc else None
             if agent:
@@ -31,7 +32,7 @@ class AgentsMixin:
             tf = self.settings["ai"]["timeframe"]
             model = self.models.champion(tf)
             st["model_trial"] = False
-            if model is None and d["mode"] != "live":  # un modèle à l'essai ne sert qu'en argent fictif
+            if model is None:  # à défaut de modèle validé : le modèle « à l'essai » (argent fictif)
                 model = self.models.trial(tf)
                 st["model_trial"] = model is not None
             st["model"] = model.version if model else None
@@ -39,30 +40,22 @@ class AgentsMixin:
         return out
 
     def readiness(self) -> dict:
-        acc = self.db.one("SELECT id FROM accounts WHERE role = 'ai_training' AND archived = 0")
+        """Bulletin de fiabilité de l'IA en argent fictif. Il n'ouvre aucun mode réel."""
+        acc = self.ai_account()
         return compute_readiness(self.db, self.settings, acc["id"] if acc else None, self.models.champion(self.settings["ai"]["timeframe"]))
 
     def start_agent(self, name: str, confirm: str | None = None, auto: bool = False) -> dict:
-        if name not in AGENTS:
+        # Simulation uniquement : l'IA en argent réel n'existe plus. Ni phrase de confirmation,
+        # ni bulletin favorable, ni redémarrage automatique ne peuvent la lancer.
+        if name in RETIRED_AGENTS or name not in AGENTS or AGENTS[name]["mode"] != "training":
+            if name in RETIRED_AGENTS:
+                forbid("démarrage de l'IA en argent réel", db=self.db, agent=name)
             raise UserError("Agent inconnu")
         if name in self.agents or self.agent_state[name]["status"] == "préparation":
             return self.agent_state[name]
         d = AGENTS[name]
         tf = self.settings["ai"]["timeframe"]
-        if d["mode"] == "live":
-            if not self.live_status.get("connected"):
-                raise UserError("Portefeuille réel non connecté (clés API manquantes ou refusées)")
-            if self.models.champion(tf) is None:
-                raise UserError("Aucun modèle d'IA validé : l'IA ne peut pas trader en réel")
-            rd = self.readiness()
-            if not rd["unlocked"]:
-                missing = [c["label"] for c in rd["criteria"] if not c["ok"]]
-                raise UserError("Mode réel verrouillé. Conditions manquantes : " + " ; ".join(missing))
-            if not auto and (confirm or "").strip().upper() != LIVE_CONFIRM:
-                raise UserError(f"Pour confirmer, tapez exactement : {LIVE_CONFIRM}")
-            acc = self.live_account()
-        else:
-            acc = self.db.one("SELECT * FROM accounts WHERE role = 'ai_training' AND archived = 0")
+        acc = self.ai_account()  # portefeuille principal (partagé avec le trading manuel), ou ancien compte avant la migration
         if acc is None:
             raise UserError("Compte associé introuvable")
         self.agent_state[name] = {"status": "préparation", "message": "Téléchargement de l'historique des prix…"}
@@ -98,27 +91,33 @@ class AgentsMixin:
                 self.hub.track(sym, tf, days)
             rt = self.runtime(account_id)
             d = AGENTS[name]
-            budget_fn = (lambda: self.settings["live"]["budget"]) if d["mode"] == "live" else None
             news_fn = None
             for ext in self.extensions:
                 if hasattr(ext, "score_for"):
                     news_fn = ext.score_for
-            # réel : uniquement un modèle validé ; entraînement : à défaut, le modèle « à l'essai »
-            model_fn = (lambda: self.models.champion(tf)) if d["mode"] == "live" else (lambda: self.models.champion(tf) or self.models.trial(tf))
+            # modèle validé ; à défaut, le modèle « à l'essai » (argent fictif, taille réduite)
+            def model_fn():
+                return self.models.champion(tf) or self.models.trial(tf)
+
             agent = TradingAgent(
                 name, d["mode"], self.db, rt.positions, rt.risk, lambda: self.settings,
                 model_fn, timeframe=tf, news_fn=news_fn,
-                fresh_fn=lambda s: self.hub.is_fresh(s, 180), budget_fn=budget_fn, bus=self.bus,
+                fresh_fn=lambda s: self.hub.is_fresh(s, 180), bus=self.bus,
                 price_check_fn=self._price_check,
                 shield_fn=self.shield.check_entry,
                 context_fn=self.decision_context,
-                clock=self.market_clock if d["mode"] != "live" else time.time,
+                clock=self.market_clock,
             )
             agent.running = True
             for sym in symbols:  # ne pas rejouer la dernière bougie déjà clôturée
                 s = self.hub.series(sym, tf)
                 if len(s):
-                    agent.last_bar[sym] = int(s["ts"].iloc[-1])
+                    latest = int(s["ts"].iloc[-1])
+                    self.db.execute("UPDATE candidates SET decision='refusé', decision_reason='Reprise après interruption : signal expiré, aucun ordre' WHERE account_id=? AND symbol=? AND timeframe=? AND decision='préparé' AND ts<?",
+                                    (account_id, sym, tf, latest))
+                    pending = self.db.one("SELECT 1 FROM candidates WHERE account_id=? AND symbol=? AND timeframe=? AND ts=? AND decision='préparé'",
+                                          (account_id, sym, tf, latest))
+                    agent.last_bar[sym] = latest - 1 if pending else latest
                 if sym in self.settings["general"]["watchlist"]:
                     feat = self._features_for(sym, tf)
                     if feat is not None:
@@ -174,11 +173,16 @@ class AgentsMixin:
         return self.crosscheck.check(symbol, price, m["cross_check_max_pct"])
 
     def stop_agent(self, name: str, close_positions: bool = False) -> dict:
+        if name not in AGENTS:
+            raise UserError("Agent inconnu")
         agent = self.agents.pop(name, None)
         if agent:
             agent.running = False
             if close_positions:
                 rt = self.runtimes.get(agent.account_id)
+                if rt is not None and not is_paper_runtime(rt):
+                    self._evict_runtime(agent.account_id, "compte actif non simulé écarté")
+                    rt = None
                 if rt:
                     for p in rt.positions.open_positions(agent=name):
                         try:
@@ -202,6 +206,7 @@ class AgentsMixin:
     # Arrêt d'urgence
     # ======================================================================
     def emergency(self, action: str, confirm: str | None = None, scope: str = "ai") -> dict:
+        self.paper_runtimes()  # sécurité : l'urgence n'agit que sur des comptes simulés
         stopped = [n for n in list(self.agents)]
         for n in stopped:
             self.stop_agent(n)
@@ -209,7 +214,7 @@ class AgentsMixin:
         if action == "flatten":
             if (confirm or "").strip().upper() != EMERGENCY_CONFIRM:
                 raise UserError(f"Pour tout revendre, tapez exactement : {EMERGENCY_CONFIRM}")
-            for rt in list(self.runtimes.values()):
+            for _aid, rt in self.paper_runtimes():  # uniquement les comptes simulés
                 for p in rt.positions.open_positions():
                     if scope == "ai" and p["origin"] != "ai":
                         continue

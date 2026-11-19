@@ -1,0 +1,83 @@
+{
+  "mission": 34,
+  "base_pr32": "f279e711c2164270903c09f6250639bc67168a9c",
+  "ported_pr33": "359ac88305c333b5e13db17f0934b0dd835537e7",
+  "parent_pr29": "048c62a84dad5e036ad08dfda6f4d1c2e45258b4",
+  "main_unchanged": "5fa6b3656fdd132080f76e716c08003659843db0",
+  "environment": {
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.12.14",
+    "sqlite": "3.53.1",
+    "dependencies": {
+      "ccxt": "4.4.99",
+      "numpy": "2.3.5",
+      "pandas": "2.2.3",
+      "scikit-learn": "1.8.0",
+      "fastapi": "0.141.1",
+      "httpx": "0.28.1",
+      "pytest": "8.3.5"
+    }
+  },
+  "full_suite": {
+    "passed": 519,
+    "skipped": 1,
+    "xfail": 0,
+    "failures": 0,
+    "seconds": 176.2,
+    "network": "env -i + seccomp offline_exec; no sockets",
+    "skip": "test_real_panel_starts_answers_stops_and_restarts_in_a_temporary_folder: local sockets forbidden"
+  },
+  "local_socket_test": {
+    "passed": 1,
+    "seconds": 9.099,
+    "disposable_panel": true,
+    "stopped": true
+  },
+  "browser": {
+    "attempted": [
+      "phase_h_check.js",
+      "performance_check.js",
+      "champion_check.js",
+      "macro_check.js"
+    ],
+    "passed": 0,
+    "blocked_before_render": 4,
+    "reason": "Chromium ProcessSingleton socket() failed: Operation not permitted (1)",
+    "viewports_requested": [
+      1440,
+      390
+    ],
+    "new_branch_visual_validation": false
+  },
+  "windows_11_actually_tested": false,
+  "powershell_executed": false,
+  "permanent_service_started": false,
+  "public_prospective_observations": 0,
+  "new_profit_or_model_advantage_demonstrated": false,
+  "frozen_files_unchanged": true,
+  "frozen_sha256": {
+    "research/macro-shadow-v3/protocol.json": "7becacbdc7fa4fd0157a04c0f30ba4b55d79830c56a31da6171ca0ace6d2fb0c",
+    "research/macro-shadow-v3/protocol.json.sha256": "858d42907dfc20645384ff9080b61d4a86c2b80c191e960c05dffafbe85b5fd4",
+    "research/prospective-v2/evaluation-plan.json": "1ba39d4b5911df7dde84420b0cddd2a17c9622d230cc3e3ce242c44e6f721743",
+    "research/prospective-v2/model-card.json": "e38c68d0f0f87e12acf1cecd8d8bb918f84956770156ba527503ae69baba864e",
+    "research/prospective-v2/model.joblib": "539cd42346456db9f36f3f9f46f64fcbef33da6e96922fa5a5d10d58094b741b",
+    "research/prospective-v2/protocol.json": "efecc21d9344d64ec351f2c9e5062b3adc4ed510730e29884f7df9f7357324ac",
+    "research/prospective-v2/protocol.sha256": "bff98e2b3c29d04afbf28dd34d14bbaff4d2c86703db9950296a34665196f564",
+    "research/prospective-v2/settings.json": "98eb77c15f61875cacfd78a606a7db50663addfb33a0c35d0681a742327ec747",
+    "sentinelle/news/shadow/__init__.py": "cc635a5c1fe6f17d6c63e4ded396d0bd95ad4d132e0bc2bd70cb604fc2d33079",
+    "sentinelle/news/shadow/parsers.py": "1d417243d76b61f6cc9f3700d24e32ffd7124d3e36a13fd3100afe1febcc7f75",
+    "sentinelle/news/shadow/service.py": "daf14a3bd29d9c76f77745b87bbf1a5dc801d76d7e2b7ff1c0f24bebecf4a8d5",
+    "sentinelle/news/shadow/sources.py": "8c4ebabd1ced369e438961b53fb7f5d7c6ddd33c6fe7b39630208b34047a74c4",
+    "sentinelle/news/shadow/store.py": "91d8761860642a1f7b33e296ef82bac8804305ea25313cded6d58f5ba080eaf2",
+    "sentinelle/services/champion.py": "02590428d4b4764315badca3230c6e7011bc1750a5918d8f30a4614d4e3f28c8"
+  },
+  "earlier_validation_this_delivery": {
+    "passed": 517,
+    "skipped": 1,
+    "xfail": 0,
+    "failures": 0,
+    "seconds": 170.753,
+    "network": "env -i + seccomp offline_exec; no sockets",
+    "skip": "test_real_panel_starts_answers_stops_and_restarts_in_a_temporary_folder: local sockets forbidden"
+  }
+}

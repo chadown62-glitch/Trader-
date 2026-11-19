@@ -1,0 +1,166 @@
+[
+ {
+  "component": "commission",
+  "location": "config.paper.fee_rate ; execution/paper.py",
+  "assumption": "taux unique pour tous les ordres, teneur ou preneur",
+  "value": {
+   "fee_bps": 10.0
+  },
+  "expected_effect": "neutre si la grille VIP 0 s'applique (0,10 % des deux côtés)",
+  "measured_by": "grille tarifaire archivée",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "actif des frais",
+  "location": "execution/paper.py (_fill : fee_asset = devise de cotation)",
+  "assumption": "la commission est toujours payée dans la devise de cotation",
+  "value": {
+   "fee_asset": "quote"
+  },
+  "expected_effect": "optimiste : sur Binance sans BNB, l'achat paie en actif reçu et laisse un reliquat invendable",
+  "measured_by": "inventory.round_trip sur filtres observés",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "glissement",
+  "location": "config.paper.slippage_bps",
+  "assumption": "glissement fixe par ordre au marché",
+  "value": {
+   "slippage_bps": 5.0
+  },
+  "expected_effect": "à mesurer : dépend de l'actif, de l'heure et de la taille",
+  "measured_by": "ruban de transactions (exécution au marché)",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "glissement (protocole gelé v2)",
+  "location": "research/prospective-v2/settings.json",
+  "assumption": "glissement du protocole prospectif gelé",
+  "value": {
+   "slippage_bps": 10.0
+  },
+  "expected_effect": "incohérence : 10 pb dans le protocole gelé, 5 pb par défaut",
+  "measured_by": "aucune (fichier gelé, non modifié)",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "écart achat/vente",
+  "location": "execution/paper.py (_market_price, spread_fn facultatif)",
+  "assumption": "demi-écart ajouté seulement si un carnet est fourni, sinon 0",
+  "value": {
+   "half_spread_bps_without_book": 0.0
+  },
+  "expected_effect": "optimiste hors carnet : l'écart n'est pas payé en simulation sur bougies",
+  "measured_by": "ruban de transactions et carnets observés",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "écart (laboratoire alpha)",
+  "location": "sentinelle/alpha/execution.py (CostModel)",
+  "assumption": "écart par défaut si la bougie n'en fournit pas",
+  "value": {
+   "default_spread_bps": 4.0,
+   "slippage_bps": 5.0,
+   "fx_bps": 0.0
+  },
+  "expected_effect": "à mesurer ; conversion supposée nulle",
+  "measured_by": "ruban de transactions",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "conversion de devise",
+  "location": "config.portfolio.fx_cost_bps ; execution/paper.py (conversion_cost)",
+  "assumption": "coût fixe à chaque achat et vente sur une paire non cotée en euros, sans commission de conversion",
+  "value": {
+   "fx_cost_bps": 5.0
+  },
+  "expected_effect": "optimiste si la conversion passe par un ordre EUR/USDT (commission + demi-écart)",
+  "measured_by": "ruban EUR/USDT",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "ordre à cours limité (simulation sur bougies)",
+  "location": "execution/contract.py (limit_hit, limit_fill)",
+  "assumption": "exécuté dès que la bougie TOUCHE le prix limite, au prix limite, sans file d'attente ni exécution partielle",
+  "value": {
+   "touch_fills": true,
+   "fill_price_at_touch": 100.0
+  },
+  "expected_effect": "optimiste : une touche ne prouve pas l'exécution (file d'attente)",
+  "measured_by": "règles prudente/optimiste sur le ruban",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "ordre à cours limité (simulation sur carnet)",
+  "location": "execution/book_execution.py + liquidity.simulate_taker",
+  "assumption": "seule la partie qui traverse le carnet est exécutée, comme preneur ; aucun remplissage passif",
+  "value": {
+   "passive_fills": false
+  },
+  "expected_effect": "prudent pour les ordres passifs",
+  "measured_by": "règle prudente sur le ruban",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "ordre au marché",
+  "location": "execution/contract.py (market_fill)",
+  "assumption": "dernier prix aggravé du glissement et du demi-écart",
+  "value": {
+   "example_buy_100_slip5_half2": 100.07
+  },
+  "expected_effect": "neutre si les paramètres sont mesurés",
+  "measured_by": "ruban de transactions",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "pas de quantité par défaut",
+  "location": "market/markets.py (MarketInfo)",
+  "assumption": "pas 1e-8 et minimum 5 si les filtres ne sont pas chargés",
+  "value": {
+   "amount_step": 1e-08,
+   "min_notional": 5.0
+  },
+  "expected_effect": "optimiste si les filtres réels sont plus grossiers",
+  "measured_by": "filtres exchangeInfo observés",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "seuil de rentabilité",
+  "location": "risk/manager.py (min_reward_to_fees)",
+  "assumption": "gain visé d'au moins N fois les frais estimés",
+  "value": {
+   "min_reward_to_fees": 3.0
+  },
+  "expected_effect": "dépend des frais estimés, donc des hypothèses ci-dessus",
+  "measured_by": "contrat de coûts",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "bouclier (écart maximal)",
+  "location": "risk/shield.py (max_spread_bps)",
+  "assumption": "entrée interdite au-delà d'un écart",
+  "value": {
+   "max_spread_bps": 20.0
+  },
+  "expected_effect": "protection, pas un coût",
+  "measured_by": "carnets observés",
+  "level": "HYPOTHETICAL"
+ },
+ {
+  "component": "hypothèses provisoires ALPHA FACTORY v2",
+  "location": "research/alpha-factory-v2/cost-hypotheses-v1.json",
+  "assumption": "scénario principal provisoire, en attente de COST OPTIMIZER",
+  "value": {
+   "fee_bps": 10,
+   "slippage_bps": 5,
+   "half_spread_bps": {
+    "majors": 2,
+    "others": 8
+   },
+   "fx_bps": 5
+  },
+  "expected_effect": "à remplacer par le contrat de coûts mesuré",
+  "measured_by": "contrat cost_contract_v1",
+  "level": "HYPOTHETICAL"
+ }
+]

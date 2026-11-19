@@ -1,0 +1,24 @@
+{
+  "tested_source_commit": "eb0547643a8d80b53a53e9d1ca75a1c0bb27601e",
+  "runtime": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "python": "3.12.14",
+  "pytest": {
+    "total": 1033,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "network": "env -i + inherited seccomp; socket test separately",
+  "windows_actually_tested": false,
+  "edge_actually_tested": false,
+  "artifact_sha256": {
+    "full.log": "ecfb0c50818b3e2635fb4c1c0a63cdfa830791facc9a229ced88435a9e03968d",
+    "full.xml": "431abda51d4dfff5183ce6bb242ffabcb0df0a3bd057d13a293cd79e5a2b1544",
+    "socket.log": "a690a32af4c5db22f13ce90437199449e21546e28c4e13041a8c065d0fef4bac",
+    "socket.xml": "1a857f760368b72f171cb206c1c8a5bea6c7a410174a1003e3d999ee90507486"
+  },
+  "frozen_heads_after": {
+    "54": "5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18",
+    "55": "18b31bb901f656d6126b370f47c510775f135c57"
+  }
+}

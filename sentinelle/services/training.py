@@ -6,9 +6,12 @@ import copy
 import time
 from typing import Any
 
+from ..ai.evaluation import compare_portfolios, portfolio_metrics
 from ..ai.trainer import build_dataset, train_walk_forward
 from ..backtest.engine import run_backtest
-from ..market.history import continuous_history, last_continuous
+from ..config import timeframe_ms
+from ..execution.base import OrderError
+from ..market.history import last_continuous
 from ..storage.db import dumps
 from .common import UserError
 from .learning import KNOWLEDGE_DAYS
@@ -40,7 +43,6 @@ class TrainingMixin:
         if not wl:
             raise UserError("Aucune des cryptos suivies n'est disponible sur la source de données")
         btc_sym = f"BTC/{quote}"
-        extended = bool(settings["ai"].get("extended_history", True)) and extended_ok
         need = wl + ([btc_sym] if btc_sym not in wl else [])
         hist = {}
         for k, sym in enumerate(need):
@@ -51,19 +53,23 @@ class TrainingMixin:
                 if sym in wl:
                     raise UserError(f"Historique indisponible pour {sym} : {exc}") from None
                 continue
-            alt = f"{sym.split('/')[0]}/USDT"
-            older = None
-            if extended and quote != "USDT" and (not self.hub.markets or alt in self.hub.markets):
-                try:  # paire USDT plus ancienne : davantage d'années pour apprendre
-                    older = self.history.update(alt, tf, days)
-                except Exception:
-                    older = None
-            # jamais de trou de cotation dans l'historique d'apprentissage (paire retirée puis recotée)
-            hist[sym] = continuous_history(hist[sym], older) if older is not None else last_continuous(hist[sym])
+            # Different quote currencies require their own dated conversion data.
+            hist[sym] = last_continuous(hist[sym])
         btc = hist.get(btc_sym) if btc_sym not in wl else None
         return {s: hist[s] for s in wl if s in hist}, btc
 
     def _train(self, progress, settings: dict, tf: str, days: int, auto: bool) -> dict:
+        experiment = self.log_experiment("train", {"settings": settings, "timeframe": tf, "days": days, "auto": auto})
+        try:
+            result = self._train_impl(progress, settings, tf, days, auto)
+        except BaseException as exc:
+            self.db.execute("UPDATE experiments SET result=? WHERE id=?", (dumps({"status": "failed", "error": type(exc).__name__}), experiment))
+            raise
+        self.db.execute("UPDATE experiments SET result=? WHERE id=?", (dumps({"status": "complete", "version": result["version"],
+                        "verdict": result["verdict"], "paper_comparison": result["report"].get("paper_comparison")}), experiment))
+        return result
+
+    def _train_impl(self, progress, settings: dict, tf: str, days: int, auto: bool) -> dict:
         hist, btc = self._histories(settings, tf, days, progress)
         enabled = [n for n, on in settings["ai"]["strategies"].items() if on]
         fee, slip = settings["paper"]["fee_rate"], settings["paper"]["slippage_bps"] / 10_000
@@ -73,7 +79,11 @@ class TrainingMixin:
         def sub(x, msg):
             progress(0.3 + 0.45 * x, msg)
 
-        res = train_walk_forward(cand, tf, min_edge=settings["ai"]["min_edge_r"], progress=sub,
+        timeline = sorted({int(t) for frame in hist.values() for t in frame.ts})
+        external_start = timeline[int(.85 * len(timeline))] if timeline else 0
+        external_end = timeline[-1] + timeframe_ms(tf) if timeline else 0
+        development = cand[(cand.decision_ts < external_start) & (cand.exit_ts < external_start)]
+        res = train_walk_forward(development, tf, min_edge=settings["ai"]["min_edge_r"], progress=sub,
                                  rules_fallback=settings["ai"].get("rules_fallback", True),
                                  recipe=settings["ai"]["recipe"], half_life_days=settings["ai"]["half_life_days"])
         try:
@@ -85,14 +95,41 @@ class TrainingMixin:
             self.db.log("warning", "ia", f"Fiches par crypto non mises à jour : {str(exc)[:150]}")
         report = dict(res.report)
         report.update(verdict=res.verdict, reasons=res.reasons, days=days, auto=auto, trained_at=time.time())
-        if res.eval_model is not None and res.holdout_start:
-            progress(0.8, "Simulation du portefeuille sur la période de contrôle (avec l'IA)")
+        if res.eval_model is not None and external_start:
+            progress(0.8, "Simulation appariée sur la période finale réservée")
             markets = {s: self.hub.markets[s] for s in hist if s in self.hub.markets}
-            bt = run_backtest(hist, tf, settings, res.eval_model, start_ts=res.holdout_start, btc=btc, markets=markets)
-            progress(0.9, "Simulation de référence (tous les signaux, sans l'IA)")
-            base = run_backtest(hist, tf, settings, None, exploration=True, start_ts=res.holdout_start, btc=btc, markets=markets)
-            report["backtest_model"] = {k: bt[k] for k in ("metrics", "equity_metrics", "equity", "buy_hold_pct", "final_equity", "initial", "fees_paid", "start", "end", "halted")}
-            report["backtest_baseline"] = {k: base[k] for k in ("metrics", "equity_metrics", "equity", "buy_hold_pct", "final_equity", "initial", "fees_paid", "halted")}
+            cond = self.backtest_conditions()
+            existing = self.db.scalar("SELECT version FROM models WHERE timeframe=? AND status='champion'", (tf,))
+            incumbent = self.models.champion(tf)
+            reference = existing or "all_signals"
+            version = res.final_model.version
+            start = self.models.reserve_evaluation(version, tf, external_start, external_end, reference)
+            evidence = {"verdict": "TESTS INCOMPLETS", "reason": "Fenêtre finale déjà évaluée"}
+            if start is not None:
+                evidence = {"verdict": "TESTS INCOMPLETS", "reason": "Version de référence indisponible ou postérieure"}
+                if (not existing or (incumbent and incumbent.version == existing and incumbent.trained_until is not None
+                                     and incumbent.trained_until < start)):
+                    options = dict(start_ts=start, btc=btc, markets=markets, research_trace=True,
+                                   initial=cond["initial"], account_currency=cond["currency"],
+                                   extra_cost=cond["extra_cost"], historical_fx=self._historical_fx)
+                    # Exploration uses the same risk budget as the filtered policies.
+                    compare_cfg = copy.deepcopy(settings)
+                    compare_cfg["ai"]["exploration_risk_factor"] = 1.0
+                    try:
+                        bt = run_backtest(hist, tf, compare_cfg, res.eval_model, **options)
+                        base = run_backtest(hist, tf, compare_cfg, incumbent, exploration=not existing, **options)
+                        measured, baseline = portfolio_metrics(bt), portfolio_metrics(base)
+                        evidence = compare_portfolios(measured, baseline)
+                        evidence.update(candidate=version, reference=reference, start_ms=start, end_ms=external_end,
+                                        candidate_metrics=measured, reference_metrics=baseline)
+                        fields = ("metrics","equity_metrics","equity","buy_hold_pct","final_equity","initial","fees_paid","start","end","halted")
+                        report["backtest_model"] = {k: bt[k] for k in fields}
+                        report["backtest_baseline"] = {k: base[k] for k in fields}
+                    except OrderError as exc:
+                        evidence = {"verdict": "TESTS INCOMPLETS", "reason": exc.message}
+                self.models.record_evaluation(version, evidence)
+            report["paper_comparison"] = evidence
+            res.final_model.metrics["paper_verdict"] = evidence["verdict"]
         version = None
         if res.final_model is not None:
             row = self.models.register(res, report)
@@ -121,10 +158,29 @@ class TrainingMixin:
         except UserError:
             pass
 
-    def start_backtest(self, days: int, use_model: bool) -> dict:
+    def backtest_conditions(self, capital: float | None = None) -> dict:
+        """Capital en monnaie du compte, avec change historique au moment de chaque ordre."""
+        quote = self.settings["general"]["quote"]
+        if self.portfolio_mode() != "main":
+            return {"initial": float(capital or self.settings["paper"]["initial_balance"]), "extra_cost": 0.0, "currency": quote,
+                    "capital": float(capital or self.settings["paper"]["initial_balance"]), "fx": None}
+        cfg = self.settings["portfolio"]
+        main = self.main_account()
+        amount = float(capital or (main["initial_balance"] if main else cfg["initial"]))
+        if not (10 <= amount <= 10_000_000):
+            raise UserError("Capital simulé entre 10 et 10 000 000")
+        return {"initial": amount, "extra_cost": cfg["fx_cost_bps"] / 10_000, "currency": cfg["currency"],
+                "capital": amount, "fx": ({"source": "carnet synthétique daté" if self.settings["market"]["source"] == "synthetic" else "carnets archivés",
+                                     "mode": "historical"} if quote != cfg["currency"] else None)}
+
+    def start_backtest(self, days: int, use_model: bool, capital: float | None = None) -> dict:
         tf = self.settings["ai"]["timeframe"]
         settings = copy.deepcopy(self.settings)
         days = max(30, min(int(days), 3000))
+        try:
+            cond = self.backtest_conditions(capital)
+        except OrderError as exc:
+            raise UserError(exc.message) from None
 
         def job(progress):
             warm = 210 if tf != "4h" else 230
@@ -135,7 +191,10 @@ class TrainingMixin:
             start = int((time.time() - days * 86400) * 1000)
             markets = {s: self.hub.markets[s] for s in hist if s in self.hub.markets}
             res = run_backtest(hist, tf, settings, model, start_ts=start, btc=btc, markets=markets, exploration=not use_model,
-                               progress=lambda x, m: progress(0.3 + 0.7 * x, m))
+                               progress=lambda x, m: progress(0.3 + 0.7 * x, m),
+                               initial=cond["initial"], extra_cost=cond["extra_cost"], account_currency=cond["currency"],
+                               historical_fx=self._historical_fx)
+            res["conditions"] = {**cond, "quote": settings["general"]["quote"]}
             res["use_model"] = use_model
             res["model"] = model.version if model else None
             res["days"] = days

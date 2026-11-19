@@ -1,0 +1,990 @@
+{
+ "built_ms": 1794850600425,
+ "kind": "dmh-token-registry",
+ "rule": "VERIFIED = existe sur la chaîne + décimales (et symbole EVM) + DEUX confirmations indépendantes hors chaîne (CoinGecko et la liste Uniswap sur Ethereum/Base ; CoinGecko et la liste vérifiée de Jupiter sur Solana)",
+ "tokens": [
+  {
+   "accepted_flags": [],
+   "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "asset": "ETH",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "symbole sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par la liste Uniswap",
+     "ok": true
+    }
+   ],
+   "decimals": 18,
+   "network": "ethereum",
+   "notes": "ETH enveloppé canonique (WETH9)",
+   "sources": [
+    {
+     "received_ms": 1794850293451,
+     "sha256": "0b9697a2280976750735aa25e770b0c4cd867a013f8dee14c226413f57e4dc1a",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 4847,
+     "coin": "weth",
+     "host": "api.coingecko.com",
+     "latency_ms": 260.6,
+     "path": "/api/v3/coins/weth",
+     "received_ms": 1794850314905,
+     "sha256": "e5845c7490fb66ba527c3041283792979aa16b70fd64a6e37a8826b73520300f",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "weth"
+    },
+    {
+     "bytes": 862605,
+     "found": true,
+     "host": "tokens.uniswap.org",
+     "latency_ms": 805.9,
+     "name": "Uniswap Labs Default",
+     "path": "/",
+     "received_ms": 1794850293068,
+     "sha256": "383fef1eaede83cc3b2e4cbe58f5e2185d1f366329122b08c95a63a7c93c0f8f",
+     "source": "liste Uniswap Labs Default",
+     "status": 200,
+     "timestamp": "2026-11-13T22:37:35.297Z",
+     "version": {
+      "major": 22,
+      "minor": 34,
+      "patch": 0
+     }
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "WETH"
+  },
+  {
+   "accepted_flags": [
+    "émission possible",
+    "liste noire",
+    "contrat modifiable (proxy)",
+    "transferts suspendables",
+    "gel possible",
+    "émission encore possible",
+    "Mutable metadata",
+    "Freeze Authority",
+    "Mint Authority"
+   ],
+   "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "asset": "USDC",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "symbole sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par la liste Uniswap",
+     "ok": true
+    }
+   ],
+   "decimals": 6,
+   "network": "ethereum",
+   "notes": "émetteur régulé (Circle)",
+   "sources": [
+    {
+     "received_ms": 1794850315263,
+     "sha256": "a89bb57934fae2363ce21fd160c9bfd2b152638ac269b810a914983544658be2",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 12881,
+     "coin": "usd-coin",
+     "host": "api.coingecko.com",
+     "latency_ms": 638.2,
+     "path": "/api/v3/coins/usd-coin",
+     "received_ms": 1794850335283,
+     "sha256": "4b7ebdd55ddd66450a77d5149db8cc5503bca87d80322717f7d2ad1bbf000bc6",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "usdc"
+    },
+    {
+     "bytes": 862605,
+     "found": true,
+     "host": "tokens.uniswap.org",
+     "latency_ms": 805.9,
+     "name": "Uniswap Labs Default",
+     "path": "/",
+     "received_ms": 1794850293068,
+     "sha256": "383fef1eaede83cc3b2e4cbe58f5e2185d1f366329122b08c95a63a7c93c0f8f",
+     "source": "liste Uniswap Labs Default",
+     "status": 200,
+     "timestamp": "2026-11-13T22:37:35.297Z",
+     "version": {
+      "major": 22,
+      "minor": 34,
+      "patch": 0
+     }
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "USDC"
+  },
+  {
+   "accepted_flags": [
+    "émission possible",
+    "liste noire",
+    "contrat modifiable (proxy)",
+    "transferts suspendables",
+    "gel possible",
+    "émission encore possible",
+    "Mutable metadata",
+    "Freeze Authority",
+    "Mint Authority"
+   ],
+   "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "asset": "USDT",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "symbole sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par la liste Uniswap",
+     "ok": true
+    }
+   ],
+   "decimals": 6,
+   "network": "ethereum",
+   "notes": "émetteur centralisé (Tether)",
+   "sources": [
+    {
+     "received_ms": 1794850335644,
+     "sha256": "e27ab37ef176181c4c2de6dcf5b602418d4cf6157295746dd56c0a9094d1294b",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 7864,
+     "coin": "tether",
+     "host": "api.coingecko.com",
+     "latency_ms": 619.2,
+     "path": "/api/v3/coins/tether",
+     "received_ms": 1794850355264,
+     "sha256": "1cd555c50076e0a5e0fbc78af84c453468fb75d38061ea1ccfa368905a05583e",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "usdt"
+    },
+    {
+     "bytes": 862605,
+     "found": true,
+     "host": "tokens.uniswap.org",
+     "latency_ms": 805.9,
+     "name": "Uniswap Labs Default",
+     "path": "/",
+     "received_ms": 1794850293068,
+     "sha256": "383fef1eaede83cc3b2e4cbe58f5e2185d1f366329122b08c95a63a7c93c0f8f",
+     "source": "liste Uniswap Labs Default",
+     "status": 200,
+     "timestamp": "2026-11-13T22:37:35.297Z",
+     "version": {
+      "major": 22,
+      "minor": 34,
+      "patch": 0
+     }
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "USDT"
+  },
+  {
+   "accepted_flags": [
+    "émission possible",
+    "liste noire",
+    "contrat modifiable (proxy)",
+    "transferts suspendables",
+    "gel possible",
+    "émission encore possible",
+    "Mutable metadata",
+    "Freeze Authority",
+    "Mint Authority"
+   ],
+   "address": "0x1abaea1f7c830bd89acc67ec4af516284b1bc33c",
+   "asset": "EURC",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "symbole sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par la liste Uniswap",
+     "ok": true
+    }
+   ],
+   "decimals": 6,
+   "network": "ethereum",
+   "notes": "émetteur régulé (Circle)",
+   "sources": [
+    {
+     "received_ms": 1794850355402,
+     "sha256": "59617cb789378a911c152e093e08aa7cd7c323aa893c03a04dabba042501f694",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 5520,
+     "coin": "euro-coin",
+     "host": "api.coingecko.com",
+     "latency_ms": 420.5,
+     "path": "/api/v3/coins/euro-coin",
+     "received_ms": 1794850375066,
+     "sha256": "45b1122783e5c7864640158638fd7300129ec5eb0f2cd07cf9c1d789feb0d04a",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "eurc"
+    },
+    {
+     "bytes": 862605,
+     "found": true,
+     "host": "tokens.uniswap.org",
+     "latency_ms": 805.9,
+     "name": "Uniswap Labs Default",
+     "path": "/",
+     "received_ms": 1794850293068,
+     "sha256": "383fef1eaede83cc3b2e4cbe58f5e2185d1f366329122b08c95a63a7c93c0f8f",
+     "source": "liste Uniswap Labs Default",
+     "status": 200,
+     "timestamp": "2026-11-13T22:37:35.297Z",
+     "version": {
+      "major": 22,
+      "minor": 34,
+      "patch": 0
+     }
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "EURC"
+  },
+  {
+   "accepted_flags": [],
+   "address": "0x6982508145454ce325ddbe47a25d4ec3d2311933",
+   "asset": "PEPE",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "symbole sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par la liste Uniswap",
+     "ok": true
+    }
+   ],
+   "decimals": 18,
+   "network": "ethereum",
+   "notes": "memecoin",
+   "sources": [
+    {
+     "received_ms": 1794850375462,
+     "sha256": "3af5da47644b20e49bf67542a755e37fd78ea3b7ff6545ba30d1ce55d26afeb9",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 4427,
+     "coin": "pepe",
+     "host": "api.coingecko.com",
+     "latency_ms": 399.4,
+     "path": "/api/v3/coins/pepe",
+     "received_ms": 1794850395044,
+     "sha256": "7abb5a74f268a2a395c01d19e22d609f4410a93912d9eedb6bee9dafbfbb7566",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "pepe"
+    },
+    {
+     "bytes": 862605,
+     "found": true,
+     "host": "tokens.uniswap.org",
+     "latency_ms": 805.9,
+     "name": "Uniswap Labs Default",
+     "path": "/",
+     "received_ms": 1794850293068,
+     "sha256": "383fef1eaede83cc3b2e4cbe58f5e2185d1f366329122b08c95a63a7c93c0f8f",
+     "source": "liste Uniswap Labs Default",
+     "status": 200,
+     "timestamp": "2026-11-13T22:37:35.297Z",
+     "version": {
+      "major": 22,
+      "minor": 34,
+      "patch": 0
+     }
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "PEPE"
+  },
+  {
+   "accepted_flags": [],
+   "address": "0x4200000000000000000000000000000000000006",
+   "asset": "ETH",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "symbole sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par la liste Uniswap",
+     "ok": true
+    }
+   ],
+   "decimals": 18,
+   "network": "base",
+   "notes": "ETH enveloppé canonique de Base",
+   "sources": [
+    {
+     "received_ms": 1794850395384,
+     "sha256": "db0b8d9405634ec102803080b8c68a3c79947a5dd5061db614a30e73d51831f2",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 1995,
+     "coin": "l2-standard-bridged-weth-base",
+     "host": "api.coingecko.com",
+     "latency_ms": 503.4,
+     "path": "/api/v3/coins/l2-standard-bridged-weth-base",
+     "received_ms": 1794850415148,
+     "sha256": "86444931fd3c90162de3c54a997aab1190f96918c0e920328464530781113604",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "weth"
+    },
+    {
+     "bytes": 862605,
+     "found": true,
+     "host": "tokens.uniswap.org",
+     "latency_ms": 805.9,
+     "name": "Uniswap Labs Default",
+     "path": "/",
+     "received_ms": 1794850293068,
+     "sha256": "383fef1eaede83cc3b2e4cbe58f5e2185d1f366329122b08c95a63a7c93c0f8f",
+     "source": "liste Uniswap Labs Default",
+     "status": 200,
+     "timestamp": "2026-11-13T22:37:35.297Z",
+     "version": {
+      "major": 22,
+      "minor": 34,
+      "patch": 0
+     }
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "WETH"
+  },
+  {
+   "accepted_flags": [
+    "émission possible",
+    "liste noire",
+    "contrat modifiable (proxy)",
+    "transferts suspendables",
+    "gel possible",
+    "émission encore possible",
+    "Mutable metadata",
+    "Freeze Authority",
+    "Mint Authority"
+   ],
+   "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+   "asset": "USDC",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "symbole sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par la liste Uniswap",
+     "ok": true
+    }
+   ],
+   "decimals": 6,
+   "network": "base",
+   "notes": "émetteur régulé (Circle), natif sur Base",
+   "sources": [
+    {
+     "received_ms": 1794850415503,
+     "sha256": "86d47e540d8ae3a7055bb06d809e2e1ee218296b2b04847842b314e7b99ae0f1",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 12881,
+     "coin": "usd-coin",
+     "host": "api.coingecko.com",
+     "latency_ms": 638.2,
+     "path": "/api/v3/coins/usd-coin",
+     "received_ms": 1794850335283,
+     "sha256": "4b7ebdd55ddd66450a77d5149db8cc5503bca87d80322717f7d2ad1bbf000bc6",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "usdc"
+    },
+    {
+     "bytes": 862605,
+     "found": true,
+     "host": "tokens.uniswap.org",
+     "latency_ms": 805.9,
+     "name": "Uniswap Labs Default",
+     "path": "/",
+     "received_ms": 1794850293068,
+     "sha256": "383fef1eaede83cc3b2e4cbe58f5e2185d1f366329122b08c95a63a7c93c0f8f",
+     "source": "liste Uniswap Labs Default",
+     "status": 200,
+     "timestamp": "2026-11-13T22:37:35.297Z",
+     "version": {
+      "major": 22,
+      "minor": 34,
+      "patch": 0
+     }
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "USDC"
+  },
+  {
+   "accepted_flags": [
+    "émission possible",
+    "liste noire",
+    "contrat modifiable (proxy)",
+    "transferts suspendables",
+    "gel possible",
+    "émission encore possible",
+    "Mutable metadata",
+    "Freeze Authority",
+    "Mint Authority"
+   ],
+   "address": "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42",
+   "asset": "EURC",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "symbole sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par la liste Uniswap",
+     "ok": true
+    }
+   ],
+   "decimals": 6,
+   "network": "base",
+   "notes": "émetteur régulé (Circle)",
+   "sources": [
+    {
+     "received_ms": 1794850417197,
+     "sha256": "8e106a85c20a7c3b080783c7b249fcb6af7fc347ea2d61a2e4b344ca796b549f",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 5520,
+     "coin": "euro-coin",
+     "host": "api.coingecko.com",
+     "latency_ms": 420.5,
+     "path": "/api/v3/coins/euro-coin",
+     "received_ms": 1794850375066,
+     "sha256": "45b1122783e5c7864640158638fd7300129ec5eb0f2cd07cf9c1d789feb0d04a",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "eurc"
+    },
+    {
+     "bytes": 862605,
+     "found": true,
+     "host": "tokens.uniswap.org",
+     "latency_ms": 805.9,
+     "name": "Uniswap Labs Default",
+     "path": "/",
+     "received_ms": 1794850293068,
+     "sha256": "383fef1eaede83cc3b2e4cbe58f5e2185d1f366329122b08c95a63a7c93c0f8f",
+     "source": "liste Uniswap Labs Default",
+     "status": 200,
+     "timestamp": "2026-11-13T22:37:35.297Z",
+     "version": {
+      "major": 22,
+      "minor": 34,
+      "patch": 0
+     }
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "EURC"
+  },
+  {
+   "accepted_flags": [],
+   "address": "So11111111111111111111111111111111111111112",
+   "asset": "SOL",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "vérifié par Jupiter",
+     "ok": true
+    }
+   ],
+   "decimals": 9,
+   "network": "solana",
+   "notes": "SOL enveloppé (mint natif)",
+   "sources": [
+    {
+     "received_ms": 1794850419200,
+     "sha256": "1e732a546a574ec3321b2a29345fd5eef662a10a30c6c610f26966a0f1b035b2",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 2143,
+     "coin": "wrapped-solana",
+     "host": "api.coingecko.com",
+     "latency_ms": 474.9,
+     "path": "/api/v3/coins/wrapped-solana",
+     "received_ms": 1794850455120,
+     "sha256": "1e59c5b868aee29fb374be28fd33983ac152f62da1be9c9f2e9eef6e2858eb69",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "wsol"
+    },
+    {
+     "bytes": 2421,
+     "host": "api.jup.ag",
+     "latency_ms": 382.3,
+     "path": "/tokens/v2/search",
+     "received_ms": 1794850455502,
+     "sha256": "4fa3c82dd95f207c1a89741ed79f3ab00ac4547a4f06b475a54a97049da30319",
+     "source": "Jupiter (liste des tokens)",
+     "status": 200,
+     "symbol": "SOL",
+     "verified": true
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "SOL"
+  },
+  {
+   "accepted_flags": [
+    "émission possible",
+    "liste noire",
+    "contrat modifiable (proxy)",
+    "transferts suspendables",
+    "gel possible",
+    "émission encore possible",
+    "Mutable metadata",
+    "Freeze Authority",
+    "Mint Authority"
+   ],
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "asset": "USDC",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "vérifié par Jupiter",
+     "ok": true
+    }
+   ],
+   "decimals": 6,
+   "network": "solana",
+   "notes": "émetteur régulé (Circle)",
+   "sources": [
+    {
+     "received_ms": 1794850458136,
+     "sha256": "12872dc77a6a54e241a7fd550a5756f4f9ad3d5d561c641938085e7a0e2757cf",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 12881,
+     "coin": "usd-coin",
+     "host": "api.coingecko.com",
+     "latency_ms": 638.2,
+     "path": "/api/v3/coins/usd-coin",
+     "received_ms": 1794850335283,
+     "sha256": "4b7ebdd55ddd66450a77d5149db8cc5503bca87d80322717f7d2ad1bbf000bc6",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "usdc"
+    },
+    {
+     "bytes": 2697,
+     "host": "api.jup.ag",
+     "latency_ms": 40.6,
+     "path": "/tokens/v2/search",
+     "received_ms": 1794850458177,
+     "sha256": "53b1a201d9133375e710d16e7d4e204b592dd8a7ee2a408e6a6fb9edd8fa3767",
+     "source": "Jupiter (liste des tokens)",
+     "status": 200,
+     "symbol": "USDC",
+     "verified": true
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "USDC"
+  },
+  {
+   "accepted_flags": [
+    "émission possible",
+    "liste noire",
+    "contrat modifiable (proxy)",
+    "transferts suspendables",
+    "gel possible",
+    "émission encore possible",
+    "Mutable metadata",
+    "Freeze Authority",
+    "Mint Authority"
+   ],
+   "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+   "asset": "USDT",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "vérifié par Jupiter",
+     "ok": false
+    }
+   ],
+   "decimals": 6,
+   "network": "solana",
+   "notes": "émetteur centralisé (Tether)",
+   "sources": [
+    {
+     "received_ms": 1794850460338,
+     "sha256": "63ced9996f4e71dc489f440ac60f03348d9ee858775377ecc2fa4bcbdc40e8f5",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 7864,
+     "coin": "tether",
+     "host": "api.coingecko.com",
+     "latency_ms": 619.2,
+     "path": "/api/v3/coins/tether",
+     "received_ms": 1794850355264,
+     "sha256": "1cd555c50076e0a5e0fbc78af84c453468fb75d38061ea1ccfa368905a05583e",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "usdt"
+    },
+    {
+     "error": "api.jup.ag : coupe-circuit ouvert (3 échecs consécutifs)",
+     "source": "Jupiter (liste des tokens)"
+    }
+   ],
+   "status": "UNVERIFIED",
+   "symbol": "USDT"
+  },
+  {
+   "accepted_flags": [
+    "Mutable metadata"
+   ],
+   "address": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+   "asset": "BONK",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "vérifié par Jupiter",
+     "ok": true
+    }
+   ],
+   "decimals": 5,
+   "network": "solana",
+   "notes": "memecoin",
+   "sources": [
+    {
+     "received_ms": 1794850470365,
+     "sha256": "920634864ac7faf55d8ad4faa82a23e68ef80feafc478a0d7e5fe441c237efd5",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 7352,
+     "coin": "bonk",
+     "host": "api.coingecko.com",
+     "latency_ms": 432.7,
+     "path": "/api/v3/coins/bonk",
+     "received_ms": 1794850575314,
+     "sha256": "e682b3b0a5bd2f27ee86c21e2cd06b791a650bc598656c622fde5101f109b7c5",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "bonk"
+    },
+    {
+     "bytes": 2599,
+     "host": "api.jup.ag",
+     "latency_ms": 375.7,
+     "path": "/tokens/v2/search",
+     "received_ms": 1794850575690,
+     "sha256": "bfa71392d49dbf74706cc0374ada9d42fe9207c75ea344d504580907db72811b",
+     "source": "Jupiter (liste des tokens)",
+     "status": 200,
+     "symbol": "Bonk",
+     "verified": true
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "BONK"
+  },
+  {
+   "accepted_flags": [
+    "Mutable metadata"
+   ],
+   "address": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
+   "asset": "WIF",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "vérifié par Jupiter",
+     "ok": true
+    }
+   ],
+   "decimals": 6,
+   "network": "solana",
+   "notes": "memecoin",
+   "sources": [
+    {
+     "received_ms": 1794850578315,
+     "sha256": "3fe8584738e10e9d3eeb3f726f7be2da20cc105a424d96e19aa893fae6bcaf2b",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 4979,
+     "coin": "dogwifcoin",
+     "host": "api.coingecko.com",
+     "latency_ms": 168.3,
+     "path": "/api/v3/coins/dogwifcoin",
+     "received_ms": 1794850595049,
+     "sha256": "595c7ff16da22f7a7fe9ecac2d2ba3c6afcc742cad030230bb7be3f74e6e730d",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "wif"
+    },
+    {
+     "bytes": 2574,
+     "host": "api.jup.ag",
+     "latency_ms": 510.7,
+     "path": "/tokens/v2/search",
+     "received_ms": 1794850595560,
+     "sha256": "e4751677875e1c3857859d11d2e801960329ec2f133369c2799624b29c2b907c",
+     "source": "Jupiter (liste des tokens)",
+     "status": 200,
+     "symbol": "$WIF",
+     "verified": true
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "WIF"
+  },
+  {
+   "accepted_flags": [
+    "émission possible",
+    "liste noire",
+    "contrat modifiable (proxy)",
+    "transferts suspendables",
+    "gel possible",
+    "émission encore possible",
+    "Mutable metadata",
+    "Freeze Authority",
+    "Mint Authority"
+   ],
+   "address": "HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr",
+   "asset": "EURC",
+   "checks": [
+    {
+     "check": "existe sur la chaîne",
+     "ok": true
+    },
+    {
+     "check": "décimales",
+     "ok": true
+    },
+    {
+     "check": "adresse confirmée par CoinGecko",
+     "ok": true
+    },
+    {
+     "check": "vérifié par Jupiter",
+     "ok": true
+    }
+   ],
+   "decimals": 6,
+   "network": "solana",
+   "notes": "émetteur régulé (Circle)",
+   "sources": [
+    {
+     "received_ms": 1794850598285,
+     "sha256": "19e0ceceb423dec14fbd812e90a5590b8d32a725c703a149420e87e786931549",
+     "source": "lecture sur la chaîne"
+    },
+    {
+     "bytes": 5520,
+     "coin": "euro-coin",
+     "host": "api.coingecko.com",
+     "latency_ms": 420.5,
+     "path": "/api/v3/coins/euro-coin",
+     "received_ms": 1794850375066,
+     "sha256": "45b1122783e5c7864640158638fd7300129ec5eb0f2cd07cf9c1d789feb0d04a",
+     "source": "CoinGecko",
+     "status": 200,
+     "symbol": "eurc"
+    },
+    {
+     "bytes": 2515,
+     "host": "api.jup.ag",
+     "latency_ms": 38.9,
+     "path": "/tokens/v2/search",
+     "received_ms": 1794850598324,
+     "sha256": "25ec5e4e8dc89ebb3f6e5ce81f3284dd9e61fefea9ab8dcb8add047ab588dbd3",
+     "source": "Jupiter (liste des tokens)",
+     "status": 200,
+     "symbol": "EURC",
+     "verified": true
+    }
+   ],
+   "status": "VERIFIED",
+   "symbol": "EURC"
+  }
+ ],
+ "version": "1.0.0"
+}

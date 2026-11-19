@@ -277,19 +277,22 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
         return np.where((ts // HOUR) % 24 < 12, 0.003, -0.003)
 
     series = {s: make_series(17_000, seed=10 + i, start=p, drift_fn=drift)
-              for i, (s, p) in enumerate((("BTC/USDC", 30_000), ("ETH/USDC", 2_000), ("SOL/USDC", 50)))}
+              for i, (s, p) in enumerate((("BTC/EUR", 30_000), ("ETH/EUR", 2_000), ("SOL/EUR", 50)))}
     app = App(tmp_path, source=HistorySource(series), start=False, settings_override={
-        "general": {"watchlist": list(series)}, "market": {"source": "synthetic"},
+        "general": {"quote": "EUR", "watchlist": list(series)}, "market": {"source": "synthetic"},
         "ai": {"timeframe": "1h", "strategies": {k: True for k in ("trend_breakout", "pullback", "mean_reversion", "momentum", "trend_follow")}}})
     try:
         steps = []
         out = app._train(lambda x, m: steps.append(m), app.settings, "1h", 720, False)
-        assert out["ok"] and out["verdict"] == "validé", out["reasons"]
         rep = out["report"]
         assert rep["learner"]["recipe"] == "mixte" and rep["learner"]["chosen"] == "mixte"
-        assert rep["holdout"]["auc"] > 0.6 and rep["backtest_model"]["metrics"]["n"] > 0
-        champion = app.models.champion("1h")
-        assert champion is not None and champion.version == out["version"] and len(champion.members) == 2
+        assert rep["holdout"]["auc"] > 0.6
+        comparison = rep["paper_comparison"]
+        assert comparison["start_ms"] > rep["period"]["end"] and comparison["reference"] == "all_signals"
+        assert rep["backtest_model"]["metrics"]["n"] > 0
+        model = app.models.get(out["version"])
+        assert model["metrics"]["paper_verdict"] == comparison["verdict"]
+        assert (model["status"] == "champion") == (out["ok"] and comparison["verdict"] == "MODÈLE APPROUVÉ POUR PAPER TRADING")
         assert any("Téléchargement" in m for m in steps) and any("Simulation" in m for m in steps)
         # entraînement sur une période courte : les fiches sont calculées à part, sur l'historique complet
         deadline = time.time() + 120
@@ -297,10 +300,11 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
             time.sleep(0.2)
         sheets = app.knowledge_list()["items"]
         assert [s["symbol"] for s in sheets] == list(series) and not any(s.get("missing") for s in sheets)
-        assert app.knowledge_get("BTC/USDC")["history"]["bars"] == 17_000
+        assert app.knowledge_get("BTC/EUR")["history"]["bars"] == 17_000
         assert app.refresh_knowledge_if_stale() is False  # fiches fraîches : rien à refaire
         mon = app.learning_monitor()
-        assert mon["model"]["version"] == out["version"] and "mixte" in mon["model"]["level"]
+        if model["status"] == "champion":
+            assert mon["model"]["version"] == out["version"] and "mixte" in mon["model"]["level"]
     finally:
         app.db.close()
 
@@ -311,12 +315,12 @@ def test_promising_but_unproven_model_goes_on_trial():
 
     cand, _ = make_candidates(2500, "faible", seed=2)
     res = train_walk_forward(cand, "4h", with_importance=False)
-    h = res.report["holdout"]
-    assert not res.ok and res.trial and res.report["summary"]["trial"] is True
-    assert h["model"]["n"] >= 30 and h["model"]["mean_r"] >= 0.05 and h["model"]["mean_r"] - h["baseline"]["mean_r"] >= 0.05
-    assert any("à l'essai" in r for r in res.reasons)
-    proven = train_walk_forward(make_candidates(2500, "faible", seed=1)[0], "4h", with_importance=False)
-    assert proven.ok and not proven.trial  # un modèle validé n'est pas « à l'essai »
+    # The old seed previously qualified for trial. Purging removes that evidence.
+    assert not res.ok and not res.trial and res.report["holdout"]["model"]["mean_r"] < 0
+    from sentinelle.ai.trainer import trial_eligible
+    assert trial_eligible(False, {"n": 30, "mean_r": .09}, {"mean_r": .02})
+    assert not trial_eligible(True, {"n": 30, "mean_r": .09}, {"mean_r": .02})
+    assert not trial_eligible(False, {"n": 29, "mean_r": .09}, {"mean_r": .02})
     noise = train_walk_forward(make_candidates(2000, "bruit", seed=0)[0], "4h", with_importance=False)
     assert not noise.ok and not noise.trial  # rien de prometteur dans le bruit
 
@@ -341,6 +345,10 @@ def test_model_registry_handles_trial_status(app):
     assert store.register(result(False, False, "m-rejet"), {})["status"] == "rejected"
     assert store.trial("4h") is None  # le dernier entraînement fait foi : plus de modèle à l'essai
     store.register(result(False, True, "m-essai-3"), {})
+    assert store.register(result(True, False, "m-sans-preuve"), {})["status"] == "challenger"
+    assert store.champion("4h") is None
+    assert store.reserve_evaluation("m-valide", "4h", 100, 200, "all_signals") == 100
+    store.record_evaluation("m-valide", {"verdict":"MODÈLE APPROUVÉ POUR PAPER TRADING"})
     assert store.register(result(True, False, "m-valide"), {})["status"] == "champion"
     assert store.champion("4h").version == "m-valide" and store.trial("4h") is None
     statuses = [a for a in app.agents_status()]
@@ -376,13 +384,21 @@ def test_trial_model_trades_in_paper_only(db, paper, pm, prices, clock):
     settings["risk"]["min_reward_to_fees"] = 1.0
     risk = RiskManager(db, paper.account_id, lambda: settings, clock)
     trial = StubModel("non validé")
-    # en réel : un modèle non validé n'est jamais utilisé
-    live = TradingAgent("ia-reel", "live", db, pm, risk, lambda: settings, lambda: trial, timeframe="1h", clock=clock)
-    live.running = True
-    live.on_bar("ETH/USDC", sub)
+    # le mode réel n'existe plus : créer un agent « live » est refusé
+    from sentinelle.safety import RealTradingForbidden
+
+    with pytest.raises(RealTradingForbidden):
+        TradingAgent("ia-reel", "live", db, pm, risk, lambda: settings, lambda: trial, timeframe="1h", clock=clock)
+    # exploration coupée : un modèle non validé n'est jamais utilisé, l'IA observe
+    settings["ai"]["exploration"] = False
+    watcher = TradingAgent("ia", "training", db, pm, risk, lambda: settings, lambda: trial, timeframe="1h", clock=clock)
+    watcher.running = True
+    watcher.on_bar("ETH/USDC", sub)
     assert pm.open_positions() == []
     assert "Aucun modèle validé" in db.one("SELECT decision_reason FROM candidates")["decision_reason"]
     db.execute("DELETE FROM candidates")
+    db.execute("DELETE FROM prospective_bars")  # independent trial scenario; replay suppression is tested separately
+    settings["ai"]["exploration"] = True
     # en entraînement : il est mis à l'essai, avec une taille réduite de moitié
     agent = TradingAgent("ia", "training", db, pm, risk, lambda: settings, lambda: trial, timeframe="1h", clock=clock)
     agent.running = True

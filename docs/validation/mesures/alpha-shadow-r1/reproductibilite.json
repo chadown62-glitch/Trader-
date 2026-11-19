@@ -1,0 +1,45 @@
+{
+ "kind": "alpha-shadow-r1-reproducibility",
+ "freeze": {
+  "model_sha256": "33c765de35987e5a4ddfeb5ce8ee1ece65126878cc02ec80a00a135148123911",
+  "r1_model_file_sha256_cpython313": "a146a766cb4dced1be515bdd91d13cb0f5715521769852e3b5e7893dc0fb72a8",
+  "r1_model_file_sha256_cpython312_seccomp": "a146a766cb4dced1be515bdd91d13cb0f5715521769852e3b5e7893dc0fb72a8",
+  "byte_identical": true,
+  "note": "le bras descriptif « modèle du projet », réappris, diffère d'une version de scikit-learn à l'autre (1.9.1 : -3,863 EUR, 119 trades ; 1.8.0 : -3,873 EUR, 118 trades) : c'est pourquoi il est figé en fichier"
+ },
+ "replay_of_control_window": {
+  "lines": 55908,
+  "ledger_head_cpython313_numpy254_sklearn191": "9213b960511aae445d34c25bc697907e7e92a97ad55df9eb257b6822cee853e8",
+  "ledger_head_cpython312_numpy235_sklearn180_seccomp": "9213b960511aae445d34c25bc697907e7e92a97ad55df9eb257b6822cee853e8",
+  "identical": true
+ },
+ "online_vs_batch_without_drawdown_limit": {
+  "r1": {
+   "online": -4.250389434697954,
+   "batch": -4.250389434697954
+  },
+  "take_all": {
+   "online": -7.986781885863518,
+   "batch": -7.986781885863518
+  },
+  "teacher:breakout": {
+   "online": -3.855402492070354,
+   "batch": -3.855402492070354
+  },
+  "project_mixte": {
+   "online": -3.8632312006780936,
+   "batch": -3.8632312006780936
+  },
+  "cash": {
+   "online": 0.0,
+   "batch": 0.0
+  }
+ },
+ "history_check": {
+  "checked": 35838,
+  "mismatched": 0,
+  "unknown": 0,
+  "consistent": true
+ },
+ "status": "EXPLORATORY : période déjà étudiée"
+}

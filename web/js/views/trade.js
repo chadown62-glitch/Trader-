@@ -1,7 +1,7 @@
 // Trader : graphique temps réel, ticket d'ordre avec calculatrice de risque, avis de l'IA, positions
 import { api, on, safe } from '../api.js';
 import { CandleChart } from '../charts.js';
-import { store, toast, confirmBox, money, signed, price, qty, pct, cls, dt, rr, STRATEGY_LABELS, accountLabel } from '../store.js';
+import { store, fxLine, toast, confirmBox, money, signed, price, qty, pct, cls, dt, rr, STRATEGY_LABELS, accountLabel } from '../store.js';
 
 const { ref, reactive, computed, onMounted, onBeforeUnmount, watch } = Vue;
 const TF_MS = { '1m': 60e3, '5m': 300e3, '15m': 900e3, '30m': 1800e3, '1h': 3600e3, '4h': 14400e3, '1d': 86400e3 };
@@ -19,12 +19,18 @@ export default {
     const coach = ref(null);
     const preview = ref(null);
     const busy = ref(false);
-    const accounts = computed(() => (store.overview?.accounts || []).filter(a => a.connected !== false));
+    const accounts = computed(() => (store.overview?.accounts || []).filter(a => a.connected !== false && a.kind === 'paper' && a.tradable !== false));
     const accountId = ref(null);
     const account = computed(() => accounts.value.find(a => a.id === accountId.value));
     const t = reactive({ side: 'buy', type: 'market', mode: 'quote', amount: null, limit: null, sl: null, tp: null, useRisk: false, riskPct: 0.5 });
 
     const last = computed(() => store.markets.prices[symbol.value] ?? (candles.value.length ? candles.value[candles.value.length - 1][4] : null));
+    // Prix périmé : la source n'a pas donné de prix récent pour cette crypto (réseau coupé, maintenance…)
+    const isStale = (s) => {
+      const fresh = store.overview?.market?.fresh;
+      return !!fresh && Object.prototype.hasOwnProperty.call(fresh, s) && fresh[s] === false;
+    };
+    const stale = computed(() => isStale(symbol.value));
     const dayChange = computed(() => {
       const c = candles.value;
       if (!c.length || !last.value) return null;
@@ -35,7 +41,7 @@ export default {
 
     const pickAccount = () => {
       if (accountId.value && accounts.value.some(a => a.id === accountId.value)) return;
-      const manual = accounts.value.find(a => a.role === 'manual') || accounts.value[0];
+      const manual = accounts.value.find(a => a.role === 'main') || accounts.value.find(a => a.role === 'manual') || accounts.value[0];
       accountId.value = manual?.id ?? null;
     };
     watch(accounts, pickAccount, { immediate: true });
@@ -108,7 +114,10 @@ export default {
     // -- ticket d'ordre --
     const base = computed(() => symbol.value.split('/')[0]);
     const quoteCcy = computed(() => symbol.value.split('/')[1]);
-    const cash = computed(() => detail.value?.balances?.[quoteCcy.value] ?? detail.value?.cash ?? 0);
+    // monnaie du compte (euros pour le portefeuille principal) : c'est elle que l'on dépense
+    const cashCcy = computed(() => detail.value?.quote || quoteCcy.value);
+    const fxRate = computed(() => (cashCcy.value !== quoteCcy.value ? detail.value?.fx?.rate : 1) || 1);
+    const cash = computed(() => detail.value?.available ?? detail.value?.cash ?? 0);
     const holding = computed(() => detail.value?.balances?.[base.value] ?? 0);
     const refPrice = computed(() => (t.type === 'limit' && t.limit ? Number(t.limit) : last.value));
     const roundPx = (x) => { const d = x >= 1000 ? 2 : x >= 1 ? 4 : 6; return Number(x.toFixed(d)); };
@@ -123,14 +132,15 @@ export default {
       if (!t.useRisk || t.side !== 'buy' || !t.sl || !refPrice.value || Number(t.sl) >= refPrice.value) return null;
       const eq = detail.value?.equity || 0;
       const riskAmount = eq * t.riskPct / 100;
-      const q = riskAmount / (refPrice.value - Number(t.sl));
+      const q = riskAmount / ((refPrice.value - Number(t.sl)) * fxRate.value);
       return { qty: q, value: q * refPrice.value, riskAmount };
     });
     const body = () => {
       const b = { account_id: accountId.value, symbol: symbol.value, side: t.side, type: t.type };
       if (t.type === 'limit') b.price = Number(t.limit) || null;
       if (riskComputed.value) b.amount = riskComputed.value.qty;
-      else if (t.mode === 'quote') b.quote_amount = Number(t.amount) || null; else b.amount = Number(t.amount) || null;
+      else if (t.mode === 'quote') b[cashCcy.value !== quoteCcy.value ? 'cash_amount' : 'quote_amount'] = Number(t.amount) || null;
+      else b.amount = Number(t.amount) || null;
       if (t.side === 'buy') { b.stop_loss = t.sl ? Number(t.sl) : null; b.take_profit = t.tp ? Number(t.tp) : null; }
       return b;
     };
@@ -139,21 +149,14 @@ export default {
       clearTimeout(pvTimer);
       pvTimer = setTimeout(async () => {
         const b = body();
-        if (!b.account_id || (!b.amount && !b.quote_amount)) { preview.value = null; return; }
+        if (!b.account_id || (!b.amount && !b.quote_amount && !b.cash_amount)) { preview.value = null; return; }
         try { preview.value = await api.post('/api/orders/preview', b); } catch (e) { preview.value = { error: e.message }; }
       }, 350);
     }, { deep: true });
 
     const submit = async () => {
       const b = body();
-      const isLive = account.value?.kind === 'live';
-      const pv = preview.value;
-      if (isLive) {
-        const ok = await confirmBox({ title: 'Ordre en ARGENT RÉEL', danger: true, confirmLabel: 'Envoyer l’ordre réel',
-          message: `${t.side === 'buy' ? 'Achat' : 'Vente'} de ${qty(pv?.qty)} ${base.value} (≈ ${money(pv?.value, quoteCcy.value)}) sur votre portefeuille réel.\nCet ordre utilise votre vrai argent.` });
-        if (!ok) return;
-        b.confirm = true;
-      } else if (t.side === 'buy' && !t.sl) {
+      if (t.side === 'buy' && !t.sl) {
         const ok = await confirmBox({ title: 'Achat sans stop-loss', message: 'Sans stop-loss, votre perte n’est pas limitée. Continuer quand même ?', confirmLabel: 'Acheter sans stop' });
         if (!ok) return;
       }
@@ -167,7 +170,7 @@ export default {
       }
     };
     const closePos = async (p) => {
-      const ok = await confirmBox({ title: `Fermer la position ${p.symbol}`, message: `Vente de ${qty(p.qty)} au prix du marché (résultat latent ${signed(p.pnl)}).`, confirmLabel: 'Fermer', danger: account.value?.kind === 'live' });
+      const ok = await confirmBox({ title: `Fermer la position ${p.symbol}`, message: `Vente de ${qty(p.qty)} au prix du marché (résultat latent ${signed(p.pnl)}).`, confirmLabel: 'Fermer' });
       if (!ok) return;
       await safe(api.post(`/api/positions/${p.id}/close`), 'Position fermée');
       loadDetail(); loadTrades();
@@ -182,8 +185,8 @@ export default {
     const cancelOrder = async (o) => { await safe(api.del(`/api/orders/${o.id}?account_id=${accountId.value}`), 'Ordre annulé'); loadDetail(); };
     const PURPOSE = { entry: 'Achat', stop: 'Stop-loss', target: 'Objectif', exit: 'Sortie', manual: 'Manuel' };
 
-    return { store, chart, symbol, tf, candles, loading, detail, coach, preview, busy, accounts, accountId, account, t, last, dayChange,
-      lines, markers, base, quoteCcy, cash, holding, setSl, setTp, setPortion, riskComputed, submit, closePos, editing, editPos, saveEdit,
+    return { store, chart, symbol, tf, candles, loading, detail, coach, preview, busy, accounts, accountId, account, t, last, dayChange, stale, isStale,
+      lines, markers, base, quoteCcy, cashCcy, cash, holding, fxLine, setSl, setTp, setPortion, riskComputed, submit, closePos, editing, editPos, saveEdit,
       cancelOrder, positionsHere, PURPOSE, money, signed, price, qty, pct, cls, dt, rr, STRATEGY_LABELS, accountLabel };
   },
   template: `
@@ -194,13 +197,14 @@ export default {
       <select v-model="accountId" style="width:auto;min-width:200px">
         <option v-for="a in accounts" :key="a.id" :value="a.id">{{ accountLabel(a) }}</option>
       </select>
-      <span v-if="account" class="badge" :class="account.kind==='live' ? 'live' : 'paper'">{{ account.kind==='live' ? 'ARGENT RÉEL' : 'ARGENT FICTIF' }}</span>
+      <span v-if="account" class="badge paper">ARGENT FICTIF</span>
     </div>
     <div class="trade-layout">
       <div class="col">
         <div class="card c-chart" style="margin-bottom:14px">
           <div class="card-head">
-            <div class="ticker"><h2 style="margin:0">{{ symbol }}</h2><span class="px">{{ price(last) }}</span>
+            <div class="ticker"><h2 style="margin:0">{{ symbol }}</h2><span class="px" :class="{faint: stale}">{{ price(last) }}</span>
+              <span v-if="stale" class="badge warn stale-badge" title="Aucun prix reçu depuis plus de 2 minutes pour cette crypto : le dernier prix connu est affiché. Au-delà de 3 minutes, les ordres au marché sont refusés.">prix périmé</span>
               <span v-if="dayChange !== null" class="num" :class="cls(dayChange)">{{ pct(dayChange) }} <span class="faint small">24 h</span></span></div>
             <span class="spacer"></span>
             <div class="seg"><button v-for="x in ['1m','5m','15m','1h','4h','1d']" :key="x" :class="{on: tf===x}" @click="tf=x">{{ x }}</button></div>
@@ -210,19 +214,19 @@ export default {
         </div>
 
         <div class="card c-pos" style="margin-bottom:14px">
-          <div class="card-head"><h2>Positions ouvertes</h2><span class="spacer"></span><span class="muted small" v-if="detail">Capital {{ money(detail.equity, detail.quote) }} · liquidités {{ money(detail.cash) }}</span></div>
-          <div class="table-wrap"><table>
+          <div class="card-head"><h2>Positions ouvertes</h2><span class="spacer"></span><span class="muted small" v-if="detail">Capital {{ money(detail.equity, detail.quote) }} · disponible {{ money(detail.available ?? detail.cash, detail.quote) }}</span></div>
+          <div v-if="!positionsHere.length" class="empty">Aucune position ouverte sur ce compte.</div>
+          <div v-else class="table-wrap"><table>
             <thead><tr><th>Crypto</th><th>Origine</th><th class="num">Quantité</th><th class="num">Entrée</th><th class="num">Prix</th><th class="num">Résultat</th><th class="num">Stop</th><th class="num">Objectif</th><th></th></tr></thead>
             <tbody>
               <tr v-for="p in positionsHere" :key="p.id">
                 <td><b>{{ p.symbol }}</b><div class="faint small" v-if="p.strategy">{{ STRATEGY_LABELS[p.strategy] }}</div></td>
                 <td><span class="badge" :class="p.origin==='ai' ? 'paper' : ''">{{ p.origin==='ai' ? 'IA' : 'Manuel' }}</span><div class="faint small" v-if="p.status==='pending'">en attente</div></td>
-                <td class="num">{{ qty(p.qty) }}</td><td class="num">{{ price(p.entry_price) }}</td><td class="num">{{ price(p.price) }}</td>
+                <td class="num">{{ qty(p.qty) }}</td><td class="num">{{ price(p.entry_price) }}</td><td class="num">{{ price(p.price) }}<div v-if="isStale(p.symbol)" class="small" style="color:#f59e0b" title="Aucun prix récent : résultat latent calculé au dernier prix connu">prix périmé</div></td>
                 <td class="num" :class="cls(p.pnl)">{{ signed(p.pnl) }}<div class="small">{{ p.r !== null && p.r !== undefined ? rr(p.r) : pct(p.pnl_pct/100) }}</div></td>
                 <td class="num">{{ price(p.stop_price) }}</td><td class="num">{{ price(p.target_price) }}</td>
                 <td class="nowrap"><button class="small" @click="editPos(p)" :disabled="p.status!=='open'">Modifier</button> <button class="small danger" @click="closePos(p)">Fermer</button></td>
               </tr>
-              <tr v-if="!positionsHere.length"><td colspan="9" class="empty">Aucune position ouverte sur ce compte.</td></tr>
             </tbody>
           </table></div>
           <div v-if="editing" class="card tight" style="margin-top:10px;background:var(--bg-2)">
@@ -237,16 +241,16 @@ export default {
 
         <div class="card c-orders">
           <div class="card-head"><h2>Ordres en attente</h2></div>
-          <div class="table-wrap"><table>
+          <div v-if="!(detail?.orders || []).length" class="empty">Aucun ordre en attente.</div>
+          <div v-else class="table-wrap"><table>
             <thead><tr><th>Crypto</th><th>Type</th><th>Rôle</th><th class="num">Quantité</th><th class="num">Prix</th><th>Créé</th><th></th></tr></thead>
             <tbody>
               <tr v-for="o in (detail?.orders || [])" :key="o.id">
                 <td>{{ o.symbol }}</td><td>{{ o.side==='buy' ? 'Achat' : 'Vente' }} {{ o.type==='market' ? 'marché' : o.type==='limit' ? 'limite' : 'stop' }}</td>
-                <td>{{ PURPOSE[o.purpose] || o.purpose }}<span v-if="o.exchange_id==='virtual'" class="faint small"> (surveillé par le bot)</span></td>
+                <td>{{ PURPOSE[o.purpose] || o.purpose }}</td>
                 <td class="num">{{ qty(o.amount - o.filled) }}</td><td class="num">{{ price(o.price || o.stop_price) }}</td><td>{{ dt(o.created_at) }}</td>
                 <td><button class="small" @click="cancelOrder(o)">Annuler</button></td>
               </tr>
-              <tr v-if="!(detail?.orders || []).length"><td colspan="7" class="empty">Aucun ordre en attente.</td></tr>
             </tbody>
           </table></div>
         </div>
@@ -265,13 +269,13 @@ export default {
           <div v-if="t.useRisk && t.side==='buy'" class="field"><label>Risque accepté si le stop est touché</label>
             <div class="input-suffix"><input type="number" step="0.1" min="0.1" max="5" v-model.number="t.riskPct"><span>% du capital</span></div>
             <div class="hint" v-if="!t.sl">Indiquez un stop-loss ci-dessous pour calculer la quantité.</div>
-            <div class="hint" v-else-if="riskComputed">→ {{ qty(riskComputed.qty) }} {{ base }} (≈ {{ money(riskComputed.value, quoteCcy) }}), perte max ≈ {{ money(riskComputed.riskAmount, quoteCcy) }}</div>
+            <div class="hint" v-else-if="riskComputed">→ {{ qty(riskComputed.qty) }} {{ base }} (≈ {{ money(riskComputed.value, quoteCcy) }}), perte max ≈ {{ money(riskComputed.riskAmount, cashCcy) }}</div>
           </div>
           <div v-else class="field"><label>Montant</label>
-            <div class="row"><div class="input-suffix" style="flex:2"><input type="number" step="any" min="0" v-model="t.amount"><span>{{ t.mode==='quote' ? quoteCcy : base }}</span></div>
-              <div class="seg" style="flex:1"><button :class="{on: t.mode==='quote'}" @click="t.mode='quote'">{{ quoteCcy }}</button><button :class="{on: t.mode==='base'}" @click="t.mode='base'">{{ base }}</button></div></div>
+            <div class="row"><div class="input-suffix" style="flex:2"><input type="number" step="any" min="0" v-model="t.amount"><span>{{ t.mode==='quote' ? cashCcy : base }}</span></div>
+              <div class="seg" style="flex:1"><button :class="{on: t.mode==='quote'}" @click="t.mode='quote'">{{ cashCcy }}</button><button :class="{on: t.mode==='base'}" @click="t.mode='base'">{{ base }}</button></div></div>
             <div class="pill-row"><button v-for="p in [10,25,50,100]" :key="p" class="small" @click="setPortion(p)">{{ p }} %</button>
-              <span class="faint small" style="align-self:center">{{ t.side==='buy' ? 'des liquidités (' + money(cash) + ')' : 'de vos ' + base + ' (' + qty(holding) + ')' }}</span></div>
+              <span class="faint small" style="align-self:center">{{ t.side==='buy' ? 'du disponible (' + money(cash, cashCcy) + ')' : 'de vos ' + base + ' (' + qty(holding) + ')' }}</span></div>
           </div>
           <template v-if="t.side==='buy'">
             <div class="field"><label>Stop-loss (vente automatique en cas de baisse)</label><div class="input-suffix"><input type="number" step="any" v-model="t.sl" placeholder="recommandé"><span>{{ quoteCcy }}</span></div>
@@ -283,15 +287,19 @@ export default {
             <div v-if="preview.error" class="down">{{ preview.error }}</div>
             <template v-else>
               <div class="line"><span class="muted">Quantité</span><span class="num">{{ qty(preview.qty) }} {{ base }}</span></div>
-              <div class="line"><span class="muted">Montant</span><span class="num">≈ {{ money(preview.value, quoteCcy) }}</span></div>
-              <div class="line"><span class="muted">Frais estimés</span><span class="num">≈ {{ money(preview.fee, quoteCcy) }}</span></div>
-              <div class="line" v-if="preview.risk_amount"><span class="muted">Perte max (stop)</span><span class="num">{{ money(preview.risk_amount, quoteCcy) }} ({{ preview.risk_pct?.toFixed(2) }} %)</span></div>
+              <div class="line"><span class="muted">Montant</span><span class="num">≈ {{ money(preview.value, quoteCcy) }}<span v-if="preview.fx"> = {{ money(preview.value_cash, preview.currency) }}</span></span></div>
+              <div class="line"><span class="muted">Frais de la plateforme</span><span class="num">≈ {{ money(preview.fee, preview.currency) }}</span></div>
+              <div class="line" v-if="preview.fx_cost"><span class="muted">Coût de conversion</span><span class="num">≈ {{ money(preview.fx_cost, preview.currency) }}</span></div>
+              <div class="line"><span class="muted">{{ t.side==='buy' ? 'Total débité' : 'Total reçu' }}</span><span class="num"><b>≈ {{ money(preview.total_cash, preview.currency) }}</b></span></div>
+              <div class="line" v-if="preview.risk_amount"><span class="muted">Perte max (stop)</span><span class="num">{{ money(preview.risk_amount, preview.currency) }} ({{ preview.risk_pct?.toFixed(2) }} %)</span></div>
+              <div v-if="preview.fx" class="faint small" style="margin-top:4px">Taux appliqué : {{ fxLine(preview.fx) }}</div>
               <div v-for="w in preview.warnings" :key="w" class="warn small" style="margin-top:4px">⚠ {{ w }}</div>
             </template>
           </div>
           <button class="block" :class="t.side==='buy' ? 'buy' : 'sell'" :disabled="busy || !preview || !!preview.error" @click="submit">
-            {{ t.side==='buy' ? 'Acheter' : 'Vendre' }} {{ base }}{{ account && account.kind==='live' ? ' (RÉEL)' : '' }}</button>
-          <p class="faint small center" style="margin-bottom:0">{{ account && account.kind==='live' ? 'Ordre envoyé à l’exchange avec votre argent réel.' : 'Argent fictif, prix réels : entraînez-vous sans risque.' }}</p>
+            {{ t.side==='buy' ? 'Acheter' : 'Vendre' }} {{ base }}</button>
+          <p v-if="stale" class="note warn small" style="margin:8px 0">Prix périmé pour {{ symbol }} : le dernier prix connu est affiché. Au-delà de 3 minutes sans prix, les ordres au marché sont refusés ; attendez le retour des données de marché.</p>
+          <p class="faint small center" style="margin-bottom:0">Argent fictif, prix réels : entraînez-vous sans risque.</p>
         </div>
 
         <div class="card c-coach">

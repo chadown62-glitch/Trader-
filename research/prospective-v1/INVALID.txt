@@ -1,0 +1,1 @@
+Never started. Invalid retrain_hours=0, rejected by App settings validation. Superseded by prospective-v2 with identical model weights.

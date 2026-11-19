@@ -8,16 +8,35 @@ journal et décisions expliquées.
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import threading
 import time
 from contextlib import contextmanager
+from functools import wraps
 from pathlib import Path
 from typing import Any, Iterator
+
+def atomic(fn):
+    """Serialize the complete read/check/write operation, including nested fill listeners."""
+    @wraps(fn)
+    def transactional(self, *args, **kwargs):
+        with self.db.transaction():
+            return fn(self, *args, **kwargs)
+    return transactional
+
 
 SCHEMA_VERSION = 1
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS event_outbox(
+    id TEXT PRIMARY KEY, topic TEXT NOT NULL, event TEXT NOT NULL, created_at REAL NOT NULL,
+    dispatched_at REAL, attempts INTEGER NOT NULL DEFAULT 0, error TEXT
+);
+CREATE TABLE IF NOT EXISTS position_management_bars(
+    account_id INTEGER NOT NULL, agent TEXT NOT NULL, symbol TEXT NOT NULL, timeframe TEXT NOT NULL,
+    ts INTEGER NOT NULL, PRIMARY KEY(account_id,agent,symbol,timeframe,ts)
+);
 CREATE TABLE IF NOT EXISTS meta(
     key TEXT PRIMARY KEY,
     value TEXT
@@ -48,6 +67,45 @@ CREATE TABLE IF NOT EXISTS balances(
     asset TEXT NOT NULL,
     total REAL NOT NULL DEFAULT 0,
     PRIMARY KEY (account_id, asset)
+);
+CREATE TABLE IF NOT EXISTS fx_operations(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id INTEGER NOT NULL,
+    ts REAL NOT NULL,
+    source_currency TEXT NOT NULL,
+    target_currency TEXT NOT NULL,
+    amount_in TEXT NOT NULL,
+    amount_out TEXT NOT NULL,
+    fee_rate TEXT NOT NULL,
+    via TEXT,
+    request_id TEXT,
+    legs TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_fx_operations_account ON fx_operations(account_id, ts);
+CREATE TABLE IF NOT EXISTS fx_liquidity_used(
+    source TEXT NOT NULL,
+    market_base TEXT NOT NULL,
+    market_quote TEXT NOT NULL,
+    market_ts TEXT NOT NULL,
+    side TEXT NOT NULL,
+    price TEXT NOT NULL,
+    depth TEXT NOT NULL,
+    consumed TEXT NOT NULL,
+    PRIMARY KEY (source, market_base, market_quote, market_ts, side)
+);
+CREATE TABLE IF NOT EXISTS paper_refusals(
+    id INTEGER PRIMARY KEY, account_id INTEGER NOT NULL, ts REAL NOT NULL, symbol TEXT, code TEXT NOT NULL, reason TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS paper_books(
+    symbol TEXT NOT NULL, source TEXT NOT NULL, ts REAL NOT NULL, original TEXT NOT NULL, consumed TEXT NOT NULL,
+    PRIMARY KEY (symbol, source)
+);
+CREATE TABLE IF NOT EXISTS paper_book_events(
+    order_id INTEGER NOT NULL, source TEXT NOT NULL, ts REAL NOT NULL, PRIMARY KEY(order_id, source, ts)
+);
+CREATE TABLE IF NOT EXISTS fx_snapshots(
+    base TEXT NOT NULL, quote TEXT NOT NULL, ts REAL NOT NULL, source TEXT NOT NULL, snapshot TEXT NOT NULL,
+    PRIMARY KEY(base, quote, ts, source)
 );
 CREATE TABLE IF NOT EXISTS orders(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -132,6 +190,10 @@ CREATE TABLE IF NOT EXISTS equity(
     cash REAL NOT NULL,
     PRIMARY KEY (account_id, ts)
 );
+CREATE TABLE IF NOT EXISTS prospective_bars(
+    account_id INTEGER NOT NULL, symbol TEXT NOT NULL, timeframe TEXT NOT NULL, ts INTEGER NOT NULL,
+    agent TEXT NOT NULL, PRIMARY KEY(account_id,symbol,timeframe,ts)
+);
 CREATE TABLE IF NOT EXISTS candidates(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     symbol TEXT NOT NULL,
@@ -157,6 +219,10 @@ CREATE TABLE IF NOT EXISTS candidates(
     UNIQUE (symbol, timeframe, ts, strategy, source)
 );
 CREATE INDEX IF NOT EXISTS idx_candidates_unresolved ON candidates(outcome, symbol);
+CREATE TABLE IF NOT EXISTS evaluation_windows(
+    version TEXT PRIMARY KEY, timeframe TEXT NOT NULL, start_ms INTEGER NOT NULL, end_ms INTEGER NOT NULL,
+    reference TEXT NOT NULL, evidence TEXT
+);
 CREATE TABLE IF NOT EXISTS models(
     version TEXT PRIMARY KEY,
     created_at REAL,
@@ -166,6 +232,40 @@ CREATE TABLE IF NOT EXISTS models(
     path TEXT,
     notes TEXT
 );
+CREATE TABLE IF NOT EXISTS model_events(
+    id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL NOT NULL, version TEXT NOT NULL,
+    timeframe TEXT, event TEXT NOT NULL, reason TEXT, data TEXT
+);
+CREATE TABLE IF NOT EXISTS model_policy_locks(
+    protocol_sha TEXT PRIMARY KEY, start REAL NOT NULL, end REAL NOT NULL, reason TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS experiments(
+    id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL NOT NULL, kind TEXT NOT NULL,
+    config_hash TEXT NOT NULL, params TEXT NOT NULL, result TEXT
+);
+CREATE TABLE IF NOT EXISTS learning_protocols(
+    sha256 TEXT PRIMARY KEY, registered_at REAL NOT NULL, document TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS paired_predictions(
+    key TEXT PRIMARY KEY, protocol_sha TEXT NOT NULL, candidate_id INTEGER NOT NULL,
+    account_id INTEGER NOT NULL, decision_ts REAL NOT NULL, available_at REAL NOT NULL,
+    recorded_at REAL NOT NULL, payload TEXT NOT NULL,
+    UNIQUE(protocol_sha,candidate_id)
+);
+CREATE TABLE IF NOT EXISTS paired_outcomes(
+    prediction_key TEXT PRIMARY KEY, available_at REAL NOT NULL, recorded_at REAL NOT NULL, payload TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_pair_protocol ON paired_predictions(protocol_sha,decision_ts);
+CREATE TRIGGER IF NOT EXISTS immutable_pair_update BEFORE UPDATE ON paired_predictions BEGIN SELECT RAISE(ABORT,'immutable prediction'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_pair_delete BEFORE DELETE ON paired_predictions BEGIN SELECT RAISE(ABORT,'immutable prediction'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_outcome_update BEFORE UPDATE ON paired_outcomes BEGIN SELECT RAISE(ABORT,'immutable outcome'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_outcome_delete BEFORE DELETE ON paired_outcomes BEGIN SELECT RAISE(ABORT,'immutable outcome'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_protocol_update BEFORE UPDATE ON learning_protocols BEGIN SELECT RAISE(ABORT,'immutable protocol'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_protocol_delete BEFORE DELETE ON learning_protocols BEGIN SELECT RAISE(ABORT,'immutable protocol'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_event_update BEFORE UPDATE ON model_events BEGIN SELECT RAISE(ABORT,'immutable model event'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_event_delete BEFORE DELETE ON model_events BEGIN SELECT RAISE(ABORT,'immutable model event'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_lock_update BEFORE UPDATE ON model_policy_locks BEGIN SELECT RAISE(ABORT,'immutable policy lock'); END;
+CREATE TRIGGER IF NOT EXISTS immutable_lock_delete BEFORE DELETE ON model_policy_locks BEGIN SELECT RAISE(ABORT,'immutable policy lock'); END;
 CREATE TABLE IF NOT EXISTS news(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     uid TEXT UNIQUE,
@@ -242,6 +342,36 @@ CREATE TABLE IF NOT EXISTS agents(
     started_at REAL,
     data TEXT
 );
+-- Grand livre : chaque variation d'un solde, avec le solde obtenu (historique complet des opérations)
+CREATE TABLE IF NOT EXISTS ledger(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id INTEGER NOT NULL,
+    ts REAL NOT NULL,
+    kind TEXT NOT NULL,
+    asset TEXT NOT NULL,
+    amount REAL NOT NULL,
+    balance_after REAL NOT NULL,
+    order_id INTEGER,
+    fill_id INTEGER,
+    position_id INTEGER,
+    symbol TEXT,
+    price REAL,
+    fx_rate REAL,
+    fx_source TEXT,
+    fx_ts REAL,
+    note TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_ledger_account ON ledger(account_id, id);
+-- Taux de change utilisés (monnaie du portefeuille / monnaie de cotation), avec leur source
+CREATE TABLE IF NOT EXISTS fx_rates(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts REAL NOT NULL,
+    base TEXT NOT NULL,
+    quote TEXT NOT NULL,
+    rate REAL NOT NULL,
+    source TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_fx_rates ON fx_rates(quote, ts);
 """
 
 
@@ -267,15 +397,35 @@ class Database:
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
         self._depth = 0
+        self._commit_callbacks = []
         self.conn = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None)
         self.conn.row_factory = sqlite3.Row
         with self._lock:
             if self.path != ":memory:":
                 self.conn.execute("PRAGMA journal_mode=WAL")
-            self.conn.execute("PRAGMA synchronous=NORMAL")
+            self.conn.execute("PRAGMA synchronous=FULL")
             self.conn.execute("PRAGMA busy_timeout=5000")
             self.conn.executescript(SCHEMA)
             self._ensure_column("news", "cluster", "INTEGER")
+            # Portefeuille en euros : taux de change appliqué à chaque exécution et à chaque position
+            for column, decl in (("fx_rate", "REAL"), ("fx_source", "TEXT"), ("fx_ts", "REAL"),
+                                 ("fx_cost", "REAL NOT NULL DEFAULT 0"), ("cash_amount", "REAL"), ("cash_asset", "TEXT")):
+                self._ensure_column("fills", column, decl)
+            self._ensure_column("equity", "unrealized", "REAL")
+            self._ensure_column("orders", "expires_at", "REAL")
+            self._ensure_column("orders", "triggered", "INTEGER NOT NULL DEFAULT 0")
+            self._ensure_column("fills", "price_source", "TEXT")
+            self._ensure_column("fills", "price_ts", "REAL")
+            self._ensure_column("orders", "cash_reserved", "REAL")
+            self._ensure_column("fx_operations", "via", "TEXT")
+            self._ensure_column("fx_operations", "request_id", "TEXT")
+            self.conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_fx_request ON fx_operations(account_id, request_id)")
+            self._ensure_column("positions", "entry_fx", "REAL")
+            self._ensure_column("positions", "currency", "TEXT")
+            for column, decl in (("sha256", "TEXT"), ("params", "TEXT"), ("promoted_at", "REAL")):
+                self._ensure_column("models", column, decl)
+            self.conn.execute("CREATE TRIGGER IF NOT EXISTS immutable_model_identity BEFORE UPDATE OF version,timeframe,path,metrics,sha256,params "
+                              "ON models BEGIN SELECT RAISE(ABORT,'immutable model identity'); END")
             self.conn.execute(
                 "INSERT OR IGNORE INTO meta(key, value) VALUES ('schema_version', ?)",
                 (str(SCHEMA_VERSION),),
@@ -328,20 +478,43 @@ class Database:
     def transaction(self) -> Iterator["Database"]:
         """Transaction atomique (réentrante)."""
         with self._lock:
+            callbacks = []
+            callback_start = len(self._commit_callbacks)
             if self._depth == 0:
                 self.conn.execute("BEGIN IMMEDIATE")
+            else:
+                self.conn.execute(f"SAVEPOINT nested_{self._depth}")
             self._depth += 1
             try:
                 yield self
             except BaseException:
+                del self._commit_callbacks[callback_start:]
                 self._depth -= 1
                 if self._depth == 0:
                     self.conn.execute("ROLLBACK")
+                else:
+                    self.conn.execute(f"ROLLBACK TO nested_{self._depth}")
+                    self.conn.execute(f"RELEASE nested_{self._depth}")
                 raise
             else:
                 self._depth -= 1
                 if self._depth == 0:
                     self.conn.execute("COMMIT")
+                    callbacks, self._commit_callbacks = self._commit_callbacks, []
+                else:
+                    self.conn.execute(f"RELEASE nested_{self._depth}")
+        # External effects are never part of an uncommitted transaction.
+        for fn in callbacks:
+            try:
+                fn()
+            except Exception:
+                logging.getLogger("sentinelle.db").exception("Échec après commit ; événement durable à reprendre")
+
+    def after_commit(self, fn):
+        with self._lock:
+            if not self._depth:
+                raise RuntimeError("Callback requires a transaction")
+            self._commit_callbacks.append(fn)
 
     def backup(self, dest: str | Path) -> None:
         """Copie cohérente de la base (même pendant son utilisation)."""

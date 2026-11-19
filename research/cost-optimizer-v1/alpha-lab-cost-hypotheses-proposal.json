@@ -1,0 +1,48 @@
+{
+ "gross": "brut",
+ "kind": "alpha-lab-cost-hypotheses",
+ "majors": [
+  "BTC",
+  "ETH"
+ ],
+ "min_notional": 5.0,
+ "primary": "mesure",
+ "scenarios": {
+  "brut": {
+   "fee_bps": 0,
+   "fx_bps": 0,
+   "half_spread_bps": {
+    "majors": 0,
+    "others": 0
+   },
+   "note": "sans aucun coût : sépare l'avantage brut des coûts, jamais pour conclure",
+   "slippage_bps": 0
+  },
+  "mesure": {
+   "fee_bps": 10.0,
+   "fx_bps": 11.6712,
+   "half_spread_bps": {
+    "majors": 0.2073,
+    "others": 4.6854
+   },
+   "note": "mesures du plan cost-optimizer-v1-m1",
+   "slippage_bps": 0.0
+  },
+  "tension": {
+   "fee_bps": 10.0,
+   "fx_bps": 14.5082,
+   "half_spread_bps": {
+    "majors": 0.4168,
+    "others": 7.7134
+   },
+   "note": "tension : 90e centiles",
+   "slippage_bps": 5.7313
+  }
+ },
+ "schema": 1,
+ "source_of_truth": "COST OPTIMIZER, cost_contract_v1 1.0.0 (plan cost-optimizer-v1-m1)",
+ "status": "PROPOSÉ : mesuré et figé par COST OPTIMIZER ; à valider avant l'évaluation unique d'ALPHA FACTORY v2",
+ "stress": "tension",
+ "unit": "points de base (0,01 %) du montant de chaque ordre",
+ "version": "2.0.0+1.0.0"
+}

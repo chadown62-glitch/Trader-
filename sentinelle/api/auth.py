@@ -145,15 +145,28 @@ class Auth:
                                     "expires_at": now + SESSION_DAYS * 86400, "last_seen": now})
         return token
 
-    def valid(self, token: str | None) -> bool:
+    def valid(self, token: str | None, *, refresh: bool = True) -> bool:
         if not token:
             return False
         h = hashlib.sha256(token.encode()).hexdigest()
-        row = self.db.one("SELECT * FROM sessions WHERE token_hash = ?", (h,))
+        if refresh:
+            row = self.db.one("SELECT * FROM sessions WHERE token_hash = ?", (h,))
+        else:
+            # The preflight GET must not renew sessions or change the installation's WAL index.
+            import tempfile
+            import sqlite3
+            from pathlib import Path
+            from ..preflight import _read_only
+            try:
+                with tempfile.TemporaryDirectory(prefix='sentinelle-auth-read-') as scratch:
+                    conn=_read_only(self.db.path,Path(scratch))
+                    try:row=conn.execute("SELECT * FROM sessions WHERE token_hash = ?",(h,)).fetchone()
+                    finally:conn.close()
+            except (OSError,ValueError,sqlite3.Error):return False
         now = time.time()
         if not row or row["expires_at"] < now:
             return False
-        if now - row["last_seen"] > 60:
+        if refresh and now - row["last_seen"] > 60:
             self.db.execute("UPDATE sessions SET last_seen = ?, expires_at = ? WHERE token_hash = ?",
                             (now, now + SESSION_DAYS * 86400, h))
         return True

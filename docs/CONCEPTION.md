@@ -2,6 +2,10 @@
 
 > **Nom provisoire.** Version 0.4, 9 novembre 2026 : première version du logiciel réalisée (voir §0 bis).
 > Bot de trading crypto qui tourne 24 h/24, se pilote depuis Telegram et depuis un logiciel de gestion dédié, et analyse les actualités avec une IA.
+>
+> 🔒 **Mise à jour du 11 novembre 2026 : simulation uniquement.** Ce dossier décrit la conception d'origine, qui prévoyait un « mode réel » verrouillé.
+> Ce mode a été **retiré du logiciel** : Sentinelle ne peut plus envoyer, modifier ou annuler un ordre réel. Les passages ci-dessous qui parlent
+> de mode réel, de testnet ou de clés API sont conservés comme historique et ne décrivent plus le logiciel. Référence à jour : [SECURITE.md](SECURITE.md).
 
 ---
 

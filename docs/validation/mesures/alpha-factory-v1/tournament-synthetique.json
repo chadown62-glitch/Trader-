@@ -1,0 +1,406 @@
+{
+  "markets": [
+    {
+      "kind": "noise",
+      "edge": 0.0,
+      "seed": 1001,
+      "candidates": 57,
+      "winner": "cash|100",
+      "winner_selection_mean_daily": 0.0,
+      "winner_evaluation_mean_daily": 0.0,
+      "winner_curse": 0.0,
+      "winner_evaluation_pnl_eur": 0.0,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": -0.00022748462852264912,
+        "ci_low": -0.001090030996559319,
+        "ci_high": 0.0005135358109724801
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0
+      },
+      "selection_vs_evaluation_rank_correlation": -0.4588410681877107
+    },
+    {
+      "kind": "noise",
+      "edge": 0.0,
+      "seed": 2002,
+      "candidates": 57,
+      "winner": "error_replay|tout",
+      "winner_selection_mean_daily": 0.0004497826688738938,
+      "winner_evaluation_mean_daily": -0.00012743532116501682,
+      "winner_curse": 0.0005772179900389106,
+      "winner_evaluation_pnl_eur": -1.258783875736171,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.0006792105963085643,
+        "ci_low": 0.00019735790381699914,
+        "ci_high": 0.001151369561522661
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": -0.00012743532116501682,
+        "ci_low": -0.00025980147258517465,
+        "ci_high": -6.216822755602986e-06
+      },
+      "selection_vs_evaluation_rank_correlation": 0.277352864920923
+    },
+    {
+      "kind": "noise",
+      "edge": 0.0,
+      "seed": 3003,
+      "candidates": 57,
+      "winner": "cash|100",
+      "winner_selection_mean_daily": 0.0,
+      "winner_evaluation_mean_daily": 0.0,
+      "winner_curse": 0.0,
+      "winner_evaluation_pnl_eur": 0.0,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.0003453014124364191,
+        "ci_low": -0.0003637900065187952,
+        "ci_high": 0.0009413041270547244
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0
+      },
+      "selection_vs_evaluation_rank_correlation": 0.4178765880217786
+    },
+    {
+      "kind": "regimes",
+      "edge": 1.0,
+      "seed": 1001,
+      "candidates": 57,
+      "winner": "council_full",
+      "winner_selection_mean_daily": 0.00018859872884057838,
+      "winner_evaluation_mean_daily": 0.0006003919169580792,
+      "winner_curse": -0.0004117931881175008,
+      "winner_evaluation_pnl_eur": 6.530889940070793,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 5.147728585269651e-05,
+        "ci_low": -0.0006147921513776659,
+        "ci_high": 0.0007136280118181287
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": 0.0006003919169580792,
+        "ci_low": 0.00010745889793477889,
+        "ci_high": 0.001180788490968986
+      },
+      "selection_vs_evaluation_rank_correlation": 0.22212859735545762
+    },
+    {
+      "kind": "regimes",
+      "edge": 1.0,
+      "seed": 2002,
+      "candidates": 57,
+      "winner": "cash|100",
+      "winner_selection_mean_daily": 0.0,
+      "winner_evaluation_mean_daily": 0.0,
+      "winner_curse": 0.0,
+      "winner_evaluation_pnl_eur": 0.0,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.0010352860376634959,
+        "ci_low": 0.0006559940563687787,
+        "ci_high": 0.0014409112700264589
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0
+      },
+      "selection_vs_evaluation_rank_correlation": 0.9938423645320197
+    },
+    {
+      "kind": "regimes",
+      "edge": 1.0,
+      "seed": 3003,
+      "candidates": 57,
+      "winner": "error_replay|tout",
+      "winner_selection_mean_daily": 0.0001822639847803718,
+      "winner_evaluation_mean_daily": 0.0002814113946771046,
+      "winner_curse": -9.91474098967328e-05,
+      "winner_evaluation_pnl_eur": 2.9192990305245203,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.0004134863029954127,
+        "ci_low": -0.00035334097167575776,
+        "ci_high": 0.0011331409320335345
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": 0.0002814113946771046,
+        "ci_low": -4.328242700075088e-05,
+        "ci_high": 0.0006751779511175542
+      },
+      "selection_vs_evaluation_rank_correlation": 0.15977443609022557
+    },
+    {
+      "kind": "regime_shift",
+      "edge": 1.0,
+      "seed": 1001,
+      "candidates": 57,
+      "winner": "error_replay|200",
+      "winner_selection_mean_daily": 9.178983135654197e-05,
+      "winner_evaluation_mean_daily": -4.5921297121796555e-06,
+      "winner_curse": 9.638196106872162e-05,
+      "winner_evaluation_pnl_eur": -0.0553075995102823,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.0011414509157265358,
+        "ci_low": 0.0006421873445293471,
+        "ci_high": 0.0016616662415349023
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": -4.5921297121796555e-06,
+        "ci_low": -0.00014377178575509885,
+        "ci_high": 0.0001293526164079925
+      },
+      "selection_vs_evaluation_rank_correlation": 0.7632875291677471
+    },
+    {
+      "kind": "regime_shift",
+      "edge": 1.0,
+      "seed": 2002,
+      "candidates": 57,
+      "winner": "cash|100",
+      "winner_selection_mean_daily": 0.0,
+      "winner_evaluation_mean_daily": 0.0,
+      "winner_curse": 0.0,
+      "winner_evaluation_pnl_eur": 0.0,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.0012358584830947856,
+        "ci_low": 0.0008230914035649691,
+        "ci_high": 0.0016673938901486177
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0
+      },
+      "selection_vs_evaluation_rank_correlation": 0.9955924293492352
+    },
+    {
+      "kind": "regime_shift",
+      "edge": 1.0,
+      "seed": 3003,
+      "candidates": 57,
+      "winner": "cash|100",
+      "winner_selection_mean_daily": 0.0,
+      "winner_evaluation_mean_daily": 0.0,
+      "winner_curse": 0.0,
+      "winner_evaluation_pnl_eur": 0.0,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.0010605772540349411,
+        "ci_low": 0.0004344695770527,
+        "ci_high": 0.0016999767475920254
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0
+      },
+      "selection_vs_evaluation_rank_correlation": 0.9410163339382941
+    },
+    {
+      "kind": "hidden_rule",
+      "edge": 1.0,
+      "seed": 1001,
+      "candidates": 57,
+      "winner": "regime_router|tout",
+      "winner_selection_mean_daily": 0.0017824721135852276,
+      "winner_evaluation_mean_daily": 0.002572932530701684,
+      "winner_curse": -0.0007904604171164564,
+      "winner_evaluation_pnl_eur": 40.2262651570847,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.0005477068669188492,
+        "ci_low": 0.00022229896243258977,
+        "ci_high": 0.0008877154284658566
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": 0.002572932530701684,
+        "ci_low": 0.0016493420606879447,
+        "ci_high": 0.003658180162396841
+      },
+      "selection_vs_evaluation_rank_correlation": 0.9778973295307234
+    },
+    {
+      "kind": "hidden_rule",
+      "edge": 1.0,
+      "seed": 2002,
+      "candidates": 57,
+      "winner": "error_replay|100",
+      "winner_selection_mean_daily": 0.0010968841778302677,
+      "winner_evaluation_mean_daily": 0.000490741065668541,
+      "winner_curse": 0.0006061431121617267,
+      "winner_evaluation_pnl_eur": 5.112324486626889,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.0006536288300380119,
+        "ci_low": 0.0001742060760392713,
+        "ci_high": 0.001238055898335463
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": 0.000490741065668541,
+        "ci_low": -0.00010946934064387078,
+        "ci_high": 0.001113071422202746
+      },
+      "selection_vs_evaluation_rank_correlation": 0.7862328234379051
+    },
+    {
+      "kind": "hidden_rule",
+      "edge": 1.0,
+      "seed": 3003,
+      "candidates": 57,
+      "winner": "error_replay|50",
+      "winner_selection_mean_daily": 0.0014415315475265035,
+      "winner_evaluation_mean_daily": 0.0014885653484736933,
+      "winner_curse": -4.703380094718979e-05,
+      "winner_evaluation_pnl_eur": 18.997393038233767,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.00034434809781018174,
+        "ci_low": -9.007382043445214e-05,
+        "ci_high": 0.0007374401370459916
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": 0.0014885653484736933,
+        "ci_low": 0.0005650924685544108,
+        "ci_high": 0.002526364651596777
+      },
+      "selection_vs_evaluation_rank_correlation": 0.9645449831475239
+    },
+    {
+      "kind": "hidden_rule",
+      "edge": 0.5,
+      "seed": 1001,
+      "candidates": 57,
+      "winner": "teacher:breakout|100",
+      "winner_selection_mean_daily": 0.0006990626652078911,
+      "winner_evaluation_mean_daily": 0.001258843807171282,
+      "winner_curse": -0.0005597811419633909,
+      "winner_evaluation_pnl_eur": 15.403729068599816,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.0002192198798166956,
+        "ci_low": -0.00011444080934047789,
+        "ci_high": 0.0005521990026618049
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": 0.001258843807171282,
+        "ci_low": 0.000596920004960291,
+        "ci_high": 0.002004497060349026
+      },
+      "selection_vs_evaluation_rank_correlation": 0.6906922478610319
+    },
+    {
+      "kind": "hidden_rule",
+      "edge": 0.5,
+      "seed": 2002,
+      "candidates": 57,
+      "winner": "project_mixte|400",
+      "winner_selection_mean_daily": 0.0007018753125878538,
+      "winner_evaluation_mean_daily": -0.00021864474739614401,
+      "winner_curse": 0.0009205200599839979,
+      "winner_evaluation_pnl_eur": -2.20317343478283,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.0003270539428218678,
+        "ci_low": 2.7628974159076045e-05,
+        "ci_high": 0.0006412523785892134
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": -0.00021864474739614401,
+        "ci_low": -0.0006049861750599795,
+        "ci_high": 0.0001962847723761426
+      },
+      "selection_vs_evaluation_rank_correlation": -0.036232823437905105
+    },
+    {
+      "kind": "hidden_rule",
+      "edge": 0.5,
+      "seed": 3003,
+      "candidates": 57,
+      "winner": "error_replay|100",
+      "winner_selection_mean_daily": 0.0007321158363225508,
+      "winner_evaluation_mean_daily": 0.0003263395098459966,
+      "winner_curse": 0.0004057763264765542,
+      "winner_evaluation_pnl_eur": 3.3218134074284933,
+      "winner_vs_take_all": {
+        "days": 334,
+        "mean_daily_diff": 0.00044298369115468495,
+        "ci_low": 2.1957083811814968e-05,
+        "ci_high": 0.0008213509641737425
+      },
+      "winner_absolute": {
+        "days": 334,
+        "mean_daily_diff": 0.0003263395098459966,
+        "ci_low": -0.0003466712167212115,
+        "ci_high": 0.0010433487207401858
+      },
+      "selection_vs_evaluation_rank_correlation": 0.6651542649727769
+    }
+  ],
+  "verdicts": {
+    "noise@0.0": {
+      "replications": 3,
+      "positive_lower_bounds": 1,
+      "required": 2,
+      "verdict": "non démontré",
+      "verdict_preregistered": "non démontré",
+      "positive_absolute_and_relative": 0
+    },
+    "regimes@1.0": {
+      "replications": 3,
+      "positive_lower_bounds": 1,
+      "required": 2,
+      "verdict": "non démontré",
+      "verdict_preregistered": "non démontré",
+      "positive_absolute_and_relative": 0
+    },
+    "regime_shift@1.0": {
+      "replications": 3,
+      "positive_lower_bounds": 3,
+      "required": 2,
+      "verdict": "avantage relatif seulement ; gain absolu non démontré sur les mêmes marchés",
+      "verdict_preregistered": "amélioration répliquée hors échantillon",
+      "positive_absolute_and_relative": 0
+    },
+    "hidden_rule@1.0": {
+      "replications": 3,
+      "positive_lower_bounds": 2,
+      "required": 2,
+      "verdict": "avantage relatif seulement ; gain absolu non démontré sur les mêmes marchés",
+      "verdict_preregistered": "amélioration répliquée hors échantillon",
+      "positive_absolute_and_relative": 1
+    },
+    "hidden_rule@0.5": {
+      "replications": 3,
+      "positive_lower_bounds": 2,
+      "required": 2,
+      "verdict": "avantage relatif seulement ; gain absolu non démontré sur les mêmes marchés",
+      "verdict_preregistered": "amélioration répliquée hors échantillon",
+      "positive_absolute_and_relative": 0
+    }
+  }
+}

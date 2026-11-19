@@ -50,14 +50,14 @@ def ensure_env() -> Path:
         say("Premier lancement : création de l'environnement Python (une seule fois)…")
         venv.EnvBuilder(with_pip=True, clear=False).create(VENV)
     marker = VENV / ".dependances"
-    if not marker.exists() or marker.read_text().strip() != req_hash():
+    if not marker.exists() or marker.read_text(encoding="utf-8").strip() != req_hash():
         say("Installation des composants nécessaires (quelques minutes la première fois)…")
         subprocess.run([str(py), "-m", "pip", "install", "--disable-pip-version-check", "-q", "--upgrade", "pip"], check=False)
         r = subprocess.run([str(py), "-m", "pip", "install", "--disable-pip-version-check", "-r", str(REQ)])
         if r.returncode != 0:
             say("L'installation a échoué. Vérifiez votre connexion internet puis relancez.")
             sys.exit(1)
-        marker.write_text(req_hash())
+        marker.write_text(req_hash(), encoding="utf-8")
         say("Composants installés.")
     return py
 
@@ -66,7 +66,13 @@ def main(argv: list[str]) -> int:
     py = ensure_env()
     os.chdir(ROOT)
     if "--diagnostic" in argv:
-        return subprocess.run([str(py), "-m", "sentinelle.diagnostic"]).returncode
+        # 1) contrôle rapide de l'installation et des sources en ligne ;
+        # 2) diagnostic complet à exécution finie (dossier temporaire, panel démarré puis arrêté,
+        #    modèles gelés, lecture seule de vos données) avec verdict READY / BLOCKED.
+        quick = subprocess.run([str(py), "-m", "sentinelle.diagnostic"]).returncode
+        print()
+        full = subprocess.run([str(py), "-m", "tools.diagnose_windows", "--reseau", "--rapport"]).returncode
+        return quick or full
     say("Démarrage… le panel va s'ouvrir dans votre navigateur (http://127.0.0.1:8765).")
     say("Pour arrêter Sentinelle : fermez cette fenêtre ou appuyez sur Ctrl+C.")
     try:

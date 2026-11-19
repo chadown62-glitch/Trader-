@@ -1,5 +1,5 @@
 // Graphiques (TradingView Lightweight Charts™ — https://www.tradingview.com/)
-const { ref, onMounted, onBeforeUnmount, watch } = Vue;
+const { ref, computed, onMounted, onBeforeUnmount, watch } = Vue;
 const TZ = -new Date().getTimezoneOffset() * 60; // affichage à l'heure locale
 
 const theme = {
@@ -96,4 +96,36 @@ export const LineChart = {
     return { el };
   },
   template: `<div ref="el" class="chart" :class="height"></div>`,
+};
+
+// Histogramme simple (HTML/CSS) : valeurs positives vers le haut, négatives vers le bas, autour d'une ligne zéro.
+// Chaque barre porte une info-bulle. Lisible sur téléphone, sans dépendance.
+export const BarChart = {
+  props: { bars: Array, unit: { type: String, default: '' }, digits: { type: Number, default: 2 }, height: { type: Number, default: 150 } },
+  setup(props) {
+    const fmt = (v) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: props.digits, maximumFractionDigits: props.digits }).format(v);
+    const scale = computed(() => {
+      const vals = (props.bars || []).map(b => Number(b.value) || 0);
+      const max = Math.max(0, ...vals), min = Math.min(0, ...vals);
+      const span = (max - min) || 1;
+      return { max, min, span, top: max / span * 100 };
+    });
+    const style = (b) => {
+      const v = Number(b.value) || 0, s = scale.value;
+      const h = Math.max(Math.abs(v) / s.span * 100, v ? 1.5 : 0);
+      return v >= 0 ? { bottom: (100 - s.top) + '%', height: h + '%' } : { top: s.top + '%', height: h + '%' };
+    };
+    const tip = (b) => (b.title ? b.title + ' : ' : '') + (b.value > 0 ? '+' : '') + fmt(b.value) + (props.unit ? ' ' + props.unit : '');
+    return { scale, style, tip, fmt };
+  },
+  template: `
+  <div class="barchart" :style="{height: height + 'px'}" role="img" :aria-label="'Histogramme de ' + (bars || []).length + ' valeurs'">
+    <div class="axis"><span>{{ scale.max > 0 ? '+' + fmt(scale.max) : fmt(scale.max) }}{{ unit ? ' ' + unit : '' }}</span><span v-if="scale.min < 0">{{ fmt(scale.min) }}{{ unit ? ' ' + unit : '' }}</span></div>
+    <div class="plot">
+      <div class="zero" :style="{top: scale.top + '%'}"></div>
+      <div v-for="(b, i) in bars" :key="i" class="col" :title="tip(b)">
+        <div class="bar" :class="[b.value >= 0 ? 'pos' : 'neg', b.muted ? 'muted' : '']" :style="style(b)"></div>
+      </div>
+    </div>
+  </div>`,
 };
