@@ -100,9 +100,14 @@ def new_pools(client: PublicClient, stats: Stats, pages: int) -> list[dict]:
     return out
 
 
-def ohlcv(client: PublicClient, stats: Stats, pool: str, *, limit: int = 1000) -> dict | None:
-    f = stats.run("geckoterminal:ohlcv", lambda: client.get(GT, f"/api/v2/networks/solana/pools/{pool}/ohlcv/minute",
-                                                             {"aggregate": 1, "limit": limit, "currency": "usd"}))
+def ohlcv(client: PublicClient, stats: Stats, pool: str, *, limit: int = 1000, wait_s: float = 65.0, sleep=time.sleep) -> dict | None:
+    def get():
+        return client.get(GT, f"/api/v2/networks/solana/pools/{pool}/ohlcv/minute", {"aggregate": 1, "limit": limit, "currency": "usd"})
+    f = stats.run("geckoterminal:ohlcv", get)
+    last = (stats.calls.get("geckoterminal:ohlcv") or [(True, 0, None)])[-1]
+    if f is None and last[2] and ("429" in last[2] or "coupe-circuit" in last[2]) and wait_s > 0:
+        sleep(wait_s)  # limite de débit de la source : une pause, puis UN nouvel essai (jamais de forçage)
+        f = stats.run("geckoterminal:ohlcv", get)
     if f is None:
         return None
     rows = ((f.json().get("data") or {}).get("attributes") or {}).get("ohlcv_list") or []

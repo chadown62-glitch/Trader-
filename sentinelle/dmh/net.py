@@ -77,7 +77,7 @@ HOSTS: dict[str, Host] = {h.name: h for h in (
     Host("api.dexscreener.com", (r"/latest/dex/tokens/[0-9A-Za-z,]{32,400}", r"/token-pairs/v1/[a-z]{2,20}/[0-9A-Za-z]{32,44}"), 1.0),
     # GeckoTerminal (mission 56, MEMECOIN ALPHA ENGINE) : nouveaux pools, détail d'un pool et bougies ; lectures publiques seulement
     Host("api.geckoterminal.com", (r"/api/v2/networks/solana/new_pools", r"/api/v2/networks/solana/pools/[1-9A-HJ-NP-Za-km-z]{32,44}",
-                                   r"/api/v2/networks/solana/pools/[1-9A-HJ-NP-Za-km-z]{32,44}/ohlcv/(minute|hour|day)"), 0.15),
+                                   r"/api/v2/networks/solana/pools/[1-9A-HJ-NP-Za-km-z]{32,44}/ohlcv/(minute|hour|day)"), 0.12),
 )}
 # Points d'accès d'exécution ou privés, par hôte : refusés comme une opération réelle, avant même la liste blanche.
 FORBIDDEN_PATHS: dict[str, tuple[str, ...]] = {
