@@ -8,7 +8,7 @@ def plot(report_file, output_file):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    data = json.loads(Path(report_file).read_text())
+    data = json.loads(Path(report_file).read_text(encoding="utf-8"))
     fig, axes = plt.subplots(1, 2, figsize=(10, 4), constrained_layout=True)
     for name, color in (("noise", "#285690"), ("trend", "#b44726")):
         records = [r for r in data["results"] if r["scenario"] == name]

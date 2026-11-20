@@ -156,7 +156,12 @@ def test_every_mutating_hub_route_inspects_the_raw_request_first():
     posts = re.findall(r"@api\.(post|put)\(\"(/api/dmh/[^\"]+)\"\)\n    async def \w+\(request: Request\):\n        (\w+)", src)
     routes = {path for _, path, _ in posts}
     assert routes == {"/api/dmh/preview", "/api/dmh/orders", "/api/dmh/open-orders/refresh", "/api/dmh/halt", "/api/dmh/resume",
-                      "/api/dmh/reconcile", "/api/dmh/limits", "/api/dmh/strategy"}
+                      "/api/dmh/reconcile", "/api/dmh/limits", "/api/dmh/strategy", "/api/dmh/solana/scan", "/api/dmh/memecoin/session/tick",
+                      "/api/dmh/memecoin/worker/start", "/api/dmh/memecoin/worker/stop"}
+    reads = set(re.findall(r'@api\.get\("(/api/dmh/[^"]+)"\)', src))
+    assert reads == {"/api/dmh/status", "/api/dmh/markets", "/api/dmh/positions", "/api/dmh/history",
+                     "/api/dmh/observatory", "/api/dmh/limits", "/api/dmh/memecoin/session",
+                     "/api/dmh/memecoin/worker/status"}
     assert all(first in ("data", "await") for _, _, first in posts) and src.count("await body(request,") == len(posts)
 
 

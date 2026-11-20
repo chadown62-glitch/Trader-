@@ -304,7 +304,7 @@ def test_real_frozen_artifact_import_is_exact_and_attachable_without_starting(tm
     from tools.champion_shadow import ComparisonAttachment
     root = Path(__file__).resolve().parents[1]/"research/prospective-v2"
     protocol = check(root)
-    cfg = json.loads((root/"settings.json").read_text())
+    cfg = json.loads((root/"settings.json").read_text(encoding="utf-8"))
     app = App(tmp_path, start=False, source=SyntheticSource(["BTC/EUR"], days=2), settings_override=cfg)
     try:
         app._startup()

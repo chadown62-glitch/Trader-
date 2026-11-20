@@ -70,7 +70,7 @@ def main():
             if not all((a.champion, a.challenger, a.settings, a.start, a.end)):
                 c.error("Versions, réglages et période requis")
             result = register_pair(db, models, champion=a.champion, challenger=a.challenger,
-                                   settings=json.loads(a.settings.read_text()), start=timestamp(a.start), end=timestamp(a.end))
+                                   settings=json.loads(a.settings.read_text(encoding="utf-8")), start=timestamp(a.start), end=timestamp(a.end))
         else:
             run = RegisteredComparison(db, models, a.protocol)
             result = {"resolved_now": run.resolve(), "report": run.report()} if a.action == "resolve" else run.report()

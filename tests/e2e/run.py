@@ -36,7 +36,7 @@ def run(script: str, output: Path) -> int:
         try:
             if not _wait_health(port, proc, 90):
                 print(f"[{script}] le panel de démonstration n'a pas démarré", file=sys.stderr)
-                print((Path(tmp) / "panel.log").read_text(errors="replace")[-2000:], file=sys.stderr)
+                print((Path(tmp) / "panel.log").read_text(errors="replace", encoding="utf-8")[-2000:], file=sys.stderr)
                 return 1
             env = {**os.environ, "BASE": f"http://127.0.0.1:{port}", "OUTPUT": str(output)}
             t = time.monotonic()

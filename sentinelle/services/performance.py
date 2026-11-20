@@ -228,6 +228,36 @@ class PerformanceMixin:
                 "taken_outcome": outcome(taken), "refused_outcome": outcome(refused)}
 
     # -- rapport -------------------------------------------------------------------------------
+    def _conversion_fees(self, account_id, currency, start, end):
+        """Convert paid fees at the recorded execution rates, in account currency."""
+        total = 0.0
+        rows = self.db.query("SELECT ts, legs FROM fx_operations WHERE account_id = ? AND ts BETWEEN ? AND ?",
+                             (account_id, start, end))
+        for row in rows:
+            legs = loads(row["legs"], None)
+            if not legs:
+                return None
+            rates = {currency: 1.0}
+            # Propagate from the settlement currency, wherever it occurs in the route.
+            for leg in reversed(legs):
+                if leg["quote"] in rates:
+                    rates[leg["base"]] = rates[leg["quote"]] * float(leg["rate"])
+            for leg in legs:
+                if leg["base"] in rates and leg["quote"] not in rates:
+                    rates[leg["quote"]] = rates[leg["base"]] / float(leg["rate"])
+                fee = float(leg["fee"])
+                if fee and leg["quote"] not in rates:
+                    try:
+                        quote = self.fx.historical(leg["quote"], row["ts"])
+                    except OrderError:
+                        return None
+                    if quote.base != currency:
+                        return None
+                    rates[leg["quote"]] = quote.rate
+                if fee:
+                    total += fee * rates[leg["quote"]]
+        return total
+
     def performance(self, account_id: int | None = None, period: str = "all") -> dict:
         if period not in PERIODS:
             raise UserError("Période inconnue")
@@ -245,12 +275,13 @@ class PerformanceMixin:
         rt = self.runtimes.get(acc["id"])
         parts, open_positions, latent, exit_costs = None, [], 0.0, 0.0
         valuation_error = None
+        positions = rt.positions.open_positions() if rt else []
         if rt is not None and acc["kind"] == "paper":
             try:
                 parts = rt.broker.breakdown()
             except OrderError as exc:
                 valuation_error = exc.message
-            for p in rt.positions.open_positions():
+            for p in positions:
                 u = rt.positions.unrealized(p)
                 if p["status"] == "open":
                     if u["pnl"] is None:
@@ -306,7 +337,11 @@ class PerformanceMixin:
             peak = max(peak, eq)
             dd.append([ts_ms, (eq / peak - 1.0) * 100 if peak > 0 else 0.0])
 
-        realized_all = float(sum(t["pnl"] for t in trades)) + float(sum(p["realized_pnl"] for p in rt.positions.open_positions()) if rt else 0)
+        realized_all = float(sum(t["pnl"] for t in trades)) + sum(p["realized_pnl"] for p in positions)
+        fx_fees = self._conversion_fees(acc["id"], acc["quote"], launch - 1e-6, now)
+        trade_fees = sum(t["fees"] for t in trades) + sum(p["fees"] or 0 for p in positions)
+        net_realized = realized_all - fx_fees if fx_fees is not None else None
+        valued = parts is not None and valuation_error is None
         strategy_labels = {name: st.label for name, st in STRATEGIES.items()}
         strategy_labels[None] = "trade manuel"
         models = grouped([t for t in sub if t["origin"] == "ai"], "model_version")
@@ -318,6 +353,8 @@ class PerformanceMixin:
         models.sort(key=lambda g: g["first_ts"])
 
         caution = []
+        if fx_fees is None:
+            caution.append("Frais de conversion incomplets : justificatif ou taux historique indisponible.")
         if valuation_error:
             caution.append("Valorisation actuelle indisponible : dernier relevé conservé. " + valuation_error)
         if self.settings["market"]["source"] == "synthetic":
@@ -338,11 +375,14 @@ class PerformanceMixin:
                         "available": parts["available"] if parts else None, "reserved": parts["reserved"] if parts else None,
                         "invested": parts["invested"] if parts else None},
             "result": {"net": current - initial, "net_pct": (current / initial - 1.0) if initial > 0 else None,
-                       "realized": realized_all, "latent": latent if not valuation_error else None, "fees": float(sum(t["fees"] for t in trades)) + float(sum(p["fees"] or 0 for p in rt.positions.open_positions()) if rt else 0),
-                       "exit_costs_estimate": exit_costs,
-                       # contrôle comptable : capital − départ = réalisé + latent + frais de sortie estimés (pas encore payés)
-                       "check_gap": (current - initial) - (realized_all + latent + exit_costs) if not valuation_error else None},
-            "valuation": {"current": not bool(valuation_error), "error": valuation_error,
+                       "realized": realized_all, "net_realized": net_realized,
+                       "latent": latent if valued else None,
+                       "fees": trade_fees + fx_fees if fx_fees is not None else None,
+                       "exit_costs_estimate": exit_costs if valued else None,
+                       "net_liquidation": current - exit_costs if valued else None,
+                       "check_gap": (current - initial) - (net_realized + latent + exit_costs)
+                                    if valued and net_realized is not None else None},
+            "valuation": {"current": valued, "error": valuation_error,
                           "as_of": now if parts else (snaps_ts[-1] if snaps_ts else launch)},
             "validation": self.evaluation_dashboard(),
             "model_history": self.models.list(),

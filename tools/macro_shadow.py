@@ -13,7 +13,7 @@ from sentinelle.news.shadow.sources import Collector, SOURCES, analyze_once
 
 def load_protocol(path):
     raw=Path(path).read_bytes();protocol=json.loads(raw)
-    expected=Path(str(path)+'.sha256').read_text().strip()
+    expected=Path(str(path)+'.sha256').read_text(encoding="utf-8").strip()
     if sha(raw)!=expected or protocol['mode']!='shadow_only' or protocol['can_trade']:
         raise ValueError('Shadow protocol integrity/policy failure')
     if protocol.get('source_catalogue')!=SOURCES:

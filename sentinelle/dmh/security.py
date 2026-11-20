@@ -10,7 +10,7 @@ Trois familles de contrôles, chacun motivé (code, message, couche) :
 - technique : fraîcheur, horloge, coupe-circuit, frais de réseau excessifs, prévisualisation expirée, réglages
   modifiés pendant la décision, prix qui a bougé avant l'exécution.
 
-Les PLAFONDS ABSOLUS sont des constantes du code : ni l'API, ni le LLM, ni un réglage ne peut les dépasser. Les
+Les PLAFONDS ABSOLUS sont des ratios constants du capital initial : ni l'API, ni le LLM, ni un réglage ne peut les dépasser. Les
 limites réglables dans le hub doivent rester à l'intérieur (et toute demande d'origine IA est refusée).
 """
 from __future__ import annotations
@@ -61,6 +61,23 @@ DEFAULT_LIMITS = MappingProxyType({
 })
 HUMAN_ORIGINS = frozenset({"user"})
 AI_ORIGINS = frozenset({"ai", "llm", "agent", "strategy"})
+# Montants de référence à 30 EUR : 10/30 (un tiers, sans arrondi à 33,33 %), 20 %, 5 %, 20 %.
+# Les plafonds humains historiques restent 15/30, 3/30, 3/30, 9/30 ; les minimums de marché ne sont pas multipliés.
+CAPITAL_LIMITS = frozenset({"max_position_eur", "min_cash_reserve_eur", "max_daily_loss_eur", "max_total_loss_eur"})
+
+
+def scale_limits(limits: dict, capital_eur: float, reference_eur: float = 30.0) -> dict:
+    """Rebase les seuls budgets de risque ; frais de réseau et minimums d'ordre restent des montants d'instrument."""
+    for capital in (capital_eur, reference_eur):
+        if isinstance(capital, bool) or not isinstance(capital, (int, float)) or not math.isfinite(capital) or capital <= 0:
+            raise SecurityRefusal("capital fictif fini et strictement positif attendu")
+    return {k: v * capital_eur / reference_eur if k in CAPITAL_LIMITS and isinstance(v, (int, float)) and not isinstance(v, bool) else v
+            for k, v in limits.items()}
+
+
+def absolute_limits(capital_eur: float = 30.0) -> dict:
+    """ABSOLUTE reste la référence historique immuable ; les plafonds actifs suivent le capital SQLite."""
+    return {**scale_limits(dict(ABSOLUTE), capital_eur), "capital_eur": capital_eur}
 
 
 class SecurityRefusal(ValueError):
@@ -102,19 +119,20 @@ class Verdict:
                 "warnings": [r.to_dict() for r in self.reasons if not r.veto]}
 
 
-def validate_limits(patch: dict, current: dict, origin: str) -> dict:
+def validate_limits(patch: dict, current: dict, origin: str, capital_eur: float = 30.0) -> dict:
     """Nouvelles limites réglables ; refus si la demande vient de l'IA ou franchit un plafond absolu."""
     if origin not in HUMAN_ORIGINS:
         raise SecurityRefusal(f"modification des limites refusée : origine « {origin} » (seul l'utilisateur, jamais l'IA)")
     if not isinstance(patch, dict) or not patch:
         raise SecurityRefusal("aucune limite à modifier")
     out = dict(current)
+    caps = absolute_limits(capital_eur)
     for k, v in patch.items():
         if k == "capital_eur" or k not in _DIRECTION:
             raise SecurityRefusal(f"limite inconnue ou non réglable : {k}")
         if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v < 0:
             raise SecurityRefusal(f"{k} : nombre positif attendu")
-        cap = ABSOLUTE[k]
+        cap = caps[k]
         if _DIRECTION[k] == "max" and v > cap:
             raise SecurityRefusal(f"{k} = {v} dépasse le plafond absolu {cap} (non contournable)")
         if _DIRECTION[k] == "min" and v < cap:
@@ -128,17 +146,22 @@ def config_hash(limits: dict, assumptions_digest: str, registry_sha: str | None)
                                      sort_keys=True).encode()).hexdigest()
 
 
-def effective(limits: dict) -> dict:
+def effective(limits: dict, capital_eur: float = 30.0) -> dict:
     """Les limites appliquées ne dépassent JAMAIS les plafonds, même si la base contenait une valeur trafiquée."""
     out = {}
-    for k, cap in ABSOLUTE.items():
+    defaults = scale_limits(dict(DEFAULT_LIMITS), capital_eur)
+    for k, cap in absolute_limits(capital_eur).items():
         if k == "capital_eur":
             continue
-        v = limits.get(k, DEFAULT_LIMITS[k])
+        v = limits.get(k, defaults[k])
         try:
+            if isinstance(v, bool):
+                raise ValueError("limite booléenne")
             v = float(v)
+            if not math.isfinite(v):
+                raise ValueError("limite non finie")
         except (TypeError, ValueError):
-            v = DEFAULT_LIMITS[k]
+            v = defaults[k]
         out[k] = min(v, cap) if _DIRECTION[k] == "max" else max(v, cap)
     return out
 

@@ -1,0 +1,20 @@
+{
+  "name": "Sentinelle · cockpit privé",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "postCreateCommand": "python -m pip install -r requirements.txt",
+  "postStartCommand": [
+    "bash",
+    "-c",
+    "set -eu\numask 077\npython - <<'PYTHON'\nfrom pathlib import Path\nimport os, secrets\nfrom sentinelle.config import default_data_dir\nfrom sentinelle.api.auth import Auth\nfrom sentinelle.storage.db import Database\nfolder = default_data_dir()\ndb = Database(folder / 'sentinelle.db')\ntry:\n    auth = Auth(db)\n    if not auth.configured:\n        password = os.environ.get('SENTINELLE_PANEL_PASSWORD')\n        if not password:\n            path = folder / 'codespaces-login.txt'\n            if not path.exists():\n                with path.open('x', encoding='utf-8') as f:\n                    f.write(secrets.token_urlsafe(24))\n            password = path.read_text(encoding='utf-8').strip()\n        auth.set_password(password)\nfinally:\n    db.close()\nPYTHON\nunset SENTINELLE_PANEL_PASSWORD\nnohup flock -n data/cockpit-8000.lock python -m sentinelle --remote --port 8000 --no-browser > /tmp/sentinelle-cockpit.log 2>&1 < /dev/null &"
+  ],
+  "forwardPorts": [
+    8000
+  ],
+  "portsAttributes": {
+    "8000": {
+      "label": "Cockpit Sentinelle",
+      "visibility": "private",
+      "onAutoForward": "openBrowser"
+    }
+  }
+}

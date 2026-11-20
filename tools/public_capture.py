@@ -126,7 +126,7 @@ class PublicCapture:
 def load_capture(root):
     root=Path(root)
     raw=(root/'capture.json').read_bytes()
-    if digest(raw)!=(root/'capture.sha256').read_text().strip():raise ValueError('Capture integrity failure')
+    if digest(raw)!=(root/'capture.sha256').read_text(encoding="utf-8").strip():raise ValueError('Capture integrity failure')
     m=json.loads(raw)
     if m['schema']!=1 or set(m['archives'])!=set(SYMBOLS) or m['endpoint']!=BASE:raise ValueError('Invalid capture provenance')
     histories={}

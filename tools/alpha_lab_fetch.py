@@ -84,7 +84,7 @@ def run(root: Path, end_ms: int, get, *, max_requests: int, pause: float = 0.0, 
     if only:
         symbols = [s for s in symbols if s[0] in only]
     state_path = root / "progress.json"
-    state = json.loads(state_path.read_text()) if state_path.exists() else {}
+    state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
     budget = [max_requests]
     for symbol, base, status in symbols:
         if symbol in state:
@@ -94,7 +94,7 @@ def run(root: Path, end_ms: int, get, *, max_requests: int, pause: float = 0.0, 
         (root / "klines" / f"{symbol}.csv.gz").write_bytes(payload)
         state[symbol] = {"base": base, "status": status, "bars": len(rows), "first_ms": rows[0][0] if rows else None,
                          "last_ms": rows[-1][0] if rows else None, "sha256": digest(payload), "pages": pages}
-        state_path.write_text(json.dumps(state, sort_keys=True))
+        state_path.write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
         if pause:
             time.sleep(pause)
     manifest = {"kind": "alpha-lab-daily-archive", "schema": 1, "endpoint": ENDPOINT, "quote": "USDT", "interval": "1d",
@@ -102,7 +102,7 @@ def run(root: Path, end_ms: int, get, *, max_requests: int, pause: float = 0.0, 
                 "symbols": {s: state[s] for s, _, _ in symbols if s in state}, "complete": all(s in state for s, _, _ in symbols)}
     payload = (json.dumps(manifest, sort_keys=True, indent=1) + "\n").encode("utf-8")
     (root / "manifest.json").write_bytes(payload)
-    (root / "manifest.sha256").write_text(digest(payload) + "\n")
+    (root / "manifest.sha256").write_text(digest(payload) + "\n", encoding="utf-8")
     return manifest
 
 

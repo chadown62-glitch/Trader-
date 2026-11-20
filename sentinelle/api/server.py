@@ -59,11 +59,11 @@ class ChangePasswordBody(BaseModel):
 
 class AccountBody(BaseModel):
     name: str = Field(default="Compte papier", max_length=60)
-    initial_balance: float = Field(gt=0, le=10_000_000)
+    initial_balance: float = Field(default=30.0, ge=10, le=1_000_000, strict=True)
 
 
 class ResetBody(BaseModel):
-    initial_balance: float | None = Field(default=None, gt=0, le=10_000_000)
+    initial_balance: float | None = Field(default=None, ge=10, le=1_000_000, strict=True)
 
 
 class FXBody(BaseModel):
@@ -165,7 +165,10 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         app.bus.bind_loop(asyncio.get_running_loop())
-        yield
+        try:
+            yield
+        finally:
+            await memecoin_worker.stop()
 
     api = FastAPI(title="Sentinelle", version=__version__, lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -341,8 +344,9 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
 
     # -- comptes --------------------------------------------------------------------
     @api.get("/api/accounts")
-    async def accounts():
-        return app.db.query("SELECT id, name, kind, role, quote, initial_balance, created_at FROM accounts WHERE archived = 0 ORDER BY id")
+    async def accounts(include_archived: bool = False):
+        return app.db.query("SELECT id, name, kind, role, quote, initial_balance, created_at, archived "
+                            "FROM accounts WHERE archived = 0 OR ? ORDER BY id", (include_archived,))
 
     @api.post("/api/accounts")
     async def create_account(body: AccountBody):
@@ -675,6 +679,7 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
     # -- urgence et journal ----------------------------------------------------------------------
     @api.post("/api/emergency")
     async def emergency(body: EmergencyBody):
+        await memecoin_worker.stop()
         return {**(await app.acall(app.emergency, body.action, body.confirm, body.scope)), "confirm_phrase": EMERGENCY_CONFIRM}
 
     @api.get("/api/logs")
@@ -703,7 +708,30 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         if getattr(app, "dmh", None) is None:
             app.dmh = HubService.for_app(app)
         return app.dmh
-    register_dmh(api, app, _dmh)
+    # Les routes DMH conservent le service fourni à leur enregistrement.
+    # Résoudre le compte courant à chaque requête, aussi après un archivage.
+    class ActiveWalletHub:
+        def __getattr__(self, name):
+            return getattr(_dmh(), name)
+
+    def active_wallet_hub():
+        _dmh()  # reprise du portefeuille au démarrage
+        return ActiveWalletHub()
+
+    wallet_lock = asyncio.Lock()
+
+    @api.middleware("http")
+    async def serialize_wallet_change(request: Request, call_next):
+        path = request.url.path.rstrip("/")
+        changes_wallet = request.method == "POST" and (
+            path == "/api/accounts" or (path.startswith("/api/accounts/") and path.endswith("/reset"))
+        )
+        if changes_wallet or path.startswith("/api/dmh/"):
+            async with wallet_lock:
+                return await call_next(request)
+        return await call_next(request)
+
+    memecoin_worker = register_dmh(api, app, active_wallet_hub)
 
     @api.get("/api/macro-shadow")
     async def macro_shadow_context(as_of: float | None = None):

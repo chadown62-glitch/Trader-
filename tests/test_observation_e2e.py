@@ -304,7 +304,7 @@ def test_changed_capture_and_changed_protocol_do_not_reuse_reserved_bar(tmp_path
     else:m['criteria']['test_conflict']='changed'
     p.write_bytes(encoded(m))
     checksum=p.with_suffix('.sha256') if change=='capture' else protocol/'protocol.sha256'
-    checksum.write_text(digest(p.read_bytes())+'\n')
+    checksum.write_text(digest(p.read_bytes())+'\n', encoding="utf-8")
     with patch('tools.prospective.datetime',FrozenDate):
         with pytest.raises(ValueError,match='Conflicting capture'):
             step(tmp_path/'app',protocol,tmp_path/'capture',execute=True,clock=lambda:NOW)

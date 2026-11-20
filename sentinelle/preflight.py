@@ -88,7 +88,7 @@ def verify_prospective(root: Path) -> dict:
             raise ValueError("Préparation marquée invalide (INVALID.txt) : utiliser l'instantané corrigé prospective-v2")
         raw = (root / "protocol.json").read_bytes()
         out["protocol_sha256"] = sha256(raw)
-        if out["protocol_sha256"] != (root / "protocol.sha256").read_text().strip():
+        if out["protocol_sha256"] != (root / "protocol.sha256").read_text(encoding="utf-8").strip():
             raise ValueError("Empreinte du protocole différente de protocol.sha256")
         protocol = json.loads(raw)
         model_sha = sha256((root / "model.joblib").read_bytes())
@@ -116,7 +116,7 @@ def verify_macro_shadow(path: Path, implementation: Path = SHADOW_IMPLEMENTATION
     try:
         raw = path.read_bytes()
         out["protocol_sha256"] = sha256(raw)
-        if out["protocol_sha256"] != Path(str(path) + ".sha256").read_text().strip():
+        if out["protocol_sha256"] != Path(str(path) + ".sha256").read_text(encoding="utf-8").strip():
             raise ValueError("Empreinte du protocole différente du fichier .sha256")
         protocol = json.loads(raw)
         if protocol.get("mode") != "shadow_only" or protocol.get("can_trade"):

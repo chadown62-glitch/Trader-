@@ -4,6 +4,7 @@ from __future__ import annotations
 import math
 import time
 
+from ..config import paper_capital
 from ..market.fx import FxService, FxUnavailable, market_fetcher, synthetic_fetcher
 from .common import UserError
 
@@ -101,14 +102,15 @@ class PortfolioMixin:
         if acc is not None:
             return acc
         cfg = self.settings["portfolio"]
+        initial = paper_capital(cfg.get("initial", 30.0))
         now = self.market_clock()  # même horloge que les relevés de capital et le grand livre
         with self.db.transaction():
             aid = self.db.insert("accounts", {"name": MAIN_NAME, "kind": "paper", "role": MAIN_ROLE, "quote": cfg["currency"],
-                                              "initial_balance": 30.0, "created_at": now, "data": "{}"})
-            self.db.execute("INSERT INTO balances(account_id, asset, total) VALUES (?, ?, ?)", (aid, cfg["currency"], 30.0))
-            self.db.insert("ledger", {"account_id": aid, "ts": now, "kind": "depot", "asset": cfg["currency"], "amount": 30.0,
-                                      "balance_after": 30.0, "note": "Capital de départ (argent fictif)"})
-        self.db.log("info", "portefeuille", f"Portefeuille principal créé : {30.0:.2f} {cfg['currency']} fictifs")
+                                              "initial_balance": initial, "created_at": now, "data": "{}"})
+            self.db.execute("INSERT INTO balances(account_id, asset, total) VALUES (?, ?, ?)", (aid, cfg["currency"], initial))
+            self.db.insert("ledger", {"account_id": aid, "ts": now, "kind": "depot", "asset": cfg["currency"], "amount": initial,
+                                      "balance_after": initial, "note": "Capital de départ (argent fictif)"})
+        self.db.log("info", "portefeuille", f"Portefeuille principal créé : {initial:.2f} {cfg['currency']} fictifs")
         return self.main_account()
 
     def main_account(self) -> dict | None:
@@ -157,7 +159,7 @@ class PortfolioMixin:
         return {
             "mode": mode,
             "currency": cfg["currency"],
-            "initial": 30.0,
+            "initial": main["initial_balance"] if main else cfg.get("initial", 30.0),
             "trade_quote": quote,
             "main_account_id": main["id"] if main else None,
             "migration_available": mode == "legacy",

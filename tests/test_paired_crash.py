@@ -111,7 +111,7 @@ def test_frozen_v2_v3_bytes_and_pinned_shadow_implementation():
     from unittest.mock import patch
     root=Path(__file__).resolve().parents[1]
     assert check(root/"research/prospective-v2")["promotion_allowed"] is False
-    p=json.loads((root/"research/macro-shadow-v3/protocol.json").read_text())
+    p=json.loads((root/"research/macro-shadow-v3/protocol.json").read_text(encoding="utf-8"))
     with patch('tools.macro_shadow.time.time', return_value=p['observation_start']):
         assert load_protocol(root/"research/macro-shadow-v3/protocol.json")["promotion_allowed"] is False
     assert hashlib.sha256((root/"research/prospective-v2/model.joblib").read_bytes()).hexdigest()==p["baseline_model_sha256"]

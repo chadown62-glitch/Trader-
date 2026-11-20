@@ -1,9 +1,9 @@
 // Performances : ce que le portefeuille a réellement rapporté (net de tous les frais), par trade et par jour.
 import { api, on, safe } from '../api.js';
-import { store, money, signed, cls, dt, rr, STRATEGY_LABELS } from '../store.js';
+import { store, selectedAccount as accountId, money, signed, cls, dt, rr, STRATEGY_LABELS } from '../store.js';
 import { LineChart, BarChart } from '../charts.js';
 
-const { ref, computed, onMounted, onBeforeUnmount, watch } = Vue;
+const { ref, computed, onBeforeUnmount, watch } = Vue;
 const nf = (d) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
 const PERIODS = [['today', 'Aujourd’hui'], ['7d', '7 jours'], ['30d', '30 jours'], ['90d', '90 jours'], ['all', 'Depuis le lancement']];
 
@@ -11,22 +11,23 @@ export default {
   components: { LineChart, BarChart },
   setup() {
     const accounts = computed(() => (store.overview?.accounts || []).filter(a => a.kind === 'paper'));
-    const accountId = ref(null);
     const period = ref('all');
     const rep = ref(null);
     const loading = ref(false);
+    let request = 0;
     const load = async () => {
+      const token = ++request;
+      if (!accounts.value.some(a => a.id === accountId.value)) { loading.value = false; return; }
       loading.value = true;
-      const q = `period=${period.value}` + (accountId.value !== null ? `&account_id=${accountId.value}` : '');
-      const r = await safe(api.get('/api/performance?' + q));
-      if (r) { rep.value = r; if (accountId.value === null) accountId.value = r.account.id; }
+      const r = await safe(api.get(`/api/performance?period=${period.value}&account_id=${accountId.value}`));
+      if (request !== token) return;
+      if (r) rep.value = r;
       loading.value = false;
     };
-    onMounted(load);
-    watch([period, accountId], (now, before) => { if (before[1] !== null || now[0] !== before[0]) load(); });
+    watch([period, accountId], () => { rep.value = null; load(); }, { immediate: true });
     const offs = [on('trade_closed', load), on('position_opened', load)];
     const timer = setInterval(load, 60000);
-    onBeforeUnmount(() => { offs.forEach(f => f()); clearInterval(timer); });
+    onBeforeUnmount(() => { ++request; offs.forEach(f => f()); clearInterval(timer); });
 
     const cur = computed(() => rep.value?.account?.currency || '');
     const d = computed(() => rep.value?.detail);
@@ -45,7 +46,10 @@ export default {
     const strategyBars = computed(() => (d.value?.by_strategy || []).map(g => ({ value: g.pnl, title: g.label + ' — ' + g.n + ' trade(s)' })));
     const modelBars = computed(() => (d.value?.by_model || []).filter(g => g.mean_r !== null).map(g => ({ value: g.mean_r, title: g.label + ' — ' + g.n + ' trade(s)' })));
     const TABLES = [['by_strategy', 'Par stratégie'], ['by_symbol', 'Par crypto'], ['by_origin', 'Par origine'], ['by_regime', 'Par climat de marché à l’entrée'], ['by_horizon', 'Par durée de détention']];
-    const gapOk = computed(() => Math.abs(rep.value?.result?.check_gap ?? 0) < 0.005);
+    const gapOk = computed(() => {
+      const gap = rep.value?.result?.check_gap;
+      return Number.isFinite(gap) ? Math.abs(gap) < 0.005 : null;
+    });
     const priceSource = computed(() => {
       const src = store.overview?.settings_summary?.source;
       if (!src) return 'source inconnue';
@@ -68,14 +72,16 @@ export default {
 
       <div class="card" style="margin:14px 0">
         <div class="card-head"><h2>{{ rep.account.name }}</h2><span class="badge paper">ARGENT FICTIF</span><span class="spacer"></span>
-          <span class="badge" :class="gapOk ? 'ok' : 'err'" :title="'Capital − départ = réalisé + latent + frais de sortie estimés. Écart : ' + nf(4).format(rep.result.check_gap) + ' ' + cur">{{ gapOk ? 'comptes vérifiés' : 'écart comptable' }}</span></div>
+          <span v-if="gapOk === null" class="badge">Valorisation en attente</span>
+          <span v-else class="badge" :class="gapOk ? 'ok' : 'err'" :title="'Capital − départ = réalisé + latent + frais de sortie estimés. Écart : ' + nf(4).format(rep.result.check_gap) + ' ' + cur">{{ gapOk ? 'comptes vérifiés' : 'écart comptable' }}</span></div>
         <div class="kpi-grid">
           <div class="stat"><span class="label">Capital de départ</span><span class="value">{{ money(rep.capital.initial, cur) }}</span><span class="sub muted">lancé le {{ dt(rep.launch_ts) }}</span></div>
           <div class="stat"><span class="label">Capital actuel</span><span class="value">{{ money(rep.capital.current, cur) }}</span>
             <span class="sub muted" v-if="rep.capital.available !== null">disponible {{ money(rep.capital.available, cur) }} · investi {{ money(rep.capital.invested, cur) }}</span></div>
           <div class="stat"><span class="label">Résultat net depuis le lancement</span><span class="value" :class="cls(rep.result.net)">{{ signed(rep.result.net, cur) }}</span><span class="sub" :class="cls(rep.result.net)">{{ pc(rep.result.net_pct) }}</span></div>
-          <div class="stat"><span class="label">dont réalisé (ventes exécutées)</span><span class="value" :class="cls(rep.result.realized)">{{ signed(rep.result.realized, cur) }}</span></div>
-          <div class="stat"><span class="label">dont latent (positions ouvertes)</span><span class="value" :class="cls(rep.result.latent)">{{ signed(rep.result.latent, cur) }}</span><span class="sub muted">{{ rep.open_positions.length }} position(s), au dernier prix</span></div>
+          <div class="stat"><span class="label">Ventes réalisées, nettes des frais payés</span><span class="value" :class="cls(rep.result.net_realized)">{{ signed(rep.result.net_realized, cur) }}</span></div>
+          <div class="stat"><span class="label">Latent (positions ouvertes)</span><span class="value" :class="cls(rep.result.latent)">{{ signed(rep.result.latent, cur) }}</span><span class="sub muted">{{ rep.open_positions.length }} position(s), au dernier prix</span></div>
+          <div class="stat"><span class="label">Capital net de liquidation estimé</span><span class="value">{{ money(rep.result.net_liquidation, cur) }}</span><span class="sub muted">après frais estimés de sortie</span></div>
           <div class="stat"><span class="label">Frais cumulés</span><span class="value">{{ money(rep.result.fees, cur) }}</span><span class="sub muted">plateforme et conversion, déjà déduits</span></div>
         </div>
       </div>

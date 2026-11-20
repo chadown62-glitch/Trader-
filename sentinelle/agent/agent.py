@@ -28,12 +28,13 @@ from ..ai.exits import ExitState, end_of_bar
 from ..ai.features import FEATURE_COLUMNS, REGIME_LABELS
 from ..ai.labeling import candidate_row, simulate_candidate
 from ..ai.model import MetaModel
-from ..ai.strategies import STRATEGIES, levels
+from ..ai.strategies import STRATEGIES, levels, signals
 from ..config import timeframe_minutes, timeframe_ms
 from ..execution.base import OrderError
 from ..execution.positions import PositionManager
 from ..risk.manager import RiskManager
 from ..safety import forbid, require_paper_broker
+from ..services.common import SPECIALISTS
 from ..storage.db import Database, dumps, loads
 from .plan import build_plan
 
@@ -148,7 +149,8 @@ class TradingAgent:
             raise
         enabled = [n for n, on in self.settings_fn()["ai"]["strategies"].items() if on and n in STRATEGIES]
         if sig_at is None:
-            sig_at = {n: bool(STRATEGIES[n].signal(feat).iloc[i]) for n in enabled}
+            signal_index = i if i >= 0 else len(feat) + i
+            sig_at = {n: signal_index in indices for n, indices in signals(feat, enabled).items()}
         names = [n for n in enabled if sig_at.get(n)]
         if self.mode != "backtest":
             self.record_scan(symbol, feat, i, names)
@@ -303,6 +305,13 @@ class TradingAgent:
     def _consider_impl(self, symbol: str, row, names: list[str], bar_ts: int, prepare_only=False) -> None:
         cfg = self.settings_fn()
         ai = cfg["ai"]
+        regime_block = None
+        regime = row["regime"]
+        btc_regime = row.get("btc_regime", regime)
+        if regime == "unknown":
+            regime_block = "Historique insuffisant pour juger le climat du marché"
+        elif ai.get("regime_filter", True) and btc_regime == "bear":
+            regime_block = "Climat baissier sur le marché (BTC sous ses moyennes de fond) : l'IA reste à l'abri"
         fee, slip = self.cost_rate(symbol), self.slip  # frais + conversion : le coût réel de ce compte
         model = self.model_fn()
         thr = ai.get("min_edge_r")
@@ -323,13 +332,7 @@ class TradingAgent:
             for c in cands:
                 c["p"] = c["er"] = None
 
-        block = None
-        regime = row["regime"]
-        btc_regime = row.get("btc_regime", regime)
-        if regime == "unknown":
-            block = "Historique insuffisant pour juger le climat du marché"
-        elif ai.get("regime_filter", True) and btc_regime == "bear":
-            block = "Climat baissier sur le marché (BTC sous ses moyennes de fond) : l'IA reste à l'abri"
+        block = regime_block
         if block is None and self.fresh_fn is not None and not self.fresh_fn(symbol):
             block = "Données de marché périmées : aucune nouvelle position par prudence"
         if block is None and self.entry_gate is not None:
@@ -359,6 +362,15 @@ class TradingAgent:
         # Un modèle « à l'essai » (prometteur, pas prouvé) n'est utilisé qu'en argent fictif, avec une taille réduite.
         validated = model is not None and (self.mode == "backtest" or (model.metrics or {}).get("verdict") == "validé")
         on_trial = model is not None and not validated and self.mode == "training" and ai.get("exploration", True)
+        def trace(strategy, stage, verdict, detail, **metrics):
+            if self.mode == "backtest":
+                return
+            specialist, label = SPECIALISTS[stage]
+            self._journal(symbol, "specialist", f"{label} · {verdict} · {detail}", {
+                "stage": stage, "specialist": specialist, "verdict": verdict,
+                "strategy": strategy, "bar_ts": bar_ts, "timeframe": self.timeframe, **metrics,
+            })
+
         for c in cands:
             st = c["st"]
             if self.record and self.mode != "backtest":
@@ -415,6 +427,10 @@ class TradingAgent:
                 reason = "Aucun modèle validé : l'IA observe sans trader"
             if mode_used and opened:
                 mode_used, reason = None, "Une position vient d'être ouverte sur cette crypto"
+            trace(c["name"], "regime", "veto" if regime_block else "pass", regime_block or str(regime), btc_regime=btc_regime)
+            trace(c["name"], "alpha", "skipped" if block else "pass" if mode_used else "veto",
+                  block or mode_used or reason)
+            risk_approved = False
             if mode_used:
                 require_paper_broker(self.broker, "décision d'achat de l'IA sur un courtier non simulé", self.db)
                 equity, _cash = self.broker.equity()
@@ -439,6 +455,18 @@ class TradingAgent:
                 elif self.shield_fn is not None and (danger := self.shield_fn(symbol, rd.qty * close)):
                     reason = "Bouclier temps réel : " + danger
                 else:
+                    risk_approved = True
+            trace(c["name"], "risk", ("pass" if risk_approved else "veto") if mode_used else "skipped",
+                  "Contrôles déterministes satisfaits" if risk_approved else reason)
+            if risk_approved:
+                # The risk engine already compares reward to fees. Route only a costed paper order.
+                cost_r = float(c["row"]["cost_r"])
+                if not all(np.isfinite(x) and x >= 0 for x in (fee, slip, cost_r, rd.costs)):
+                    reason = "Estimation de coût invalide"
+                    trace(c["name"], "cost", "veto", reason)
+                else:
+                    trace(c["name"], "cost", "pass", "Exécution simulée chiffrée", fee_rate=fee,
+                          slippage=slip, cost_r=cost_r, roundtrip_cost=rd.costs, currency=self.broker.quote)
                     explanation = self._explain(symbol, c, row, thr, mode_used, rd)
                     try:
                         self.positions.open(
@@ -454,6 +482,8 @@ class TradingAgent:
                         self.stats["entries"] += 1
                     except OrderError as exc:
                         reason = f"Ordre refusé : {exc.message}"
+            else:
+                trace(c["name"], "cost", "skipped", "Aucune exécution autorisée")
             self.stats["decisions"] += 1
             if decision != "pris":
                 self.stats["refused"] += 1
@@ -485,9 +515,11 @@ class TradingAgent:
     def _journal(self, symbol: str, kind: str, message: str, data: dict | None = None) -> None:
         if self.mode == "backtest":
             return
-        self.db.decision(self.account_id, self.name, symbol, kind, message, data, ts=self.clock())
+        actor = (data or {}).get("specialist", self.name)
+        self.db.decision(self.account_id, actor, symbol, kind, message, data, ts=self.clock())
         if self.bus:
-            self.bus.publish("decision", {"agent": self.name, "account_id": self.account_id, "symbol": symbol, "kind": kind, "message": message})
+            self.bus.publish("decision", {"agent": actor, "account_id": self.account_id, "symbol": symbol,
+                                          "kind": kind, "message": message, **(data if kind == "specialist" else {})})
 
     def status(self) -> dict:
         return {

@@ -1,16 +1,15 @@
 // Tableau de bord : comptes, IA, capital, décisions en direct, voyants
-import { api, safe } from '../api.js';
+import { api, on, safe } from '../api.js';
 import { LineChart } from '../charts.js';
 import { ContextCard } from './context.js';
 import { ShieldCard } from './shield.js';
-import { store, money, signed, cls, pct, dt, ago, fxLine, confirmBox, ROLE_LABELS, REASON_ICONS } from '../store.js';
+import { store, selectedAccount, money, signed, cls, pct, dt, ago, fxLine, confirmBox, ROLE_LABELS, REASON_ICONS } from '../store.js';
 
 const { ref, computed, onMounted, onUnmounted, watch } = Vue;
 
 export default {
   components: { LineChart, ContextCard, ShieldCard },
   setup() {
-    const selected = ref(null);
     const equity = ref([]);
     const days = ref(7);
     const decisions = ref([]);
@@ -22,22 +21,44 @@ export default {
     };
     const accounts = computed(() => store.overview?.accounts || []);
     const agents = computed(() => store.overview?.agents || []);
-    const current = computed(() => accounts.value.find(a => a.id === selected.value) || accounts.value[0]);
+    const current = computed(() => accounts.value.find(a => a.id === selectedAccount.value));
 
+    let generation = 0;
+    let points = new Map();
+    const drawEquity = () => {
+      equity.value = [{ data: [...points.entries()].sort((a, b) => a[0] - b[0]), color: '#3b82f6' }];
+    };
     const loadEquity = async () => {
+      const request = ++generation;
+      points = new Map();
+      equity.value = [];
       if (!current.value) return;
       const rows = await safe(api.get(`/api/accounts/${current.value.id}/equity?days=${days.value}`));
-      equity.value = rows ? [{ data: rows.map(r => [r[0] * 1000, r[1]]), color: '#3b82f6' }] : [];
+      if (request !== generation || !rows) return;
+      // Keep live points received while the historical snapshot was loading.
+      for (const [ts, value] of rows) {
+        const ms = Math.floor(ts) * 1000;
+        if (!points.has(ms)) points.set(ms, value);
+      }
+      drawEquity();
     };
+    const offEquity = on('equity', ({ account_id, ts, equity: value }) => {
+      if (account_id !== current.value?.id || !Number.isFinite(ts) || !Number.isFinite(value)) return;
+      const ms = Math.floor(ts) * 1000;
+      const cutoff = Date.now() - days.value * 86400000;
+      if (ms < cutoff) return;
+      points.set(ms, value);
+      for (const time of points.keys()) if (time < cutoff) points.delete(time);
+      drawEquity();
+    });
     const loadDecisions = async () => { decisions.value = (await safe(api.get('/api/decisions?limit=40'))) || []; };
     const loadReadiness = async () => { readiness.value = await safe(api.get('/api/ai/readiness')); };
     onMounted(() => {
       loadDecisions(); loadReadiness(); loadEvaluation();
       evaluationTimer = setInterval(loadEvaluation, 60000);
     });
-    onUnmounted(() => clearInterval(evaluationTimer));
-    watch(() => current.value?.id, loadEquity, { immediate: true });
-    watch(days, loadEquity);
+    onUnmounted(() => { ++generation; offEquity(); clearInterval(evaluationTimer); });
+    watch([() => current.value?.id, days], loadEquity, { immediate: true, flush: 'sync' });
     const feed = computed(() => {
       const live = store.decisions.map(d => ({ ...d, live: true }));
       return [...live, ...decisions.value].slice(0, 40);
@@ -71,7 +92,7 @@ export default {
         { label: 'Bouclier', ok: o.shield?.enabled && !shieldPaused(o.shield), warn: o.shield?.enabled && shieldPaused(o.shield), off: !o.shield?.enabled },
       ];
     });
-    return { store, evaluation, accounts, agents, current, selected, equity, days, feed, readiness, lights, startAgent, stopAgent, portfolio, activateMain, fxLine,
+    return { store, evaluation, accounts, agents, current, selected: selectedAccount, equity, days, feed, readiness, lights, startAgent, stopAgent, portfolio, activateMain, fxLine,
       money, signed, cls, pct, dt, ago, ROLE_LABELS, REASON_ICONS };
   },
   template: `
