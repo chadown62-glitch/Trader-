@@ -410,9 +410,9 @@ def test_the_manifest_is_write_once_and_any_edit_is_detected(tmp_path):
     for name, edit in edits.items():
         original = (work / name).read_text(encoding="utf-8")
         assert edit(original) != original, name
-        (work / name).write_text(edit(original), encoding="utf-8")
+        (work / name).write_text(edit(original), encoding="utf-8", newline="")  # octets tels quels, même sous Windows
         assert protocol.load_manifest(work)[2], name
-        (work / name).write_text(original, encoding="utf-8")
+        (work / name).write_text(original, encoding="utf-8", newline="")
     ref = work / "reference-project-mixte.joblib"
     ref.write_bytes(ref.read_bytes() + b"x")
     assert any("modèle du projet" in p for p in protocol.load_manifest(work)[2])
