@@ -218,7 +218,11 @@ def instance_lock(folder):
     folder.mkdir(parents=True, exist_ok=True)
     with (folder / "instance.lock").open("a+b") as f:
         f.seek(0)
-        if not f.read(1):
+        try:
+            empty = not f.read(1)
+        except OSError:  # Windows : l'octet verrouillé par un autre processus ne se lit même pas
+            raise RuntimeError("A supervisor already owns this installation") from None
+        if empty:
             f.write(b"0")
             f.flush()
         f.seek(0)

@@ -51,23 +51,37 @@ def _work(learner: Learner, train: Situations, cal: Situations, sel: Situations,
     return enter, variant, learner.proba(ev)
 
 
+MIN_SAMPLE_S = 0.05  # un échantillon couvre au moins 50 ms : l'horloge processeur de Windows avance par pas de 15,6 ms
+
+
+def _sample(factory: Callable[[], Learner], parts: tuple) -> tuple[Learner, float, float]:
+    """Temps processeur et réel d'UNE exécution : moyenne d'exécutions répétées jusqu'à couvrir ``MIN_SAMPLE_S``.
+
+    Une exécution plus longue que ce seuil est mesurée seule, comme auparavant ; une exécution plus courte serait
+    arrondie à zéro par l'horloge processeur de Windows.
+    """
+    runs, c0, w0 = 0, time.process_time(), time.perf_counter()
+    while True:
+        learner = factory()
+        _work(learner, *parts)
+        runs += 1
+        if time.perf_counter() - w0 >= MIN_SAMPLE_S:
+            return learner, (time.process_time() - c0) / runs, (time.perf_counter() - w0) / runs
+
+
 def measure(factory: Callable[[], Learner], train: Situations, cal: Situations, sel: Situations, ev: Situations, *, repeats: int) -> tuple[Learner, dict]:
     """Temps (sans traceur) sur ``repeats`` répétitions, puis mémoire dans une passe séparée."""
     cpu, wall = [], []
+    parts = (train, cal, sel, ev)
     learner = factory()
     for _ in range(repeats):
-        learner = factory()
         gc.collect()
-        c0, w0 = time.process_time(), time.perf_counter()
-        _work(learner, train, cal, sel, ev)
-        cpu.append(time.process_time() - c0)
-        wall.append(time.perf_counter() - w0)
-    traced = factory()
+        learner, c, w = _sample(factory, parts)
+        cpu.append(c)
+        wall.append(w)
     gc.collect()
     tracemalloc.start()
-    c0 = time.process_time()
-    _work(traced, train, cal, sel, ev)
-    traced_cpu = time.process_time() - c0
+    _, traced_cpu, _ = _sample(factory, parts)
     peak = tracemalloc.get_traced_memory()[1]
     tracemalloc.stop()
     return learner, {"cpu_s": cpu, "wall_s": wall, "peak_mb": peak / 2**20, "cpu_s_under_memory_tracer": traced_cpu}
