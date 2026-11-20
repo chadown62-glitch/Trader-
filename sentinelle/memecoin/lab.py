@@ -433,12 +433,12 @@ def markdown(r: dict) -> str:
     d = r["data"]
     out = [f"Pools : {d['pools']} (bougies : {d['with_candles']}, {d['minutes']} minutes) · contrôlés : {d['security_checked']} · "
            f"découpage {d['split']} · liste réservée `{d['reserved_list_sha256'][:16]}…` · SOL ≈ {d['sol_usd']:.0f} $", "",
-           "#### Veto (à la collecte)", "", "| Décision | Tokens |", "|---|---|"]
+           "#### Veto (à la collecte)", "", "| Décision | Pools |", "|---|---|"]
     out += [f"| {k} | {v} |" for k, v in r["guardian"]["counts"].items()]
     out += ["", "Motifs les plus fréquents : " + " ; ".join(f"{k} ({v})" for k, v in list(r["guardian"]["reasons"].items())[:8]) + "."]
     if r.get("forward_check"):
         out += ["", "#### Contrôle en avant du veto (décision à la collecte, issue lue plus tard)", "",
-                "| Décision | Tokens | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive | Minutes après |",
+                "| Décision | Pools | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive | Minutes après |",
                 "|---|---|---|---|---|---|---|"]
         for k, v in r["forward_check"].items():
             out.append(f"| {k} | {v['tokens']} | {p(v['collapsed_share'], 0)} | {p(v['median_return'])} | {p(v['mean_net_after_costs'])} | "
@@ -446,13 +446,13 @@ def markdown(r: dict) -> str:
     if r.get("forward_coverage"):
         c = r["forward_coverage"]
         q = c["reserve_usd_quantiles"]
-        out += ["", f"Issue lisible pour {c['readable']} tokens ; aucun échange après la décision : {c['no_trade_after_decision']} ; "
+        out += ["", f"Issue lisible pour {c['readable']} pools ; aucun échange après la décision : {c['no_trade_after_decision']} ; "
                 f"aucune bougie avant la décision : {c['no_candle_before_decision']} ; sans seconde lecture : {c['no_follow_candles']} ; "
                 f"sans contrôle : {c['no_security']}. Liquidité des pools à la collecte : médiane {usd(q.get('0.5', 0))} $ ; "
                 f"9e décile {usd(q.get('0.9', 0))} $ ; au moins le minimum du veto : {c['pools_at_or_above_min_liquidity']} pools."]
     if r.get("forward_by_reason"):
-        out += ["", "Par famille de motif (descriptif ; un token peut cumuler plusieurs motifs) :", "",
-                "| Motif | Tokens | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive |", "|---|---|---|---|---|---|"]
+        out += ["", "Par famille de motif (descriptif ; un pool peut cumuler plusieurs motifs) :", "",
+                "| Motif | Pools | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive |", "|---|---|---|---|---|---|"]
         for k, v in r["forward_by_reason"].items():
             out.append(f"| {k} | {v['tokens']} | {p(v['collapsed_share'], 0)} | {p(v['median_return'])} | {p(v['mean_net_after_costs'])} | "
                        f"{p(v['share_net_positive'], 0)} |")
