@@ -9,10 +9,12 @@ const prefix = '/api/dmh/memecoin';
       const page = await browser.newPage({viewport:{width,height:900}});
       const errors = [];
       page.on('pageerror', e => errors.push(e.message));
-      let socket, active = false, revision = 0;
+      let socket, active = false, revision = 0, connected;
+      const opened = new Promise(resolve => { connected = resolve; });
       await page.routeWebSocket('**/api/ws', ws => {
         socket = ws;
         ws.send(JSON.stringify({topic:'hello', data:{}}));
+        connected();
       });
       const session = {asset_domain:'memecoin', initial_capital:30, deposit:{amount:30,currency:'USD'}, equity:30,
         tracked_wallet_count:2, activity:[], errors:[], token_ranking:[], closed_trades:0, win_rate:null, mean_closed_pnl:null,
@@ -44,6 +46,8 @@ const prefix = '/api/dmh/memecoin';
       session.equity = 32;
       session.activity.push({mint:'Token de test',ts:30,side:'sell',strategy:'whale_tail',reason:'take_profit',pnl:2});
       session.token_ranking = [['Token de test',2]];
+      // La page peut ouvrir sa WebSocket après ces étapes, selon la vitesse de la machine : attendre la connexion.
+      await Promise.race([opened, new Promise((_, fail) => setTimeout(() => fail(new Error('WebSocket du cockpit jamais ouverte')), 30000).unref())]);
       for (const topic of ['memecoin_fill','memecoin_session']) socket.send(JSON.stringify({topic,data:{asset_domain:'memecoin',strategy:'whale_tail'}}));
       await page.locator('.mc-chart path.up').waitFor();
       assert.equal(await page.locator('.mc-chart path.down').count(), 1);
