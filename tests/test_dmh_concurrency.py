@@ -161,7 +161,7 @@ def test_every_mutating_hub_route_inspects_the_raw_request_first():
     reads = set(re.findall(r'@api\.get\("(/api/dmh/[^"]+)"\)', src))
     assert reads == {"/api/dmh/status", "/api/dmh/markets", "/api/dmh/positions", "/api/dmh/history",
                      "/api/dmh/observatory", "/api/dmh/limits", "/api/dmh/memecoin/session", "/api/dmh/memecoin/radar",
-                     "/api/dmh/memecoin/worker/status", "/api/dmh/memecoin/funnel"}  # entonnoir M58 : lecture seule
+                     "/api/dmh/memecoin/analytics", "/api/dmh/memecoin/worker/status", "/api/dmh/memecoin/funnel"}  # entonnoir M58 : lecture seule
     assert all(first in ("data", "await") for _, _, first in posts) and src.count("await body(request,") == len(posts)
 
 

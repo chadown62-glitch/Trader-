@@ -64,8 +64,21 @@ export default {
         amount.value = s.deposit.amount; currency.value = s.deposit.currency; initialized = true;
       }
     }
+    const analytics = ref(null), analyticsError = ref('');
+    async function refreshAnalytics(id) {
+      try {
+        const data = await api.get(root + '/analytics');
+        if (!live || id !== seq) return;
+        if (data.asset_domain !== 'memecoin') throw new Error('Domaine analytique inattendu');
+        analytics.value = data;
+        analyticsError.value = '';
+      } catch (e) {
+        if (live && id === seq) { analyticsError.value = e.message; analytics.value = null; }
+      }
+    }
     async function refresh() {
       const id = ++seq, version = statusSeq;
+      refreshAnalytics(id);
       try {
         const [s, w] = await Promise.all([api.get(root + '/session'), api.get(root + '/worker/status')]);
         if (!live || id !== seq) return;
@@ -102,7 +115,7 @@ export default {
     const chart = computed(() => session.value && equityChart(session.value));
     const activity = computed(() => (session.value?.activity || []).slice().reverse());
     const maximum = computed(() => Math.max(0.001, ...(session.value?.token_ranking || []).map(row => Math.abs(row[1]))));
-    return { radar, radarError, funnel, funnelError, stages, decisions, session, worker, interval, amount, currency, busy, error, flash, act, chart, activity, maximum,
+    return { analytics, analyticsError, radar, radarError, funnel, funnelError, stages, decisions, session, worker, interval, amount, currency, busy, error, flash, act, chart, activity, maximum,
       strategies, reasons, store, dt, cls, money, signed, pct, plainPct };
   },
   template: `
@@ -139,6 +152,22 @@ export default {
           <line x1="0" x2="600" :y1="chart.baseline" :y2="chart.baseline" stroke="currentColor" stroke-dasharray="5 6"/>
           <path v-for="side in ['up','down']" :key="side" :d="chart.path" :clip-path="'url(#mc-'+side+')'" :class="side" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
         </svg><div class="mc-axis"><small>{{ dt(chart.first) }}</small><small>Référence {{ money(session.initial_capital, 'USD') }}</small><small>{{ dt(chart.last) }}</small></div></template>
+      </section>
+      <section class="card"><h2>Performance &amp; Stratégies</h2>
+        <p v-if="analyticsError" role="alert" class="note warn">{{ analyticsError }}</p>
+        <p v-else-if="!analytics" class="muted">Chargement du bilan…</p>
+        <p v-else-if="analytics.status === 'empty'" class="empty">Aucune session memecoin enregistrée.</p>
+        <template v-else>
+          <p v-if="analytics.status === 'stale'" class="note warn">Valorisation en attente · derniers cours disponibles.</p>
+          <div class="mc-axis"><span>Taux de réussite global</span><b>{{ plainPct(analytics.win_rate) }}</b></div>
+          <div class="mc-axis"><span>Profit factor</span><b>{{ analytics.profit_factor?.toLocaleString('fr-FR', {maximumFractionDigits: 2})
+            ?? (analytics.gross_profit > 0 ? '∞ (aucune perte clôturée)' : '—') }}</b></div>
+          <div class="mc-axis"><span>Drawdown maximal observé</span><b>{{ analytics.max_drawdown_pct?.toLocaleString('fr-FR', {maximumFractionDigits: 2}) }} %</b></div>
+          <table><thead><tr><th>Stratégie</th><th>P&amp;L net</th><th>Réussite sur clôtures</th></tr></thead>
+            <tbody><tr v-for="(name,key) in strategies" :key="key"><th scope="row">{{ name }}</th>
+              <td :class="cls(analytics.strategies[key].pnl)">{{ signed(analytics.strategies[key].pnl,'USD') }}</td>
+              <td>{{ plainPct(analytics.strategies[key].win_rate) }}</td></tr></tbody></table>
+        </template>
       </section>
       <section class="card mc-funnel"><div class="card-head"><h2>Pools établis &amp; flotte d'agents</h2><span class="spacer"></span><small>24 h</small></div>
         <p v-if="funnelError" class="note warn">{{ funnelError }}</p>

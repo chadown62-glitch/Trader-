@@ -9,6 +9,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import sqlite3
 import threading
 import time
 
@@ -165,6 +167,40 @@ def register_routes(api, app, service_factory) -> MemecoinSessionWorker:
     async def memecoin_funnel():
         """Pools établis des dernières 24 h (vus, refusés par motif, retenus) et décisions de la flotte : lecture seule."""
         return await run(funnel_snapshot)
+
+    def analytics_snapshot():
+        try:
+            from .memecoin_analytics import build_analytics_report
+        except ModuleNotFoundError as exc:
+            if exc.name != "sentinelle.dmh.memecoin_analytics":
+                raise
+            raise SourceUnavailable("Analyse memecoin", "Module analytique memecoin indisponible") from exc
+
+        # The report and the closed-position breakdown must describe the same tick.
+        raw = app.db.get_meta(memecoin_simulator.KEY)
+        try:
+            report = build_analytics_report(app.db.path)
+        except sqlite3.OperationalError as exc:
+            raise SourceUnavailable("Analyse memecoin", "Lecture du bilan temporairement indisponible") from exc
+        if app.db.get_meta(memecoin_simulator.KEY) != raw:
+            raise SourceUnavailable("Analyse memecoin", "Session actualisée pendant la lecture du bilan")
+        if report["status"] == "empty":
+            return {**report, "initial_capital": None, "equity": None, "net_pnl": None, "net_pnl_pct": None,
+                    "closed_trades": 0, "win_rate": None, "profit_factor": None, "max_drawdown_pct": None,
+                    "gross_profit": 0, "gross_loss": 0, "top_tokens": [], "flop_tokens": [],
+                    "strategies": {name: {"pnl": 0, "trades": 0, "closed_trades": 0, "win_rate": None}
+                                   for name in memecoin_simulator.NAMES}}
+
+        completed = json.loads(raw)["completed"]
+        for name, stats in report["strategies"].items():
+            outcomes = [trade["return"] for trade in completed if trade["strategy"] == name]
+            stats["closed_trades"] = len(outcomes)
+            stats["win_rate"] = sum(value > 0 for value in outcomes) / len(outcomes) if outcomes else None
+        return report
+
+    @api.get("/api/dmh/memecoin/analytics")
+    async def memecoin_analytics():
+        return await run(analytics_snapshot)
 
     @api.get("/api/dmh/memecoin/session")
     async def memecoin_session():
