@@ -247,6 +247,27 @@ def forward_check(pools: list[dict], verdicts: dict, follow_ohlcv: dict, sol_usd
     return out
 
 
+REASON_FAMILIES = {  # familles de motifs du veto, pour une lecture DESCRIPTIVE de l'issue (un token peut en avoir plusieurs)
+    "créateur déjà signalé": ("Creator history",),
+    "concentration des détenteurs": ("détenteur", "Single holder", "High holder", "Top 10", "High ownership"),
+    "revente impossible ou chère": ("aucune route de revente", "aller-retour immédiat"),
+    "liquidité faible": ("liquidité ", "Low Liquidity"),
+    "liquidité non verrouillée": ("LP Unlocked", "verrouillée"),
+}
+
+
+def forward_by_reason(pools: list[dict], verdicts: dict, follow_ohlcv: dict, sol_usd: float, decided_ms: dict) -> dict:
+    """Issue après la décision, par famille de motif du veto (descriptif : petits effectifs, chevauchements)."""
+    out = {}
+    for family, keys in REASON_FAMILIES.items():
+        members = {pid: {"status": family} for pid, v in verdicts.items() if any(k in r for r in v["veto"] for k in keys)}
+        out.update(forward_check(pools, members, follow_ohlcv, sol_usd, decided_ms))
+    clean = {pid: {"status": "aucun signalement Rugcheck « danger »"} for pid, v in verdicts.items()
+             if not any(r.startswith("signalement") for r in v["veto"])}
+    out.update(forward_check(pools, clean, follow_ohlcv, sol_usd, decided_ms))
+    return out
+
+
 # -- stress -------------------------------------------------------------------------------------------------------------
 def stress_scenarios(sol_usd: float) -> dict:
     """Scénarios synthétiques : ce que coûte un retrait de liquidité, une taxe, une sortie bloquée, une panne de source."""
@@ -337,8 +358,8 @@ def run(capture: list[dict], follow: list[dict] | None = None) -> dict:
         "sources": coll.get("sources"), "quality": coll.get("quality"),
         "guardian": {"rules": guardian.RULES, "counts": {s: statuses.count(s) for s in (guardian.VETO, guardian.ABSTAIN, guardian.PASS)},
                      "reasons": dict(sorted(reasons.items(), key=lambda kv: -kv[1]))},
-        "forward_check": forward_check(pools, verdicts, follow_map, sol_usd,
-                                       {p["pool"]: sec[p["mint"]]["observed_ms"] for p in pools if p["mint"] in sec}) if follow else None,
+        "forward_check": forward_check(pools, verdicts, follow_map, sol_usd, decided) if follow else None,
+        "forward_by_reason": forward_by_reason(pools, verdicts, follow_map, sol_usd, decided) if follow else None,
         "strategies": results, "cost_model_validation": validation,
         "hypotheses": {"dex_fees": DEX_FEES, "default_dex_fee": DEFAULT_DEX_FEE, "network_lamports": NETWORK, **HYPOTHESES, "order_usd": ORDER_USD},
         "stress": stress_scenarios(sol_usd),
@@ -389,6 +410,12 @@ def markdown(r: dict) -> str:
         for k, v in r["forward_check"].items():
             out.append(f"| {k} | {v['tokens']} | {p(v['collapsed_share'], 0)} | {p(v['median_return'])} | {p(v['mean_net_after_costs'])} | "
                        f"{p(v['share_net_positive'], 0)} | {v['median_minutes_after']:.0f} |")
+    if r.get("forward_by_reason"):
+        out += ["", "Par famille de motif (descriptif ; un token peut cumuler plusieurs motifs) :", "",
+                "| Motif | Tokens | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive |", "|---|---|---|---|---|---|"]
+        for k, v in r["forward_by_reason"].items():
+            out.append(f"| {k} | {v['tokens']} | {p(v['collapsed_share'], 0)} | {p(v['median_return'])} | {p(v['mean_net_after_costs'])} | "
+                       f"{p(v['share_net_positive'], 0)} |")
     out += ["", "#### Règles de sélection (ordre de 11 $ ≈ 10 €, coûts complets)", "",
             "| Règle | Partie | Ordres | Gagnants | Moyenne nette [IC 95 %] | Médiane | Total net ($) | Facteur de profit | Dans des pools effondrés |",
             "|---|---|---|---|---|---|---|---|---|"]
