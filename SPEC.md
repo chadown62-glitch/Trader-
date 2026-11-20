@@ -38,7 +38,7 @@
 - **Capital :** le journal est en USD. Un dépôt fictif initial en EUR utilise le cours acheteur public EUR/USD horodaté à l’ouverture. Les évaluations suivantes sont en USD. Aucun mouvement n’affecte les comptes majors.
 - **Vérification Windows 11 :** sous Python 3.12, exécuter `python -m pytest`, puis `python -m sentinelle --demo --no-browser`. Dans Edge, ouvrir l’adresse locale indiquée, se connecter et sélectionner Memecoin. Vérifier le capital, Démarrer, le compteur de cycles, puis Pause et Cycle manuel après le délai de régulation. Les données publiques et les quotas conditionnent la disponibilité des observations.
 
-## SPRINT 5 : INTÉGRATION, INTERFACE & PIVOT LIQUIDITÉ (M58) `[EN COURS]`
+## SPRINT 5 : INTÉGRATION, INTERFACE & PIVOT LIQUIDITÉ (M58) `[TERMINÉ]`
 - **Objectif :** Tirer la leçon de M56 : sur 127 nouveaux pools contrôlés à leur détection, la liquidité médiane était de 1 601 $, un tiers n'avait aucune route de revente et aucun ne passait le veto. Le scanner memecoin vise désormais les **pools établis**, et la flotte d'agents (M57) rejoint la session fictive.
 - **Périmètre :**
   1. **Pools établis :** candidats issus des pools Solana en tendance (GeckoTerminal), retenus seulement si la liquidité atteint au moins 20 000 $, si le pool a au moins une heure, si la dernière heure montre au moins 5 000 $ de volume avec au moins 10 achats et 10 ventes, et si un aller-retour Jupiter de 0,05 SOL, coté sans portefeuille, perd au plus 10 %. Le veto anti-arnaque (`tokenrisk.assess_candidate`) s'applique ensuite, toujours en dernier mot.
@@ -47,3 +47,9 @@
   4. **Cockpit Memecoin :** entonnoir de filtrage (vus, refusés par motif, retenus), liquidité des candidats et décisions de la flotte.
 - **Contraintes :** au plus 6 fichiers par PR ; PR #54 et #55 gelées ; simulation pure (`asset_domain="memecoin"`) ; aucun ordre réel, aucune clé, aucune promotion automatique.
 - **Critère de validation :** `python -m pytest` passe sous Linux et Windows (CI). Dans le cockpit Memecoin, l'entonnoir des pools établis et les décisions de la flotte s'affichent.
+- **Livré le 20 novembre 2026 :** PR #74 (pools établis et veto), #75 (flotte d'agents) et #76 (cockpit), fusionnées avec la CI verte sous Ubuntu, Windows et Chromium. Prérequis fusionnés le même jour : #68, #69 et #73.
+- **Pipeline cloud continu :** le workflow `memecoin-paper-sim.yml` tourne toutes les 6 heures (`0 */6 * * *`) et à la demande (`workflow_dispatch`). Il exécute un cycle borné de la chaîne M58 complète avec `memecoin_cloud_runner` : pools établis, veto anti-arnaque, flotte d'agents, puis sorties calibrées (stop −20 %, 20 % vendus à 1,25×, paliers x3/x6/x10, stop suiveur adaptatif). La session SQLite dédiée est reprise d'une exécution à l'autre (`actions/cache`, puis artefact de secours). Le bilan est écrit dans le résumé de l'exécution (`$GITHUB_STEP_SUMMARY`), lisible depuis l'onglet Actions sur mobile :
+  - capital, équité, P&L net, win rate, profit factor et drawdown maximal ;
+  - compteurs du filtrage et des vetos, sur le passage et sur 24 h ;
+  - décisions de la flotte et détail par stratégie.
+  Les rapports JSON, texte et Markdown sont déposés en artefacts. L'analytique complète vient de `memecoin_analytics.build_analytics_report` ; tant que ce module n'est pas sur `main`, le bilan l'indique au lieu d'échouer. Simulation uniquement : aucun ordre réel, aucune clé.
