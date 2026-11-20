@@ -30,6 +30,17 @@ export default {
     const session = ref(null), worker = ref(null), busy = ref(false), error = ref('');
     const amount = ref(30), currency = ref('USD'), interval = ref(15), flash = ref('');
     let seq = 0, statusSeq = 0, timer, live = true, initialized = false;
+    const radar = ref(null), radarError = ref('');
+    let radarPending = false, radarTimer;
+    async function refreshRadar() {
+      if (!live || radarPending || document.hidden) return;
+      radarPending = true;
+      try {
+        const data = await api.get(root + '/radar');
+        if (live && data.asset_domain === 'memecoin') { radar.value = data; radarError.value = ''; }
+      } catch (e) { if (live) radarError.value = e.message; }
+      finally { radarPending = false; }
+    }
     const off = [];
     function accept(s) {
       if (!live || s?.asset_domain !== 'memecoin' || s.revision < (session.value?.revision ?? 0)) return;
@@ -67,13 +78,15 @@ export default {
           if (f.asset_domain !== 'memecoin') return;
           flash.value = f.strategy; clearTimeout(timer); timer = setTimeout(() => flash.value = '', 3500);
         }));
-      refresh();
+      refresh(); refreshRadar();
+      radarTimer = setInterval(refreshRadar, 60000);
+      document.addEventListener('visibilitychange', refreshRadar);
     });
-    onBeforeUnmount(() => { live = false; off.forEach(unsub => unsub()); clearTimeout(timer); });
+    onBeforeUnmount(() => { live = false; clearInterval(radarTimer); document.removeEventListener('visibilitychange', refreshRadar); off.forEach(unsub => unsub()); clearTimeout(timer); });
     const chart = computed(() => session.value && equityChart(session.value));
     const activity = computed(() => (session.value?.activity || []).slice().reverse());
     const maximum = computed(() => Math.max(0.001, ...(session.value?.token_ranking || []).map(row => Math.abs(row[1]))));
-    return { session, worker, interval, amount, currency, busy, error, flash, act, chart, activity, maximum,
+    return { radar, radarError, session, worker, interval, amount, currency, busy, error, flash, act, chart, activity, maximum,
       strategies, reasons, store, dt, cls, money, signed, pct, plainPct };
   },
   template: `
@@ -91,6 +104,10 @@ export default {
           <span v-if="activity.length" class="badge">Dernière exécution · {{ strategies[activity[0].strategy] }} · {{ reasons[activity[0].reason] }}</span>
         </div>
         <form @submit.prevent="act('start')" class="mc-controls">
+          <div class="btn-row" v-if="!session.revision && !worker?.active" aria-label="Capital de départ en dollars">
+            <button v-for="n in [30,100,1000]" :key="n" type="button" :disabled="busy" :aria-pressed="amount === n && currency === 'USD'"
+              @click="amount = n; currency = 'USD'">{{ n.toLocaleString('fr-FR') }} $</button>
+          </div>
           <label>Capital fictif<input type="number" v-model.number="amount" min="10" max="1000000" step="any" required :disabled="busy || !!session.revision"></label>
           <label>Devise<select v-model="currency" :disabled="busy || !!session.revision"><option>USD</option><option>EUR</option></select></label>
           <label>Intervalle (s)<input type="number" v-model.number="interval" min="15" max="3600" required :disabled="busy || worker?.active"></label>
@@ -106,6 +123,24 @@ export default {
           <line x1="0" x2="600" :y1="chart.baseline" :y2="chart.baseline" stroke="currentColor" stroke-dasharray="5 6"/>
           <path v-for="side in ['up','down']" :key="side" :d="chart.path" :clip-path="'url(#mc-'+side+')'" :class="side" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
         </svg><div class="mc-axis"><small>{{ dt(chart.first) }}</small><small>Référence {{ money(session.initial_capital, 'USD') }}</small><small>{{ dt(chart.last) }}</small></div></template>
+      </section>
+      <section class="card"><div class="card-head"><h2>Radar Solana &amp; Top Smart Wallets</h2>
+        <span v-if="radar" class="spacer"></span><small v-if="radar">{{ dt(radar.observed_at) }}</small></div>
+        <p v-if="radarError" class="note warn">{{ radarError }}</p>
+        <p v-if="!radar && !radarError" class="muted">Collecte des observations publiques…</p>
+        <template v-if="radar">
+          <p v-if="radar.errors?.length" class="muted">Couverture publique partielle.</p>
+          <div v-for="t in radar.tokens" :key="t.mint || 'demo'" class="mc-axis">
+            <strong>{{ t.symbol }}</strong><small>{{ t.source === 'live' ? 'Public' : 'Exemple simulé' }}</small>
+            <span>{{ money(t.liquidity_usd,'USD') }} de liquidité · {{ pct(t.change_5m_pct, 2, true) }} sur 5 min</span>
+            <span>{{ {passed:'Guardian accepté',veto:'Guardian refusé',unknown:'Risque inconnu'}[t.risk] }} · RugCheck {{ t.rug_score ?? '—' }}</span>
+            <small>{{ t.eligible_strategies.map(k => strategies[k]).join(', ') || 'Aucune stratégie éligible' }}</small>
+          </div><p v-if="!radar.tokens?.length">Aucun candidat observé.</p>
+          <h3>Wallets qualifiés · 72 h</h3>
+          <p v-if="!radar.smart_wallets?.length" class="muted">Aucun wallet qualifié sur la période.</p>
+          <div v-for="w in radar.smart_wallets" :key="w.address" class="mc-axis"><code :title="w.address">{{ w.address.slice(0,6) }}…{{ w.address.slice(-5) }}</code>
+            <span>{{ w.score_72h_sol.toFixed(4) }} SOL pondérés · {{ plainPct(w.win_rate) }} gagnants · aucun dump signalé</span></div>
+        </template>
       </section>
       <div class="mc-grid"><article v-for="(name,key) in strategies" :key="key" class="card" :class="{'mc-flash': flash === key}">
         <h2>{{ name }}</h2><strong :class="cls(session.strategies[key].pnl)">{{ signed(session.strategies[key].pnl,'USD') }}</strong>

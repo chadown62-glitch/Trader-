@@ -18,7 +18,8 @@ from fastapi.responses import JSONResponse
 from . import memecoin_simulator
 from .memecoin_worker import CycleBusy, MemecoinSessionWorker
 from .net import SourceUnavailable
-from .solana_scanner import scan_once
+from .solana_scanner import LiveRadar, scan_once
+from .smart_wallets import profitable, ranking, recent_record
 from .guard import inspect_request
 from .ledger import Blocked, LedgerError
 from .security import SecurityRefusal
@@ -130,6 +131,26 @@ def register_routes(api, app, service_factory) -> MemecoinSessionWorker:
         if data.keys() - {"mode", "initial_capital", "currency"}:
             return JSONResponse({"detail": "Champ de session inconnu"}, status_code=400)
         return await run(scan, 25000, True, False, data.get("initial_capital"), data.get("currency"))
+
+    radar = LiveRadar()
+
+    def radar_snapshot():
+        state, wallets = memecoin_simulator.load(app.db)
+        assets = state["assets"]
+        now = int(time.time())
+        winners = {mint for mint, asset in assets.items() if asset.get("winner") and not asset.get("blocked")}
+        qualified = {k: w for k, w in wallets.items() if w.get("asset_domain") == "memecoin"
+                     and w.get("qualified") and profitable(w, winners, now)}
+        rows = []
+        for address in ranking(qualified, now)[:10]:
+            record = recent_record(qualified[address], now)
+            rows.append({"address": address, "score_72h_sol": record["pnl_sol"], "win_rate": record["win_rate"],
+                         "recent_cycles": record["recent_cycles"], "anti_dump": "no_flag_observed"})
+        return {**radar.get_live_radar_snapshot(assets, qualified), "smart_wallets": rows}
+
+    @api.get("/api/dmh/memecoin/radar")
+    async def memecoin_radar():
+        return await run(radar_snapshot)
 
     @api.get("/api/dmh/memecoin/session")
     async def memecoin_session():
