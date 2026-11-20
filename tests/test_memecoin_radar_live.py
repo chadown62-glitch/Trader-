@@ -50,7 +50,8 @@ def test_unavailable_returns_only_explicit_display_fallback(status):
     snapshot = radar.get_live_radar_snapshot()
     (row,) = snapshot["tokens"]
     assert row["source"] == "fallback" and row["mint"] is None
-    assert not row["eligible_strategies"] and row["rug_score"] is None and snapshot["errors"]
+    assert row["eligible_strategies"] == ["momentum"]
+    assert row["rug_score"] is None and snapshot["errors"]
 
 
 def test_authenticated_domain_and_wallet_recency(api_setup, monkeypatch):

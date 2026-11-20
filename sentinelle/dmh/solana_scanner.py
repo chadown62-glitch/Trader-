@@ -223,7 +223,7 @@ def _radar_rows(client, assets, wallets, now):
     if not candidates and errors:
         candidates.append({"mint": None, "symbol": "DÉMO", "quality_tier": None, "liquidity_usd": 30000, "volume_5m": 500,
                            "volume_1h": 6000, "change_5m_pct": 0, "rug_score": None, "risk": "unknown",
-                           "eligible_strategies": [], "source": "fallback"})
+                           "eligible_strategies": ["momentum"], "source": "fallback"})
     return {"asset_domain": "memecoin", "observed_at": now, "tokens": candidates, "errors": errors}
 
 
