@@ -6,21 +6,18 @@ aucune fusion sur `main`, aucune promotion de modèle.
 
 ## Mission active
 
-**M58 — Sprint 5 [EN COURS]** (autorisé le 20/11/2026) : intégration, interface, pivot vers les pools établis.
+**Aucune.** M58 (Sprint 5) est livrée sur `main` le 20/11/2026. M59 (audit global et passation) attend un accord.
 
-- PR #69 : CI réparée. Ubuntu et cockpit sont verts. Windows : 1106 réussis, 0 échec, 10 erreurs. Les 10 erreurs
-  viennent des gardes réseau de `tests/test_lockdown.py` et `tests/test_paper_only_security.py` : elles bloquent aussi
-  la paire de sockets locale qu'asyncio utilise sous Windows. Leur assouplissement (boucle locale seulement) attend
-  la décision du propriétaire.
-- Trois lots M58 prêts et testés en local (suite complète combinée : 1156 réussis). Ils sont poussés en sauvegarde,
-  sans PR :
-  - `claude/m58-wip-pivot-fleet` : pivot, puis flotte ;
-  - `claude/m58-wip-cockpit` : cockpit, sur une fusion locale de #68.
-- À faire quand #68 et #69 seront fusionnées : recréer trois branches depuis `main` (6 fichiers au plus chacune) et
-  ouvrir les PR :
-  1. pivot : SPEC, net, tokenrisk, established_pools, simulateur, test du moteur ;
-  2. flotte : fleet ×3, simulateur, test_fleet ;
-  3. cockpit : api, memecoin.js, e2e, test du cockpit, inventaire des routes, rapport.
+- #69 (sorties calibrées et environnement de CI), #68 (radar Solana) et #73 (gardes réseau : seule la boucle locale
+  passe) sont fusionnées. Sur #73, la CI Windows donne 1122 réussis, 0 échec, 0 erreur.
+- M58 est fusionnée en trois PR de 6 fichiers au plus :
+  - #74 : pools établis et veto opérant ;
+  - #75 : flotte de 12 agents consultée avant chaque entrée fictive ;
+  - #76 : métriques du cockpit et rapport `docs/validation/m58-integration.md`.
+- Suite complète locale de l'ensemble : 1156 réussis.
+- `SPEC.md` marque encore le Sprint 5 `[EN COURS]`. Le passer à `[TERMINÉ]` demande une décision humaine.
+- Défaut de CI relevé et proposé en tâche séparée : le job de fusion échoue sur un passage annulé (édition d'une PR
+  pendant sa CI), même quand le passage suivant est vert. Le corriger touche `.github/` et demande un accord.
 
 ## Missions terminées
 
