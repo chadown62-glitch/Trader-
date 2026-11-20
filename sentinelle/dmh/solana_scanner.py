@@ -1,9 +1,12 @@
 """On-demand, bounded sample of finalized Raydium pool initializations; observation only."""
 import hashlib
+import math
+import threading
+import time
 
 from ..ai.features_memecoin import extract_features
 from .dex import _rpc
-from .net import SourceUnavailable
+from .net import HOSTS, PublicClient, SourceUnavailable
 from .tokenrisk import assess_candidate
 from .tokens import TokenId, b58decode, load_registry
 
@@ -124,3 +127,118 @@ def scan_once(client, db, bus, *, min_liquidity_usd=25000, registry=None):
             except (SourceUnavailable, ValueError, TypeError, KeyError, IndexError) as exc:
                 errors.append({"program": program, "reason": str(exc)})
     return {"asset_domain": "memecoin", "decisions": decisions, "errors": errors, "limit_reached": False}
+
+
+class RadarClient(PublicClient):
+    """Allow the fixed public boost listing only on this read-only radar client."""
+
+    @staticmethod
+    def check(host, path, params=None, rpc_method=None):
+        if host == "api.dexscreener.com" and path == "/token-boosts/latest/v1" and not params and rpc_method is None:
+            return HOSTS[host]
+        return PublicClient.check(host, path, params, rpc_method)
+
+
+def _number(value):
+    if type(value) in (float, int) and abs(value) <= 1e300:
+        return float(value)
+    return None
+
+
+def _radar_rows(client, assets, wallets, now):
+    from .memecoin_strategies import evaluate
+    from .smart_wallets import confluence
+
+    host = "api.dexscreener.com"
+    addresses = []
+    errors = []
+    registry = load_registry()
+    try:
+        boosts = client.get(host, "/token-boosts/latest/v1").json()
+        if not isinstance(boosts, list):
+            raise ValueError("liste de boosts invalide")
+        for item in boosts:
+            if isinstance(item, dict) and item.get("chainId") == "solana":
+                addresses.append(item.get("tokenAddress"))
+    except (SourceUnavailable, ValueError) as exc:
+        errors.append(str(exc))
+    # Include pools already discovered on-chain even when boost discovery is offline.
+    candidates = []
+    seen = set()
+    for address in [*list(assets)[-2:], *addresses]:
+        if not isinstance(address, str) or address in seen:
+            continue
+        try:
+            mint = TokenId("solana", address)
+        except ValueError:
+            continue
+        if registry.get(mint) or address in QUOTE_MINTS:
+            continue
+        seen.add(address)
+        if len(seen) > 4:
+            break
+        try:
+            pairs = client.get(host, f"/token-pairs/v1/solana/{address}").json()
+            if not isinstance(pairs, list):
+                raise ValueError("réponse paires invalide")
+            best = None
+            for pair in pairs:
+                if not isinstance(pair, dict) or pair.get("chainId") != "solana" or (pair.get("baseToken") or {}).get("address") != address:
+                    continue
+                depth = _number((pair.get("liquidity") or {}).get("usd"))
+                if depth and depth > 0 and (best is None or depth > best[0]):
+                    best = depth, pair
+            if best is None:
+                continue
+            depth, pair = best
+            point = extract_features(pair, observed_ms=now * 1000, created_ms=pair.get("pairCreatedAt"))
+            stored = assets.get(address, {})
+            asset = stored if stored.get("pool") == pair.get("pairAddress") else {}
+            price = float(pair.get("priceUsd") or 0)
+            # Missing price/age cannot authorize any strategy, but risk remains reportable.
+            whale = bool(asset.get("excluded")) and confluence(wallets, address, now, asset["excluded"])
+            can_evaluate = (point["pool_age_minutes"] is not None and price > 0 and math.isfinite(price)
+                            and pair.get("dexId") == "raydium" and (pair.get("quoteToken") or {}).get("address") in QUOTE_MINTS)
+            if can_evaluate:
+                signals, guard = evaluate(client, {**asset, "symbol": address}, {**point, "price": price}, whale)
+            else:
+                signals, guard = [], assess_candidate(client, mint, depth)
+            rug = guard["evidence"].get("rugcheck", {})
+            score = _number(rug.get("score"))
+            risk = "veto" if rug.get("flags") else "unknown" if score is None else "veto" if not guard["allowed"] else "passed"
+            if not rug:
+                errors.append(f"{address} : RugCheck indisponible")
+            vol = pair.get("volume") or {}
+            candidates.append({"mint": address, "symbol": str(pair["baseToken"].get("symbol") or address)[:32],
+                               "liquidity_usd": depth, "volume_5m": _number(vol.get("m5")), "volume_1h": _number(vol.get("h1")),
+                               "change_5m_pct": _number((pair.get("priceChange") or {}).get("m5")), "rug_score": score,
+                               "risk": risk, "eligible_strategies": signals if risk == "passed" else [], "source": "live"})
+        except (SourceUnavailable, KeyError, TypeError, AttributeError, ValueError, OverflowError) as exc:
+            errors.append(str(exc))
+    # Ordinal quality tier, not a probability. Liquidity breaks ties within each tier.
+    tiers = {"passed": 2, "unknown": 1, "veto": 0}
+    for row in candidates:
+        row["quality_tier"] = tiers[row["risk"]]
+    candidates.sort(key=lambda row: (-row["quality_tier"], -row["liquidity_usd"], row["mint"]))
+    if not candidates and errors:
+        candidates.append({"mint": None, "symbol": "DÉMO", "quality_tier": None, "liquidity_usd": 30000, "volume_5m": 500,
+                           "volume_1h": 6000, "change_5m_pct": 0, "rug_score": None, "risk": "unknown",
+                           "eligible_strategies": [], "source": "fallback"})
+    return {"asset_domain": "memecoin", "observed_at": now, "tokens": candidates, "errors": errors}
+
+
+class LiveRadar:
+    def __init__(self, client_factory=None, monotonic=time.monotonic):
+        self.client_factory = client_factory or (lambda: RadarClient(timeout=2, retries=0, budget=48))
+        self.monotonic = monotonic
+        self.lock = threading.Lock()
+        self.snapshot = None
+        self.expires = 0
+
+    def get_live_radar_snapshot(self, assets=None, wallets=None):
+        with self.lock:
+            if self.snapshot is None or self.monotonic() >= self.expires:
+                client = self.client_factory()
+                self.snapshot = _radar_rows(client, assets or {}, wallets or {}, int(client.clock()))
+                self.expires = self.monotonic() + 60
+            return self.snapshot
