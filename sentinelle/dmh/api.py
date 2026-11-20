@@ -15,7 +15,7 @@ import time
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from . import memecoin_simulator
+from . import established_pools, memecoin_simulator
 from .memecoin_worker import CycleBusy, MemecoinSessionWorker
 from .net import SourceUnavailable
 from .solana_scanner import LiveRadar, scan_once
@@ -151,6 +151,20 @@ def register_routes(api, app, service_factory) -> MemecoinSessionWorker:
     @api.get("/api/dmh/memecoin/radar")
     async def memecoin_radar():
         return await run(radar_snapshot)
+
+    def funnel_snapshot():
+        state, _ = memecoin_simulator.load(app.db)
+        recent = state.get("fleet", [])
+        counts = {}
+        for decision in recent:
+            counts[decision["decision"]] = counts.get(decision["decision"], 0) + 1
+        summary = established_pools.summary(app.db, int(time.time()) - 86400)
+        return {**summary, "fleet": {"recent": recent[-10:][::-1], "counts": counts, "kept": len(recent)}}
+
+    @api.get("/api/dmh/memecoin/funnel")
+    async def memecoin_funnel():
+        """Pools établis des dernières 24 h (vus, refusés par motif, retenus) et décisions de la flotte : lecture seule."""
+        return await run(funnel_snapshot)
 
     @api.get("/api/dmh/memecoin/session")
     async def memecoin_session():
