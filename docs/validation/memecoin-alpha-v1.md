@@ -9,10 +9,11 @@
 
 **AUCUN AVANTAGE DÉMONTRÉ.** Sur 136 nouveaux pools Solana collectés lors de deux collectes (17 et 20 novembre 2026) :
 
-- **127 tokens contrôlés, 127 refusés par le veto.** Aucun n'a passé, donc aucun trade « avec veto » n'existe à évaluer.
+- **127 pools contrôlés (121 tokens distincts), 127 refusés par le veto.** Aucun n'a passé, donc aucun trade « avec
+  veto » n'existe à évaluer.
 - Le flux des nouveaux pools est presque entièrement composé de lancements minuscules : la liquidité médiane est de
   1 601 $, et seuls 9 pools sur 136 atteignent le minimum de 20 000 $ du veto.
-- **82 des 127 tokens (65 %) n'ont plus aucun échange après la décision du veto.** Ils se sont arrêtés dans les
+- **82 des 127 pools (65 %) n'ont plus aucun échange après la décision du veto.** Ils se sont arrêtés dans les
   minutes qui ont suivi.
 - Les cinq règles de sélection n'ont déclenché qu'un à deux ordres chacune sur la partie d'entraînement, et aucun sur
   la partie de développement. Ce n'est pas assez pour conclure dans un sens ou dans l'autre.
@@ -138,7 +139,7 @@ Tableaux complets : [`mesures/memecoin-v1/lab.md`](mesures/memecoin-v1/lab.md). 
 
 ### 5.1 Veto à la collecte
 
-| Décision | Tokens |
+| Décision | Pools |
 |---|---|
 | VETO | 127 |
 | ABSTENTION | 0 |
@@ -146,11 +147,11 @@ Tableaux complets : [`mesures/memecoin-v1/lab.md`](mesures/memecoin-v1/lab.md). 
 
 Neuf pools n'ont pas été contrôlés : la collecte borne le nombre de contrôles de sécurité (60 puis 64 pools).
 
-Chaque token cumule de 1 à 9 motifs de veto. Les plus fréquents :
+L'unité de mesure est le pool : un même token peut en avoir plusieurs. Chaque pool cumule de 1 à 9 motifs de veto. Les plus fréquents :
 
 | Motif | Occurrences |
 |---|---|
-| signalement Rugcheck « danger » | 173 (98 tokens) |
+| signalement Rugcheck « danger » | 173 (98 pools) |
 | pool de moins de 30 minutes (signal faible) | 127 |
 | liquidité sous le minimum | 118 |
 | plus gros détenteur au-delà de 15 % | 54 |
@@ -161,28 +162,28 @@ Chaque token cumule de 1 à 9 motifs de veto. Les plus fréquents :
 | liquidité ni verrouillée ni brûlée | 15 |
 
 Deux constats découlent de ces chiffres :
-- **Un token sur trois (42 sur 127) était invendable** au moment de la détection : Jupiter ne trouvait aucune route de
+- **Un pool sur trois (42 sur 127) était invendable** au moment de la détection : Jupiter ne trouvait aucune route de
   revente. Un acheteur n'aurait pas pu sortir.
-- **Avec les règles actuelles, aucun token ne peut passer à sa première lecture.** Le veto décide de 7 à 19 minutes
+- **Avec les règles actuelles, aucun pool ne peut passer à sa première lecture.** Le veto décide de 7 à 19 minutes
   après la création du pool, donc tout pool porte le signal « moins de 30 minutes » et le veto s'abstient au mieux.
-  Sur ces données, cela ne change rien : chacun des 127 tokens a aussi au moins un motif de veto fort, et 27 sont
-  refusés pour leur seule liquidité. Mais pour qu'un token puisse un jour passer, il faudra le relire plus tard (§ 6).
+  Sur ces données, cela ne change rien : chacun des 127 pools a aussi au moins un motif de veto fort, et 27 sont
+  refusés pour leur seule liquidité. Mais pour qu'un pool puisse un jour passer, il faudra le relire plus tard (§ 6).
 
 ### 5.2 Issue après la décision (contrôle en avant)
 
 On compare le prix à l'instant de la décision avec le dernier prix lu ensuite.
 
-| Décision | Tokens à l'issue lisible | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive | Minutes de vie après la décision (médiane) |
+| Décision | Pools à l'issue lisible | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive | Minutes de vie après la décision (médiane) |
 |---|---|---|---|---|---|---|
 | VETO | 45 | 9 % | −0,6 % | −33,7 % | 11 % | 25 |
 
-Couverture : l'issue est lisible pour 45 tokens. Pour 82 autres, **aucun échange** n'a eu lieu après la décision. Ces
-82 tokens ne sont pas comptés comme effondrés, faute de prix. Leur absence de la table rend donc l'issue du veto
+Couverture : l'issue est lisible pour 45 pools. Pour 82 autres, **aucun échange** n'a eu lieu après la décision. Ces
+82 pools ne sont pas comptés comme effondrés, faute de prix. Leur absence de la table rend donc l'issue du veto
 **plus favorable qu'elle ne l'est**.
 
-Issue par famille de motif (descriptif : petits effectifs, et un même token peut figurer dans plusieurs familles) :
+Issue par famille de motif (descriptif : petits effectifs, et un même pool peut figurer dans plusieurs familles) :
 
-| Motif | Tokens | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive |
+| Motif | Pools | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive |
 |---|---|---|---|---|---|
 | créateur déjà signalé | 16 | 6 % | −0,3 % | −33,4 % | 0 % |
 | concentration des détenteurs | 6 | 0 % | −26,8 % | −101,2 % | 17 % |
@@ -194,8 +195,8 @@ Issue par famille de motif (descriptif : petits effectifs, et un même token peu
 Une moyenne nette inférieure à −100 % n'est pas une erreur. Dans un pool presque vide, le coût d'impact d'un ordre de
 11 $ dépasse la mise. Ces pools sont de toute façon refusés pour leur liquidité. La médiane est la mesure à lire.
 
-Les huit tokens à liquidité non verrouillée ont la meilleure médiane (+12,2 %), mais aussi le plus d'effondrements
-(38 %). C'est le profil d'un retrait de liquidité : le prix monte, puis la liquidité disparaît. Huit tokens ne
+Les huit pools à liquidité non verrouillée ont la meilleure médiane (+12,2 %), mais aussi le plus d'effondrements
+(38 %). C'est le profil d'un retrait de liquidité : le prix monte, puis la liquidité disparaît. Huit pools ne
 suffisent pas à en tirer une règle.
 
 ### 5.3 Règles de sélection
@@ -208,7 +209,7 @@ suffisent pas à en tirer une règle.
 | `reversal_30` | 2 ordres, −15,9 % en moyenne | 2 ordres, −52,6 % | aucun ordre |
 | `fast_exit` | 1 ordre, +8,5 % | 1 ordre, −7,8 % | aucun ordre |
 
-Les colonnes « avec veto » sont vides dans tous les cas : aucun token n'a passé. Les deux seuls ordres gagnants
+Les colonnes « avec veto » sont vides dans tous les cas : aucun pool n'a passé. Les deux seuls ordres gagnants
 (`momentum_15` et `fast_exit`) ont eu lieu dans un pool qui s'est ensuite effondré. Un délai de 2 minutes les rend
 perdants. Avec un ou deux ordres par règle, ces chiffres ne prouvent rien. Ils ne justifient aucune sélection de
 candidat pour la partie réservée.
@@ -224,9 +225,9 @@ Les devis Jupiter sans portefeuille ont donné 72 allers-retours mesurés de 0,0
 | écart médian | −0,3 point (le modèle est légèrement prudent) |
 
 L'écart absolu au 9e décile atteint 62 points. Les plus gros écarts vont dans les deux sens :
-- **le marché coûte bien plus que le modèle** pour cinq tokens dont la liquidité affichée allait de 1 700 $ à
+- **le marché coûte bien plus que le modèle** pour cinq pools dont la liquidité affichée allait de 1 700 $ à
   103 000 $ : l'aller-retour mesuré y perdait de 69 à 100 %. Une liquidité affichée ne prouve donc pas qu'on peut
-  revendre. Le veto refuse ces tokens grâce au devis réel (aller-retour au-delà de 10 %) ;
+  revendre. Le veto refuse ces pools grâce au devis réel (aller-retour au-delà de 10 %) ;
 - **le modèle coûte bien plus que le marché** pour trois pools dont GeckoTerminal affichait une réserve presque nulle
   (moins de 1 $), alors que l'aller-retour réel ne perdait qu'environ 1 %. La réserve affichée était fausse. Le veto
   refuse aussi ces pools, pour leur liquidité.
@@ -260,7 +261,7 @@ données fraîches. Relancer le même banc sur ces données-ci ne serait pas une
   sortir de l'abstention « pool trop récent ».
 - Chercher les candidats parmi les pools déjà liquides (au moins 20 000 $) plutôt que dans le flux des pools nés depuis
   quelques minutes.
-- Collecter sur plusieurs jours pour obtenir au moins une centaine de tokens qui passent le veto avant toute évaluation.
+- Collecter sur plusieurs jours pour obtenir au moins une centaine de pools qui passent le veto avant toute évaluation.
 - Fixer un horizon de seconde lecture identique pour toutes les collectes, par exemple 6 h.
 
 ### Comparaison avec le veto déjà présent sur `main` (`sentinelle/dmh/tokenrisk.assess_candidate`)
@@ -276,7 +277,7 @@ données fraîches. Relancer le même banc sur ces données-ci ne serait pas une
 | liquidité verrouillée ou brûlée | seulement si Rugcheck le signale | veto sous 50 % sur un pool classique |
 | source muette | veto | abstention (ni feu vert, ni faux danger) |
 
-Sur ces données, le contrôle de revendabilité a seul refusé un token sur trois. Le veto de `main` ne le fait pas.
+Sur ces données, le contrôle de revendabilité a seul refusé un pool sur trois. Le veto de `main` ne le fait pas.
 Brancher ce contrôle dans le Guardian de `main` relève d'une mission distincte, et ce document ne le fait pas.
 
 ## 7. Reproduire

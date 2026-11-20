@@ -2,7 +2,7 @@ Pools : 136 (bougies : 113, 5791 minutes) · contrôlés : 127 · découpage {'t
 
 #### Veto (à la collecte)
 
-| Décision | Tokens |
+| Décision | Pools |
 |---|---|
 | VETO | 127 |
 | ABSTENTION | 0 |
@@ -12,15 +12,15 @@ Motifs les plus fréquents : signalement (173) ; pool trop récent (127) ; liqui
 
 #### Contrôle en avant du veto (décision à la collecte, issue lue plus tard)
 
-| Décision | Tokens | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive | Minutes après |
+| Décision | Pools | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive | Minutes après |
 |---|---|---|---|---|---|---|
 | VETO | 45 | +9 % | -0,6 % | -33,7 % | +11 % | 25 |
 
-Issue lisible pour 45 tokens ; aucun échange après la décision : 82 ; aucune bougie avant la décision : 0 ; sans seconde lecture : 0 ; sans contrôle : 9. Liquidité des pools à la collecte : médiane 1 601 $ ; 9e décile 11 518 $ ; au moins le minimum du veto : 9 pools.
+Issue lisible pour 45 pools ; aucun échange après la décision : 82 ; aucune bougie avant la décision : 0 ; sans seconde lecture : 0 ; sans contrôle : 9. Liquidité des pools à la collecte : médiane 1 601 $ ; 9e décile 11 518 $ ; au moins le minimum du veto : 9 pools.
 
-Par famille de motif (descriptif ; un token peut cumuler plusieurs motifs) :
+Par famille de motif (descriptif ; un pool peut cumuler plusieurs motifs) :
 
-| Motif | Tokens | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive |
+| Motif | Pools | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive |
 |---|---|---|---|---|---|
 | créateur déjà signalé | 16 | +6 % | -0,3 % | -33,4 % | +0 % |
 | concentration des détenteurs | 6 | +0 % | -26,8 % | -101,2 % | +17 % |
