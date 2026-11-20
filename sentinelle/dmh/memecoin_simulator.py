@@ -1,4 +1,12 @@
-"""On-demand simulation in USD of a separate fictitious 30 USD endowment."""
+"""On-demand simulation in USD of a separate fictitious 30 USD endowment.
+
+Exits are versioned per position. Every paper session driven by ``tick`` (worker, cloud runner, cockpit route) adopts
+the calibrated asymmetric policy of ``memecoin_strategies`` (selected by ``memecoin_calibrator``): stop at -20 % of the
+net liquidation value, 20 % sold once the net ratio reaches 1.25 (fees and slippage covered), then a break-even floor
+on the remaining balance, take-profit slices at x3, x6 and x10 and an adaptive trailing stop. A position keeps the
+policy it was opened under (a lot never changes rules mid-flight); positions opened before this version, or by a raw
+state that never went through ``tick``, keep the legacy ladder (-17 %, 50 % at 1.5x and 2x, trailing 20 %).
+Paper only: no order, no key; every fill is tagged ``asset_domain="memecoin"`` and ``simulated``."""
 
 import json
 import math
@@ -7,7 +15,7 @@ from ..ai.features_memecoin import extract_features
 from ..config import paper_capital
 from . import smart_wallets
 from .dex import _rpc
-from .memecoin_strategies import MemecoinIsolatedLearner, NAMES, evaluate
+from .memecoin_strategies import CALIBRATED, MemecoinIsolatedLearner, NAMES, evaluate, exit_decision
 from .net import SourceUnavailable
 from .solana_scanner import scan_once
 
@@ -15,6 +23,35 @@ KEY = "memecoin:paper-session:v1"
 DOMAIN = "memecoin"
 INITIAL = 30.0
 DEX_FEE = 0.003  # scenario assumption, not a measured pool fee
+LEGACY_EXITS, CALIBRATED_EXITS = "legacy", "calibrated-v1"
+EXIT_POLICIES = {CALIBRATED_EXITS: CALIBRATED}  # stop -20 %, 20 % at 1.25x, break-even floor, x3/x6/x10, adaptive trailing
+# The cockpit labels four reasons; the break-even floor is a protective trailing exit, its exact cause stays in ``detail``.
+DISPLAY_REASON = {"break_even_stop": "trailing_stop"}
+
+
+def adopt_calibrated_exits(state):
+    """New positions of a session driven by ``tick`` use the calibrated exits; open lots keep their own policy."""
+    state["exit_policy"] = CALIBRATED_EXITS
+    return state
+
+
+def legacy_exit(pos, ratio):
+    """The ladder used before calibration, kept verbatim for positions opened under it."""
+    pos["high"] = max(pos["high"], ratio)
+    if ratio <= 0.83:
+        return "stop_loss", 1
+    if pos["stage"] and ratio <= pos["high"] * 0.8:
+        return "trailing_stop", 1
+    if pos["stage"] < 2 and ratio >= (1.5, 2.0)[pos["stage"]]:
+        return "take_profit", 0.5
+    return None
+
+
+def exit_for(pos, ratio):
+    policy = pos.get("exit_policy", LEGACY_EXITS)
+    if policy == LEGACY_EXITS:
+        return legacy_exit(pos, ratio)
+    return exit_decision(pos, ratio, EXIT_POLICIES[policy])  # updates pos["high"]
 SOURCE_ERRORS = (SourceUnavailable, KeyError, TypeError, ValueError, IndexError, OverflowError)
 
 
@@ -141,16 +178,11 @@ def process(state, mint, point, signals, network):
         if pos:
             liquidation, _, _ = value(pos["qty"], point, network)
             pos["mark"] = liquidation
-            ratio = liquidation / pos["basis"]
-            pos["high"] = max(pos["high"], ratio)
-            if ratio <= 0.83:
-                reason, fraction = "stop_loss", 1
-            elif pos["stage"] and ratio <= pos["high"] * 0.8:
-                reason, fraction = "trailing_stop", 1
-            elif pos["stage"] < 2 and ratio >= (1.5, 2.0)[pos["stage"]]:
-                reason, fraction = "take_profit", 0.5
-            else:
+            decision = exit_for(pos, liquidation / pos["basis"])
+            if decision is None:
                 continue
+            detail, fraction = decision
+            reason = DISPLAY_REASON.get(detail, detail)
             sold = pos["qty"] * fraction
             net, slip, fee = value(sold, point, network)
             if net <= 0:
@@ -163,7 +195,7 @@ def process(state, mint, point, signals, network):
             pos["basis"] -= basis
             pos["stage"] += 1
             pos["mark"] = value(pos["qty"], point, network)[0]
-            if fraction == 1:
+            if fraction >= 1:
                 state["completed"].append({"strategy": strategy, "mint": mint, "return": pos["pnl"] / pos["initial"]})
                 del state["positions"][key]
             side = "sell"
@@ -194,8 +226,10 @@ def process(state, mint, point, signals, network):
                 "high": 1.0,
                 "stage": 0,
                 "pnl": 0.0,
+                "exit_policy": state.get("exit_policy", LEGACY_EXITS),
+                "asset_domain": DOMAIN,
             }
-            side, reason, pnl = "buy", "signal", 0.0
+            side, reason, detail, pnl = "buy", "signal", "signal", 0.0
         else:
             continue
         state["fills"].append(
@@ -207,6 +241,8 @@ def process(state, mint, point, signals, network):
                 "mint": mint,
                 "side": side,
                 "reason": reason,
+                "detail": detail,
+                "exit_policy": (pos if side == "sell" else state["positions"][key]).get("exit_policy", LEGACY_EXITS),
                 "pnl": pnl,
                 "quantity": sold if side == "sell" else qty,
                 "slippage_usd": slip,
@@ -262,6 +298,7 @@ def report(state, wallets):
 
 def tick(hub, db, bus):
     state, wallets = load(db)
+    adopt_calibrated_exits(state)
     base = state["revision"]
     start = len(state["fills"])
     client = hub.client

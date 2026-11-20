@@ -212,3 +212,93 @@ def test_everything_stays_in_the_memecoin_domain():
 def test_frozen_pr54_and_pr55_are_intact(base, head, expected):
     assert head in ("5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18", "18b31bb901f656d6126b370f47c510775f135c57")
     frozen.test_frozen_scientific_files(base, head, expected)
+
+
+# -- calibrated exits wired into the paper simulator -----------------------------------------------------------------
+from sentinelle.dmh import memecoin_simulator as sim  # noqa: E402
+
+MINT = "Calibrated1111111111111111111111111111111111"
+
+
+def paper_state():
+    return {"revision": 1, "cash": sim.INITIAL, "assets": {MINT: {"symbol": MINT}}, "positions": {}, "fills": [], "completed": [],
+            "curve": [], "errors": []}
+
+
+def at(price, ts):
+    return {"price": price, "liquidity_usd": 50_000.0, "ts": ts}
+
+
+def sells(state):
+    return [(f["reason"], f["detail"]) for f in state["fills"] if f["side"] == "sell"]
+
+
+def test_the_paper_loop_applies_the_calibrated_ladder_with_a_break_even_lock():
+    state = sim.adopt_calibrated_exits(paper_state())
+    sim.process(state, MINT, at(1.0, 1), ["momentum"], 0.001)
+    pos = state["positions"]["momentum/" + MINT]
+    assert pos["exit_policy"] == sim.CALIBRATED_EXITS and pos["asset_domain"] == "memecoin"
+    qty = pos["qty"]
+    sim.process(state, MINT, at(1.20, 2), [], 0.001)
+    assert sells(state) == []  # costs covered but below 1.25x: nothing sold yet
+    sim.process(state, MINT, at(1.40, 3), [], 0.001)
+    assert sells(state) == [("take_profit", "take_profit")] and pos["qty"] == pytest.approx(qty * 0.8)  # 20 % at 1.25x
+    sim.process(state, MINT, at(2.5, 4), [], 0.001)
+    assert len(sells(state)) == 1  # between 1.25x and x3: hold, the trailing stop is wide
+    sim.process(state, MINT, at(3.2, 5), [], 0.001)
+    assert sells(state)[-1] == ("take_profit", "take_profit") and pos["qty"] == pytest.approx(qty * 0.8 * 0.75)  # x3 slice
+    sim.process(state, MINT, at(1.0, 6), [], 0.001)  # back to the entry: the break-even lock closes the balance
+    assert sells(state)[-1] == ("trailing_stop", "break_even_stop") and not state["positions"]
+    done = state["completed"][-1]
+    assert done["strategy"] == "momentum" and done["return"] > 0.3  # a covered winner never closes as a loss
+    assert all(f["asset_domain"] == "memecoin" and f["simulated"] and f["exit_policy"] == sim.CALIBRATED_EXITS for f in state["fills"])
+
+
+def test_the_calibrated_stop_cuts_at_20_percent_and_tiers_reach_x10():
+    state = sim.adopt_calibrated_exits(paper_state())
+    sim.process(state, MINT, at(1.0, 1), ["sniper"], 0.001)
+    sim.process(state, MINT, at(0.84, 2), [], 0.001)
+    assert sells(state) == []  # -16 %: still inside the -20 % stop
+    sim.process(state, MINT, at(0.78, 3), [], 0.001)
+    assert sells(state) == [("stop_loss", "stop_loss")] and state["completed"][-1]["return"] < -0.19
+    state = sim.adopt_calibrated_exits(paper_state())
+    sim.process(state, MINT, at(1.0, 1), ["dip_hunter"], 0.001)
+    for ts, price in enumerate((1.4, 3.2, 6.6, 10.6, 12.0), 2):
+        sim.process(state, MINT, at(price, ts), [], 0.001)
+    assert [r for r, _ in sells(state)] == ["take_profit"] * 4 and state["positions"]  # 1.25x, x3, x6, x10, the rest runs on
+
+
+def test_positions_opened_under_the_legacy_ladder_keep_it():
+    state = paper_state()  # a raw state that never went through tick(): legacy ladder
+    sim.process(state, MINT, at(1.0, 1), ["whale_tail"], 0.001)
+    old = state["positions"]["whale_tail/" + MINT]
+    assert old["exit_policy"] == sim.LEGACY_EXITS
+    sim.adopt_calibrated_exits(state)
+    sim.process(state, MINT, at(1.0, 2), ["momentum"], 0.001)
+    assert state["positions"]["momentum/" + MINT]["exit_policy"] == sim.CALIBRATED_EXITS
+    sim.process(state, MINT, at(1.6, 3), [], 0.001)
+    by = {f["strategy"]: f for f in state["fills"] if f["side"] == "sell"}
+    assert by["whale_tail"]["exit_policy"] == sim.LEGACY_EXITS and old["qty"] > 0 and old["stage"] == 1  # 50 % at 1.5x (legacy)
+    assert by["momentum"]["exit_policy"] == sim.CALIBRATED_EXITS  # 20 % at 1.25x (calibrated)
+
+
+def test_every_tick_driven_session_adopts_the_calibrated_exits(tmp_path, monkeypatch):
+    from sentinelle.dmh import memecoin_cloud_runner as runner
+
+    monkeypatch.setattr(sim, "scan_once", lambda *a, **k: {"errors": []})
+    db = tmp_path / "s.sqlite"
+    runner.main(["--db-path", str(db), "--report-path", str(tmp_path / "r.json"), "--ticks", "1", "--initial-capital", "30"])
+    dbh = runner.open_session(db)
+    try:
+        state, _ = sim.load(dbh)
+        assert state["exit_policy"] == sim.CALIBRATED_EXITS
+        assert dbh.scalar("SELECT count(*) FROM fills") == 0  # paper only: nothing reaches the main ledger
+    finally:
+        dbh.close()
+    assert json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))["asset_domain"] == "memecoin"
+
+
+def test_the_simulator_policy_is_the_calibrated_one():
+    assert sim.EXIT_POLICIES[sim.CALIBRATED_EXITS] is ms.CALIBRATED
+    p = ms.CALIBRATED
+    assert (p.stop_loss, p.cover_ratio, p.cover_fraction, p.tiers, p.floor) == (0.20, 1.25, 0.20, (3.0, 6.0, 10.0), 1.0)
