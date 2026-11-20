@@ -1,12 +1,22 @@
+import importlib.util
 import json
+import re
 import sqlite3
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 
 from sentinelle.dmh import memecoin_cloud_runner as runner
 from sentinelle.dmh import memecoin_simulator as sim
 from tests import test_configurable_capital as frozen
+from tests.test_dmh_scanner import MINT, POOL, WSOL, b58
+from tests.test_memecoin_engine import EstablishedFeed
+
+ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW = ROOT / ".github" / "workflows" / "memecoin-paper-sim.yml"
+THIN = b58(bytes(range(1, 33)))  # pool à 1 600 $ : refusé par le filtre de liquidité, sans aucun devis
+DANGER = b58(bytes(range(2, 34)))  # pool établi et revendable, mais signalé « danger » par Rugcheck : veto
 
 
 def test_cli_ticks_restart_and_domain(tmp_path, monkeypatch):
@@ -101,3 +111,127 @@ def test_devcontainer_private_start():
 @pytest.mark.parametrize(("base", "head", "expected"), frozen.FROZEN)
 def test_frozen_file_manifests(base, head, expected):
     frozen.test_frozen_scientific_files(base, head, expected)
+
+
+class ThreePools(EstablishedFeed):
+    """Trois pools en tendance : un retenu, un trop mince (< 20 000 $), un refusé par le veto anti-arnaque."""
+
+    def transport(self, method, url, headers, body, timeout):
+        parts = urlsplit(url)
+        if parts.hostname == "api.geckoterminal.com":
+            def item(mint, pool, reserve):
+                return {"attributes": {**self.pool, "address": pool, "reserve_in_usd": reserve},
+                        "relationships": {"base_token": {"data": {"id": "solana_" + mint}},
+                                          "quote_token": {"data": {"id": "solana_" + WSOL}}, "dex": {"data": {"id": "pumpswap"}}}}
+            rows = [item(MINT, POOL, "50000"), item(THIN, b58(bytes(range(3, 35))), "1600"), item(DANGER, b58(bytes(range(4, 36))), "80000")]
+            return 200, {}, json.dumps({"data": rows}).encode("utf-8")
+        if parts.hostname == "api.rugcheck.xyz" and DANGER in parts.path:
+            return 200, {}, json.dumps({**self.rug, "risks": [{"level": "danger", "name": "LP Unlocked"}]}).encode("utf-8")
+        return super().transport(method, url, headers, body, timeout)
+
+
+def test_m58_pipeline_filters_vetoes_consults_the_fleet_and_publishes_markdown(tmp_path, monkeypatch):
+    feed = ThreePools()
+    monkeypatch.setattr(runner, "PublicClient", lambda **_: feed.client)
+    real_tick, ticks = sim.tick, []
+
+    def tick(hub, db, bus):
+        if ticks:  # second cycle : volume et pression acheteuse accélèrent sur le pool retenu
+            feed.pair.update(volume={"m5": 2000}, txns={"m5": {"buys": 12, "sells": 3}})
+        ticks.append(1)
+        return real_tick(hub, db, bus)
+
+    monkeypatch.setattr(sim, "tick", tick)
+    monkeypatch.setattr(runner, "build_analytics_report", None)
+    output = tmp_path / "report.json"
+    report = runner.run(2, tmp_path / "session.sqlite", output, initial_capital=30)
+    m58 = report["pipeline"]
+    assert report["asset_domain"] == m58["asset_domain"] == "memecoin" and report["paper_only"] and report["ticks_completed"] == 2
+    assert m58["thresholds"]["min_liquidity_usd"] == 20000 and m58["run"]["pools"] == 3 and m58["run"]["accepted"] == 1
+    assert m58["run"]["refused_by_stage"]["liquidity"] == 1 and m58["vetoes"]["guardian"] == 1  # filtre puis veto anti-arnaque
+    assert m58["fleet"]["decisions"] == {"PROPOSITION_SIMULÉE": 1} and report["strategies"]["momentum"]["trades"] == 1
+    assert m58["exit_policy"]["name"] == sim.CALIBRATED_EXITS and m58["exit_policy"]["stop_loss"] == 0.20
+    assert m58["exit_policy"]["tiers"] == [3.0, 6.0, 10.0] and m58["exit_policy"]["cover_ratio"] == 1.25
+    assert [c["mint"] for c in m58["candidates"]] == [MINT]
+    md = output.with_suffix(".md").read_text(encoding="utf-8")
+    for fragment in ("### Filtrage M58 : pools établis", "| Refusés · Liquidité sous 20 000 $ | 1 |", "| Refusés · Veto anti-arnaque | 1 |",
+                     "| Retenus | 1 |", "Entrée fictive autorisée", "stop −20 %", "x3 / x6 / x10", "aucun ordre réel"):
+        assert fragment in md, fragment
+    assert "| Vetos anti-arnaque (ce passage) | 1 |" in md and "vetos anti-arnaque : 1" in output.with_suffix(".txt").read_text(encoding="utf-8")
+    assert json.loads(output.read_text(encoding="utf-8"))["pipeline"]["run"] == m58["run"]
+    db = runner.open_session(tmp_path / "session.sqlite")
+    try:
+        assert db.scalar("SELECT count(*) FROM accounts") == db.scalar("SELECT count(*) FROM fills") == 0  # aucun compte touché
+    finally:
+        db.close()
+
+
+def test_analytics_are_read_after_close_and_rendered_or_reported_unavailable(tmp_path, monkeypatch):
+    monkeypatch.setattr(sim, "scan_once", lambda *a, **k: {"errors": []})
+    db_path, output = tmp_path / "session.sqlite", tmp_path / "report.json"
+    monkeypatch.setattr(runner, "build_analytics_report", None)
+    report = runner.run(1, db_path, output, initial_capital=30)
+    assert report["analytics"]["status"] == "unavailable" and report["analytics"]["asset_domain"] == "memecoin"
+    assert "Analytique complète indisponible" in output.with_suffix(".md").read_text(encoding="utf-8")
+    calls = []
+
+    def analytics(path):
+        with sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True) as conn:  # la base est déjà refermée
+            calls.append(conn.execute("PRAGMA application_id").fetchone()[0])
+        return {"asset_domain": "memecoin", "status": "ok", "initial_capital": 30.0, "equity": 31.5, "net_pnl": 1.5, "net_pnl_pct": 5.0,
+                "closed_trades": 4, "win_rate": 0.5, "profit_factor": 2.0, "gross_profit": 3.0, "gross_loss": 1.5,
+                "max_drawdown_pct": 4.25, "strategies": {"momentum": {"pnl": 1.5, "trades": 4}}}
+
+    monkeypatch.setattr(runner, "build_analytics_report", analytics)
+    report = runner.run(1, db_path, output)
+    md = output.with_suffix(".md").read_text(encoding="utf-8")
+    assert calls == [runner.APPLICATION_ID] and report["analytics"]["profit_factor"] == 2.0
+    for fragment in ("| Profit factor | 2.00 |", "| Drawdown maximal | 4.25 % |", "| Win rate (positions clôturées) | 50.00 % |",
+                     "| P&L net | 1.50 $ (5.00 %) |", "| momentum | 1.50 $ | 4 |"):
+        assert fragment in md, fragment
+
+    def refused(path):
+        raise ValueError("Historique des clôtures incomplet")
+
+    monkeypatch.setattr(runner, "build_analytics_report", refused)
+    report = runner.run(1, db_path, output)
+    assert report["analytics"]["status"] == "error" and "incomplet" in output.with_suffix(".md").read_text(encoding="utf-8")
+
+
+@pytest.mark.skipif(importlib.util.find_spec("sentinelle.dmh.memecoin_analytics") is None,
+                    reason="memecoin_analytics arrive avec la PR parallèle #72")
+def test_real_analytics_module_feeds_the_report(tmp_path, monkeypatch):
+    from sentinelle.dmh import memecoin_analytics
+
+    monkeypatch.setattr(sim, "scan_once", lambda *a, **k: {"errors": []})
+    monkeypatch.setattr(runner, "build_analytics_report", memecoin_analytics.build_analytics_report)
+    output = tmp_path / "report.json"
+    report = runner.run(1, tmp_path / "session.sqlite", output, initial_capital=30)
+    assert report["analytics"]["asset_domain"] == "memecoin" and report["analytics"]["status"] == "ok"
+    assert {"profit_factor", "max_drawdown_pct", "win_rate", "net_pnl", "strategies"} <= set(report["analytics"])
+    assert "| Drawdown maximal | 0.00 % |" in output.with_suffix(".md").read_text(encoding="utf-8")
+
+
+def test_paper_sim_workflow_is_well_formed_and_publishes_the_markdown_summary():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    assert "\t" not in text and text.endswith("\n")
+    assert all((len(ln) - len(ln.lstrip(" "))) % 2 == 0 for ln in lines if ln.strip())  # indentation YAML de 2 espaces
+    assert [ln.split(":")[0] for ln in lines if re.match(r"^[a-z]", ln)] == ["name", "on", "permissions", "concurrency", "jobs"]
+    assert "  contents: read" in lines and "write" not in text.split("jobs:")[0]  # aucun droit d'écriture
+    assert "  workflow_dispatch:" in lines and "    - cron: '0 */6 * * *'" in lines
+    steps = [ln.strip()[2:] for ln in lines if re.match(r"^      - (name|uses): ", ln)]
+    run_step = steps.index("name: Run one bounded paper tick (M58 pipeline)")
+    publish = steps.index("name: Publish the analytical report to the job summary")
+    assert steps.index("name: Restore the previous session") < run_step < publish < steps.index("uses: actions/upload-artifact@v4")
+    assert steps[-1] == "uses: actions/cache/save@v4" and "        uses: actions/cache/restore@v4" in lines
+    block = text.split("name: Publish the analytical report to the job summary")[1].split("- uses:")[0]
+    assert "if: always()" in block and 'cat cloud/report.md >> "$GITHUB_STEP_SUMMARY"' in block
+    assert "python -m sentinelle.dmh.memecoin_cloud_runner --ticks 1 --db-path cloud/session.sqlite --report-path cloud/report.json" in text
+    for artifact in ("cloud/report.json", "cloud/report.txt", "cloud/report.md", "cloud/session.sqlite"):
+        assert f"            {artifact}" in lines, artifact
+    if importlib.util.find_spec("yaml"):  # analyse complète quand un lecteur YAML est installé
+        import yaml
+
+        doc = yaml.safe_load(text)
+        assert doc[True]["schedule"] == [{"cron": "0 */6 * * *"}] and "workflow_dispatch" in doc[True]

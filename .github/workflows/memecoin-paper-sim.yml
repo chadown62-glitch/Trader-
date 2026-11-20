@@ -52,16 +52,24 @@ jobs:
               install -D "$RUNNER_TEMP/previous/session.sqlite" cloud/session.sqlite
             fi
           fi
-      - name: Run one bounded paper tick
+      # Chaîne M58 complète : pools établis, veto anti-arnaque, flotte d'agents, sorties calibrées (simulation seulement).
+      - name: Run one bounded paper tick (M58 pipeline)
+        run: python -m sentinelle.dmh.memecoin_cloud_runner --ticks 1 --db-path cloud/session.sqlite --report-path cloud/report.json
+      - name: Publish the analytical report to the job summary
+        if: always()
         run: |
-          python -m sentinelle.dmh.memecoin_cloud_runner --ticks 1 --db-path cloud/session.sqlite --report-path cloud/report.json
-          cat cloud/report.txt >> "$GITHUB_STEP_SUMMARY"
+          if [[ -s cloud/report.md ]]; then
+            cat cloud/report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Simulation memecoin : aucun rapport produit (voir le journal de l'étape précédente)" >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: memecoin-paper-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             cloud/report.json
             cloud/report.txt
+            cloud/report.md
             cloud/session.sqlite
           if-no-files-found: error
       - uses: actions/cache/save@v4
