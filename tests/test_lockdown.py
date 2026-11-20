@@ -48,7 +48,15 @@ def no_network(monkeypatch):
     def blocked(*args, **kwargs):
         raise AssertionError("Accès réseau interdit dans les tests du verrou")
 
-    monkeypatch.setattr(socket.socket, "connect", blocked)
+    loopback_connect = socket.socket.connect
+
+    def connect(sock, address, *args, **kwargs):
+        # Windows relie la boucle asyncio par une paire de sockets locale : seule la boucle locale reste permise.
+        if isinstance(address, tuple) and address and address[0] in ("127.0.0.1", "::1"):
+            return loopback_connect(sock, address, *args, **kwargs)
+        return blocked(sock, address)
+
+    monkeypatch.setattr(socket.socket, "connect", connect)
     monkeypatch.setattr(socket.socket, "connect_ex", blocked)
     monkeypatch.setattr(socket, "create_connection", blocked)
 
