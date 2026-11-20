@@ -1,0 +1,1267 @@
+{
+ "can_trade": false,
+ "cost_model_validation": {
+  "gap_median": -0.0033844804523159855,
+  "gap_p90_abs": 0.6157814855524474,
+  "measured_median": 0.02983231000000003,
+  "model_median": 0.03326794606514638,
+  "n": 72,
+  "note": "écart positif : le marché coûte plus que le modèle (le modèle est alors optimiste)"
+ },
+ "data": {
+  "collection": {
+   "finished_ms": 1794908298205,
+   "pages": 5,
+   "requests": 358,
+   "started_ms": 1794907665066
+  },
+  "collections": [
+   {
+    "finished_ms": 1794908298205,
+    "pools": 64,
+    "requests": 358,
+    "started_ms": 1794907665066
+   },
+   {
+    "finished_ms": 1795178083923,
+    "pools": 72,
+    "requests": 393,
+    "started_ms": 1795177171259
+   }
+  ],
+  "minutes": 5791,
+  "pools": 136,
+  "reserved_list_sha256": "839f7c22e88781a1eb82976ba05e93086eecff10488fa96a1835390d3775fe66",
+  "reserved_note": "20 % des pools les plus récents : aucun calcul de stratégie ici ; réservés à une évaluation préenregistrée",
+  "security_checked": 127,
+  "sol_usd": 71.06626617968263,
+  "split": {
+   "dev": 27,
+   "reserved": 27,
+   "train": 82
+  },
+  "with_candles": 113
+ },
+ "forward_by_reason": {
+  "aucun signalement Rugcheck « danger »": {
+   "collapsed_share": 0.0,
+   "mean_net_after_costs": -0.14192537137380484,
+   "median_minutes_after": 36.733666666666664,
+   "median_return": -0.01900280024363704,
+   "share_net_positive": 0.0,
+   "tokens": 16
+  },
+  "concentration des détenteurs": {
+   "collapsed_share": 0.0,
+   "mean_net_after_costs": -1.0123904006336557,
+   "median_minutes_after": 24.76461666666667,
+   "median_return": -0.2679117891188607,
+   "share_net_positive": 0.16666666666666666,
+   "tokens": 6
+  },
+  "créateur déjà signalé": {
+   "collapsed_share": 0.0625,
+   "mean_net_after_costs": -0.3341034999490087,
+   "median_minutes_after": 17.552983333333334,
+   "median_return": -0.0031351737258781265,
+   "share_net_positive": 0.0,
+   "tokens": 16
+  },
+  "liquidité faible": {
+   "collapsed_share": 0.09523809523809523,
+   "mean_net_after_costs": -0.36997299099601744,
+   "median_minutes_after": 27.434641666666664,
+   "median_return": -0.009574765172891242,
+   "share_net_positive": 0.047619047619047616,
+   "tokens": 42
+  },
+  "liquidité non verrouillée": {
+   "collapsed_share": 0.375,
+   "mean_net_after_costs": -0.20362098089637953,
+   "median_minutes_after": 20.173141666666666,
+   "median_return": 0.12208292633350437,
+   "share_net_positive": 0.625,
+   "tokens": 8
+  },
+  "revente impossible ou chère": {
+   "collapsed_share": 0.1111111111111111,
+   "mean_net_after_costs": -1.1515962735285723,
+   "median_minutes_after": 30.501433333333335,
+   "median_return": -0.1842700204382901,
+   "share_net_positive": 0.0,
+   "tokens": 9
+  }
+ },
+ "forward_check": {
+  "VETO": {
+   "collapsed_share": 0.08888888888888889,
+   "mean_net_after_costs": -0.3365230588914763,
+   "median_minutes_after": 25.180966666666666,
+   "median_return": -0.005852750343332325,
+   "share_net_positive": 0.1111111111111111,
+   "tokens": 45
+  }
+ },
+ "forward_coverage": {
+  "no_candle_before_decision": 0,
+  "no_follow_candles": 0,
+  "no_security": 9,
+  "no_trade_after_decision": 82,
+  "pools_at_or_above_min_liquidity": 9,
+  "readable": 45,
+  "reserve_usd_quantiles": {
+   "0.25": 239.91791515065125,
+   "0.5": 1600.76575,
+   "0.75": 2445.182025,
+   "0.9": 11517.99115
+  }
+ },
+ "guardian": {
+  "counts": {
+   "ABSTENTION": 0,
+   "PASSE": 0,
+   "VETO": 127
+  },
+  "reasons": {
+   "1 réseau(x) de portefeuilles liés détecté(s)": 3,
+   "10 plus gros détenteurs": 52,
+   "2 réseau(x) de portefeuilles liés détecté(s)": 1,
+   "3 réseau(x) de portefeuilles liés détecté(s)": 2,
+   "4 réseau(x) de portefeuilles liés détecté(s)": 1,
+   "aller-retour immédiat": 18,
+   "aucun devis d'achat": 9,
+   "aucune route de revente": 42,
+   "liquidité contradictoire entre sources": 19,
+   "liquidité sous le minimum": 118,
+   "liquidité verrouillée ou brûlée": 15,
+   "mouvement de +101 % en 5 minutes": 1,
+   "mouvement de +116 % en 5 minutes": 1,
+   "mouvement de +118 % en 5 minutes": 1,
+   "mouvement de +119 % en 5 minutes": 1,
+   "mouvement de +139 % en 5 minutes": 1,
+   "mouvement de +150 % en 5 minutes": 1,
+   "mouvement de +158 % en 5 minutes": 1,
+   "mouvement de +253 % en 5 minutes": 1,
+   "mouvement de +55 % en 5 minutes": 1,
+   "mouvement de +74 % en 5 minutes": 1,
+   "mouvement de +81 % en 5 minutes": 1,
+   "mouvement de +86 % en 5 minutes": 1,
+   "mouvement de +98 % en 5 minutes": 2,
+   "mouvement de -100 % en 5 minutes": 8,
+   "mouvement de -55 % en 5 minutes": 1,
+   "mouvement de -56 % en 5 minutes": 1,
+   "mouvement de -58 % en 5 minutes": 1,
+   "mouvement de -65 % en 5 minutes": 1,
+   "mouvement de -66 % en 5 minutes": 1,
+   "mouvement de -68 % en 5 minutes": 1,
+   "mouvement de -71 % en 5 minutes": 1,
+   "mouvement de -78 % en 5 minutes": 1,
+   "mouvement de -86 % en 5 minutes": 1,
+   "mouvement de -88 % en 5 minutes": 1,
+   "mouvement de -91 % en 5 minutes": 1,
+   "mouvement de -92 % en 5 minutes": 3,
+   "mouvement de -95 % en 5 minutes": 1,
+   "mouvement de -96 % en 5 minutes": 1,
+   "mouvement de -98 % en 5 minutes": 2,
+   "mouvement de -99 % en 5 minutes": 2,
+   "plus gros détenteur": 54,
+   "pool trop récent": 127,
+   "signalement": 173
+  },
+  "rules": {
+   "buys_for_sell_check": 10,
+   "max_abs_m5_change_pct": 50.0,
+   "max_creator_share": 0.1,
+   "max_liquidity_gap": 0.5,
+   "max_round_trip_loss": 0.1,
+   "max_top10_share": 0.35,
+   "max_top1_share": 0.15,
+   "min_age_minutes": 30.0,
+   "min_liquidity_usd": 20000.0,
+   "min_lp_locked_pct": 50.0,
+   "min_sells_h1_if_buys": 1,
+   "min_unique_ratio": 0.1
+  }
+ },
+ "hypotheses": {
+  "default_dex_fee": 0.01,
+  "dex_fees": {
+   "meteora": 0.0025,
+   "meteora-damm-v2": 0.005,
+   "meteora-dbc": 0.01,
+   "orca": 0.003,
+   "pump-fun": 0.0125,
+   "pumpswap": 0.003,
+   "raydium": 0.0025,
+   "raydium-clmm": 0.0025,
+   "raydium-launchlab": 0.01
+  },
+  "failed_tx_probability": 0.1,
+  "mev_bps": 30.0,
+  "network_lamports": {
+   "base_lamports": 5000,
+   "priority_lamports": 10000,
+   "rent_lamports": 2039280,
+   "tip_lamports": 100000
+  },
+  "order_usd": 11.0,
+  "sol_usd_fallback": 140.0
+ },
+ "kind": "memecoin-lab-report",
+ "paper_only": true,
+ "quality": {
+  "completeness": {
+   "created_ms": 1.0,
+   "dex": 1.0,
+   "fdv_usd": 0.0,
+   "price_usd": 1.0,
+   "reserve_usd": 1.0
+  },
+  "detection_delay_minutes": {
+   "p10": 0.9258,
+   "p50": 2.451433333333333,
+   "p90": 3.47315
+  },
+  "dex": {
+   "meteora-damm-v2": 7,
+   "meteora-dbc": 4,
+   "pump-fun": 49,
+   "pumpswap": 4
+  },
+  "liquidity_gap_vs_dexscreener": {
+   "n": 12,
+   "p50": 0.9993986041738785,
+   "p90": 3522230.9444444445
+  },
+  "price_gap_vs_dexscreener": {
+   "n": 56,
+   "p50": 0.03057746378187165,
+   "p90": 0.9947159385455219
+  }
+ },
+ "quality_by_collection": [
+  {
+   "completeness": {
+    "created_ms": 1.0,
+    "dex": 1.0,
+    "fdv_usd": 0.0,
+    "price_usd": 1.0,
+    "reserve_usd": 1.0
+   },
+   "detection_delay_minutes": {
+    "p10": 0.9258,
+    "p50": 2.451433333333333,
+    "p90": 3.47315
+   },
+   "dex": {
+    "meteora-damm-v2": 7,
+    "meteora-dbc": 4,
+    "pump-fun": 49,
+    "pumpswap": 4
+   },
+   "liquidity_gap_vs_dexscreener": {
+    "n": 12,
+    "p50": 0.9993986041738785,
+    "p90": 3522230.9444444445
+   },
+   "price_gap_vs_dexscreener": {
+    "n": 56,
+    "p50": 0.03057746378187165,
+    "p90": 0.9947159385455219
+   }
+  },
+  {
+   "completeness": {
+    "created_ms": 1.0,
+    "dex": 1.0,
+    "fdv_usd": 1.0,
+    "price_usd": 1.0,
+    "reserve_usd": 1.0
+   },
+   "detection_delay_minutes": {
+    "p10": 1.4473166666666666,
+    "p50": 2.6376333333333335,
+    "p90": 4.297033333333333
+   },
+   "dex": {
+    "meteora-damm-v2": 10,
+    "meteora-dbc": 3,
+    "pump-fun": 47,
+    "pumpswap": 10,
+    "raydium-launchlab": 1,
+    "stonkfun": 1
+   },
+   "liquidity_gap_vs_dexscreener": {
+    "n": 16,
+    "p50": 0.9997757193350297,
+    "p90": 890037.780784904
+   },
+   "price_gap_vs_dexscreener": {
+    "n": 63,
+    "p50": 0.014450947865221497,
+    "p90": 0.995942948612289
+   }
+  }
+ ],
+ "sources": {
+  "dexscreener": {
+   "availability": 1.0,
+   "errors": [],
+   "latency_ms_p50": 37.5556225001219,
+   "latency_ms_p90": 342.31803000011496,
+   "ok": 60,
+   "requests": 60
+  },
+  "geckoterminal:new_pools": {
+   "availability": 1.0,
+   "errors": [],
+   "latency_ms_p50": 6729.817827999796,
+   "latency_ms_p90": 13327.625469000395,
+   "ok": 5,
+   "requests": 5
+  },
+  "geckoterminal:ohlcv": {
+   "availability": 0.609375,
+   "errors": [
+    "SourceUnavailable: api.geckoterminal.com : HTTP 429 (réessayer après 0 s)",
+    "SourceUnavailable: api.geckoterminal.com : coupe-circuit ouvert (3 échecs consécutifs)"
+   ],
+   "latency_ms_p50": 6679.068719000043,
+   "latency_ms_p90": 13398.365410000224,
+   "ok": 39,
+   "requests": 64
+  },
+  "jupiter:buy": {
+   "availability": 0.9666666666666667,
+   "errors": [
+    "SourceUnavailable: api.jup.ag : HTTP 400"
+   ],
+   "latency_ms_p50": 1719.3327629997839,
+   "latency_ms_p90": 1810.388487000182,
+   "ok": 58,
+   "requests": 60
+  },
+  "jupiter:sell": {
+   "availability": 0.6206896551724138,
+   "errors": [
+    "SourceUnavailable: api.jup.ag : HTTP 400"
+   ],
+   "latency_ms_p50": 1997.6760439999453,
+   "latency_ms_p90": 2008.6037569999462,
+   "ok": 36,
+   "requests": 58
+  },
+  "rugcheck": {
+   "availability": 1.0,
+   "errors": [],
+   "latency_ms_p50": 171.5807660000337,
+   "latency_ms_p90": 2130.678539999735,
+   "ok": 60,
+   "requests": 60
+  },
+  "solana:mint": {
+   "availability": 1.0,
+   "errors": [],
+   "latency_ms_p50": 51.633914500143874,
+   "latency_ms_p90": 80.20201800036375,
+   "ok": 60,
+   "requests": 60
+  }
+ },
+ "sources_by_collection": [
+  {
+   "dexscreener": {
+    "availability": 1.0,
+    "errors": [],
+    "latency_ms_p50": 37.5556225001219,
+    "latency_ms_p90": 342.31803000011496,
+    "ok": 60,
+    "requests": 60
+   },
+   "geckoterminal:new_pools": {
+    "availability": 1.0,
+    "errors": [],
+    "latency_ms_p50": 6729.817827999796,
+    "latency_ms_p90": 13327.625469000395,
+    "ok": 5,
+    "requests": 5
+   },
+   "geckoterminal:ohlcv": {
+    "availability": 0.609375,
+    "errors": [
+     "SourceUnavailable: api.geckoterminal.com : HTTP 429 (réessayer après 0 s)",
+     "SourceUnavailable: api.geckoterminal.com : coupe-circuit ouvert (3 échecs consécutifs)"
+    ],
+    "latency_ms_p50": 6679.068719000043,
+    "latency_ms_p90": 13398.365410000224,
+    "ok": 39,
+    "requests": 64
+   },
+   "jupiter:buy": {
+    "availability": 0.9666666666666667,
+    "errors": [
+     "SourceUnavailable: api.jup.ag : HTTP 400"
+    ],
+    "latency_ms_p50": 1719.3327629997839,
+    "latency_ms_p90": 1810.388487000182,
+    "ok": 58,
+    "requests": 60
+   },
+   "jupiter:sell": {
+    "availability": 0.6206896551724138,
+    "errors": [
+     "SourceUnavailable: api.jup.ag : HTTP 400"
+    ],
+    "latency_ms_p50": 1997.6760439999453,
+    "latency_ms_p90": 2008.6037569999462,
+    "ok": 36,
+    "requests": 58
+   },
+   "rugcheck": {
+    "availability": 1.0,
+    "errors": [],
+    "latency_ms_p50": 171.5807660000337,
+    "latency_ms_p90": 2130.678539999735,
+    "ok": 60,
+    "requests": 60
+   },
+   "solana:mint": {
+    "availability": 1.0,
+    "errors": [],
+    "latency_ms_p50": 51.633914500143874,
+    "latency_ms_p90": 80.20201800036375,
+    "ok": 60,
+    "requests": 60
+   }
+  },
+  {
+   "dexscreener": {
+    "availability": 1.0,
+    "errors": [],
+    "latency_ms_p50": 43.96747400005552,
+    "latency_ms_p90": 325.3262280002218,
+    "ok": 64,
+    "requests": 64
+   },
+   "geckoterminal:new_pools": {
+    "availability": 1.0,
+    "errors": [],
+    "latency_ms_p50": 8242.641762999938,
+    "latency_ms_p90": 8418.45246899993,
+    "ok": 5,
+    "requests": 5
+   },
+   "geckoterminal:ohlcv": {
+    "availability": 1.0,
+    "errors": [],
+    "latency_ms_p50": 8313.683024499995,
+    "latency_ms_p90": 8520.637623000084,
+    "ok": 72,
+    "requests": 72
+   },
+   "jupiter:buy": {
+    "availability": 0.890625,
+    "errors": [
+     "SourceUnavailable: api.jup.ag : HTTP 400"
+    ],
+    "latency_ms_p50": 1104.9507669999912,
+    "latency_ms_p90": 1798.9124440000523,
+    "ok": 57,
+    "requests": 64
+   },
+   "jupiter:price": {
+    "availability": 1.0,
+    "errors": [],
+    "latency_ms_p50": 424.87676600001123,
+    "latency_ms_p90": 424.87676600001123,
+    "ok": 1,
+    "requests": 1
+   },
+   "jupiter:sell": {
+    "availability": 0.6491228070175439,
+    "errors": [
+     "SourceUnavailable: api.jup.ag : HTTP 400"
+    ],
+    "latency_ms_p50": 1998.9942800000335,
+    "latency_ms_p90": 2005.2391619999526,
+    "ok": 37,
+    "requests": 57
+   },
+   "rugcheck": {
+    "availability": 1.0,
+    "errors": [],
+    "latency_ms_p50": 725.8961824999233,
+    "latency_ms_p90": 2140.7349990001876,
+    "ok": 64,
+    "requests": 64
+   },
+   "solana:mint": {
+    "availability": 1.0,
+    "errors": [],
+    "latency_ms_p50": 51.05900399996699,
+    "latency_ms_p90": 88.72435599982964,
+    "ok": 64,
+    "requests": 64
+   }
+  }
+ ],
+ "strategies": {
+  "breakout_60": {
+   "dev:avec_veto": {
+    "trades": 0
+   },
+   "dev:central": {
+    "trades": 0
+   },
+   "dev:prudent": {
+    "trades": 0
+   },
+   "dev:retard_2_min": {
+    "trades": 0
+   },
+   "dev:sans_veto": {
+    "trades": 0
+   },
+   "train:avec_veto": {
+    "trades": 0
+   },
+   "train:central": {
+    "exits": {
+     "durée": 1,
+     "fin des données": 1
+    },
+    "mean_ci95": [
+     -0.06885196531392591,
+     -0.0287864423591887
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2719642539377916,
+     "impact_usd": 0.22193905179943332,
+     "mev_usd": 0.06527142094506999,
+     "network_usd": 0.020431551526658757
+    },
+    "mean_gross_return": 0.0037027449851073646,
+    "mean_net_return": -0.04881920383655731,
+    "median_net_return": -0.04881920383655731,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "share_in_pools_that_collapsed": 0.0,
+    "total_net_usd": -1.0740224844042607,
+    "trades": 2,
+    "win_rate": 0.0
+   },
+   "train:prudent": {
+    "exits": {
+     "durée": 1,
+     "fin des données": 1
+    },
+    "mean_ci95": [
+     -0.06885196531392591,
+     -0.0287864423591887
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2719642539377916,
+     "impact_usd": 0.22193905179943332,
+     "mev_usd": 0.06527142094506999,
+     "network_usd": 0.020431551526658757
+    },
+    "mean_gross_return": 0.0037027449851073646,
+    "mean_net_return": -0.04881920383655731,
+    "median_net_return": -0.04881920383655731,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "share_in_pools_that_collapsed": 0.0,
+    "total_net_usd": -1.0740224844042607,
+    "trades": 2,
+    "win_rate": 0.0
+   },
+   "train:retard_2_min": {
+    "exits": {
+     "durée": 1,
+     "fin des données": 1
+    },
+    "mean_ci95": [
+     -0.06885196531392591,
+     -0.0287864423591887
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2719642539377916,
+     "impact_usd": 0.22193905179943332,
+     "mev_usd": 0.06527142094506999,
+     "network_usd": 0.020431551526658757
+    },
+    "mean_gross_return": 0.0037027449851073646,
+    "mean_net_return": -0.04881920383655731,
+    "median_net_return": -0.04881920383655731,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "total_net_usd": -1.0740224844042607,
+    "trades": 2,
+    "win_rate": 0.0
+   },
+   "train:sans_veto": {
+    "exits": {
+     "durée": 1,
+     "fin des données": 1
+    },
+    "mean_ci95": [
+     -0.06885196531392591,
+     -0.0287864423591887
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2719642539377916,
+     "impact_usd": 0.22193905179943332,
+     "mev_usd": 0.06527142094506999,
+     "network_usd": 0.020431551526658757
+    },
+    "mean_gross_return": 0.0037027449851073646,
+    "mean_net_return": -0.04881920383655731,
+    "median_net_return": -0.04881920383655731,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "total_net_usd": -1.0740224844042607,
+    "trades": 2,
+    "win_rate": 0.0
+   }
+  },
+  "fast_exit": {
+   "dev:avec_veto": {
+    "trades": 0
+   },
+   "dev:central": {
+    "trades": 0
+   },
+   "dev:prudent": {
+    "trades": 0
+   },
+   "dev:retard_2_min": {
+    "trades": 0
+   },
+   "dev:sans_veto": {
+    "trades": 0
+   },
+   "train:avec_veto": {
+    "trades": 0
+   },
+   "train:central": {
+    "exits": {
+     "objectif": 1
+    },
+    "mean_ci95": [
+     0.08503551513205544,
+     0.08503551513205544
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2930398191196877,
+     "impact_usd": 0.5423490496795443,
+     "mev_usd": 0.07032955658872504,
+     "network_usd": 0.024517861831990506
+    },
+    "mean_gross_return": 0.17575022935521734,
+    "mean_net_return": 0.08503551513205544,
+    "median_net_return": 0.08503551513205544,
+    "pools": 1,
+    "profit_factor": null,
+    "share_in_pools_that_collapsed": 1.0,
+    "total_net_usd": 0.9353906664526099,
+    "trades": 1,
+    "win_rate": 1.0
+   },
+   "train:prudent": {
+    "exits": {
+     "objectif": 1
+    },
+    "mean_ci95": [
+     0.08503551513205544,
+     0.08503551513205544
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2930398191196877,
+     "impact_usd": 0.5423490496795443,
+     "mev_usd": 0.07032955658872504,
+     "network_usd": 0.024517861831990506
+    },
+    "mean_gross_return": 0.17575022935521734,
+    "mean_net_return": 0.08503551513205544,
+    "median_net_return": 0.08503551513205544,
+    "pools": 1,
+    "profit_factor": null,
+    "share_in_pools_that_collapsed": 1.0,
+    "total_net_usd": 0.9353906664526099,
+    "trades": 1,
+    "win_rate": 1.0
+   },
+   "train:retard_2_min": {
+    "exits": {
+     "durée": 1
+    },
+    "mean_ci95": [
+     -0.07810127663593751,
+     -0.07810127663593751
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2692296050483305,
+     "impact_usd": 0.44216930691169337,
+     "mev_usd": 0.06461510521159931,
+     "network_usd": 0.024517861831990506
+    },
+    "mean_gross_return": -0.005999046097332816,
+    "mean_net_return": -0.07810127663593751,
+    "median_net_return": -0.07810127663593751,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "total_net_usd": -0.8591140429953126,
+    "trades": 1,
+    "win_rate": 0.0
+   },
+   "train:sans_veto": {
+    "exits": {
+     "objectif": 1
+    },
+    "mean_ci95": [
+     0.08503551513205544,
+     0.08503551513205544
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2930398191196877,
+     "impact_usd": 0.5423490496795443,
+     "mev_usd": 0.07032955658872504,
+     "network_usd": 0.024517861831990506
+    },
+    "mean_gross_return": 0.17575022935521734,
+    "mean_net_return": 0.08503551513205544,
+    "median_net_return": 0.08503551513205544,
+    "pools": 1,
+    "profit_factor": null,
+    "total_net_usd": 0.9353906664526099,
+    "trades": 1,
+    "win_rate": 1.0
+   }
+  },
+  "momentum_15": {
+   "dev:avec_veto": {
+    "trades": 0
+   },
+   "dev:central": {
+    "trades": 0
+   },
+   "dev:prudent": {
+    "trades": 0
+   },
+   "dev:retard_2_min": {
+    "trades": 0
+   },
+   "dev:sans_veto": {
+    "trades": 0
+   },
+   "train:avec_veto": {
+    "trades": 0
+   },
+   "train:central": {
+    "exits": {
+     "durée": 1
+    },
+    "mean_ci95": [
+     0.07859005604571832,
+     0.07859005604571832
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2921067285748179,
+     "impact_usd": 0.5397482867548951,
+     "mev_usd": 0.07010561485795629,
+     "network_usd": 0.024517861831990506
+    },
+    "mean_gross_return": 0.1686968495303658,
+    "mean_net_return": 0.07859005604571832,
+    "median_net_return": 0.07859005604571832,
+    "pools": 1,
+    "profit_factor": null,
+    "share_in_pools_that_collapsed": 1.0,
+    "total_net_usd": 0.8644906165029016,
+    "trades": 1,
+    "win_rate": 1.0
+   },
+   "train:prudent": {
+    "exits": {
+     "durée": 1
+    },
+    "mean_ci95": [
+     0.07859005604571832,
+     0.07859005604571832
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2921067285748179,
+     "impact_usd": 0.5397482867548951,
+     "mev_usd": 0.07010561485795629,
+     "network_usd": 0.024517861831990506
+    },
+    "mean_gross_return": 0.1686968495303658,
+    "mean_net_return": 0.07859005604571832,
+    "median_net_return": 0.07859005604571832,
+    "pools": 1,
+    "profit_factor": null,
+    "share_in_pools_that_collapsed": 1.0,
+    "total_net_usd": 0.8644906165029016,
+    "trades": 1,
+    "win_rate": 1.0
+   },
+   "train:retard_2_min": {
+    "exits": {
+     "durée": 1
+    },
+    "mean_ci95": [
+     -0.07810127663593751,
+     -0.07810127663593751
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2692296050483305,
+     "impact_usd": 0.44216930691169337,
+     "mev_usd": 0.06461510521159931,
+     "network_usd": 0.024517861831990506
+    },
+    "mean_gross_return": -0.005999046097332816,
+    "mean_net_return": -0.07810127663593751,
+    "median_net_return": -0.07810127663593751,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "total_net_usd": -0.8591140429953126,
+    "trades": 1,
+    "win_rate": 0.0
+   },
+   "train:sans_veto": {
+    "exits": {
+     "durée": 1
+    },
+    "mean_ci95": [
+     0.07859005604571832,
+     0.07859005604571832
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2921067285748179,
+     "impact_usd": 0.5397482867548951,
+     "mev_usd": 0.07010561485795629,
+     "network_usd": 0.024517861831990506
+    },
+    "mean_gross_return": 0.1686968495303658,
+    "mean_net_return": 0.07859005604571832,
+    "median_net_return": 0.07859005604571832,
+    "pools": 1,
+    "profit_factor": null,
+    "total_net_usd": 0.8644906165029016,
+    "trades": 1,
+    "win_rate": 1.0
+   }
+  },
+  "reversal_30": {
+   "dev:avec_veto": {
+    "trades": 0
+   },
+   "dev:central": {
+    "trades": 0
+   },
+   "dev:prudent": {
+    "trades": 0
+   },
+   "dev:retard_2_min": {
+    "trades": 0
+   },
+   "dev:sans_veto": {
+    "trades": 0
+   },
+   "train:avec_veto": {
+    "trades": 0
+   },
+   "train:central": {
+    "exits": {
+     "durée": 1,
+     "stop": 1
+    },
+    "mean_ci95": [
+     -0.24069033588237787,
+     -0.07810127663593751
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2585007969269537,
+     "impact_usd": 0.609092205760063,
+     "mev_usd": 0.06204019126246889,
+     "network_usd": 0.020431551526658757
+    },
+    "mean_gross_return": -0.07799952304866642,
+    "mean_net_return": -0.1593958062591577,
+    "median_net_return": -0.1593958062591577,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "share_in_pools_that_collapsed": 1.0,
+    "total_net_usd": -3.5067077377014693,
+    "trades": 2,
+    "win_rate": 0.0
+   },
+   "train:prudent": {
+    "exits": {
+     "durée": 1,
+     "stop": 1
+    },
+    "mean_ci95": [
+     -0.24069033588237787,
+     -0.07810127663593751
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2585007969269537,
+     "impact_usd": 0.609092205760063,
+     "mev_usd": 0.06204019126246889,
+     "network_usd": 0.020431551526658757
+    },
+    "mean_gross_return": -0.07799952304866642,
+    "mean_net_return": -0.1593958062591577,
+    "median_net_return": -0.1593958062591577,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "share_in_pools_that_collapsed": 1.0,
+    "total_net_usd": -3.5067077377014693,
+    "trades": 2,
+    "win_rate": 0.0
+   },
+   "train:retard_2_min": {
+    "exits": {
+     "durée": 1,
+     "stop": 1
+    },
+    "mean_ci95": [
+     -0.9732807850561066,
+     -0.07810127663593751
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2053475824391658,
+     "impact_usd": 0.43692132232382064,
+     "mev_usd": 0.04928341978539979,
+     "network_usd": 0.020431551526658757
+    },
+    "mean_gross_return": -0.4877575858523194,
+    "mean_net_return": -0.5256910308460221,
+    "median_net_return": -0.5256910308460221,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "total_net_usd": -11.565202678612485,
+    "trades": 2,
+    "win_rate": 0.0
+   },
+   "train:sans_veto": {
+    "exits": {
+     "durée": 1,
+     "stop": 1
+    },
+    "mean_ci95": [
+     -0.24069033588237787,
+     -0.07810127663593751
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2585007969269537,
+     "impact_usd": 0.609092205760063,
+     "mev_usd": 0.06204019126246889,
+     "network_usd": 0.020431551526658757
+    },
+    "mean_gross_return": -0.07799952304866642,
+    "mean_net_return": -0.1593958062591577,
+    "median_net_return": -0.1593958062591577,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "total_net_usd": -3.5067077377014693,
+    "trades": 2,
+    "win_rate": 0.0
+   }
+  },
+  "trend_ema": {
+   "dev:avec_veto": {
+    "trades": 0
+   },
+   "dev:central": {
+    "trades": 0
+   },
+   "dev:prudent": {
+    "trades": 0
+   },
+   "dev:retard_2_min": {
+    "trades": 0
+   },
+   "dev:sans_veto": {
+    "trades": 0
+   },
+   "train:avec_veto": {
+    "trades": 0
+   },
+   "train:central": {
+    "exits": {
+     "croisement": 1,
+     "fin des données": 1
+    },
+    "mean_ci95": [
+     -0.06885196531392591,
+     -0.0287864423591887
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2719642539377916,
+     "impact_usd": 0.22193905179943332,
+     "mev_usd": 0.06527142094506999,
+     "network_usd": 0.020431551526658757
+    },
+    "mean_gross_return": 0.0037027449851073646,
+    "mean_net_return": -0.04881920383655731,
+    "median_net_return": -0.04881920383655731,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "share_in_pools_that_collapsed": 0.0,
+    "total_net_usd": -1.0740224844042607,
+    "trades": 2,
+    "win_rate": 0.0
+   },
+   "train:prudent": {
+    "exits": {
+     "croisement": 1,
+     "fin des données": 1
+    },
+    "mean_ci95": [
+     -0.06885196531392591,
+     -0.0287864423591887
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2719642539377916,
+     "impact_usd": 0.22193905179943332,
+     "mev_usd": 0.06527142094506999,
+     "network_usd": 0.020431551526658757
+    },
+    "mean_gross_return": 0.0037027449851073646,
+    "mean_net_return": -0.04881920383655731,
+    "median_net_return": -0.04881920383655731,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "share_in_pools_that_collapsed": 0.0,
+    "total_net_usd": -1.0740224844042607,
+    "trades": 2,
+    "win_rate": 0.0
+   },
+   "train:retard_2_min": {
+    "exits": {
+     "croisement": 1,
+     "fin des données": 1
+    },
+    "mean_ci95": [
+     -0.06885196531392591,
+     -0.0287864423591887
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2719642539377916,
+     "impact_usd": 0.22193905179943332,
+     "mev_usd": 0.06527142094506999,
+     "network_usd": 0.020431551526658757
+    },
+    "mean_gross_return": 0.0037027449851073646,
+    "mean_net_return": -0.04881920383655731,
+    "median_net_return": -0.04881920383655731,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "total_net_usd": -1.0740224844042607,
+    "trades": 2,
+    "win_rate": 0.0
+   },
+   "train:sans_veto": {
+    "exits": {
+     "croisement": 1,
+     "fin des données": 1
+    },
+    "mean_ci95": [
+     -0.06885196531392591,
+     -0.0287864423591887
+    ],
+    "mean_costs_usd": {
+     "fees_usd": 0.2719642539377916,
+     "impact_usd": 0.22193905179943332,
+     "mev_usd": 0.06527142094506999,
+     "network_usd": 0.020431551526658757
+    },
+    "mean_gross_return": 0.0037027449851073646,
+    "mean_net_return": -0.04881920383655731,
+    "median_net_return": -0.04881920383655731,
+    "pools": 1,
+    "profit_factor": 0.0,
+    "total_net_usd": -1.0740224844042607,
+    "trades": 2,
+    "win_rate": 0.0
+   }
+  }
+ },
+ "stress": {
+  "frais du DEX ×3": {
+   "exits": {
+    "objectif": 1
+   },
+   "mean_ci95": [
+    0.16862463524061944,
+    0.16862463524061944
+   ],
+   "mean_costs_usd": {
+    "fees_usd": 0.2163137518079396,
+    "impact_usd": 0.013585715550130488,
+    "mev_usd": 0.07210458393597986,
+    "network_usd": 0.016345241221327005
+   },
+   "mean_gross_return": 0.19999999999999996,
+   "mean_net_return": 0.16862463524061944,
+   "median_net_return": 0.16862463524061944,
+   "pools": 1,
+   "profit_factor": null,
+   "total_net_usd": 1.854870987646814,
+   "trades": 1,
+   "win_rate": 1.0
+  },
+  "frais du réseau ×100 (congestion)": {
+   "exits": {
+    "objectif": 1
+   },
+   "mean_ci95": [
+    0.035724983696957736,
+    0.035724983696957736
+   ],
+   "mean_costs_usd": {
+    "fees_usd": 0.07234134226455291,
+    "impact_usd": 0.013724595101554736,
+    "mev_usd": 0.07234134226455291,
+    "network_usd": 1.6345241221327005
+   },
+   "mean_gross_return": 0.19999999999999996,
+   "mean_net_return": 0.035724983696957736,
+   "median_net_return": 0.035724983696957736,
+   "pools": 1,
+   "profit_factor": null,
+   "total_net_usd": 0.3929748206665351,
+   "trades": 1,
+   "win_rate": 1.0
+  },
+  "liquidité ÷100 (600 $)": {
+   "exits": {
+    "objectif": 1
+   },
+   "mean_ci95": [
+    0.06313049251711238,
+    0.06313049251711238
+   ],
+   "mean_costs_usd": {
+    "fees_usd": 0.07033078099075628,
+    "impact_usd": 1.2280837079050813,
+    "mev_usd": 0.07033078099075628,
+    "network_usd": 0.016345241221327005
+   },
+   "mean_gross_return": 0.19999999999999996,
+   "mean_net_return": 0.06313049251711238,
+   "median_net_return": 0.06313049251711238,
+   "pools": 1,
+   "profit_factor": null,
+   "total_net_usd": 0.6944354176882361,
+   "trades": 1,
+   "win_rate": 1.0
+  },
+  "retard de 3 minutes": {
+   "exits": {
+    "objectif": 1
+   },
+   "mean_ci95": [
+    0.1828440812738944,
+    0.1828440812738944
+   ],
+   "mean_costs_usd": {
+    "fees_usd": 0.07234153203905415,
+    "impact_usd": 0.013603043438517327,
+    "mev_usd": 0.07234153203905415,
+    "network_usd": 0.016345241221327005
+   },
+   "mean_gross_return": 0.19999999999999996,
+   "mean_net_return": 0.1828440812738944,
+   "median_net_return": 0.1828440812738944,
+   "pools": 1,
+   "profit_factor": null,
+   "total_net_usd": 2.0112848940128383,
+   "trades": 1,
+   "win_rate": 1.0
+  },
+  "retrait de liquidité pendant la position": {
+   "exits": {
+    "stop": 1
+   },
+   "mean_ci95": [
+    -0.9691150356759326,
+    -0.9691150356759326
+   ],
+   "mean_costs_usd": {
+    "fees_usd": 0.03407478316478183,
+    "impact_usd": 0.006019191502474482,
+    "mev_usd": 0.03407478316478183,
+    "network_usd": 0.016345241221327005
+   },
+   "mean_gross_return": -0.9672166803800117,
+   "mean_net_return": -0.9691150356759326,
+   "median_net_return": -0.9691150356759326,
+   "pools": 1,
+   "profit_factor": 0.0,
+   "total_net_usd": -10.660265392435258,
+   "trades": 1,
+   "win_rate": 0.0
+  },
+  "référence (tendance régulière)": {
+   "exits": {
+    "objectif": 1
+   },
+   "mean_ci95": [
+    0.18283215468890077,
+    0.18283215468890077
+   ],
+   "mean_costs_usd": {
+    "fees_usd": 0.07234134226455291,
+    "impact_usd": 0.013724595101554736,
+    "mev_usd": 0.07234134226455291,
+    "network_usd": 0.016345241221327005
+   },
+   "mean_gross_return": 0.19999999999999996,
+   "mean_net_return": 0.18283215468890077,
+   "median_net_return": 0.18283215468890077,
+   "pools": 1,
+   "profit_factor": null,
+   "total_net_usd": 2.0111537015779084,
+   "trades": 1,
+   "win_rate": 1.0
+  },
+  "taxe de transfert activée (Token-2022)": {
+   "guardian": "VETO",
+   "reasons": [
+    "extension Token-2022 à risque (frais de transfert, crochet ou délégué permanent)"
+   ]
+  },
+  "toutes les sources de sécurité en panne": {
+   "guardian": "ABSTENTION",
+   "reasons": [
+    "aucun contrôle de sécurité pour ce token"
+   ]
+  },
+  "toutes les transactions échouent une fois": {
+   "exits": {
+    "objectif": 1
+   },
+   "mean_ci95": [
+    0.18280261138344428,
+    0.18280261138344428
+   ],
+   "mean_costs_usd": {
+    "fees_usd": 0.07238964932140388,
+    "impact_usd": 0.013688028293557846,
+    "mev_usd": 0.07238964932140388,
+    "network_usd": 0.03269048244265401
+   },
+   "mean_gross_return": 0.2014710548489944,
+   "mean_net_return": 0.18280261138344428,
+   "median_net_return": 0.18280261138344428,
+   "pools": 1,
+   "profit_factor": null,
+   "total_net_usd": 2.010828725217887,
+   "trades": 1,
+   "win_rate": 1.0
+  }
+ }
+}

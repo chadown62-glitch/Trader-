@@ -218,3 +218,43 @@ def test_the_veto_filter_is_causal_only_trades_opened_after_the_decision_count()
         s = rep["strategies"][name]["train:sans_veto"]
         assert s.get("trades", 0) <= sum(1 for t in L.simulate_pool(name, L.dense(g.tolist()), pool(pool=pid), 72.0,
                                                                      rng=np.random.default_rng(560)) if t["entry_ms"] >= decided)
+
+
+MEASURES = ROOT / "docs" / "validation" / "mesures" / "memecoin-v1"
+CAPTURES = ("capture-1794908298.jsonl.gz", "capture-1795178083.jsonl.gz")
+FOLLOWS = ("follow-1794908298-1795177171.jsonl.gz", "follow-1795178083-1795183573.jsonl.gz")
+
+
+def _close(a, b, path="") -> None:
+    """Égalité des rapports, à l'arrondi flottant près (les plateformes peuvent différer au dernier bit)."""
+    if isinstance(a, float) or isinstance(b, float):
+        assert a == pytest.approx(b, rel=1e-9, abs=1e-12), path
+    elif isinstance(a, dict):
+        assert a.keys() == b.keys(), path
+        for k in a:
+            _close(a[k], b[k], f"{path}/{k}")
+    elif isinstance(a, list):
+        assert len(a) == len(b), path
+        for i, (x, y) in enumerate(zip(a, b)):
+            _close(x, y, f"{path}[{i}]")
+    else:
+        assert a == b, path
+
+
+def test_published_m56_measures_are_intact_and_reproduce_the_published_report():
+    import hashlib
+    import json
+
+    sums = dict(line.split()[::-1] for line in (MEASURES / "SHA256SUMS").read_text(encoding="utf-8").splitlines() if line.strip())
+    assert set(sums) == set(CAPTURES + FOLLOWS)
+    for name, digest in sums.items():
+        assert hashlib.sha256((MEASURES / name).read_bytes()).hexdigest() == digest, name
+    capture = [r for name in CAPTURES for r in C.read_capture(MEASURES / name)]
+    follow = [r for name in FOLLOWS for r in C.read_capture(MEASURES / name)]
+    rep = json.loads(json.dumps(L.run(capture, follow), sort_keys=True, ensure_ascii=False, allow_nan=False))
+    published = json.loads((MEASURES / "lab.json").read_text(encoding="utf-8"))
+    _close(rep, published)
+    # Constats publiés : aucun token ne passe le veto, la partie réservée n'a servi à aucun calcul.
+    assert rep["guardian"]["counts"] == {G.VETO: 127, G.ABSTAIN: 0, G.PASS: 0}
+    assert rep["paper_only"] is True and rep["can_trade"] is False
+    assert all(not k.startswith("reserved") for row in rep["strategies"].values() for k in row)

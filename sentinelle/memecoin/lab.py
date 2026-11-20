@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import statistics
 from dataclasses import dataclass
 
@@ -247,11 +248,34 @@ def forward_check(pools: list[dict], verdicts: dict, follow_ohlcv: dict, sol_usd
     return out
 
 
+def forward_coverage(pools: list[dict], verdicts: dict, follow_ohlcv: dict, decided_ms: dict) -> dict:
+    """Pourquoi une issue est illisible : pas de contrôle, pas de seconde lecture, ou plus aucun échange après la décision."""
+    out = {"readable": 0, "no_security": 0, "no_follow_candles": 0, "no_candle_before_decision": 0, "no_trade_after_decision": 0}
+    for p in pools:
+        f = follow_ohlcv.get(p["pool"])
+        if p["pool"] not in verdicts:
+            out["no_security"] += 1
+        elif not f or not f["candles"]:
+            out["no_follow_candles"] += 1
+        else:
+            t0 = max(p["observed_ms"], decided_ms.get(p["pool"], 0))
+            if not any(c[0] <= t0 for c in f["candles"]):
+                out["no_candle_before_decision"] += 1
+            elif not any(c[0] > t0 for c in f["candles"]):
+                out["no_trade_after_decision"] += 1
+            else:
+                out["readable"] += 1
+    liq = sorted(p.get("reserve_usd") or 0.0 for p in pools)
+    out["reserve_usd_quantiles"] = {q: float(np.quantile(liq, float(q))) for q in ("0.25", "0.5", "0.75", "0.9")} if liq else {}
+    out["pools_at_or_above_min_liquidity"] = sum(1 for x in liq if x >= guardian.RULES["min_liquidity_usd"])
+    return out
+
+
 REASON_FAMILIES = {  # familles de motifs du veto, pour une lecture DESCRIPTIVE de l'issue (un token peut en avoir plusieurs)
     "créateur déjà signalé": ("Creator history",),
     "concentration des détenteurs": ("détenteur", "Single holder", "High holder", "Top 10", "High ownership"),
     "revente impossible ou chère": ("aucune route de revente", "aller-retour immédiat"),
-    "liquidité faible": ("liquidité ", "Low Liquidity"),
+    "liquidité faible": (" $ (< ", "Low Liquidity"),  # montant sous le minimum (pas « liquidité verrouillée … »)
     "liquidité non verrouillée": ("LP Unlocked", "verrouillée"),
 }
 
@@ -349,6 +373,8 @@ def run(capture: list[dict], follow: list[dict] | None = None) -> dict:
     for v in verdicts.values():
         for r in v["veto"] + v["weak"] + v["missing"]:
             key = r.split(" :")[0].split(" (")[0]
+            if re.fullmatch(r"liquidité [\d  ]+ \$", key):  # le montant varie d'un pool à l'autre : un seul motif
+                key = "liquidité sous le minimum"
             reasons[key] = reasons.get(key, 0) + 1
     return {
         "kind": "memecoin-lab-report", "paper_only": True, "can_trade": False,
@@ -362,6 +388,7 @@ def run(capture: list[dict], follow: list[dict] | None = None) -> dict:
         "guardian": {"rules": guardian.RULES, "counts": {s: statuses.count(s) for s in (guardian.VETO, guardian.ABSTAIN, guardian.PASS)},
                      "reasons": dict(sorted(reasons.items(), key=lambda kv: -kv[1]))},
         "forward_check": forward_check(pools, verdicts, follow_map, sol_usd, decided) if follow else None,
+        "forward_coverage": forward_coverage(pools, verdicts, follow_map, decided) if follow else None,
         "forward_by_reason": forward_by_reason(pools, verdicts, follow_map, sol_usd, decided) if follow else None,
         "strategies": results, "cost_model_validation": validation,
         "hypotheses": {"dex_fees": DEX_FEES, "default_dex_fee": DEFAULT_DEX_FEE, "network_lamports": NETWORK, **HYPOTHESES, "order_usd": ORDER_USD},
@@ -400,6 +427,9 @@ def markdown(r: dict) -> str:
     def p(x, d=1):
         return "—" if x is None else f"{x * 100:+.{d}f} %".replace(".", ",")
 
+    def usd(x):
+        return f"{x:,.0f}".replace(",", " ")
+
     d = r["data"]
     out = [f"Pools : {d['pools']} (bougies : {d['with_candles']}, {d['minutes']} minutes) · contrôlés : {d['security_checked']} · "
            f"découpage {d['split']} · liste réservée `{d['reserved_list_sha256'][:16]}…` · SOL ≈ {d['sol_usd']:.0f} $", "",
@@ -413,6 +443,13 @@ def markdown(r: dict) -> str:
         for k, v in r["forward_check"].items():
             out.append(f"| {k} | {v['tokens']} | {p(v['collapsed_share'], 0)} | {p(v['median_return'])} | {p(v['mean_net_after_costs'])} | "
                        f"{p(v['share_net_positive'], 0)} | {v['median_minutes_after']:.0f} |")
+    if r.get("forward_coverage"):
+        c = r["forward_coverage"]
+        q = c["reserve_usd_quantiles"]
+        out += ["", f"Issue lisible pour {c['readable']} tokens ; aucun échange après la décision : {c['no_trade_after_decision']} ; "
+                f"aucune bougie avant la décision : {c['no_candle_before_decision']} ; sans seconde lecture : {c['no_follow_candles']} ; "
+                f"sans contrôle : {c['no_security']}. Liquidité des pools à la collecte : médiane {usd(q.get('0.5', 0))} $ ; "
+                f"9e décile {usd(q.get('0.9', 0))} $ ; au moins le minimum du veto : {c['pools_at_or_above_min_liquidity']} pools."]
     if r.get("forward_by_reason"):
         out += ["", "Par famille de motif (descriptif ; un token peut cumuler plusieurs motifs) :", "",
                 "| Motif | Tokens | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive |", "|---|---|---|---|---|---|"]
