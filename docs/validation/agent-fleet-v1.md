@@ -45,23 +45,28 @@
   leurs motifs, et le temps processeur et la mémoire de chaque agent.
 - **Exécution finie** : `Coordinator.run(événements)` traite une liste puis s'arrête. Il n'y a ni boucle ni service.
 
-## 3. Rejeu sur une capture réelle (M56)
+## 3. Rejeu sur les captures réelles (M56)
 
-`python -m tools.fleet replay --capture data/memecoin/capture-1794908298.jsonl.gz --output DOSSIER`. La capture
-fait 64 nouveaux pools Solana, dont 60 contrôlés, empreinte `9467c3e2…`. Chaque token est présenté à l'instant de son
-contrôle, avec les seules bougies déjà closes.
+```
+python -m tools.fleet replay --capture docs/validation/mesures/memecoin-v1/capture-1794908298.jsonl.gz --output DOSSIER
+```
 
-| Décision | Nombre |
-|---|---|
-| VETO | 39 |
-| INFO (bilan de santé) | 1 |
-| Proposition simulée | 0 |
+Les deux collectes de M56 sont publiées avec leurs empreintes dans `docs/validation/mesures/memecoin-v1/`. Chaque
+token est présenté à l'instant de son contrôle, avec les seules bougies déjà closes.
 
-- Le Rug Pull Guardian a été décisif 39 fois sur 39.
-- Aucun agent n'a échoué.
-- Le rejeu complet prend 0,09 s ; aucun agent ne dépasse quelques millisecondes.
+| Capture | Pools contrôlés avec bougies | VETO | INFO (bilan de santé) | Proposition simulée | Échecs d'agent | Durée |
+|---|---|---|---|---|---|---|
+| 1 (17 novembre, `9467c3e2…`) | 39 | 39 | 1 | 0 | 0 | 0,09 s |
+| 2 (20 novembre, `88c9bae6…`) | 65 | 65 | 1 | 0 | 0 | 0,21 s |
 
-Tableau complet : `docs/validation/mesures/agent-fleet-v1/fleet-report.md`.
+- Le Rug Pull Guardian a été décisif à chaque fois (39 sur 39, puis 65 sur 65). C'est cohérent avec le banc de M56,
+  où les 127 pools contrôlés sont tous refusés.
+- Sur la première capture, seuls 39 des 60 tokens contrôlés avaient des bougies lisibles à l'instant du contrôle :
+  les refus HTTP 429 de GeckoTerminal ont privé les autres de bougies.
+- Aucun agent ne dépasse quelques millisecondes au total.
+
+Tableaux complets : `docs/validation/mesures/agent-fleet-v1/fleet-report.md` (capture 1) et
+`docs/validation/mesures/agent-fleet-v1/capture-1795178083/fleet-report.md` (capture 2).
 
 Deux défauts constatés sur ce rejeu ont été corrigés avant publication :
 - **Désactivation à tort** : la règle désactivait l'Alpha Hunter pour « jamais décisif », alors que c'était seulement
