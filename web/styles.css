@@ -1,31 +1,45 @@
 /* Sentinelle — feuille de style du panel (thème sombre, responsive) */
 :root {
-  --bg: #0b0f17;
+  --glass-bg: rgba(13, 19, 33, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-blur: 20px;
+  --accent-gain: #10B981;
+  --accent-loss: #F43F5E;
+  --accent-cyan: #38BDF8;
+  --accent-alert: #F59E0B;
+  --text-primary: #edf4fd;
+  --text-muted: #a5b1c6;
+  --bg: #05070D;
   --bg-2: #0f1522;
-  --panel: #121a2a;
+  --panel: var(--glass-bg);
   --panel-2: #172135;
-  --border: #23304a;
+  --border: var(--glass-border);
   --border-2: #2e3d5c;
-  --text: #e6eaf2;
-  --muted: #93a0b8;
+  --text: var(--text-primary);
+  --muted: var(--text-muted);
   --faint: #66738c;
   --accent: #3b82f6;
-  --accent-2: #60a5fa;
+  --accent-2: var(--accent-cyan);
   --paper: #3b82f6;
   --live: #ef4444;
-  --up: #22c55e;
-  --down: #f43f5e;
-  --warn: #f59e0b;
+  --up: var(--accent-gain);
+  --down: var(--accent-loss);
+  --warn: var(--accent-alert);
   --ok: #22c55e;
   --radius: 12px;
   --radius-sm: 8px;
   --shadow: 0 8px 24px rgba(0, 0, 0, .35);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  --nav-w: 220px;
+  --nav-w: 184px;
 }
 
 :root[data-theme="light"] {
+  --glass-bg: rgba(255,255,255,.82);
+  --glass-border: rgba(40,60,90,.15);
+  --text-primary: #121826;
+  --text-muted: #4b5870;
+  --accent-cyan: #03658d;
   --bg: #f4f6fb;
   --bg-2: #ffffff;
   --panel: #ffffff;
@@ -269,7 +283,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   .shell { grid-template-columns: 1fr; grid-template-rows: 52px 1fr; }
   .nav { display: none; }
   .brand { min-width: 0; }
@@ -342,3 +356,65 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .dmh .tabs button.active { outline: 2px solid currentColor; }
 .dmh textarea { width: 100%; box-sizing: border-box; }
 @media (max-width: 640px) { .dmh .grid.cols-3 { grid-template-columns: 1fr; } .dmh table { font-size: 12px; } }
+
+/* Cockpit surfaces share the same optical treatment, including on iOS. */
+body {
+  font-variant-numeric: tabular-nums;
+  background: radial-gradient(ellipse at 80% 0%, rgba(37,97,139,.13), transparent 55%),
+              radial-gradient(ellipse at 12% 40%, rgba(46,71,128,.10), transparent 48%), var(--bg);
+}
+.card, .modal, .topbar, .nav, .bottom-nav {
+  background-color: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border-color: var(--glass-border);
+  box-shadow: inset 0 1px rgba(255,255,255,.055);
+}
+.card { border-radius: 16px; }
+.card .card { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.topbar, .bottom-nav { background-color: color-mix(in srgb, var(--bg-2) 87%, transparent); }
+.nav { overflow-y: auto; }
+.nav a { font-size: .9rem; }
+.nav a.active, .bottom-nav a.active { color: var(--accent-cyan); }
+.nav a.active { background: rgba(56,189,248,.085); box-shadow: inset 2px 0 var(--accent-cyan); }
+.nav a.active .ico, .hud-live { color: var(--accent-cyan); }
+.dot.connected { background: var(--accent-cyan); box-shadow: 0 0 8px rgba(56,189,248,.4); }
+.hud-account { display: flex; align-items: baseline; gap: .7rem; padding-left: 1rem; border-left: 1px solid var(--border); }
+.hud-account > span { font-size: .82rem; }
+.hud-account > span:first-child { max-width: 16ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+.hud-account strong { font-size: 1.17rem; }
+.portfolio-detail { margin-bottom: 14px; }
+.holding { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--border); }
+.holding div:last-child { text-align: right; }
+.holding small { display: block; }
+.holding small:not(.up):not(.down) { color: var(--muted); }
+.login {
+  min-height: 100svh;
+  background: radial-gradient(ellipse at 50% 30%, rgba(56,189,248,.12), transparent 49%), var(--bg);
+}
+.login .card { padding: clamp(24px, 5vw, 42px); border-radius: 24px; box-shadow: inset 0 1px rgba(255,255,255,.16), 0 28px 90px rgba(0,0,0,.2); }
+.login .brand { justify-content: flex-start; color: var(--accent-cyan); font-size: 1rem; margin-bottom: 2rem; }
+.login h1 { font-size: clamp(1.65rem, 4vw, 2rem); letter-spacing: -.045em; }
+.login input { min-height: 46px; font-size: 16px; }
+.login button.primary { margin-top: .6rem; min-height: 46px; background: var(--accent-cyan); border-color: transparent; color: var(--bg); font-weight: 700; }
+:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; }
+@media (min-width: 768px) and (max-width: 1060px) {
+  .hud-account { flex-wrap: wrap; gap: 0 .5rem; }
+  .hud-account > span:first-child { display: none; }
+  .topbar .brand { min-width: 0; }
+}
+@media (max-width: 767px) {
+  .shell { grid-template-columns: minmax(0,1fr); }
+  .topbar { gap: 6px; }
+  .bottom-nav a { flex: 1; justify-content: center; min-height: 44px; }
+  .more-sheet .card { bottom: calc(68px + env(safe-area-inset-bottom)); background-color: var(--bg-2); }
+  .main { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+}
+
+.account-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%, 17rem),1fr)); gap: 14px; margin-bottom: 14px; }
+.account-card { padding: clamp(16px, 2vw, 26px); }
+.account-card.selected {
+  background-image: radial-gradient(ellipse at top right, rgba(56,189,248,.11), transparent 63%);
+  border-color: color-mix(in srgb, var(--accent-cyan) 40%, var(--border));
+}
+.account-card .big { font-size: clamp(2rem, 3vw, 3.3rem); letter-spacing: -.045em; line-height: 1.2; }

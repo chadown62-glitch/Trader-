@@ -164,7 +164,7 @@ class PortfolioMixin:
             "main_account_id": main["id"] if main else None,
             "migration_available": mode == "legacy",
             "legacy_accounts": legacy,
-            "fx": self.fx.status([quote]),
+            "fx": self.fx.status(dict.fromkeys((quote, "USD"))),
             "fx_cost_bps": cfg["fx_cost_bps"],
         }
 

@@ -1,6 +1,6 @@
 // Point d'entrée du panel Sentinelle
 import { api, connectWs, closeWs, on, safe } from './api.js';
-import { store, toast } from './store.js';
+import { store, toast, money, signed, pct, cls } from './store.js';
 import Dashboard from './views/dashboard.js';
 import Trade from './views/trade.js';
 import AI from './views/ai.js';
@@ -37,7 +37,7 @@ const NAV = [
   { id: 'logs', label: 'Journal', ico: '≡' },
 ];
 const VIEWS = { memecoin: Memecoin, dashboard: Dashboard, trade: Trade, ai: AI, history: History, news: News, signals: Signals, settings: Settings, logs: Logs, knowledge: Knowledge, performance: Performance, macro: Macro, apprentissage: Apprentissage, preparation: Preparation, dmh: Dmh };
-const LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#3b82f6" d="M32 4 8 14v16c0 15 10 26 24 30 14-4 24-15 24-30V14z"/><path fill="#fff" d="m20 36 8-10 7 7 9-12 4 3-13 16-7-7-5 6z"/></svg>`;
+const LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#1597c7" d="M32 4 8 14v16c0 15 10 26 24 30 14-4 24-15 24-30V14z"/><path fill="#fff" d="m20 36 8-10 7 7 9-12 4 3-13 16-7-7-5 6z"/></svg>`;
 
 const Login = {
   setup() {
@@ -68,20 +68,21 @@ const Login = {
     return { store, password, password2, busy, error, submit, code, needCode, LOGO };
   },
   template: `
-  <div class="login">
+  <div class="login" id="codespaces-login">
     <form class="card" @submit.prevent="submit">
       <div class="brand"><span v-html="LOGO"></span><span>Sentinelle</span></div>
-      <p class="center muted small">Bot de trading crypto prudent — simulation uniquement, aucun ordre réel possible</p>
+      <h1>{{ store.auth.setupRequired ? 'Configurer le cockpit' : 'Connexion au cockpit' }}</h1>
+      <p class="muted">Portefeuille de simulation</p>
       <template v-if="store.auth.setupRequired">
         <div class="note info" style="margin:12px 0">Premier lancement : choisissez le mot de passe qui protégera votre panel (10 caractères minimum).</div>
         <div v-if="!store.auth.setupAllowed" class="note warn" style="margin-bottom:12px">Pour des raisons de sécurité, le premier mot de passe doit être créé depuis l'ordinateur où tourne Sentinelle (adresse http://127.0.0.1).</div>
-        <div class="field"><label>Nouveau mot de passe</label><input type="password" v-model="password" autocomplete="new-password" autofocus></div>
-        <div class="field"><label>Confirmer le mot de passe</label><input type="password" v-model="password2" autocomplete="new-password"></div>
+        <div class="field"><label for="new-password">Nouveau mot de passe</label><input id="new-password" type="password" v-model="password" autocomplete="new-password" autofocus></div>
+        <div class="field"><label for="confirm-password">Confirmer le mot de passe</label><input id="confirm-password" type="password" v-model="password2" autocomplete="new-password"></div>
       </template>
       <template v-else>
-        <div class="field" style="margin-top:14px"><label>Mot de passe</label><input type="password" v-model="password" autocomplete="current-password" autofocus></div>
-        <div v-if="needCode" class="field"><label>Code de l'application d'authentification (6 chiffres)</label>
-          <input v-model="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></div>
+        <div class="field" style="margin-top:14px"><label for="password">Mot de passe</label><input id="password" type="password" v-model="password" autocomplete="current-password" autofocus></div>
+        <div v-if="needCode" class="field"><label for="otp">Code de l'application d'authentification (6 chiffres)</label>
+          <input id="otp" v-model="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></div>
       </template>
       <div v-if="error" class="note danger" style="margin-bottom:10px">{{ error }}</div>
       <button class="primary block" :disabled="busy || !password">{{ store.auth.setupRequired ? 'Créer le mot de passe' : 'Se connecter' }}</button>
@@ -161,9 +162,12 @@ const App = {
     const view = computed(() => VIEWS[route.value] || Dashboard);
     let timer = null;
 
+    let refreshing = false;
     const refresh = async () => {
-      if (!store.auth.authenticated) return;
+      if (!store.auth.authenticated || refreshing) return;
+      refreshing = true;
       try { store.overview = await api.get('/api/overview'); } catch (e) { /* géré par l'API */ }
+      finally { refreshing = false; }
     };
     const loadStatic = async () => {
       try {
@@ -203,6 +207,7 @@ const App = {
     on('training_done', (d) => toast(`Entraînement terminé : modèle ${d.verdict}`, d.verdict === 'validé' ? 'success' : 'warn', 10000));
     on('settings', loadStatic);
     on('agent', refresh);
+    on('equity', e => { if (e.account_id === store.selectedAccount) refresh(); });
     onMounted(() => { window.addEventListener('hashchange', onHash); checkAuth(); });
     onBeforeUnmount(() => window.removeEventListener('hashchange', onHash));
 
@@ -212,8 +217,22 @@ const App = {
     const toggleTheme = () => { theme.value = theme.value === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('stn-theme', theme.value); } catch { /* ignoré */ } applyTheme(); };
     const logout = async () => { await safe(api.post('/api/auth/logout')); store.auth.authenticated = false; };
     const marketOk = computed(() => store.overview?.market?.status?.ok);
+    const account = computed(() => store.overview?.accounts?.find(a =>
+      a.id === store.selectedAccount && a.kind === 'paper' && a.connected && !a.archived_paper));
+    const delta = computed(() => {
+      const a = account.value;
+      return Number.isFinite(a?.equity) && a.initial_balance > 0 ? a.equity - a.initial_balance : null;
+    });
+    const dollarChange = computed(() => {
+      const a = account.value, fx = store.overview?.portfolio?.fx;
+      if (delta.value == null) return null;
+      if (a.quote === 'USD') return delta.value;
+      const usd = fx?.rates?.USD;
+      if (!usd || usd.stale || !(usd.rate > 0) || fx.base !== a.quote) return null;
+      return delta.value / usd.rate;
+    });
     const more = ref(false);
-    return { store, route, view, NAV, logout, LOGO, marketOk, theme, toggleTheme, more };
+    return { store, route, view, NAV, logout, LOGO, marketOk, theme, toggleTheme, more, account, delta, dollarChange, money, signed, pct, cls };
   },
   template: `
   <div v-if="!store.auth.checked" class="boot">Connexion…</div>
@@ -221,21 +240,25 @@ const App = {
   <div v-else class="shell">
     <header class="topbar">
       <div class="brand"><span v-html="LOGO"></span><span class="name">Sentinelle</span></div>
-      <span class="light hide-mobile" title="Données de marché"><span class="dot" :class="marketOk ? 'ok' : 'warn'"></span>Marché</span>
-      <span class="light" title="Mises à jour en temps réel"><span class="dot" :class="store.ws ? 'ok' : 'err'"></span><span class="hide-mobile">Temps réel</span></span>
-      <span class="badge paper hide-mobile" title="Cette version ne peut passer aucun ordre réel">🔒 Simulation uniquement</span>
+      <span class="light hud-live"><span class="dot" :class="store.ws ? 'connected' : 'warn'"></span>{{ store.ws ? 'En direct' : 'Hors ligne' }}</span>
+      <span class="badge paper">Simulation</span>
+      <div v-if="account" class="hud-account hide-mobile">
+        <span>{{ account.name }}</span><strong>{{ money(account.equity, account.quote) }}</strong>
+        <span :class="cls(delta)" :title="dollarChange == null ? 'Variation en devise du compte' : 'Variation indicative en USD'">
+          {{ dollarChange == null ? signed(delta, account.quote) : signed(dollarChange, 'USD') }} · {{ pct(delta == null ? null : delta / account.initial_balance) }}</span>
+      </div>
       <span class="spacer"></span>
       <button class="urgence" @click="store.emergencyOpen = true" title="Arrêt d'urgence">🛑 <span class="hide-mobile">Urgence</span></button>
       <button class="ghost small" @click="toggleTheme" :title="theme==='dark' ? 'Thème clair' : 'Thème sombre'">{{ theme==='dark' ? '☀' : '☾' }}</button>
       <button class="ghost small" @click="logout" title="Se déconnecter">⎋</button>
     </header>
-    <nav class="nav">
-      <a v-for="n in NAV" :key="n.id" :href="'#/' + n.id" :class="{active: route===n.id}"><span class="ico">{{ n.ico }}</span>{{ n.label }}</a>
-      <div class="foot">Sentinelle {{ store.overview?.version }}<br>Le trading comporte un risque de perte en capital.</div>
+    <nav class="nav" aria-label="Navigation principale">
+      <a v-for="n in NAV" :key="n.id" :href="'#/' + n.id" :aria-current="route===n.id ? 'page' : null" :class="{active: route===n.id}"><span class="ico">{{ n.ico }}</span>{{ n.label }}</a>
+      <div class="foot">Sentinelle {{ store.overview?.version }}</div>
     </nav>
     <main class="main"><component :is="view" :key="route" /></main>
-    <nav class="bottom-nav">
-      <a v-for="n in NAV.slice(0,4)" :key="n.id" :href="'#/' + n.id" :class="{active: route===n.id}" @click="more=false"><span class="ico">{{ n.ico }}</span>{{ n.short || n.label.split(' ')[0] }}</a>
+    <nav class="bottom-nav" aria-label="Navigation mobile">
+      <a v-for="n in NAV.slice(0,4)" :key="n.id" :href="'#/' + n.id" :aria-current="route===n.id ? 'page' : null" :class="{active: route===n.id}" @click="more=false"><span class="ico">{{ n.ico }}</span>{{ n.short || n.label.split(' ')[0] }}</a>
       <a href="#" role="button" :aria-expanded="more" :class="{active: more || NAV.slice(4).some(n => n.id === route)}" @click.prevent="more = !more"><span class="ico">⋯</span>Plus</a>
     </nav>
     <div v-if="more" class="more-sheet" @click.self="more=false">
