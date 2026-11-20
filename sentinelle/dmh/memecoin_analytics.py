@@ -19,7 +19,19 @@ def _read_snapshot(path):
     return json.loads(row[0]) if row else None
 
 
-def _closed_results(state):
+RECENT_CLOSED = 20  # closed lots detailed in the report, most recent first
+
+
+def _pct(part, whole):
+    return 100 * part / whole if whole else None
+
+
+def _mean(values):
+    return sum(values) / len(values) if values else None
+
+
+def _closed_lots(state):
+    """Closed lots in closing order, each with its realized P&L (USD) and its return (%) on the initial stake."""
     # One lot per strategy/mint. A new buy starts the next round trip;
     # partial exits belong to the same lot until it closes.
     latest = {}
@@ -29,29 +41,72 @@ def _closed_results(state):
         if fill["side"] == "buy":
             if key in latest:
                 closed.append(latest[key])
-            latest[key] = 0.0
+            latest[key] = {"key": key, "strategy": fill["strategy"], "mint": fill["mint"], "pnl_usd": 0.0,
+                           "opened_at": fill.get("ts"), "closed_at": None, "exit_reason": None, "exits": 0}
         elif fill["side"] == "sell":
-            latest[key] += fill["pnl"]
+            lot = latest[key]
+            lot["pnl_usd"] += fill["pnl"]
+            lot["closed_at"] = fill.get("ts")
+            lot["exit_reason"] = fill.get("reason")
+            lot["exits"] += 1
         else:
             raise ValueError("Sens d'exécution inconnu")
-    closed.extend(value for key, value in latest.items() if key not in state["positions"])
+    closed.extend(lot for key, lot in latest.items() if key not in state["positions"])
     if len(closed) != len(state["completed"]):
         raise ValueError("Historique des clôtures incomplet")
-    return closed
+    # The lots of one strategy/mint are sequential: its k-th closed lot is its k-th completed record,
+    # whose return is the lot's whole realized P&L (partial exits included) over its initial stake.
+    pending = {}
+    for lot in closed:
+        pending.setdefault(lot.pop("key"), []).append(lot)
+    lots = []
+    for record in state["completed"]:
+        queue = pending.get(record["strategy"] + "/" + record["mint"])
+        if not queue:
+            raise ValueError("Historique des clôtures incomplet")
+        lots.append({**queue.pop(0), "profit_pct": 100 * record["return"]})
+    return lots
+
+
+def _open_positions(state):
+    """Open lots at their last liquidation mark: value, unrealized P&L in USD and in % of the remaining cost."""
+    stale = set(state.get("stale_marks", []))
+    opened = {fill["strategy"] + "/" + fill["mint"]: fill.get("ts") for fill in state["fills"] if fill["side"] == "buy"}
+    rows = []
+    for key, pos in state["positions"].items():
+        last = state.get("assets", {}).get(pos["mint"], {}).get("last") or {}
+        unrealized = pos["mark"] - pos["basis"]
+        rows.append({
+            "strategy": pos["strategy"], "mint": pos["mint"], "quantity": pos["qty"],
+            "initial_usd": pos["initial"], "cost_basis_usd": pos["basis"], "value_usd": pos["mark"],
+            "unrealized_pnl_usd": unrealized, "unrealized_pnl_pct": _pct(unrealized, pos["basis"]),
+            "realized_pnl_usd": pos["pnl"], "exits": pos["stage"], "price_usd": last.get("price"),
+            "marked_at": last.get("ts"), "opened_at": opened.get(key), "stale": pos["mint"] in stale,
+        })
+    return rows
 
 
 def build_analytics_report(db_path):
-    """Win rate is a fraction; drawdown and net return are percentages."""
+    """Win rate is a fraction; drawdown, net return and profits are percentages.
+
+    ``avg_profit_pct`` is the arithmetic mean, over closed lots, of each lot's return on its initial stake (net of
+    fees, slippage and network costs, partial exits included); every strategy carries its own. ``open_positions``
+    values each open lot at the last mark of the paper worker.
+    """
     state = _read_snapshot(Path(db_path))
     result = {"asset_domain": sim.DOMAIN, "currency": "USD", "paper_only": True}
     if state is None:
-        return {**result, "status": "empty"}
+        return {**result, "status": "empty", "avg_profit_pct": None, "open_positions": [], "recent_closed_positions": []}
 
     for record in (state, *state["positions"].values(), *state["fills"], *state["completed"]):
         if record.get("asset_domain", sim.DOMAIN) != sim.DOMAIN or record.get("simulated", True) is not True:
             raise ValueError("Session incompatible avec le domaine memecoin simulé")
     snapshot = sim.report(state, {})
-    closed = _closed_results(state)
+    lots = _closed_lots(state)
+    closed = [lot["pnl_usd"] for lot in lots]
+    strategies = snapshot["strategies"]
+    for name, stats in strategies.items():
+        stats["avg_profit_pct"] = _mean([lot["profit_pct"] for lot in lots if lot["strategy"] == name])
     gains = sum(max(0, pnl) for pnl in closed)
     losses = sum(max(0, -pnl) for pnl in closed)
     initial = snapshot["initial_capital"]
@@ -70,7 +125,8 @@ def build_analytics_report(db_path):
         "closed_trades": len(closed), "win_rate": snapshot["win_rate"],
         "profit_factor": gains / losses if losses else None,
         "gross_profit": gains, "gross_loss": losses, "max_drawdown_pct": drawdown,
-        "strategies": snapshot["strategies"],
+        "avg_profit_pct": _mean([lot["profit_pct"] for lot in lots]), "strategies": strategies,
+        "open_positions": _open_positions(state), "recent_closed_positions": lots[::-1][:RECENT_CLOSED],
         "top_tokens": [(mint, pnl) for mint, pnl in ranking if pnl > 0][:5],
         "flop_tokens": [(mint, pnl) for mint, pnl in reversed(ranking) if pnl < 0][:5],
     }
@@ -93,9 +149,15 @@ def render_report(report):
         f"P&L net : {fmt(report['net_pnl'])} USD ({fmt(report['net_pnl_pct'])} %)",
         f"Win rate : {fmt(None if win is None else 100 * win)} % sur {report['closed_trades']} clôtures",
         f"Profit factor : {factor} | Drawdown maximal observé : {fmt(report['max_drawdown_pct'])} %",
-        "Stratégies aux dernières valorisations (P&L USD | entrées)",
+        f"Profit moyen par clôture : {fmt(report['avg_profit_pct'])} %",
+        "Stratégies aux dernières valorisations (P&L USD | entrées | profit moyen par clôture %)",
     ])
-    lines.extend(f"{name} : {fmt(stats['pnl'])} | {stats['trades']}" for name, stats in report["strategies"].items())
+    lines.extend(f"{name} : {fmt(stats['pnl'])} | {stats['trades']} | {fmt(stats['avg_profit_pct'])}"
+                 for name, stats in report["strategies"].items())
+    lines.append(f"Positions ouvertes : {len(report['open_positions'])}")
+    lines.extend(f"{p['strategy']} {p['mint']} : valeur {fmt(p['value_usd'])} USD | latent {fmt(p['unrealized_pnl_usd'])} USD "
+                 f"({fmt(p['unrealized_pnl_pct'])} %)" + (" | cotation en attente" if p["stale"] else "")
+                 for p in report["open_positions"])
     for label, key in (("Top", "top_tokens"), ("Flop", "flop_tokens")):
         lines.append(label + " : " + (", ".join(f"{mint} {fmt(pnl)} USD" for mint, pnl in report[key]) or "aucun"))
     if report["status"] == "stale":
