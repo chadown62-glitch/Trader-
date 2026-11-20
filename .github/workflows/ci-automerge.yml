@@ -47,7 +47,8 @@ jobs:
 
   cockpit:
     name: Vue cockpit (Chromium)
-    runs-on: ubuntu-latest
+    # Playwright 1.56.1 ne sait pas installer Chromium sur ubuntu-latest (26.04) : image 24.04, prise en charge.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

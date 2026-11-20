@@ -79,7 +79,7 @@ class EventBus:
                 return 0  # no recipient: retain the event for an explicitly attached consumer
         count = 0
         with self._dispatch_lock:
-            for row in self.db.query('SELECT * FROM event_outbox WHERE dispatched_at IS NULL ORDER BY created_at,id LIMIT ?',
+            for row in self.db.query('SELECT * FROM event_outbox WHERE dispatched_at IS NULL ORDER BY created_at,rowid LIMIT ?',
                                      (max(1,min(1000,limit)),)):
                 event = json.loads(row['event'])
                 ok = self._emit(row['topic'], event)
