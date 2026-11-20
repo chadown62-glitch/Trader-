@@ -6,6 +6,8 @@ net liquidation value, 20 % sold once the net ratio reaches 1.25 (fees and slipp
 on the remaining balance, take-profit slices at x3, x6 and x10 and an adaptive trailing stop. A position keeps the
 policy it was opened under (a lot never changes rules mid-flight); positions opened before this version, or by a raw
 state that never went through ``tick``, keep the legacy ladder (-17 %, 50 % at 1.5x and 2x, trailing 20 %).
+Candidates (M58): established pools (``established_pools``: liquidity >= 20,000 USD, at least one hour old, an active
+last hour, a Jupiter round trip quoted without a wallet, then the anti-rug veto) instead of pools born minutes ago.
 Paper only: no order, no key; every fill is tagged ``asset_domain="memecoin"`` and ``simulated``."""
 
 import json
@@ -13,11 +15,10 @@ import math
 
 from ..ai.features_memecoin import extract_features
 from ..config import paper_capital
-from . import smart_wallets
+from . import established_pools, smart_wallets
 from .dex import _rpc
 from .memecoin_strategies import CALIBRATED, MemecoinIsolatedLearner, NAMES, evaluate, exit_decision
 from .net import SourceUnavailable
-from .solana_scanner import scan_once
 
 KEY = "memecoin:paper-session:v1"
 DOMAIN = "memecoin"
@@ -113,15 +114,22 @@ def configure(db, client, amount, currency):
         db.set_meta(KEY, json.dumps(state, allow_nan=False))
 
 
+def scan_once(client, db, bus, *, registry=None):
+    """Session candidates (M58): established pools rather than micro-pools created a few minutes ago."""
+    return established_pools.scan(client, db, bus, registry=registry)
+
+
 def quote(client, asset, now):
     mint = asset["symbol"]
     pairs = client.get("api.dexscreener.com", f"/token-pairs/v1/solana/{mint}").json()
+    # Established pools live on several DEXs (PumpSwap, Raydium, Meteora, Orca): the exact pair address identifies them.
+    venue = None if asset.get("dex_id") else "raydium"
     pair = next(
         (
             p
             for p in pairs
             if p["chainId"] == "solana"
-            and p["dexId"] == "raydium"
+            and (venue is None or p["dexId"] == venue)
             and p["pairAddress"] == asset["pool"]
             and p["baseToken"]["address"] == mint
             and p["quoteToken"]["address"] == asset["quote_mint"]
@@ -306,13 +314,18 @@ def tick(hub, db, bus):
     state["errors"] = list(scanned["errors"])
     now = int(client.clock())
     assets = state["assets"]
+    refreshed = set()
     # Include tokens previously found by the standalone scanner too.
     for row in db.query(
-        "SELECT data FROM decisions WHERE agent='solana_scanner' AND kind='observation_accepted' ORDER BY id DESC LIMIT 32"
+        "SELECT data FROM decisions WHERE agent IN ('solana_scanner', 'established_pools') AND kind='observation_accepted' "
+        "ORDER BY id DESC LIMIT 32"
     ):
         event = json.loads(row["data"])
         if event.get("asset_domain") == DOMAIN:
-            assets.setdefault(event["symbol"], {k: event[k] for k in ("symbol", "pool", "creation", "quote_mint")})
+            asset = assets.setdefault(event["symbol"], {k: event[k] for k in ("symbol", "pool", "creation", "quote_mint", "dex_id") if k in event})
+            if event["symbol"] not in refreshed and isinstance(event.get("round_trip"), dict):
+                asset["round_trip_loss"] = event["round_trip"].get("loss")  # aller-retour Jupiter le plus récent
+            refreshed.add(event["symbol"])
     try:
         network = network_fee(client) if assets else None
     except SOURCE_ERRORS as exc:

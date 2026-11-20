@@ -104,6 +104,46 @@ class TokenRiskService:
         return res
 
 
+# Token-2022 : extensions purement descriptives (nom, symbole, image, regroupement), celles des tokens pump.fun. Toute
+# autre extension (frais ou crochet de transfert, délégué permanent, état gelé par défaut, non transférable…) reste un veto.
+SAFE_TOKEN_2022_EXTENSIONS = frozenset({"metadataPointer", "tokenMetadata", "groupPointer", "tokenGroup",
+                                        "groupMemberPointer", "tokenGroupMember"})
+# Détenteurs réels (rapport Rugcheck, hors pools et verrous connus) : seuils fixés dans M56.
+BENEFICIAL_MAX_TOP10 = 0.35
+BENEFICIAL_MAX_TOP1 = 0.15
+EXCLUDED_HOLDER_TYPES = ("AMM", "LOCKER")
+
+
+def _rugcheck_holders(client: PublicClient, token: TokenId) -> dict:
+    """Plus gros détenteurs hors pools et verrous connus (rapport Rugcheck complet).
+
+    Lu en premier : le RPC public refuse (HTTP 403) ou limite (HTTP 429, avec de longues attentes) la lecture des plus
+    gros comptes, si bien qu'aucun token ne pouvait être évalué. Sans liste exploitable, le Guardian revient à la
+    chaîne ; si la chaîne échoue aussi, la concentration est indisponible, donc un veto.
+    """
+    f = client.get("api.rugcheck.xyz", f"/v1/tokens/{token.address}/report")
+    d = f.json()
+    holders = d.get("topHolders") if isinstance(d, dict) else None
+    if not isinstance(holders, list) or not holders:
+        raise ValueError("détenteurs Rugcheck absents")
+    known = d.get("knownAccounts") or {}
+    excluded = {k for k, v in known.items() if isinstance(v, dict) and v.get("type") in EXCLUDED_HOLDER_TYPES}
+    shares = []
+    for h in holders:
+        if not isinstance(h, dict):
+            raise ValueError("détenteur Rugcheck malformé")
+        if h.get("address") in excluded or h.get("owner") in excluded:
+            continue
+        pct = float(h["pct"]) / 100
+        if not (math.isfinite(pct) and 0 <= pct <= 1):
+            raise ValueError("part de détention incohérente")
+        shares.append(pct)
+    shares.sort(reverse=True)
+    return {"source": "rugcheck", "top10_share": sum(shares[:10]), "top1_share": shares[0] if shares else 0.0,
+            "listed": len(holders), "excluded_pools_or_lockers": len(holders) - len(shares), "sha256": f.sha256,
+            "received_ms": f.received_ms, "note": "hors pools et verrous connus"}
+
+
 class _GuardianRPC:
     """Validate raw fields that the general-purpose SPL readers normalize or omit."""
     def __init__(self, client):
@@ -131,7 +171,12 @@ class _GuardianRPC:
 
 
 def assess_candidate(client, token, liquidity_usd, *, min_liquidity_usd=25000, max_top10_share=0.50):
-    """Top ten token accounts, including AMM vaults and exchanges; not beneficial owners."""
+    """Veto anti-arnaque d'un candidat memecoin Solana.
+
+    Concentration : les détenteurs réels selon Rugcheck (hors pools et verrous ; 10 premiers ≤ 35 %, premier ≤ 15 %) ;
+    à défaut, les dix plus gros comptes lus sur la chaîne (pools compris, ≤ ``max_top10_share``). Token-2022 n'est
+    admis qu'avec des extensions purement descriptives.
+    """
     if token.network != "solana" or not (0 < min_liquidity_usd <= 1e300 and 0 < max_top10_share <= 1):
         raise ValueError("politique du Guardian invalide")
     verdict = Verdict()
@@ -146,18 +191,33 @@ def assess_candidate(client, token, liquidity_usd, *, min_liquidity_usd=25000, m
         if not mint["exists"] or mint["supply"] <= 0:
             raise ValueError("mint ou offre positive indisponible")
         if mint["program"] != dex.SPL_TOKEN:
-            verdict.veto("token_program", "Le Guardian V0 couvre uniquement SPL Token classique", "guardian")
+            risky = sorted(set(mint.get("extensions") or ()) - SAFE_TOKEN_2022_EXTENSIONS)
+            if mint["program"] != dex.SPL_TOKEN_2022:
+                verdict.veto("token_program", "Programme de token non couvert par le Guardian", "guardian")
+            elif risky:
+                verdict.veto("token_program", "Extensions Token-2022 à risque : " + ", ".join(risky), "guardian")
         for authority in ("mint_authority", "freeze_authority"):
             if mint[authority] is not None:
                 verdict.veto(authority, f"Autorité active : {authority}", "guardian")
         source = "concentration"
-        holders = dex.solana_concentration(rpc, token, mint["supply"])
+        try:  # détenteurs réels d'abord : le RPC public refuse (403) ou limite (429) la lecture des plus gros comptes
+            holders = _rugcheck_holders(client, token)
+        except (SourceUnavailable, ValueError, KeyError, TypeError) as exc:
+            holders = dex.solana_concentration(rpc, token, mint["supply"]) | {"rugcheck_error": str(exc)[:160]}
         evidence[source] = holders
         share = holders["top10_share"]
-        if not 0 < share <= 1:
-            raise ValueError("concentration incohérente")
-        if share > max_top10_share:
-            verdict.veto(source, f"Top 10 {share:.2%} > {max_top10_share:.2%}, comptes de pools inclus", "guardian")
+        if holders.get("source") == "rugcheck":
+            if not 0 <= share <= 1:
+                raise ValueError("concentration incohérente")
+            if share > BENEFICIAL_MAX_TOP10:
+                verdict.veto(source, f"Top 10 {share:.2%} > {BENEFICIAL_MAX_TOP10:.0%}, hors pools et verrous", "guardian")
+            if holders["top1_share"] > BENEFICIAL_MAX_TOP1:
+                verdict.veto(source, f"Premier détenteur {holders['top1_share']:.2%} > {BENEFICIAL_MAX_TOP1:.0%}", "guardian")
+        else:
+            if not 0 < share <= 1:
+                raise ValueError("concentration incohérente")
+            if share > max_top10_share:
+                verdict.veto(source, f"Top 10 {share:.2%} > {max_top10_share:.2%}, comptes de pools inclus", "guardian")
     except (SourceUnavailable, KeyError, TypeError, ValueError, OverflowError) as exc:
         verdict.veto(source + "_unavailable", str(exc), "guardian")
     try:
