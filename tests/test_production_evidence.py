@@ -66,7 +66,7 @@ def test_generator_is_deterministic_and_reports_empty_experience(tmp_path):
     run = evaluate("noise", 8, bars=1800, test_bars=60, sizes=(100,))
     assert run["learning_curve"][0]["status"] == "NON TESTÉ"
     report = reports([run], tmp_path, revision="test")
-    assert json.loads((tmp_path/"production.json").read_text()) == report
+    assert json.loads((tmp_path/"production.json").read_text(encoding="utf-8")) == report
     assert {p.name for p in tmp_path.iterdir()} == {"production.json","production.csv","production.md"}
     assert run["strategies"]["cash"]["capital_eur"] == 30
 

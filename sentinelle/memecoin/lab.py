@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import statistics
 from dataclasses import dataclass
 
@@ -193,7 +194,7 @@ def simulate_pool(name: str, g: np.ndarray, pool: dict, sol_usd: float, *, mode:
         proceeds = gross_out * (1 - cost.dex_fee) * (1 - imp_out) * (1 - cost.mev)
         network = cost.network_usd_per_swap * (2 + fails_in - latency + fails_out)
         net = proceeds - ORDER_USD - network
-        trades.append({"pool": pool["pool"], "entry": int(e), "exit": int(exit_i), "minutes": int(exit_i - e), "why": why,
+        trades.append({"pool": pool["pool"], "entry": int(e), "entry_ms": int(g[e, 0]), "exit": int(exit_i), "minutes": int(exit_i - e), "why": why,
                        "gross_return": float(px_out / px_in - 1), "net_usd": float(net), "net_return": float(net / ORDER_USD),
                        "fees_usd": float(ORDER_USD * cost.dex_fee + gross_out * cost.dex_fee),
                        "impact_usd": float(ORDER_USD * imp_in + gross_out * (1 - cost.dex_fee) * imp_out),
@@ -247,6 +248,50 @@ def forward_check(pools: list[dict], verdicts: dict, follow_ohlcv: dict, sol_usd
     return out
 
 
+def forward_coverage(pools: list[dict], verdicts: dict, follow_ohlcv: dict, decided_ms: dict) -> dict:
+    """Pourquoi une issue est illisible : pas de contrôle, pas de seconde lecture, ou plus aucun échange après la décision."""
+    out = {"readable": 0, "no_security": 0, "no_follow_candles": 0, "no_candle_before_decision": 0, "no_trade_after_decision": 0}
+    for p in pools:
+        f = follow_ohlcv.get(p["pool"])
+        if p["pool"] not in verdicts:
+            out["no_security"] += 1
+        elif not f or not f["candles"]:
+            out["no_follow_candles"] += 1
+        else:
+            t0 = max(p["observed_ms"], decided_ms.get(p["pool"], 0))
+            if not any(c[0] <= t0 for c in f["candles"]):
+                out["no_candle_before_decision"] += 1
+            elif not any(c[0] > t0 for c in f["candles"]):
+                out["no_trade_after_decision"] += 1
+            else:
+                out["readable"] += 1
+    liq = sorted(p.get("reserve_usd") or 0.0 for p in pools)
+    out["reserve_usd_quantiles"] = {q: float(np.quantile(liq, float(q))) for q in ("0.25", "0.5", "0.75", "0.9")} if liq else {}
+    out["pools_at_or_above_min_liquidity"] = sum(1 for x in liq if x >= guardian.RULES["min_liquidity_usd"])
+    return out
+
+
+REASON_FAMILIES = {  # familles de motifs du veto, pour une lecture DESCRIPTIVE de l'issue (un token peut en avoir plusieurs)
+    "créateur déjà signalé": ("Creator history",),
+    "concentration des détenteurs": ("détenteur", "Single holder", "High holder", "Top 10", "High ownership"),
+    "revente impossible ou chère": ("aucune route de revente", "aller-retour immédiat"),
+    "liquidité faible": (" $ (< ", "Low Liquidity"),  # montant sous le minimum (pas « liquidité verrouillée … »)
+    "liquidité non verrouillée": ("LP Unlocked", "verrouillée"),
+}
+
+
+def forward_by_reason(pools: list[dict], verdicts: dict, follow_ohlcv: dict, sol_usd: float, decided_ms: dict) -> dict:
+    """Issue après la décision, par famille de motif du veto (descriptif : petits effectifs, chevauchements)."""
+    out = {}
+    for family, keys in REASON_FAMILIES.items():
+        members = {pid: {"status": family} for pid, v in verdicts.items() if any(k in r for r in v["veto"] for k in keys)}
+        out.update(forward_check(pools, members, follow_ohlcv, sol_usd, decided_ms))
+    clean = {pid: {"status": "aucun signalement Rugcheck « danger »"} for pid, v in verdicts.items()
+             if not any(r.startswith("signalement") for r in v["veto"])}
+    out.update(forward_check(pools, clean, follow_ohlcv, sol_usd, decided_ms))
+    return out
+
+
 # -- stress -------------------------------------------------------------------------------------------------------------
 def stress_scenarios(sol_usd: float) -> dict:
     """Scénarios synthétiques : ce que coûte un retrait de liquidité, une taxe, une sortie bloquée, une panne de source."""
@@ -289,12 +334,17 @@ def run(capture: list[dict], follow: list[dict] | None = None) -> dict:
     by_pool = {p["pool"]: p for p in pools}
     ohlcv = {r["pool"]: r for r in capture if r["kind"] == "ohlcv"}
     sec = {r["mint"]: r for r in capture if r["kind"] == "security"}
-    coll = next((r for r in capture if r["kind"] == "collection"), {})
+    colls = [r for r in capture if r["kind"] == "collection"]
+    coll = colls[0] if colls else {}
     sol_usd = _sol_usd(capture + (follow or []))
     verdicts = {p["pool"]: guardian.assess(p, sec.get(p["mint"])) for p in pools if p["mint"] in sec}
     parts = split(pools)
     reserved_sha = hashlib.sha256(json.dumps(sorted(parts["reserved"])).encode()).hexdigest()
-    grids = {pid: g for pid in by_pool if pid in ohlcv and (g := dense(ohlcv[pid]["candles"])) is not None}
+    follow_map = {r["pool"]: r for r in (follow or []) if r["kind"] == "ohlcv"}
+    decided = {p["pool"]: max(p["observed_ms"], sec[p["mint"]]["observed_ms"]) for p in pools if p["mint"] in sec}
+    # Bougies : la seconde lecture (vie du pool jusqu'à 16 h après la décision) quand elle existe, sinon la collecte.
+    source = {pid: (follow_map.get(pid) or ohlcv.get(pid)) for pid in by_pool}
+    grids = {pid: g for pid, r in source.items() if r and (g := dense(r["candles"])) is not None}
     results = {}
     later_collapsed = {pid for pid, g in grids.items() if g[:, 4].min() <= COLLAPSE * g[:, 4].max()}
     for name in STRATEGIES:
@@ -307,10 +357,12 @@ def run(capture: list[dict], follow: list[dict] | None = None) -> dict:
                 if tr:
                     s["share_in_pools_that_collapsed"] = float(np.mean([t["pool"] in later_collapsed for t in tr]))
                 row[f"{part}:{mode}"] = s
+            # Veto CAUSAL : décision prise à la collecte, avec les seules données d'alors ; seuls comptent les trades ouverts après.
             rng = np.random.default_rng(560)
-            passed = [t for pid in parts[part] if pid in grids and (verdicts.get(pid) or {}).get("status") == guardian.PASS
-                      for t in simulate_pool(name, grids[pid], by_pool[pid], sol_usd, rng=rng)]
-            row[f"{part}:filtre_postérieur"] = summarize(passed)
+            after = [t for pid in parts[part] if pid in grids and pid in decided
+                     for t in simulate_pool(name, grids[pid], by_pool[pid], sol_usd, rng=rng) if t["entry_ms"] >= decided[pid]]
+            row[f"{part}:sans_veto"] = summarize(after)
+            row[f"{part}:avec_veto"] = summarize([t for t in after if (verdicts.get(t["pool"]) or {}).get("status") == guardian.PASS])
             rng = np.random.default_rng(560)
             late = [t for pid in parts[part] if pid in grids for t in simulate_pool(name, grids[pid], by_pool[pid], sol_usd, latency=2, rng=rng)]
             row[f"{part}:retard_2_min"] = summarize(late)
@@ -321,19 +373,23 @@ def run(capture: list[dict], follow: list[dict] | None = None) -> dict:
     for v in verdicts.values():
         for r in v["veto"] + v["weak"] + v["missing"]:
             key = r.split(" :")[0].split(" (")[0]
+            if re.fullmatch(r"liquidité [\d  ]+ \$", key):  # le montant varie d'un pool à l'autre : un seul motif
+                key = "liquidité sous le minimum"
             reasons[key] = reasons.get(key, 0) + 1
-    follow_map = {r["pool"]: r for r in (follow or []) if r["kind"] == "ohlcv"}
     return {
         "kind": "memecoin-lab-report", "paper_only": True, "can_trade": False,
         "data": {"pools": len(pools), "with_candles": len(grids), "minutes": int(sum(len(g) for g in grids.values())),
                  "security_checked": len(verdicts), "split": {k: len(v) for k, v in parts.items()}, "reserved_list_sha256": reserved_sha,
                  "reserved_note": "20 % des pools les plus récents : aucun calcul de stratégie ici ; réservés à une évaluation préenregistrée",
-                 "collection": {k: coll.get(k) for k in ("started_ms", "finished_ms", "requests", "pages")}, "sol_usd": sol_usd},
+                 "collection": {k: coll.get(k) for k in ("started_ms", "finished_ms", "requests", "pages")}, "sol_usd": sol_usd,
+                 "collections": [{k: c.get(k) for k in ("started_ms", "finished_ms", "requests", "pools")} for c in colls]},
         "sources": coll.get("sources"), "quality": coll.get("quality"),
+        "sources_by_collection": [c.get("sources") for c in colls], "quality_by_collection": [c.get("quality") for c in colls],
         "guardian": {"rules": guardian.RULES, "counts": {s: statuses.count(s) for s in (guardian.VETO, guardian.ABSTAIN, guardian.PASS)},
                      "reasons": dict(sorted(reasons.items(), key=lambda kv: -kv[1]))},
-        "forward_check": forward_check(pools, verdicts, follow_map, sol_usd,
-                                       {p["pool"]: sec[p["mint"]]["observed_ms"] for p in pools if p["mint"] in sec}) if follow else None,
+        "forward_check": forward_check(pools, verdicts, follow_map, sol_usd, decided) if follow else None,
+        "forward_coverage": forward_coverage(pools, verdicts, follow_map, decided) if follow else None,
+        "forward_by_reason": forward_by_reason(pools, verdicts, follow_map, sol_usd, decided) if follow else None,
         "strategies": results, "cost_model_validation": validation,
         "hypotheses": {"dex_fees": DEX_FEES, "default_dex_fee": DEFAULT_DEX_FEE, "network_lamports": NETWORK, **HYPOTHESES, "order_usd": ORDER_USD},
         "stress": stress_scenarios(sol_usd),
@@ -371,6 +427,9 @@ def markdown(r: dict) -> str:
     def p(x, d=1):
         return "—" if x is None else f"{x * 100:+.{d}f} %".replace(".", ",")
 
+    def usd(x):
+        return f"{x:,.0f}".replace(",", " ")
+
     d = r["data"]
     out = [f"Pools : {d['pools']} (bougies : {d['with_candles']}, {d['minutes']} minutes) · contrôlés : {d['security_checked']} · "
            f"découpage {d['split']} · liste réservée `{d['reserved_list_sha256'][:16]}…` · SOL ≈ {d['sol_usd']:.0f} $", "",
@@ -384,6 +443,19 @@ def markdown(r: dict) -> str:
         for k, v in r["forward_check"].items():
             out.append(f"| {k} | {v['tokens']} | {p(v['collapsed_share'], 0)} | {p(v['median_return'])} | {p(v['mean_net_after_costs'])} | "
                        f"{p(v['share_net_positive'], 0)} | {v['median_minutes_after']:.0f} |")
+    if r.get("forward_coverage"):
+        c = r["forward_coverage"]
+        q = c["reserve_usd_quantiles"]
+        out += ["", f"Issue lisible pour {c['readable']} tokens ; aucun échange après la décision : {c['no_trade_after_decision']} ; "
+                f"aucune bougie avant la décision : {c['no_candle_before_decision']} ; sans seconde lecture : {c['no_follow_candles']} ; "
+                f"sans contrôle : {c['no_security']}. Liquidité des pools à la collecte : médiane {usd(q.get('0.5', 0))} $ ; "
+                f"9e décile {usd(q.get('0.9', 0))} $ ; au moins le minimum du veto : {c['pools_at_or_above_min_liquidity']} pools."]
+    if r.get("forward_by_reason"):
+        out += ["", "Par famille de motif (descriptif ; un token peut cumuler plusieurs motifs) :", "",
+                "| Motif | Tokens | Effondrés (−90 %) | Rendement médian | Moyenne nette après coûts | Part nette positive |", "|---|---|---|---|---|---|"]
+        for k, v in r["forward_by_reason"].items():
+            out.append(f"| {k} | {v['tokens']} | {p(v['collapsed_share'], 0)} | {p(v['median_return'])} | {p(v['mean_net_after_costs'])} | "
+                       f"{p(v['share_net_positive'], 0)} |")
     out += ["", "#### Règles de sélection (ordre de 11 $ ≈ 10 €, coûts complets)", "",
             "| Règle | Partie | Ordres | Gagnants | Moyenne nette [IC 95 %] | Médiane | Total net ($) | Facteur de profit | Dans des pools effondrés |",
             "|---|---|---|---|---|---|---|---|---|"]

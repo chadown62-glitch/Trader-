@@ -9,17 +9,23 @@
 from __future__ import annotations
 
 import asyncio
+import threading
+import time
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from . import memecoin_simulator
+from .memecoin_worker import CycleBusy, MemecoinSessionWorker
+from .net import SourceUnavailable
+from .solana_scanner import scan_once
 from .guard import inspect_request
 from .ledger import Blocked, LedgerError
 from .security import SecurityRefusal
 from .service import HubError, HubService
 
 
-def register_routes(api, app, service_factory) -> None:
+def register_routes(api, app, service_factory) -> MemecoinSessionWorker:
     state: dict = {}
 
     def svc() -> HubService:
@@ -37,6 +43,10 @@ def register_routes(api, app, service_factory) -> None:
             if "svc" not in state and state.get("error"):
                 return JSONResponse({"detail": state["error"], "code": "dmh_disabled"}, status_code=503)
             return await asyncio.to_thread(fn, *args)
+        except SourceUnavailable as exc:
+            return JSONResponse({"detail": str(exc)}, status_code=503)
+        except CycleBusy as exc:
+            return JSONResponse({"detail": str(exc)}, status_code=429)
         except SecurityRefusal as exc:
             return JSONResponse({"detail": exc.message, "code": "dmh_security", "reasons": exc.reasons}, status_code=403)
         except Blocked as exc:
@@ -53,6 +63,77 @@ def register_routes(api, app, service_factory) -> None:
             data = None
         inspect_request(data, operation, db=app.db)  # RealTradingForbidden -> 403 (gestionnaire de l'application)
         return data
+
+    scan_lock = threading.Lock()
+    next_scan = 0.0
+
+    def scan(minimum, session=False, automatic=False, amount=None, currency=None):
+        nonlocal next_scan
+        if not scan_lock.acquire(blocking=False):
+            raise CycleBusy("Scan déjà en cours")
+        try:
+            now = time.monotonic()
+            if now < next_scan:
+                raise CycleBusy("Intervalle minimal entre deux scans")
+            next_scan = now + (15 if automatic else 60)
+            hub = svc()
+            if session:
+                hub.ledger.check_open()
+                memecoin_simulator.configure(app.db, hub.client, amount, currency)
+                return memecoin_simulator.tick(hub, app.db, app.bus)
+            return scan_once(hub.client, app.db, app.bus, min_liquidity_usd=minimum, registry=hub.registry)
+        finally:
+            scan_lock.release()
+
+    def configure(amount, currency):
+        hub = svc()
+        hub.ledger.check_open()
+        memecoin_simulator.configure(app.db, hub.client, amount, currency)
+
+    worker = MemecoinSessionWorker(lambda: scan(25000, True, True), configure, app.bus)
+
+    @api.post("/api/dmh/memecoin/worker/start")
+    async def worker_start(request: Request):
+        data = await body(request, "démarrer la session memecoin fictive")
+        if data.keys() - {"mode", "interval_seconds", "initial_capital", "currency"}:
+            return JSONResponse({"detail": "Paramètre de session inconnu"}, status_code=400)
+        try:
+            return await worker.start(data.get("interval_seconds", 15), data.get("initial_capital"), data.get("currency"))
+        except ValueError as exc:
+            return JSONResponse({"detail": str(exc)}, status_code=400)
+        except Blocked as exc:
+            return JSONResponse({"detail": str(exc)}, status_code=409)
+        except SourceUnavailable as exc:
+            return JSONResponse({"detail": str(exc)}, status_code=503)
+
+    @api.post("/api/dmh/memecoin/worker/stop")
+    async def worker_stop(request: Request):
+        data = await body(request, "mettre la session memecoin en pause")
+        if set(data) != {"mode"}:
+            return JSONResponse({"detail": "Paramètre de pause inconnu"}, status_code=400)
+        return await worker.stop()
+
+    @api.get("/api/dmh/memecoin/worker/status")
+    async def worker_status():
+        return worker.status()
+
+    @api.post("/api/dmh/solana/scan")
+    async def dmh_scan(request: Request):
+        data = await body(request, "observation des pools Solana")
+        if data.keys() - {"mode", "min_liquidity_usd"}:
+            return JSONResponse({"detail": "Champ de scan inconnu"}, status_code=400)
+        return await run(scan, data.get("min_liquidity_usd", 25000))
+
+    @api.post("/api/dmh/memecoin/session/tick")
+    async def memecoin_tick(request: Request):
+        data = await body(request, "cycle memecoin simulé")
+        if data.keys() - {"mode", "initial_capital", "currency"}:
+            return JSONResponse({"detail": "Champ de session inconnu"}, status_code=400)
+        return await run(scan, 25000, True, False, data.get("initial_capital"), data.get("currency"))
+
+    @api.get("/api/dmh/memecoin/session")
+    async def memecoin_session():
+        return await run(lambda: memecoin_simulator.report(*memecoin_simulator.load(app.db)))
 
     @api.get("/api/dmh/status")
     async def dmh_status():
@@ -93,6 +174,7 @@ def register_routes(api, app, service_factory) -> None:
     @api.post("/api/dmh/halt")
     async def dmh_halt(request: Request):
         data = await body(request, "arrêt des opérations fictives")
+        await worker.stop()
         return await run(lambda: svc().halt(str(data.get("reason", ""))[:200], "user"))
 
     @api.post("/api/dmh/resume")
@@ -118,3 +200,5 @@ def register_routes(api, app, service_factory) -> None:
     async def dmh_strategy(request: Request):
         data = await body(request, "préparation de stratégie")
         return await run(lambda: svc().strategy(str(data.get("message", ""))[:2000], "user"))
+
+    return worker

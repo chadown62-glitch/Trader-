@@ -8,11 +8,18 @@ Chronologie d'une journée ``t`` (contrat d'exécution du projet) :
 
 Contraintes : jamais de position négative ; jamais plus d'achats que de liquidités (aucun levier) ;
 un ordre sous le minimum de la plateforme n'est pas passé (un reliquat trop petit reste bloqué) ;
+
+Reliquats (mission 52, mesures de COST OPTIMIZER #50) — seulement si les règles de marché sont fournies (`rules`) :
+la quantité achetée est arrondie au pas de la plateforme, la commission est prélevée dans l'actif reçu (cas sans
+jeton de remise), la conversion est payée en liquidités ; à la vente, seule la part multiple du pas est vendable.
+Ce qui reste sous un pas est un RELIQUAT : compté comme PERDU à sa création (règle prudente), retiré du portefeuille
+et rapporté à part (`dust_lost`). Sans règles, le comportement est exactement celui d'avant (tests de non-régression).
 un actif dont la cotation s'arrête est vendu à sa dernière clôture connue, coûts compris, et
 compté. Le dernier jour, les positions restantes sont valorisées nettes de leur coût de sortie.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -68,6 +75,8 @@ class SimResult:
     fees: float = 0.0  # commissions et conversion
     spread_slippage: float = 0.0  # demi-écart et glissement payés
     blocked: dict = field(default_factory=dict)  # ordres non passés, par motif
+    dust_lost: float = 0.0  # valeur des reliquats invendables, comptée comme perdue (modèle de reliquats seulement)
+    dust_events: int = 0
     forced_exits: int = 0  # ventes imposées par une fin de cotation
     by_asset: dict = field(default_factory=dict)  # résultat net par actif
     holdings_days: int = 0
@@ -88,8 +97,13 @@ def is_decision_day(spec: Spec, panel: Panel, t: int) -> bool:
     raise ValueError(spec.rebalance)
 
 
+def _floor(q: float, step: float) -> float:
+    return math.floor(q / step + 1e-9) * step if step > 0 else q
+
+
 def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: int, capital: float = CAPITAL,
-             features: Features | None = None, exclude: frozenset = frozenset(), majors: tuple = MAJORS) -> SimResult:
+             features: Features | None = None, exclude: frozenset = frozenset(), majors: tuple = MAJORS,
+             rules: dict | None = None) -> SimResult:
     """Évalue ``spec`` sur les jours ``start..end`` (inclus). La première décision est prise à la clôture de ``start - 1``
     pour tous (mise en place), les suivantes selon le calendrier de la règle."""
     if not 1 <= start <= end < len(panel):
@@ -106,10 +120,47 @@ def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: i
                     np.zeros(end - start + 1), capital)
     last = capital
 
+    def rule(asset: str) -> dict | None:
+        return None if rules is None else rules.get(panel.base(asset))
+
+    def min_notional(asset: str) -> float:
+        r = rule(asset)
+        return max(cost.min_notional, float(r["min_notional"])) if r else cost.min_notional
+
+    def lose_dust(asset: str, price: float) -> None:
+        """Ce qui reste sous un pas est invendable : compté comme perdu (prudent) et retiré du portefeuille."""
+        left = qty.pop(asset, 0.0)
+        info.pop(asset, None)
+        if left > 0:
+            res.dust_lost += left * price
+            res.dust_events += 1
+            flows[asset] = flows.get(asset, 0.0)
+
     def sell(asset: str, amount: float, price: float) -> float:
         """Vend ``amount`` unités au prix de référence ``price`` ; renvoie les liquidités reçues."""
         nonlocal cash
         base = panel.base(asset)
+        r = rule(asset)
+        if r is not None:  # modèle de reliquats : seule la part multiple du pas est vendable, commission puis conversion
+            full = amount >= qty[asset] - 1e-15
+            amount = _floor(min(amount, qty[asset]), float(r["step"]))
+            if amount <= 0:
+                if full:
+                    lose_dust(asset, price)
+                return 0.0
+            gross = amount * price
+            net_px = gross * (1 - cost.worse(base))
+            got = net_px * (1 - cost.fee_bps / 1e4) * (1 - cost.fx_bps / 1e4)
+            res.spread_slippage += gross * cost.worse(base)
+            res.fees += net_px - got
+            res.turnover += gross / capital
+            res.trades += 1
+            cash += got
+            flows[asset] = flows.get(asset, 0.0) + got
+            qty[asset] -= amount
+            if full or qty[asset] < float(r["step"]) - 1e-15:
+                lose_dust(asset, price)
+            return got
         gross = amount * price
         got = gross * (1 - cost.worse(base)) * (1 - cost.fee)
         res.spread_slippage += gross * cost.worse(base)
@@ -154,26 +205,44 @@ def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: i
                 price = float(opens[col[asset]])
                 have, goal = qty[asset] * price, want.get(asset, 0.0)
                 if goal <= 0:
-                    if have >= cost.min_notional:
+                    if have >= min_notional(asset):
                         sell(asset, qty[asset], price)
                     else:
                         deny("reliquat_sous_le_minimum")
-                elif have - goal >= cost.min_notional:  # allègement : tout ordre au moins égal au minimum est passé
+                elif have - goal >= min_notional(asset):  # allègement : tout ordre au moins égal au minimum est passé
                     sell(asset, (have - goal) / price, price)
             # 2) achats, dans la limite des liquidités
             for asset in sorted(want):
                 price = float(opens[col[asset]])
                 delta = want[asset] - qty.get(asset, 0.0) * price
-                if delta < cost.min_notional:
+                if delta < min_notional(asset):
                     if delta > 0 and asset not in qty:
                         deny("achat_sous_le_minimum")
                     continue
                 spend = min(delta, cash / (1 + cost.fee))
-                if spend < cost.min_notional:
+                if spend < min_notional(asset):
                     deny("liquidités_insuffisantes")
                     continue
                 base = panel.base(asset)
                 paid = price * (1 + cost.worse(base))
+                r = rule(asset)
+                if r is not None:  # modèle de reliquats : quantité arrondie au pas, commission prélevée dans l'actif reçu
+                    order = _floor(min(spend, cash / (1 + cost.fx_bps / 1e4)) / paid, float(r["step"]))
+                    if order * price < min_notional(asset):
+                        deny("achat_sous_le_minimum_apres_arrondi")
+                        continue
+                    outlay = order * paid
+                    received = order * (1 - cost.fee_bps / 1e4)
+                    cash -= outlay * (1 + cost.fx_bps / 1e4)
+                    res.fees += outlay * cost.fx_bps / 1e4 + order * paid * cost.fee_bps / 1e4
+                    res.spread_slippage += order * price * cost.worse(base)
+                    res.turnover += outlay / capital
+                    res.trades += 1
+                    flows[asset] = flows.get(asset, 0.0) - outlay * (1 + cost.fx_bps / 1e4)
+                    if asset not in qty:
+                        info[asset] = {"days": 0, "entry": paid}
+                    qty[asset] = qty.get(asset, 0.0) + received
+                    continue
                 bought = spend / paid
                 cash -= spend * (1 + cost.fee)
                 res.fees += spend * cost.fee
@@ -190,7 +259,18 @@ def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: i
         closes = panel.close[nxt]
         invested = sum(q * float(closes[col[a]]) for a, q in qty.items())
         if nxt == end:  # dernier jour : valeur nette du coût de sortie des positions restantes
-            invested = sum(q * float(closes[col[a]]) * (1 - cost.worse(panel.base(a))) * (1 - cost.fee) for a, q in qty.items())
+            if rules is None:
+                invested = sum(q * float(closes[col[a]]) * (1 - cost.worse(panel.base(a))) * (1 - cost.fee) for a, q in qty.items())
+            else:  # seule la part vendable compte ; le reliquat final est perdu (rapporté à part)
+                invested = 0.0
+                for a, q in qty.items():
+                    r = rule(a)
+                    sellable = _floor(q, float(r["step"])) if r else q
+                    px = float(closes[col[a]])
+                    invested += sellable * px * (1 - cost.worse(panel.base(a))) * (1 - cost.fee_bps / 1e4) * (1 - cost.fx_bps / 1e4)
+                    if q - sellable > 0:
+                        res.dust_lost += (q - sellable) * px
+                        res.dust_events += 1
         equity = cash + invested
         k = nxt - start
         res.equity[k], res.returns[k] = equity, equity / last - 1
@@ -201,6 +281,9 @@ def simulate(panel: Panel, spec: Spec, cost: CostScenario, *, start: int, end: i
             v["days"] += 1
     final = panel.close[end]
     for asset, q in qty.items():
-        flows[asset] = flows.get(asset, 0.0) + q * float(final[col[asset]]) * (1 - cost.worse(panel.base(asset))) * (1 - cost.fee)
+        r = rule(asset)
+        sellable = _floor(q, float(r["step"])) if r else q
+        tail = (1 - cost.fee) if r is None else (1 - cost.fee_bps / 1e4) * (1 - cost.fx_bps / 1e4)
+        flows[asset] = flows.get(asset, 0.0) + sellable * float(final[col[asset]]) * (1 - cost.worse(panel.base(asset))) * tail
     res.by_asset = {a: float(v) for a, v in sorted(flows.items())}
     return res

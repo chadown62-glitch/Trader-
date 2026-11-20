@@ -1,37 +1,45 @@
 // Historique des trades + statistiques + export CSV (déclaration fiscale)
 import { api, safe } from '../api.js';
-import { store, money, signed, price, qty, plainPct, rr, cls, dt, duration, STRATEGY_LABELS } from '../store.js';
+import { store, selectedAccount, money, signed, price, qty, plainPct, rr, cls, dt, duration, STRATEGY_LABELS } from '../store.js';
 
-const { ref, computed, onMounted, watch } = Vue;
+const { ref, computed, watch } = Vue;
 const nf4 = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 
 export default {
   setup() {
     const accounts = computed(() => store.overview?.accounts || []);
-    const accountId = ref(null);
+    const accountId = selectedAccount;
     const origin = ref('');
     const trades = ref([]);
     const stats = ref(null);
     const open = ref(null);
     const ledger = ref(null);
     const acc = computed(() => accounts.value.find(a => a.id === accountId.value));
+    let sequence = 0;
     const load = async () => {
-      if (accountId.value === null && accounts.value.length) accountId.value = accounts.value[0].id;
-      if (accountId.value === null) return;
-      trades.value = (await safe(api.get(`/api/trades?account_id=${accountId.value}&limit=1000${origin.value ? '&origin=' + origin.value : ''}`))) || [];
-      stats.value = await safe(api.get(`/api/stats?account_id=${accountId.value}`));
-      ledger.value = await safe(api.get(`/api/accounts/${accountId.value}/ledger?limit=300`));
+      const seq = ++sequence, id = accountId.value;
+      trades.value = []; stats.value = null; ledger.value = null; open.value = null;
+      if (id == null) return;
+      const [rows, metrics, entries] = await Promise.all([
+        safe(api.get(`/api/trades?account_id=${id}&limit=1000${origin.value ? '&origin=' + origin.value : ''}`)),
+        safe(api.get(`/api/stats?account_id=${id}`)),
+        safe(api.get(`/api/accounts/${id}/ledger?limit=300`)),
+      ]);
+      if (seq === sequence) { trades.value = rows || []; stats.value = metrics; ledger.value = entries; }
     };
-    onMounted(load);
-    watch([accountId, origin], load);
-    watch(accounts, () => { if (accountId.value === null) load(); });
+    watch([accountId, origin], load, { immediate: true });
     const csvUrl = computed(() => `/api/trades.csv?account_id=${accountId.value ?? ''}`);
     const fiscalYear = ref('');
     const fiscalUrl = computed(() => `/api/fiscal.csv?account_id=${accountId.value ?? ''}${fiscalYear.value ? '&year=' + fiscalYear.value : ''}`);
     const fiscal = ref([]);
-    const loadFiscal = async () => { if (accountId.value !== null) fiscal.value = (await safe(api.get(`/api/fiscal/summary?account_id=${accountId.value}`))) || []; };
-    watch(accountId, loadFiscal);
-    onMounted(loadFiscal);
+    watch(accountId, async (id, _, invalidate) => {
+      let current = true;
+      invalidate(() => { current = false; });
+      fiscal.value = []; fiscalYear.value = '';
+      if (id == null) return;
+      const years = await safe(api.get(`/api/fiscal/summary?account_id=${id}`));
+      if (current) fiscal.value = years || [];
+    }, { immediate: true });
     const s = computed(() => (origin.value === 'ai' ? stats.value?.ai : origin.value === 'manual' ? stats.value?.manual : stats.value?.all) || {});
     return { accounts, accountId, origin, trades, stats, s, open, ledger, acc, nf4, csvUrl, fiscalYear, fiscalUrl, fiscal, money, signed, price, qty, plainPct, rr, cls, dt, duration, STRATEGY_LABELS };
   },

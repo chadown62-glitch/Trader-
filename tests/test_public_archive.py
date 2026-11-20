@@ -75,10 +75,10 @@ def test_protocol_is_immutable_and_forbids_historical_promotion(tmp_path):
     assert p['promotion_allowed'] is False and p['independent_final'] is False
     assert p['sizes']==[500,1500] and p['initial_eur']==30
     assert len(p['assets'])==3
-    path.write_text('user data')
+    path.write_text('user data', encoding="utf-8")
     with pytest.raises(ValueError,match='already exists'):
         register(root,path)
-    assert path.read_text()=='user data'
+    assert path.read_text(encoding="utf-8")=='user data'
 
 
 def test_decimal_canonicalization_does_not_depend_on_decimal_context():

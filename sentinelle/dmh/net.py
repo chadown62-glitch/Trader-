@@ -37,7 +37,7 @@ EVM_READ = frozenset({"eth_call", "eth_chainId", "eth_blockNumber", "eth_gasPric
                       "eth_maxPriorityFeePerGas", "eth_getBlockByNumber"})
 SOLANA_READ = frozenset({"getSlot", "getRecentPrioritizationFees", "getMinimumBalanceForRentExemption", "getAccountInfo",
                          "getTokenSupply", "getTokenLargestAccounts", "getHealth", "getBlockTime", "getGenesisHash",
-                         "getEpochInfo"})
+                         "getEpochInfo", "getSignaturesForAddress", "getTransaction"})
 # Paramètres qui transformeraient un devis en transaction à signer : refusés.
 # (comparaison sans tenir compte de la casse)
 FORBIDDEN_PARAMS = frozenset({"taker", "payer", "userpublickey", "wallet", "feeaccount", "referralaccount", "signature",
@@ -77,7 +77,7 @@ HOSTS: dict[str, Host] = {h.name: h for h in (
     Host("api.dexscreener.com", (r"/latest/dex/tokens/[0-9A-Za-z,]{32,400}", r"/token-pairs/v1/[a-z]{2,20}/[0-9A-Za-z]{32,44}"), 1.0),
     # GeckoTerminal (mission 56, MEMECOIN ALPHA ENGINE) : nouveaux pools, détail d'un pool et bougies ; lectures publiques seulement
     Host("api.geckoterminal.com", (r"/api/v2/networks/solana/new_pools", r"/api/v2/networks/solana/pools/[1-9A-HJ-NP-Za-km-z]{32,44}",
-                                   r"/api/v2/networks/solana/pools/[1-9A-HJ-NP-Za-km-z]{32,44}/ohlcv/(minute|hour|day)"), 0.15),
+                                   r"/api/v2/networks/solana/pools/[1-9A-HJ-NP-Za-km-z]{32,44}/ohlcv/(minute|hour|day)"), 0.12),
 )}
 # Points d'accès d'exécution ou privés, par hôte : refusés comme une opération réelle, avant même la liste blanche.
 FORBIDDEN_PATHS: dict[str, tuple[str, ...]] = {
@@ -194,7 +194,7 @@ class PublicClient:
             safety.forbid(f"paramètre de transaction « {bad[0]} » sur {host}")
         if rpc_method is not None:
             if rpc_method in WRITE_RPC or rpc_method.startswith(("personal_", "wallet_")) or "send" in rpc_method.lower() \
-                    or "sign" in rpc_method.lower():
+                    or ("sign" in rpc_method.lower() and rpc_method != "getSignaturesForAddress"):
                 safety.forbid(f"méthode d'écriture « {rpc_method} » sur {host}")
             if rpc_method not in h.rpc:
                 raise RequestNotAllowed(f"méthode non autorisée sur {host} : {rpc_method}")

@@ -132,7 +132,7 @@ def test_a_tampered_or_incomplete_archive_is_refused(tmp_path):
     with pytest.raises(ValueError, match="Catalogue"):
         data.load_archive(tmp_path)
     manifest = tmp_path / "manifest.json"
-    manifest.write_text(manifest.read_text().replace('"complete": true', '"complete": false'))
+    manifest.write_text(manifest.read_text(encoding="utf-8").replace('"complete": true', '"complete": false'), encoding="utf-8")
     with pytest.raises(ValueError, match="Manifeste"):
         data.load_archive(tmp_path)
 

@@ -106,7 +106,7 @@ def load_archive(root, expected_manifest_sha256=None):
     """Verify all raw inputs AND the derived data on every reuse, offline."""
     root = Path(root)
     payload = (root/'manifest.json').read_bytes()
-    pinned = expected_manifest_sha256 or (root/'manifest.sha256').read_text().strip()
+    pinned = expected_manifest_sha256 or (root/'manifest.sha256').read_text(encoding="utf-8").strip()
     if digest(payload) != pinned:
         raise ValueError('Manifest integrity failure')
     manifest = json.loads(payload)

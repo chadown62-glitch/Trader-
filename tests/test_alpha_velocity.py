@@ -82,7 +82,7 @@ def test_learners_never_learn_on_the_evaluation_window():
 def test_preregistration_is_written_first_and_cannot_be_silently_replaced(tmp_path):
     out = tmp_path / "run"
     plan = preregister(SMALL, out, ["take_all"])
-    assert json.loads((out / "preregistration.json").read_text())["config_sha256"] == plan["config_sha256"]
+    assert json.loads((out / "preregistration.json").read_text(encoding="utf-8"))["config_sha256"] == plan["config_sha256"]
     other = ChallengeConfig(seeds=(9,), markets=(("noise", 0.0),), n_bars=2500, budgets=(None,))
     with pytest.raises(ValueError):
         preregister(other, out, ["take_all"])

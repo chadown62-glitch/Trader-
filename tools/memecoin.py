@@ -2,7 +2,7 @@
 
     python -m tools.memecoin collect --out DOSSIER [--pages 5] [--security 60] [--budget 900]   # collecte publique bornée
     python -m tools.memecoin follow  --capture FICHIER --out DOSSIER                          # seconde lecture (issue)
-    python -m tools.memecoin lab     --capture FICHIER [--follow FICHIER] --output DOSSIER    # veto, sélection, coûts, stress
+    python -m tools.memecoin lab     --capture FICHIER… [--follow FICHIER…] --output DOSSIER  # veto, sélection, coûts, stress
 """
 from __future__ import annotations
 
@@ -48,7 +48,9 @@ def cmd_follow(a) -> int:
 def cmd_lab(a) -> int:
     from sentinelle.memecoin import lab
 
-    rep = lab.run(C.read_capture(Path(a.capture)), C.read_capture(Path(a.follow)) if a.follow else None)
+    capture = [r for path in a.capture for r in C.read_capture(Path(path))]  # plusieurs collectes : enregistrements réunis
+    follow = [r for path in (a.follow or []) for r in C.read_capture(Path(path))] or None
+    rep = lab.run(capture, follow)
     out = Path(a.output)
     out.mkdir(parents=True, exist_ok=True)
     (out / "lab.json").write_text(json.dumps(rep, indent=1, sort_keys=True, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
@@ -70,8 +72,8 @@ def main(argv=None) -> int:
     f.add_argument("--out", required=True)
     f.add_argument("--budget", type=int, default=300)
     lb = sub.add_parser("lab")
-    lb.add_argument("--capture", required=True)
-    lb.add_argument("--follow")
+    lb.add_argument("--capture", required=True, nargs="+")
+    lb.add_argument("--follow", nargs="*")
     lb.add_argument("--output", required=True)
     a = cli.parse_args(argv)
     return {"collect": cmd_collect, "follow": cmd_follow, "lab": cmd_lab}[a.cmd](a)

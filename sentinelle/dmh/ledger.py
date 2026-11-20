@@ -105,10 +105,15 @@ class CashBridge(Protocol):
 class StandaloneCash:
     """Euros fictifs du hub HORS application (tests, outils). Dans l'application : `MainAccountCash`."""
 
-    def __init__(self, ledger: "Ledger", initial: float = 30.0):
+    def __init__(self, ledger: "Ledger", initial: float | None = None):
         self.ledger = ledger
         with ledger.db.transaction():
             if ledger.db.one("SELECT 1 FROM dmh_cash WHERE account_id = ?", (ledger.account_id,)) is None:
+                if initial is None:
+                    initial = ledger.db.scalar("SELECT initial_balance FROM accounts WHERE id=? AND kind='paper' AND quote='EUR'",
+                                               (ledger.account_id,), 30.0)
+                if isinstance(initial, bool) or not isinstance(initial, (float, int)) or not math.isfinite(initial) or initial <= 0:
+                    raise LedgerError("Capital fictif positif et fini requis")
                 ledger.db.execute("INSERT INTO dmh_cash(account_id, eur) VALUES (?, ?)", (ledger.account_id, float(initial)))
                 ledger.journal(None, "depot_fictif", {"eur": float(initial), "note": "capital de départ (argent fictif)"})
 

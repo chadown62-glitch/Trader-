@@ -81,8 +81,10 @@ def cmd_register(a) -> int:
     for key in ("start", "split", "end"):
         panel.index_of(registry.WINDOW[key])  # lève si la date manque dans l'archive
     now = _now_ms()
+    _, rules_meta = data.load_rules(a.archive)
     plan = registry.build_plan(root=ROOT, data=panel.provenance, hyp=hyp, other_pairs=other_pairs(panel, feats, registry.WINDOW["start"]),
-                               registered_at=datetime.fromtimestamp(now / 1000, timezone.utc).isoformat(), registered_at_ms=now)
+                               registered_at=datetime.fromtimestamp(now / 1000, timezone.utc).isoformat(), registered_at_ms=now,
+                               rules_meta=rules_meta)
     digest = registry.write_plan(out, plan)
     registry.record(out, "plan_registered", {"plan_id": plan["plan_id"], "plan_sha256": digest, "candidates": len(plan["candidates"]),
                                              "cost_hypotheses_sha256": hyp.sha256, "archive_manifest_sha256": panel.provenance["archive_manifest_sha256"]}, now)
@@ -124,7 +126,13 @@ def cmd_run(a) -> int:
         print("Des résultats existent déjà dans ce dossier : utilisez un nouveau dossier.", file=sys.stderr)
         return 2
     t0 = time.time()
-    report = run_experiment(panel, plan, hyp)
+    rules = None
+    if (plan.get("execution") or {}).get("dust_model"):
+        rules, meta = data.load_rules(a.archive)
+        if meta["exchange_info_sha256"] != plan["execution"]["rules"]["exchange_info_sha256"]:
+            print("Exécution refusée : le catalogue de la plateforme n'est pas celui du plan.", file=sys.stderr)
+            return 1
+    report = run_experiment(panel, plan, hyp, rules=rules)
     daily = report.pop("_daily")
     report["plan_sha256"], report["duration_s"] = digest, round(time.time() - t0, 1)
     report["data"] = panel.provenance
@@ -186,6 +194,36 @@ def markdown(report: dict) -> str:
     return "\n".join(out)
 
 
+def costs_check(proposal: Path, current: Path) -> dict:
+    """Compatibilité d'un fichier de coûts proposé (contrat COST OPTIMIZER #50) avec le laboratoire, SANS l'adopter."""
+    new, old = costs.load(proposal), costs.load(current)
+    problems = []
+    for name in (new.primary, new.stress, new.gross):
+        new.scenario(name)
+    for attr in ("majors",):
+        if tuple(new.scenario(new.primary).majors) != tuple(old.scenario(old.primary).majors):
+            problems.append(f"{attr} différents")
+    if not new.scenario(new.stress).round_trip("X") >= new.scenario(new.primary).round_trip("X") >= new.scenario(new.gross).round_trip("X"):
+        problems.append("scénarios non ordonnés (brut ≤ principal ≤ tension)")
+    rows = {}
+    for label, h in (("actuel", old), ("proposé", new)):
+        for scen in (h.primary, h.stress):
+            sc = h.scenario(scen)
+            rows[f"{label}:{scen}"] = {"order_bps_majors": (sc.worse("BTC") + sc.fee) * 1e4, "order_bps_others": (sc.worse("X") + sc.fee) * 1e4,
+                                       "round_trip_bps_majors": sc.round_trip("BTC") * 1e4, "round_trip_bps_others": sc.round_trip("X") * 1e4,
+                                       "fee_bps": sc.fee_bps, "fx_bps": sc.fx_bps, "min_notional": sc.min_notional}
+    return {"compatible": not problems, "problems": problems, "proposal": {"version": new.version, "sha256": new.sha256, "status": new.status,
+            "source_of_truth": new.source_of_truth}, "current": {"version": old.version, "sha256": old.sha256, "status": old.status},
+            "scenarios": rows, "adopted": False,
+            "note": "vérification seulement : l'adoption (nouveau fichier de coûts, nouveau plan) attend la décision de l'utilisateur"}
+
+
+def cmd_costs_check(a) -> int:
+    rep = costs_check(a.proposal, a.dir / registry.COST_FILE)
+    print(json.dumps(rep, ensure_ascii=False, indent=1))
+    return 0 if rep["compatible"] else 1
+
+
 def cmd_report(a) -> int:
     print(markdown(json.loads((Path(a.input) / "results.json").read_text(encoding="utf-8"))))
     return 0
@@ -210,9 +248,12 @@ def main(argv=None) -> int:
     x.add_argument("--dir", type=Path, default=DIR)
     p = sub.add_parser("report")
     p.add_argument("--input", type=Path, required=True)
+    c = sub.add_parser("costs-check")
+    c.add_argument("--proposal", type=Path, default=ROOT / "research" / "cost-optimizer-v1" / "alpha-lab-cost-hypotheses-proposal.json")
+    c.add_argument("--dir", type=Path, default=DIR)
     a = cli.parse_args(argv)
     return {"candidates": cmd_candidates, "universe": cmd_universe, "register": cmd_register, "verify": cmd_verify, "run": cmd_run,
-            "report": cmd_report}[a.cmd](a)
+            "report": cmd_report, "costs-check": cmd_costs_check}[a.cmd](a)
 
 
 if __name__ == "__main__":

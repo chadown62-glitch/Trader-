@@ -217,13 +217,13 @@ def test_the_pr40_ledger_accepts_a_complete_rewrite_which_is_why_anchors_exist(t
     old = ShadowLedger(path)
     h = old.record_decision(10, {"action": "abstain"})
     old.record_outcome(h, 20, {"net_r": -1.0})
-    records = [json.loads(x) for x in path.read_text().splitlines()]
+    records = [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines()]
     records[0]["payload"] = {"action": "enter"}  # l'histoire est réécrite après coup...
     records[0]["hash"] = _digest(records[0])
     records[1]["prev"], records[1]["decision"] = records[0]["hash"], records[0]["hash"]
     records[1]["payload"] = {"net_r": 2.0}
     records[1]["hash"] = _digest(records[1])
-    path.write_text("\n".join(json.dumps(r, ensure_ascii=False, sort_keys=True) for r in records) + "\n")
+    path.write_text("\n".join(json.dumps(r, ensure_ascii=False, sort_keys=True) for r in records) + "\n", encoding="utf-8")
     assert ShadowLedger(path).verify() is True  # ...et la chaîne seule ne voit rien
 
 

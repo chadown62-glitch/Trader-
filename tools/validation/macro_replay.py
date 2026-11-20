@@ -86,7 +86,7 @@ def prepare(path,histories,settings,model,store,*,start_ms,end_ms,tape=None,mark
 
 def replay(path,histories,model,store,*,tape=None,markets=None):
     raw=Path(path).read_bytes()
-    if digest(raw)!=Path(str(path)+'.sha256').read_text().strip():raise ValueError('Replay protocol integrity failure')
+    if digest(raw)!=Path(str(path)+'.sha256').read_text(encoding="utf-8").strip():raise ValueError('Replay protocol integrity failure')
     p=json.loads(raw)
     if p['origin']!='synthetic_fixture' or p['promotion_allowed']:raise ValueError('Only separately reviewed fixture replay enabled')
     import io,joblib

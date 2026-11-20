@@ -208,8 +208,8 @@ def test_ledger_refuses_hindsight_and_detects_tampering(tmp_path):
     led.record_outcome(h, 2000, {"net_r": -0.5})
     with pytest.raises(LedgerError):
         led.record_decision(1500, {"action": "ENTER"})  # le temps ne recule pas
-    lines = (tmp_path / "l.jsonl").read_text().splitlines()
-    (tmp_path / "l.jsonl").write_text("\n".join([lines[0].replace("ENTER", "ABSTAIN"), lines[1]]) + "\n")
+    lines = (tmp_path / "l.jsonl").read_text(encoding="utf-8").splitlines()
+    (tmp_path / "l.jsonl").write_text("\n".join([lines[0].replace("ENTER", "ABSTAIN"), lines[1]]) + "\n", encoding="utf-8")
     with pytest.raises(LedgerError):
         ShadowLedger(tmp_path / "l.jsonl")
 

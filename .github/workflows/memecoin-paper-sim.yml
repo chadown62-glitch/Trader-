@@ -1,0 +1,70 @@
+name: Memecoin paper simulation
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: memecoin-paper-cloud-v1
+  cancel-in-progress: false
+
+jobs:
+  simulate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONUTF8: '1'
+      CACHE_PREFIX: memecoin-paper-db-v1-
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Restore the previous session
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: cloud/session.sqlite
+          key: ${{ env.CACHE_PREFIX }}${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ env.CACHE_PREFIX }}
+      - name: Recover latest successful snapshot if its cache was evicted
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MATCH: ${{ steps.restore.outputs.cache-matched-key }}
+        run: |
+          set -euo pipefail
+          previous=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/memecoin-paper-sim.yml/runs?branch=main&status=success&per_page=5" --jq ".workflow_runs | map(select(.id != $GITHUB_RUN_ID)) | first | if . then [.id,.run_attempt] | @tsv else empty end")
+          if [[ -n "$previous" ]]; then
+            read -r previous_id attempt <<< "$previous"
+            if [[ "$MATCH" != "$CACHE_PREFIX$previous_id-$attempt" || ! -s cloud/session.sqlite ]]; then
+              gh run download "$previous_id" -R "$GITHUB_REPOSITORY" --name "memecoin-paper-$previous_id-$attempt" --dir "$RUNNER_TEMP/previous"
+              test -s "$RUNNER_TEMP/previous/session.sqlite"
+              install -D "$RUNNER_TEMP/previous/session.sqlite" cloud/session.sqlite
+            fi
+          fi
+      - name: Run one bounded paper tick
+        run: |
+          python -m sentinelle.dmh.memecoin_cloud_runner --ticks 1 --db-path cloud/session.sqlite --report-path cloud/report.json
+          cat cloud/report.txt >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: memecoin-paper-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            cloud/report.json
+            cloud/report.txt
+            cloud/session.sqlite
+          if-no-files-found: error
+      - uses: actions/cache/save@v4
+        with:
+          path: cloud/session.sqlite
+          key: ${{ steps.restore.outputs.cache-primary-key }}

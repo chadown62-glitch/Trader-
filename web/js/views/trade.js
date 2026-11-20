@@ -1,7 +1,7 @@
 // Trader : graphique temps réel, ticket d'ordre avec calculatrice de risque, avis de l'IA, positions
 import { api, on, safe } from '../api.js';
 import { CandleChart } from '../charts.js';
-import { store, fxLine, toast, confirmBox, money, signed, price, qty, pct, cls, dt, rr, STRATEGY_LABELS, accountLabel } from '../store.js';
+import { store, selectedAccount as accountId, fxLine, toast, confirmBox, money, signed, price, qty, pct, cls, dt, rr, STRATEGY_LABELS, accountLabel } from '../store.js';
 
 const { ref, reactive, computed, onMounted, onBeforeUnmount, watch } = Vue;
 const TF_MS = { '1m': 60e3, '5m': 300e3, '15m': 900e3, '30m': 1800e3, '1h': 3600e3, '4h': 14400e3, '1d': 86400e3 };
@@ -20,7 +20,6 @@ export default {
     const preview = ref(null);
     const busy = ref(false);
     const accounts = computed(() => (store.overview?.accounts || []).filter(a => a.connected !== false && a.kind === 'paper' && a.tradable !== false));
-    const accountId = ref(null);
     const account = computed(() => accounts.value.find(a => a.id === accountId.value));
     const t = reactive({ side: 'buy', type: 'market', mode: 'quote', amount: null, limit: null, sl: null, tp: null, useRisk: false, riskPct: 0.5 });
 
@@ -39,13 +38,6 @@ export default {
       return last.value / ref0[1] - 1;
     });
 
-    const pickAccount = () => {
-      if (accountId.value && accounts.value.some(a => a.id === accountId.value)) return;
-      const manual = accounts.value.find(a => a.role === 'main') || accounts.value.find(a => a.role === 'manual') || accounts.value[0];
-      accountId.value = manual?.id ?? null;
-    };
-    watch(accounts, pickAccount, { immediate: true });
-
     const loadCandles = async () => {
       loading.value = true;
       const r = await safe(api.get(`/api/candles?symbol=${encodeURIComponent(symbol.value)}&tf=${tf.value}&limit=500`));
@@ -53,12 +45,16 @@ export default {
       if (r) { candles.value = r.candles; setTimeout(() => chart.value && chart.value.fit(), 50); }
     };
     const loadDetail = async () => {
-      if (!accountId.value) return;
-      detail.value = await safe(api.get(`/api/accounts/${accountId.value}`));
+      const id = account.value?.id;
+      if (!id) return;
+      const row = await safe(api.get(`/api/accounts/${id}`));
+      if (account.value?.id === id) detail.value = row;
     };
     const loadTrades = async () => {
-      if (!accountId.value) return;
-      trades.value = (await safe(api.get(`/api/trades?account_id=${accountId.value}&limit=200`))) || [];
+      const id = account.value?.id;
+      if (!id) return;
+      const rows = await safe(api.get(`/api/trades?account_id=${id}&limit=200`));
+      if (account.value?.id === id) trades.value = rows || [];
     };
     const loadCoach = async () => { coach.value = await safe(api.get(`/api/coach?symbol=${encodeURIComponent(symbol.value)}`)); };
 
@@ -84,7 +80,10 @@ export default {
     onBeforeUnmount(() => { offTick(); offPos.forEach(f => f()); clearInterval(timer); clearInterval(coachTimer); });
     watch([symbol, tf], loadCandles);
     watch(symbol, () => { loadCoach(); preview.value = null; });
-    watch(accountId, () => { loadDetail(); loadTrades(); });
+    watch(() => account.value?.id, () => {
+      detail.value = null; trades.value = []; preview.value = null; editing.value = null;
+      loadDetail(); loadTrades();
+    });
 
     const positionsHere = computed(() => (detail.value?.positions || []));
     const lines = computed(() => {
@@ -136,7 +135,7 @@ export default {
       return { qty: q, value: q * refPrice.value, riskAmount };
     });
     const body = () => {
-      const b = { account_id: accountId.value, symbol: symbol.value, side: t.side, type: t.type };
+      const b = { account_id: account.value?.id, symbol: symbol.value, side: t.side, type: t.type };
       if (t.type === 'limit') b.price = Number(t.limit) || null;
       if (riskComputed.value) b.amount = riskComputed.value.qty;
       else if (t.mode === 'quote') b[cashCcy.value !== quoteCcy.value ? 'cash_amount' : 'quote_amount'] = Number(t.amount) || null;
@@ -150,7 +149,12 @@ export default {
       pvTimer = setTimeout(async () => {
         const b = body();
         if (!b.account_id || (!b.amount && !b.quote_amount && !b.cash_amount)) { preview.value = null; return; }
-        try { preview.value = await api.post('/api/orders/preview', b); } catch (e) { preview.value = { error: e.message }; }
+        try {
+          const result = await api.post('/api/orders/preview', b);
+          if (b.account_id === account.value?.id) preview.value = result;
+        } catch (e) {
+          if (b.account_id === account.value?.id) preview.value = { error: e.message };
+        }
       }, 350);
     }, { deep: true });
 
@@ -160,6 +164,7 @@ export default {
         const ok = await confirmBox({ title: 'Achat sans stop-loss', message: 'Sans stop-loss, votre perte n’est pas limitée. Continuer quand même ?', confirmLabel: 'Acheter sans stop' });
         if (!ok) return;
       }
+      if (!b.account_id || account.value?.id !== b.account_id) return;
       busy.value = true;
       const r = await safe(api.post('/api/orders', b));
       busy.value = false;
@@ -195,6 +200,7 @@ export default {
       <div class="symbol-tabs"><button v-for="s in store.markets.watchlist" :key="s" :class="{on: s===symbol}" @click="symbol=s">{{ s.split('/')[0] }}</button></div>
       <span class="spacer"></span>
       <select v-model="accountId" style="width:auto;min-width:200px">
+        <option v-if="!account" :value="accountId" disabled>Choisir un portefeuille simulé actif</option>
         <option v-for="a in accounts" :key="a.id" :value="a.id">{{ accountLabel(a) }}</option>
       </select>
       <span v-if="account" class="badge paper">ARGENT FICTIF</span>
@@ -223,7 +229,7 @@ export default {
                 <td><b>{{ p.symbol }}</b><div class="faint small" v-if="p.strategy">{{ STRATEGY_LABELS[p.strategy] }}</div></td>
                 <td><span class="badge" :class="p.origin==='ai' ? 'paper' : ''">{{ p.origin==='ai' ? 'IA' : 'Manuel' }}</span><div class="faint small" v-if="p.status==='pending'">en attente</div></td>
                 <td class="num">{{ qty(p.qty) }}</td><td class="num">{{ price(p.entry_price) }}</td><td class="num">{{ price(p.price) }}<div v-if="isStale(p.symbol)" class="small" style="color:#f59e0b" title="Aucun prix récent : résultat latent calculé au dernier prix connu">prix périmé</div></td>
-                <td class="num" :class="cls(p.pnl)">{{ signed(p.pnl) }}<div class="small">{{ p.r !== null && p.r !== undefined ? rr(p.r) : pct(p.pnl_pct/100) }}</div></td>
+                <td class="num" :class="cls(p.pnl)">{{ signed(p.pnl) }}<div class="small"><template v-if="p.r != null">{{ rr(p.r) }}</template><template v-else>{{ pct(p.pnl_net_pct, 2, true) }}<span v-if="p.pnl_net_pct != null"> net</span></template></div></td>
                 <td class="num">{{ price(p.stop_price) }}</td><td class="num">{{ price(p.target_price) }}</td>
                 <td class="nowrap"><button class="small" @click="editPos(p)" :disabled="p.status!=='open'">Modifier</button> <button class="small danger" @click="closePos(p)">Fermer</button></td>
               </tr>

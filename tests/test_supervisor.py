@@ -198,7 +198,7 @@ def test_rehashed_unsafe_launch_configuration_still_refused(tmp_path, key, value
     p = prepare(tmp_path / "app", protocol, target)
     p[key] = value
     target.write_bytes(encoded(p))
-    Path(str(target) + ".sha256").write_text(digest(encoded(p)))
+    Path(str(target) + ".sha256").write_text(digest(encoded(p)), encoding="utf-8")
     with pytest.raises(ValueError):
         load_plan(target)
 

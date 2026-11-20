@@ -84,7 +84,7 @@ def prepare(data, root, output, *, now=None):
 def load_plan(path):
     raw = Path(path).read_bytes()
     p = json.loads(raw)
-    if digest(raw) != Path(str(path) + ".sha256").read_text().strip():
+    if digest(raw) != Path(str(path) + ".sha256").read_text(encoding="utf-8").strip():
         raise ValueError("Supervisor plan checksum mismatch")
     if (
         p["schema"] != 1
