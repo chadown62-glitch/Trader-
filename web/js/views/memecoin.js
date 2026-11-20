@@ -5,6 +5,10 @@ const { ref, computed, onMounted, onBeforeUnmount } = Vue;
 const root = '/api/dmh/memecoin';
 const strategies = { sniper: 'Sniper', momentum: 'Momentum', dip_hunter: 'Dip Hunter', whale_tail: 'Whale Tail' };
 const reasons = { signal: 'Entrée', take_profit: 'Prise de profit', stop_loss: 'Stop loss', trailing_stop: 'Stop suiveur' };
+const stages = { liquidity: 'Liquidité sous 20 000 $', age: 'Pool de moins d\u2019une heure', activity: 'Dernière heure inactive',
+  round_trip: 'Revente non confirmée (Jupiter)', guardian: 'Veto anti-arnaque' };
+const decisions = { 'PROPOSITION_SIMULÉE': 'Entrée fictive autorisée', ATTENDRE: 'Attente', VETO: 'Veto', REFUS: 'Refus du risque',
+  ABSTENTION: 'Abstention' };
 
 // Break the stroke at missing valuations. Clip the same geometry at the starting balance.
 function equityChart(session) {
@@ -31,6 +35,17 @@ export default {
     const amount = ref(30), currency = ref('USD'), interval = ref(15), flash = ref('');
     let seq = 0, statusSeq = 0, timer, live = true, initialized = false;
     const radar = ref(null), radarError = ref('');
+    const funnel = ref(null), funnelError = ref('');
+    let funnelPending = false;
+    async function refreshFunnel() {
+      if (!live || funnelPending || document.hidden) return;
+      funnelPending = true;
+      try {
+        const data = await api.get(root + '/funnel');
+        if (live && data.asset_domain === 'memecoin') { funnel.value = data; funnelError.value = ''; }
+      } catch (e) { if (live) funnelError.value = e.message; }
+      finally { funnelPending = false; }
+    }
     let radarPending = false, radarTimer;
     async function refreshRadar() {
       if (!live || radarPending || document.hidden) return;
@@ -78,15 +93,16 @@ export default {
           if (f.asset_domain !== 'memecoin') return;
           flash.value = f.strategy; clearTimeout(timer); timer = setTimeout(() => flash.value = '', 3500);
         }));
-      refresh(); refreshRadar();
-      radarTimer = setInterval(refreshRadar, 60000);
+      refresh(); refreshRadar(); refreshFunnel();
+      radarTimer = setInterval(() => { refreshRadar(); refreshFunnel(); }, 60000);
+      off.push(on('memecoin_session', refreshFunnel));
       document.addEventListener('visibilitychange', refreshRadar);
     });
     onBeforeUnmount(() => { live = false; clearInterval(radarTimer); document.removeEventListener('visibilitychange', refreshRadar); off.forEach(unsub => unsub()); clearTimeout(timer); });
     const chart = computed(() => session.value && equityChart(session.value));
     const activity = computed(() => (session.value?.activity || []).slice().reverse());
     const maximum = computed(() => Math.max(0.001, ...(session.value?.token_ranking || []).map(row => Math.abs(row[1]))));
-    return { radar, radarError, session, worker, interval, amount, currency, busy, error, flash, act, chart, activity, maximum,
+    return { radar, radarError, funnel, funnelError, stages, decisions, session, worker, interval, amount, currency, busy, error, flash, act, chart, activity, maximum,
       strategies, reasons, store, dt, cls, money, signed, pct, plainPct };
   },
   template: `
@@ -123,6 +139,25 @@ export default {
           <line x1="0" x2="600" :y1="chart.baseline" :y2="chart.baseline" stroke="currentColor" stroke-dasharray="5 6"/>
           <path v-for="side in ['up','down']" :key="side" :d="chart.path" :clip-path="'url(#mc-'+side+')'" :class="side" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
         </svg><div class="mc-axis"><small>{{ dt(chart.first) }}</small><small>Référence {{ money(session.initial_capital, 'USD') }}</small><small>{{ dt(chart.last) }}</small></div></template>
+      </section>
+      <section class="card mc-funnel"><div class="card-head"><h2>Pools établis &amp; flotte d'agents</h2><span class="spacer"></span><small>24 h</small></div>
+        <p v-if="funnelError" class="note warn">{{ funnelError }}</p>
+        <p v-if="!funnel && !funnelError" class="muted">Chargement de l'entonnoir…</p>
+        <template v-if="funnel">
+          <div class="mc-axis"><span>Pools vus</span><b>{{ funnel.tokens }}</b></div>
+          <div v-for="(n, stage) in funnel.refused_by_stage" :key="stage" class="mc-axis"><span>Refusés · {{ stages[stage] || stage }}</span><b>{{ n }}</b></div>
+          <div class="mc-axis"><span>Retenus</span><b>{{ funnel.accepted }}</b></div>
+          <div class="mc-axis"><span>Liquidité médiane des pools vus</span><b>{{ money(funnel.median_liquidity_usd, 'USD') }}</b></div>
+          <small class="muted">Critères : liquidité ≥ {{ money(funnel.thresholds.min_liquidity_usd, 'USD') }}, pool d'au moins une heure, dernière heure
+            ≥ {{ money(funnel.thresholds.min_volume_h1_usd, 'USD') }} avec {{ funnel.thresholds.min_trades_h1 }} achats et ventes, aller-retour Jupiter
+            ≤ {{ plainPct(funnel.thresholds.max_round_trip_loss) }}, puis veto anti-arnaque. Simulation seulement.</small>
+          <h3>Candidats retenus</h3><p v-if="!funnel.candidates.length" class="muted">Aucun pool établi retenu sur la période.</p>
+          <div v-for="c in funnel.candidates" :key="c.mint" class="mc-axis"><strong :title="c.mint">{{ c.name || c.mint }}</strong><small>{{ c.dex_id }}</small>
+            <span>{{ money(c.liquidity_usd, 'USD') }} · {{ money(c.volume_h1_usd, 'USD') }} sur 1 h · aller-retour {{ plainPct(c.round_trip_loss) }}</span></div>
+          <h3>Décisions de la flotte</h3><p v-if="!funnel.fleet.recent.length" class="muted">Aucune entrée examinée par la flotte.</p>
+          <div v-for="(d, i) in funnel.fleet.recent" :key="i" class="mc-axis"><time>{{ dt(d.ts) }}</time><small :title="d.mint">{{ d.mint.slice(0, 6) }}…</small>
+            <b>{{ decisions[d.decision] || d.decision }}</b><span>{{ d.why[0] }}</span></div>
+        </template>
       </section>
       <section class="card"><div class="card-head"><h2>Radar Solana &amp; Top Smart Wallets</h2>
         <span v-if="radar" class="spacer"></span><small v-if="radar">{{ dt(radar.observed_at) }}</small></div>
