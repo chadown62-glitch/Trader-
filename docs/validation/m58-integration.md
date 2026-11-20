@@ -118,11 +118,15 @@ session.
 
 ## 6. Découpage en PR (6 fichiers au plus chacune)
 
-| PR | Contenu |
-|---|---|
-| 1. Pivot | `SPEC.md`, `net.py`, `tokenrisk.py`, `established_pools.py`, `memecoin_simulator.py`, `tests/test_memecoin_engine.py` |
-| 2. Flotte | `sentinelle/fleet/` (3 fichiers), `memecoin_simulator.py`, `tests/test_fleet.py` |
-| 3. Cockpit | `api.py`, `memecoin.js`, `tests/e2e/memecoin_check.js`, `tests/test_memecoin_cockpit.py`, ce document |
+| PR | Contenu | État |
+|---|---|---|
+| #74 Pivot | `SPEC.md`, `net.py`, `tokenrisk.py`, `established_pools.py`, `memecoin_simulator.py`, `tests/test_memecoin_engine.py` | fusionnée, CI verte (Ubuntu, Windows, Chromium) |
+| #75 Flotte | `sentinelle/fleet/` (3 fichiers), `memecoin_simulator.py`, `tests/test_fleet.py` | fusionnée, CI verte |
+| #76 Cockpit | `api.py`, `memecoin.js`, `tests/e2e/memecoin_check.js`, `tests/test_memecoin_cockpit.py`, `tests/test_dmh_concurrency.py`, ce document | ce document |
+
+Prérequis fusionnés le même jour : #69 (sorties calibrées et environnement de CI), #68 (radar Solana), #73 (gardes réseau
+des tests de sécurité : seule la boucle locale passe, ce qui rend la CI Windows exécutable). Sur #73, la CI Windows a
+donné 1122 réussis, 0 échec, 0 erreur.
 
 ## 7. Limites
 
