@@ -26,7 +26,7 @@ export default {
     let generation = 0;
     let points = new Map();
     const drawEquity = () => {
-      equity.value = [{ data: [...points.entries()].sort((a, b) => a[0] - b[0]), color: '#3b82f6' }];
+      equity.value = [{ data: [...points.entries()].sort((a, b) => a[0] - b[0]), color: '#38bdf8' }];
     };
     const loadEquity = async () => {
       const request = ++generation;
@@ -107,8 +107,9 @@ export default {
         Vos anciens comptes sont conservés et <b>rien ne change tant que vous n'avez pas confirmé</b>.
         <div style="margin-top:8px"><button class="primary small" @click="activateMain">Passer au portefeuille principal…</button></div>
       </div>
-      <div class="grid cols-3" style="margin-bottom:14px">
-        <div v-for="a in accounts" :key="a.id" class="card account-card" :class="{selected: current && a.id===current.id}" @click="selected = a.id">
+      <div class="account-grid">
+        <div v-for="a in accounts" :key="a.id" class="card account-card" role="button" tabindex="0" :aria-pressed="current?.id===a.id"
+             @keydown.enter.prevent="selected = a.id" @keydown.space.prevent="selected = a.id" :class="{selected: current && a.id===current.id}" @click="selected = a.id">
           <div class="card-head"><h3>{{ a.name }}</h3><span class="spacer"></span>
             <span class="badge" :class="a.legacy || a.archived_paper ? '' : 'paper'">{{ a.legacy ? 'ANCIEN COMPTE — INERTE' : a.archived_paper ? 'ANCIEN COMPTE — LECTURE SEULE' : 'SIMULATION' }}</span></div>
           <div v-if="a.legacy" class="muted small">Ancien compte réel : conservé pour mémoire, inutilisable (simulation uniquement).</div>
@@ -130,6 +131,25 @@ export default {
         </div>
       </div>
 
+      <div class="grid cols-2 portfolio-detail">
+        <div class="card">
+          <div class="card-head"><h2>Capital — {{ current?.name }}</h2><span class="spacer"></span>
+            <div class="seg"><button v-for="d in [1,7,30,90]" :key="d" :class="{on: days===d}" @click="days=d">{{ d }} j</button></div></div>
+          <LineChart v-if="equity.length && equity[0].data.length > 1" :series="equity" height="small" />
+          <div v-else class="empty">La courbe apparaîtra après quelques minutes de fonctionnement.</div>
+        </div>
+        <section class="card"><div class="card-head"><h2>Actifs détenus</h2><span class="spacer"></span><small>{{ current?.name }}</small></div>
+          <p v-if="!current?.connected" class="muted">Valorisation indisponible.</p>
+          <template v-else>
+            <div class="holding"><b>Liquidités</b><span>{{ money(current.cash, current.quote) }}</span></div>
+            <div v-for="p in current.positions" :key="p.id" class="holding">
+              <div><b>{{ p.symbol }}</b><small>Rendement net estimé</small></div>
+              <div><b>{{ money(p.value, current.quote) }}</b><small :class="cls(p.pnl_net_pct)">{{ pct(p.pnl_net_pct, 2, true) }}</small></div>
+            </div>
+            <p v-if="!current.positions?.length" class="muted">Aucune position ouverte.</p>
+          </template>
+        </section>
+      </div>
       <section v-if="evaluation" class="card" style="margin-bottom:14px">
         <h2>Résultats du portefeuille fictif</h2>
         <p v-if="evaluation.as_of" class="muted small">Dernière valorisation {{ dt(evaluation.as_of) }}</p>
@@ -156,7 +176,7 @@ export default {
           <div v-for="m in evaluation.models" :key="m.version">{{ m.version }} · {{ m.status }}</div>
         </details>
       </section>
-      <div class="grid cols-2" style="margin-bottom:14px">
+      <div style="margin-bottom:14px">
         <div class="card">
           <div class="card-head"><h2>Intelligence artificielle</h2><span class="spacer"></span><a href="#/ai" class="small">Détails →</a></div>
           <div v-for="a in agents" :key="a.name" class="card tight" style="margin-bottom:10px;background:var(--bg-2)">
@@ -178,12 +198,7 @@ export default {
             <div class="small muted" style="margin-top:6px">{{ readiness.unlocked ? 'Toutes les preuves sont réunies (en argent fictif).' : 'L’IA n’a pas encore fait toutes ses preuves. Tout reste en argent fictif.' }}</div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-head"><h2>Capital — {{ current?.name }}</h2><span class="spacer"></span>
-            <div class="seg"><button v-for="d in [1,7,30,90]" :key="d" :class="{on: days===d}" @click="days=d">{{ d }} j</button></div></div>
-          <LineChart v-if="equity.length && equity[0].data.length > 1" :series="equity" height="small" />
-          <div v-else class="empty">La courbe apparaîtra après quelques minutes de fonctionnement.</div>
-        </div>
+
       </div>
 
       <div class="grid cols-2">
