@@ -71,10 +71,12 @@ HOSTS: dict[str, Host] = {h.name: h for h in (
     Host("solana-rpc.publicnode.com", (r"/",), 2.0, SOLANA_READ, "solana"),
     Host("api.gopluslabs.io", (r"/api/v1/(token_security/\d{1,6}|solana/token_security)",), 0.5),
     Host("api.honeypot.is", (r"/v2/IsHoneypot",), 0.5),
-    Host("api.rugcheck.xyz", (r"/v1/tokens/[1-9A-HJ-NP-Za-km-z]{32,44}/report/summary",), 0.5),
+    Host("api.rugcheck.xyz", (r"/v1/tokens/[1-9A-HJ-NP-Za-km-z]{32,44}/report/summary", r"/v1/tokens/[1-9A-HJ-NP-Za-km-z]{32,44}/report"), 0.5),
     Host("api.coingecko.com", (r"/api/v3/coins/[a-z0-9-]{1,60}", r"/api/v3/simple/price"), 0.05),
     Host("tokens.uniswap.org", (r"/",), 0.2),
     Host("api.dexscreener.com", (r"/latest/dex/tokens/[0-9A-Za-z,]{32,400}", r"/token-pairs/v1/[a-z]{2,20}/[0-9A-Za-z]{32,44}"), 1.0),
+    # GeckoTerminal (M58, pools établis) : pools Solana en tendance, lecture publique ; refuse au-delà d'environ 9 req/min (M56)
+    Host("api.geckoterminal.com", (r"/api/v2/networks/solana/trending_pools",), 0.12),
 )}
 # Points d'accès d'exécution ou privés, par hôte : refusés comme une opération réelle, avant même la liste blanche.
 FORBIDDEN_PATHS: dict[str, tuple[str, ...]] = {
