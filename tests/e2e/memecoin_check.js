@@ -25,6 +25,10 @@ const prefix = '/api/dmh/memecoin';
         thresholds:{min_liquidity_usd:20000, min_age_minutes:60, min_volume_h1_usd:5000, min_trades_h1:10, max_round_trip_loss:0.1},
         candidates:[{mint:'GATOmint', name:'GATO / SOL', dex_id:'pumpswap', liquidity_usd:212230, volume_h1_usd:57844, round_trip_loss:0.0178}],
         fleet:{counts:{}, kept:0, recent:[]}};
+      // Même forme que GET /api/dmh/memecoin/analytics (#78) : sans elle, le panneau « Performance & Stratégies » ne s'affiche pas.
+      const analytics = {asset_domain:'memecoin', currency:'USD', paper_only:true, status:'ok', initial_capital:30, equity:30,
+        net_pnl:0, net_pnl_pct:0, closed_trades:2, win_rate:0.5, profit_factor:1.8, gross_profit:1.8, gross_loss:1, max_drawdown_pct:3.25,
+        strategies:Object.fromEntries(['sniper','momentum','dip_hunter','whale_tail'].map(k=>[k,{pnl:0,trades:0,win_rate:null}]))};
       await page.route('**/api/dmh/memecoin/**', async route => {
         const url = new URL(route.request().url()).pathname;
         if (route.request().method() === 'POST') {
@@ -33,6 +37,7 @@ const prefix = '/api/dmh/memecoin';
           active = url.endsWith('/start');
         }
         if (url === prefix+'/funnel') return route.fulfill({json:funnel});
+        if (url === prefix+'/analytics') return route.fulfill({json:analytics});
         return route.fulfill({json:url === prefix+'/session' || url.endsWith('/tick') ? {...session,revision} :
           {asset_domain:'memecoin',active,cycles:revision,interval_seconds:15}});
       });
@@ -45,6 +50,10 @@ const prefix = '/api/dmh/memecoin';
       if (width < 600) await page.locator('.bottom-nav a').filter({hasText:'Plus'}).click();
       await page.locator((width < 600 ? '.more-sheet' : '.nav')+' a[href="#/memecoin"]').click();
       await page.getByText('Le premier cycle alimentera la courbe.').waitFor();
+      const performance = page.locator('section.card').filter({hasText:'Performance & Stratégies'});
+      await performance.getByText('Profit factor').waitFor();  // bilan analytique en lecture seule
+      assert.match(await performance.innerText(), /1,8/);
+      assert.match(await performance.innerText(), /3,25 %/);
       const card = page.locator('section.mc-funnel');
       await card.getByText('GATO / SOL').waitFor();  // pool établi retenu, avec sa liquidité et son aller-retour mesuré
       await card.getByText('Refusés · Veto anti-arnaque').waitFor();
