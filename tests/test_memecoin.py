@@ -196,3 +196,25 @@ def test_the_lab_runs_end_to_end_on_a_synthetic_capture_and_never_touches_the_re
     assert rep["data"]["split"] == {"train": 6, "dev": 2, "reserved": 2} and rep["can_trade"] is False
     assert rep["guardian"]["counts"][G.PASS] == 10 and isinstance(L.markdown(rep), str)
     assert rep["data"]["sol_usd"] == 72.0
+
+
+def test_the_veto_filter_is_causal_only_trades_opened_after_the_decision_count():
+    rng = np.random.default_rng(4)
+    px = np.r_[np.full(70, 1.0), np.linspace(1.0, 1.3, 10), np.cumprod(1 + rng.normal(0.001, 0.02, 300)) * 1.3] * 1e-4
+    g = grid(px)
+    g[70:80, 5] = 5000.0  # un signal momentum vers la minute 75, puis d'autres possibles plus tard
+    pid = POOL
+    decided = int(g[200, 0])  # le veto décide à la minute 200 : les entrées d'avant ne comptent pas
+    cap = [{"kind": "sol_price", "usd": 72.0, "observed_ms": decided}, pool(pool=pid, observed_ms=decided - 60_000, created_ms=int(g[0, 0]),
+                                                                            price_usd=float(px[-1])),
+           sec(mint=MINT, observed_ms=decided), {"kind": "collection", "sources": {}, "quality": {}}]
+    follow = [{"kind": "ohlcv", "pool": pid, "candles": g.tolist(), "observed_ms": decided + 3_600_000}]
+    for i in range(9):  # remplissage pour que le pool tombe dans la partie « train »
+        cap.insert(1, pool(pool=f"{i:02d}" + POOL[2:], mint=f"{i:02d}" + POOL[2:], created_ms=int(g[0, 0]) + 10 ** 6 * (i + 1)))
+    rep = L.run(cap, follow)
+    every = L.simulate_pool("momentum_15", L.dense(g.tolist()), pool(pool=pid), 72.0, rng=np.random.default_rng(560))
+    assert any(t["entry_ms"] < decided for t in every)  # sans la règle causale, des entrées antérieures seraient comptées
+    for name in L.STRATEGIES:
+        s = rep["strategies"][name]["train:sans_veto"]
+        assert s.get("trades", 0) <= sum(1 for t in L.simulate_pool(name, L.dense(g.tolist()), pool(pool=pid), 72.0,
+                                                                     rng=np.random.default_rng(560)) if t["entry_ms"] >= decided)

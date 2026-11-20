@@ -193,7 +193,7 @@ def simulate_pool(name: str, g: np.ndarray, pool: dict, sol_usd: float, *, mode:
         proceeds = gross_out * (1 - cost.dex_fee) * (1 - imp_out) * (1 - cost.mev)
         network = cost.network_usd_per_swap * (2 + fails_in - latency + fails_out)
         net = proceeds - ORDER_USD - network
-        trades.append({"pool": pool["pool"], "entry": int(e), "exit": int(exit_i), "minutes": int(exit_i - e), "why": why,
+        trades.append({"pool": pool["pool"], "entry": int(e), "entry_ms": int(g[e, 0]), "exit": int(exit_i), "minutes": int(exit_i - e), "why": why,
                        "gross_return": float(px_out / px_in - 1), "net_usd": float(net), "net_return": float(net / ORDER_USD),
                        "fees_usd": float(ORDER_USD * cost.dex_fee + gross_out * cost.dex_fee),
                        "impact_usd": float(ORDER_USD * imp_in + gross_out * (1 - cost.dex_fee) * imp_out),
@@ -294,7 +294,11 @@ def run(capture: list[dict], follow: list[dict] | None = None) -> dict:
     verdicts = {p["pool"]: guardian.assess(p, sec.get(p["mint"])) for p in pools if p["mint"] in sec}
     parts = split(pools)
     reserved_sha = hashlib.sha256(json.dumps(sorted(parts["reserved"])).encode()).hexdigest()
-    grids = {pid: g for pid in by_pool if pid in ohlcv and (g := dense(ohlcv[pid]["candles"])) is not None}
+    follow_map = {r["pool"]: r for r in (follow or []) if r["kind"] == "ohlcv"}
+    decided = {p["pool"]: max(p["observed_ms"], sec[p["mint"]]["observed_ms"]) for p in pools if p["mint"] in sec}
+    # Bougies : la seconde lecture (vie du pool jusqu'à 16 h après la décision) quand elle existe, sinon la collecte.
+    source = {pid: (follow_map.get(pid) or ohlcv.get(pid)) for pid in by_pool}
+    grids = {pid: g for pid, r in source.items() if r and (g := dense(r["candles"])) is not None}
     results = {}
     later_collapsed = {pid for pid, g in grids.items() if g[:, 4].min() <= COLLAPSE * g[:, 4].max()}
     for name in STRATEGIES:
@@ -307,10 +311,12 @@ def run(capture: list[dict], follow: list[dict] | None = None) -> dict:
                 if tr:
                     s["share_in_pools_that_collapsed"] = float(np.mean([t["pool"] in later_collapsed for t in tr]))
                 row[f"{part}:{mode}"] = s
+            # Veto CAUSAL : décision prise à la collecte, avec les seules données d'alors ; seuls comptent les trades ouverts après.
             rng = np.random.default_rng(560)
-            passed = [t for pid in parts[part] if pid in grids and (verdicts.get(pid) or {}).get("status") == guardian.PASS
-                      for t in simulate_pool(name, grids[pid], by_pool[pid], sol_usd, rng=rng)]
-            row[f"{part}:filtre_postérieur"] = summarize(passed)
+            after = [t for pid in parts[part] if pid in grids and pid in decided
+                     for t in simulate_pool(name, grids[pid], by_pool[pid], sol_usd, rng=rng) if t["entry_ms"] >= decided[pid]]
+            row[f"{part}:sans_veto"] = summarize(after)
+            row[f"{part}:avec_veto"] = summarize([t for t in after if (verdicts.get(t["pool"]) or {}).get("status") == guardian.PASS])
             rng = np.random.default_rng(560)
             late = [t for pid in parts[part] if pid in grids for t in simulate_pool(name, grids[pid], by_pool[pid], sol_usd, latency=2, rng=rng)]
             row[f"{part}:retard_2_min"] = summarize(late)
@@ -322,7 +328,6 @@ def run(capture: list[dict], follow: list[dict] | None = None) -> dict:
         for r in v["veto"] + v["weak"] + v["missing"]:
             key = r.split(" :")[0].split(" (")[0]
             reasons[key] = reasons.get(key, 0) + 1
-    follow_map = {r["pool"]: r for r in (follow or []) if r["kind"] == "ohlcv"}
     return {
         "kind": "memecoin-lab-report", "paper_only": True, "can_trade": False,
         "data": {"pools": len(pools), "with_candles": len(grids), "minutes": int(sum(len(g) for g in grids.values())),

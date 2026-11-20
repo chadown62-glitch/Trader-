@@ -100,9 +100,13 @@ def new_pools(client: PublicClient, stats: Stats, pages: int) -> list[dict]:
     return out
 
 
-def ohlcv(client: PublicClient, stats: Stats, pool: str, *, limit: int = 1000, wait_s: float = 65.0, sleep=time.sleep) -> dict | None:
+def ohlcv(client: PublicClient, stats: Stats, pool: str, *, limit: int = 1000, wait_s: float = 65.0, sleep=time.sleep,
+          before_s: int | None = None) -> dict | None:
+    """Bougies minute (au plus ``limit``) ; ``before_s`` borne la fin de la fenêtre (secondes UTC) pour relire un passé."""
+    params = {"aggregate": 1, "limit": limit, "currency": "usd"} | ({"before_timestamp": int(before_s)} if before_s else {})
+
     def get():
-        return client.get(GT, f"/api/v2/networks/solana/pools/{pool}/ohlcv/minute", {"aggregate": 1, "limit": limit, "currency": "usd"})
+        return client.get(GT, f"/api/v2/networks/solana/pools/{pool}/ohlcv/minute", params)
     f = stats.run("geckoterminal:ohlcv", get)
     last = (stats.calls.get("geckoterminal:ohlcv") or [(True, 0, None)])[-1]
     if f is None and last[2] and ("429" in last[2] or "coupe-circuit" in last[2]) and wait_s > 0:
@@ -218,13 +222,18 @@ def collect(client: PublicClient, *, pages: int = 5, max_security: int = 60, clo
     return records
 
 
+FOLLOW_WINDOW_MIN = 960  # 16 h de bougies minute après la décision (la source en sert au plus 1000 par requête)
+
+
 def follow(client: PublicClient, previous: list[dict], *, clock=time.time) -> list[dict]:
-    """Seconde lecture des mêmes pools, plus tard : l'issue observée APRÈS la décision du veto (contrôle causal du veto)."""
+    """Seconde lecture des mêmes pools, plus tard : l'issue observée APRÈS la décision du veto (contrôle causal du veto).
+    La fenêtre lue va de la création du pool à 16 h après la collecte, même si la relecture a lieu des jours plus tard."""
     stats = Stats()
     started = int(clock() * 1000)
     out = [r for r in [sol_price(client, stats)] if r]
     for p in (r for r in previous if r["kind"] == "pool"):
-        c = ohlcv(client, stats, p["pool"])
+        end_s = min(int(clock()), p["observed_ms"] // 1000 + FOLLOW_WINDOW_MIN * 60)
+        c = ohlcv(client, stats, p["pool"], before_s=end_s)
         if c:
             out.append(c | {"follow": True})
     out.append({"kind": "collection", "follow": True, "started_ms": started, "finished_ms": int(clock() * 1000), "requests": client.used,
