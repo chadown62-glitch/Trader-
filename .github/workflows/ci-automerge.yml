@@ -2,6 +2,11 @@ name: Sentinelle CI
 on:
   pull_request:
     branches: [main]
+    # `edited` stays: retargeting a stacked PR onto main arrives as `edited` and needs CI.
+    # A title or description edit restarts CI on the same head; the merge job then ignores
+    # the cancelled checks of the replaced run. Skipping jobs on such edits is not safe here:
+    # concurrency would still cancel the running pass, and the skipped jobs would report the
+    # same check names as passing, hiding an earlier real failure.
     types: [opened, reopened, synchronize, ready_for_review, edited]
 
 permissions:
@@ -88,23 +93,37 @@ jobs:
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # The rollup keeps the checks of superseded runs on the same head (e.g. CANCELLED by
+          # the concurrency group). Only the latest check of each name counts, as GitHub does
+          # for required checks. Actions checks are ordered by job ID (it grows from one run or
+          # attempt to the next); other checks by an unfinished state, then their timestamps.
+          # This job itself is pending and must not wait for itself.
+          # Tested by tests/test_ci_automerge_rollup.py.
+          ROLLUP_VERDICT: |
+            def job_id: [(.detailsUrl // "") | match("/actions/runs/[0-9]+/job/([0-9]+)") | .captures[0].string | tonumber] | first // 0;
+            def check_key: if .__typename == "StatusContext" then ["status", .context] else ["check", (.workflowName // ""), .name] end;
+            def recency: [job_id, (if .__typename == "CheckRun" and .status != "COMPLETED" then 1 else 0 end), (.startedAt // ""), (.completedAt // "")];
+            [.statusCheckRollup // [] | group_by(check_key)[] | max_by(recency)
+              | select((.name == "Request squash merge" and ((.detailsUrl // "") | contains($run))) | not)
+              | (.conclusion // .state // "")]
+            | if any(.[]; IN("FAILURE","ERROR","CANCELLED","TIMED_OUT","ACTION_REQUIRED","STALE","STARTUP_FAILURE")) then "failure"
+              elif length > 0 and all(.[]; IN("SUCCESS","SKIPPED","NEUTRAL")) then "success"
+              else "pending" end
         run: |
           set -euo pipefail
           if [[ "$(gh api "repos/$REPO" --jq '.allow_auto_merge')" != true ]]; then
             echo "::warning::Allow auto-merge is disabled. GitHub may decline deferred merge requests."
           fi
           # Check other workflows and legacy statuses too, including on unprotected repos.
-          # This job itself is pending and must not wait for itself.
           while true; do
             view=$(gh pr view "$PR" --repo "$REPO" --json headRefOid,isDraft,state,statusCheckRollup)
             jq -e --arg sha "$HEAD_SHA" '.headRefOid == $sha and .isDraft == false and .state == "OPEN"' <<< "$view" >/dev/null
-            checks=$(jq --arg run "/actions/runs/$GITHUB_RUN_ID/" '[.statusCheckRollup[] |
-              select((.name == "Request squash merge" and ((.detailsUrl // "") | contains($run))) | not)]' <<< "$view")
-            if jq -e 'any(.[]; (.conclusion // .state) | IN("FAILURE","ERROR","CANCELLED","TIMED_OUT","ACTION_REQUIRED","STALE","STARTUP_FAILURE"))' <<< "$checks" >/dev/null; then
+            verdict=$(jq -r --arg run "/actions/runs/$GITHUB_RUN_ID/" "$ROLLUP_VERDICT" <<< "$view")
+            if [[ "$verdict" == failure ]]; then
               echo "::error::Another PR check failed."
               exit 1
             fi
-            if jq -e 'length > 0 and all(.[]; (.conclusion // .state) | IN("SUCCESS","SKIPPED","NEUTRAL"))' <<< "$checks" >/dev/null; then break; fi
+            if [[ "$verdict" == success ]]; then break; fi
             sleep 15
           done
           for item in 54:5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18 55:18b31bb901f656d6126b370f47c510775f135c57; do
