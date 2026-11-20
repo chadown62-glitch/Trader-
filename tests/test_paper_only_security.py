@@ -35,7 +35,15 @@ def no_network(monkeypatch):
     def blocked(*args, **kwargs):
         raise AssertionError("Network access is forbidden in paper-only tests")
 
-    monkeypatch.setattr(socket.socket, "connect", blocked)
+    loopback_connect = socket.socket.connect
+
+    def connect(sock, address, *args, **kwargs):
+        # Windows links the asyncio loop through a local socket pair: only the loopback stays allowed.
+        if isinstance(address, tuple) and address and address[0] in ("127.0.0.1", "::1"):
+            return loopback_connect(sock, address, *args, **kwargs)
+        return blocked(sock, address)
+
+    monkeypatch.setattr(socket.socket, "connect", connect)
     monkeypatch.setattr(socket.socket, "connect_ex", blocked)
     monkeypatch.setattr(socket, "create_connection", blocked)
 
