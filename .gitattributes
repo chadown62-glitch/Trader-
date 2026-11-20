@@ -1,0 +1,8 @@
+# Fins de ligne : les fichiers texte sont extraits avec LF sous Windows comme sous Linux, à l'identique des octets
+# versionnés. Les empreintes SHA-256 des fichiers gelés (protocoles, réglages, journaux, mesures) restent donc
+# vérifiables sous Windows 11, même avec core.autocrlf=true. Les fichiers binaires ne sont jamais touchés.
+* text=auto eol=lf
+# Scripts Windows, versionnés en CRLF : conservés octet pour octet.
+*.bat -text
+*.cmd -text
+*.ps1 -text
