@@ -6,9 +6,21 @@ aucune fusion sur `main`, aucune promotion de modèle.
 
 ## Mission active
 
-**Aucune.** M54 à M57 sont terminées et publiées en brouillon. M58 et M59 attendent une décision humaine : `SPEC.md`
-ne marque aucun sprint `[EN COURS]` (les sprints 1 à 4 sont `[TERMINÉ]`), et la loi du dépôt (`CLAUDE.md`, § 2)
-limite le travail au sprint en cours.
+**M58 — Sprint 5 [EN COURS]** (autorisé le 20/11/2026) : intégration, interface, pivot vers les pools établis.
+
+- PR #69 : CI réparée. Ubuntu et cockpit sont verts. Windows : 1106 réussis, 0 échec, 10 erreurs. Les 10 erreurs
+  viennent des gardes réseau de `tests/test_lockdown.py` et `tests/test_paper_only_security.py` : elles bloquent aussi
+  la paire de sockets locale qu'asyncio utilise sous Windows. Leur assouplissement (boucle locale seulement) attend
+  la décision du propriétaire.
+- Trois lots M58 prêts et testés en local (suite complète combinée : 1156 réussis). Ils sont poussés en sauvegarde,
+  sans PR :
+  - `claude/m58-wip-pivot-fleet` : pivot, puis flotte ;
+  - `claude/m58-wip-cockpit` : cockpit, sur une fusion locale de #68.
+- À faire quand #68 et #69 seront fusionnées : recréer trois branches depuis `main` (6 fichiers au plus chacune) et
+  ouvrir les PR :
+  1. pivot : SPEC, net, tokenrisk, established_pools, simulateur, test du moteur ;
+  2. flotte : fleet ×3, simulateur, test_fleet ;
+  3. cockpit : api, memecoin.js, e2e, test du cockpit, inventaire des routes, rapport.
 
 ## Missions terminées
 
