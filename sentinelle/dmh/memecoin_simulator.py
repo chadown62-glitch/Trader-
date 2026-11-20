@@ -8,6 +8,8 @@ policy it was opened under (a lot never changes rules mid-flight); positions ope
 state that never went through ``tick``, keep the legacy ladder (-17 %, 50 % at 1.5x and 2x, trailing 20 %).
 Candidates (M58): established pools (``established_pools``: liquidity >= 20,000 USD, at least one hour old, an active
 last hour, a Jupiter round trip quoted without a wallet, then the anti-rug veto) instead of pools born minutes ago.
+Before any fictitious entry the agent fleet (``sentinelle.fleet``) is consulted: a veto, a risk refusal, an alert or an
+objection (impact, cost, unconfirmed resale) means no entry; exits are never blocked.
 Paper only: no order, no key; every fill is tagged ``asset_domain="memecoin"`` and ``simulated``."""
 
 import json
@@ -15,6 +17,7 @@ import math
 
 from ..ai.features_memecoin import extract_features
 from ..config import paper_capital
+from ..fleet import agents as fleet_agents, coordinator as fleet_coordinator
 from . import established_pools, smart_wallets
 from .dex import _rpc
 from .memecoin_strategies import CALIBRATED, MemecoinIsolatedLearner, NAMES, evaluate, exit_decision
@@ -263,6 +266,31 @@ def process(state, mint, point, signals, network):
     asset["peak_liquidity"] = max(asset.get("peak_liquidity", 0), point["liquidity_usd"])
 
 
+FLEET_LOG = 50  # dernières décisions de la flotte gardées dans la session
+
+
+def consult_fleet(coordinator, state, mint, asset, point, signals, guard, network, now):
+    """Avis de la flotte sur une entrée fictive ; renvoie les signaux conservés (tous, ou aucun)."""
+    eq = equity(state)
+    used = sum(p["basis"] for p in state["positions"].values() if p["mint"] == mint)
+    notional = max(0.0, min(0.10 * eq - used, state["cash"] - 0.25 * eq))  # plafond de process() pour ce token
+    liquidity = point.get("liquidity_usd") or 0.0
+    impact = notional / (notional + liquidity / 2) if notional > 0 and liquidity > 0 else None
+    data = {"asset_domain": DOMAIN, "observed_ms": int(point["ts"] * 1000), "price": point["price"], "signals": list(signals),
+            "guardian": {"allowed": bool(guard.get("allowed")), "vetoes": [v.get("message", "") for v in guard.get("vetoes", [])]},
+            "round_trip_loss": asset.get("round_trip_loss"), "liquidity_usd": liquidity, "notional_usd": notional,
+            "impact": impact, "round_trip_cost": 2 * (DEX_FEE + impact) + 2 * network / notional if impact is not None else None,
+            "open_positions": len(state["positions"]), "equity_usd": eq, "initial_usd": state.get("initial", INITIAL)}
+    record = coordinator.decide(fleet_agents.Event("memecoin_candidate", mint, int(now * 1000), data), {})
+    accepted = record["decision"] == fleet_coordinator.PROPOSAL
+    state.setdefault("fleet", []).append({
+        "asset_domain": DOMAIN, "ts": now, "mint": mint, "signals": list(signals), "decision": record["decision"],
+        "why": record["why"][:4], "pivotal": sorted(a for a, changed in record["contribution"].items() if changed),
+        "findings": [{"agent": f["agent"], "stance": f["stance"], "summary": f["summary"]} for f in record["findings"]]})
+    del state["fleet"][:-FLEET_LOG]
+    return list(signals) if accepted else []
+
+
 def report(state, wallets):
     strategies = {n: {"pnl": 0.0, "trades": 0} for n in NAMES}
     tokens = {}
@@ -301,6 +329,7 @@ def report(state, wallets):
         "activity": state["fills"][-100:],
         "errors": state["errors"],
         "token_ranking": sorted(tokens.items(), key=lambda t: -t[1]),
+        "fleet": state.get("fleet", [])[-20:],
     }
 
 
@@ -335,6 +364,7 @@ def tick(hub, db, bus):
     held = {p["mint"] for p in state["positions"].values()}
     pending = sorted(set(assets) - held, key=lambda m: assets[m].get("checked", 0))
     points = {}
+    fleet = fleet_coordinator.Coordinator(clock=client.clock)  # cycle fini : une flotte par passage, sans pouvoir d'ordre
     for mint in sorted(held) + pending[:4]:
         try:
             points[mint] = quote(client, assets[mint], now)
@@ -361,6 +391,8 @@ def tick(hub, db, bus):
                 except SOURCE_ERRORS as exc:
                     state["errors"].append({"mint": mint, "wallets": str(exc)})
             if network is not None:
+                if signals and not state["stale_marks"]:
+                    signals = consult_fleet(fleet, state, mint, asset, point, signals, guard, network, now)
                 process(state, mint, point, [] if state["stale_marks"] else signals, network)
         except SOURCE_ERRORS as exc:
             state["errors"].append({"mint": mint, "reason": str(exc)})
