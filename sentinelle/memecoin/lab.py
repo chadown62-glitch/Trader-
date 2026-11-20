@@ -310,7 +310,8 @@ def run(capture: list[dict], follow: list[dict] | None = None) -> dict:
     by_pool = {p["pool"]: p for p in pools}
     ohlcv = {r["pool"]: r for r in capture if r["kind"] == "ohlcv"}
     sec = {r["mint"]: r for r in capture if r["kind"] == "security"}
-    coll = next((r for r in capture if r["kind"] == "collection"), {})
+    colls = [r for r in capture if r["kind"] == "collection"]
+    coll = colls[0] if colls else {}
     sol_usd = _sol_usd(capture + (follow or []))
     verdicts = {p["pool"]: guardian.assess(p, sec.get(p["mint"])) for p in pools if p["mint"] in sec}
     parts = split(pools)
@@ -354,8 +355,10 @@ def run(capture: list[dict], follow: list[dict] | None = None) -> dict:
         "data": {"pools": len(pools), "with_candles": len(grids), "minutes": int(sum(len(g) for g in grids.values())),
                  "security_checked": len(verdicts), "split": {k: len(v) for k, v in parts.items()}, "reserved_list_sha256": reserved_sha,
                  "reserved_note": "20 % des pools les plus récents : aucun calcul de stratégie ici ; réservés à une évaluation préenregistrée",
-                 "collection": {k: coll.get(k) for k in ("started_ms", "finished_ms", "requests", "pages")}, "sol_usd": sol_usd},
+                 "collection": {k: coll.get(k) for k in ("started_ms", "finished_ms", "requests", "pages")}, "sol_usd": sol_usd,
+                 "collections": [{k: c.get(k) for k in ("started_ms", "finished_ms", "requests", "pools")} for c in colls]},
         "sources": coll.get("sources"), "quality": coll.get("quality"),
+        "sources_by_collection": [c.get("sources") for c in colls], "quality_by_collection": [c.get("quality") for c in colls],
         "guardian": {"rules": guardian.RULES, "counts": {s: statuses.count(s) for s in (guardian.VETO, guardian.ABSTAIN, guardian.PASS)},
                      "reasons": dict(sorted(reasons.items(), key=lambda kv: -kv[1]))},
         "forward_check": forward_check(pools, verdicts, follow_map, sol_usd, decided) if follow else None,
