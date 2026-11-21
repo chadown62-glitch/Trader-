@@ -31,6 +31,19 @@ const prefix = '/api/dmh/memecoin';
         recent_closed_positions:[{strategy:'momentum',mint:'CLOSED',closed_at:15,pnl_usd:1.8,profit_pct:18}],
         strategy_profit_factors:{sniper:{ratio:1.8,only_gains:false}}, net_pnl:0, net_pnl_pct:0, closed_trades:2, win_rate:0.5, profit_factor:1.8, gross_profit:1.8, gross_loss:1, max_drawdown_pct:3.25,
         strategies:Object.fromEntries(['sniper','momentum','dip_hunter','whale_tail'].map(k=>[k,{pnl:0,trades:0,win_rate:null,avg_profit_pct:k==='sniper'?8.75:null}]))};
+      const learned = (closed, multiplier, score, reason) => ({
+        closed_trades:closed, window_trades:Math.min(closed,20), upside_unlocked:closed>=8, multiplier, score, reason
+      });
+      const learning = {asset_domain:'memecoin',paper_only:true,version:'adaptive-v1',min_trades:8,window:20,
+        status:'learning',closed_trades:20,strategies:{
+          sniper:learned(12,1.25,.25,'Douze clôtures récentes justifient une hausse simulée.'),
+          momentum:learned(6,.75,-.25,'Baisse liée au score négatif.'),
+          dip_hunter:learned(2,1,.08,'Hausse bloquée avant huit clôtures.'),
+          whale_tail:learned(0,1,0,'Aucune clôture, mise neutre.')
+        },recommendations:[{feature:'liquidity_usd',label:'Liquidité du pool (USD)',status:'suggested',
+          samples:20,current_threshold:20000,suggested_threshold:32000,applied:false,
+          explanation:'Seuil estimé sur les conditions d’entrée observées.'}]};
+      analytics.learning = learning;
       await page.route('**/api/dmh/memecoin/**', async route => {
         const url = new URL(route.request().url()).pathname;
         if (route.request().method() === 'POST') {
@@ -66,6 +79,32 @@ const prefix = '/api/dmh/memecoin';
       assert.match(await performance.locator('tbody tr').first().innerText(), /8,75 %/);
       await performance.getByText(/CLOSED/).waitFor();
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth > innerWidth),false);
+      const panel = page.getByRole('region',{name:'Apprentissage & Calibration'});
+      const strategy = key => panel.locator('[data-strategy="'+key+'"]');
+      assert.deepEqual(await panel.locator('article strong').allTextContents().then(values=>values.map(v=>v.trim())),
+        ['1,25x','0,75x','1,00x','1,00x']);
+      assert.equal(await strategy('momentum').locator('progress').getAttribute('value'),'6');
+      assert.equal(await strategy('sniper').locator('progress').getAttribute('max'),'8');
+      await strategy('momentum').getByText('Baisse liée au score négatif.').waitFor();
+      await strategy('momentum').getByText('-0,25',{exact:true}).waitFor();
+      await panel.getByText('Simulation uniquement — non appliqué automatiquement').waitFor();
+      await panel.getByText('Liquidité du pool (USD)',{exact:true}).waitFor();
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth > innerWidth),false);
+
+      await opened;
+      const updateLearning = () => socket.send(JSON.stringify({topic:'memecoin_session',data:{asset_domain:'memecoin'}}));
+      analytics.learning = {...learning,closed_trades:18,recommendations:[],
+        strategies:{...learning.strategies,sniper:learned(10,1.25,.25,'Hausse simulée.')}};
+      updateLearning();
+      await panel.getByText('En attente de 20 clôtures', {exact:false}).waitFor();
+      for (const missing of [undefined, {}, {...learning,asset_domain:'majors'}]) {
+        analytics.learning = missing;
+        const refreshed = page.waitForResponse(r=>r.url().endsWith(prefix+'/analytics'));
+        updateLearning();
+        await refreshed;
+        await strategy('sniper').getByText('Données d’apprentissage indisponibles.',{exact:false}).waitFor();
+        assert.deepEqual(await panel.locator('article strong').allInnerTexts(), Array(4).fill('1,00x'));
+      }
       await tab('Radar');
       const card = page.locator('section.mc-funnel');
       await card.getByText('GATO / SOL').waitFor();  // pool établi retenu, avec sa liquidité et son aller-retour mesuré
