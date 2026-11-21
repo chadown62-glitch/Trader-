@@ -5,7 +5,8 @@ Règles (refus par défaut) :
 - les méthodes qui signent ou diffusent (envoi de transaction, signature, comptes) sont refusées comme une
   opération réelle (`safety.forbid`), même si un hôte les accepterait ;
 - aucun en-tête d'authentification n'est envoyé, aucun identifiant n'est accepté ;
-- limite de débit par hôte, budget de requêtes, délai maximal, taille maximale de réponse ;
+- limite de débit par hôte, budget de requêtes (total, ou renouvelé sur une fenêtre glissante), délai maximal, taille
+  maximale de réponse ;
 - reprise bornée (lectures seulement) avec temporisation croissante, et coupe-circuit par hôte après
   plusieurs échecs : une source en panne devient INDISPONIBLE, elle n'est jamais remplacée par une valeur inventée ;
 - chaque réponse est horodatée (UTC, millisecondes) et hachée (SHA-256) pour servir de preuve.
@@ -18,6 +19,7 @@ import random
 import re
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Callable
 from urllib.parse import urlencode
@@ -162,10 +164,17 @@ class PublicClient:
     def __init__(self, transport: Transport | None = None, *, clock: Callable[[], float] = time.time,
                  monotonic: Callable[[], float] = time.monotonic, sleep: Callable[[float], None] = time.sleep,
                  budget: int = 500, timeout: float = 10.0, retries: int = 2, breaker_after: int = 3,
-                 breaker_cooldown: float = 30.0, seed: int | None = None):
+                 breaker_cooldown: float = 30.0, seed: int | None = None, budget_window_s: float | None = None):
+        # ``budget_window_s`` None: at most ``budget`` requests over the client's whole life (finite runs). A number: at
+        # most ``budget`` requests over any sliding window of that many seconds, for long-running sessions. The
+        # per-host rate limits and the circuit breaker apply in both cases.
+        if budget_window_s is not None and not (isinstance(budget_window_s, (int, float)) and budget_window_s > 0):
+            raise ValueError("fenêtre de budget positive requise")
         self._transport = transport
         self.clock, self.monotonic, self.sleep = clock, monotonic, sleep
         self.budget, self.timeout, self.retries = budget, timeout, retries
+        self.budget_window_s = budget_window_s
+        self._window: deque[float] = deque()  # monotonic times of the requests inside the current budget window
         self.breaker_after, self.breaker_cooldown = breaker_after, breaker_cooldown
         self._lock = threading.Lock()
         self._state: dict[str, _HostState] = {}
@@ -233,8 +242,16 @@ class PublicClient:
                 now = self.monotonic()
                 if now < st.open_until:
                     raise SourceUnavailable(h.name, f"coupe-circuit ouvert ({st.failures} échecs consécutifs)")
-                if self.used >= self.budget:
-                    raise SourceUnavailable(h.name, "budget de requêtes épuisé")
+                if self.budget_window_s is None:
+                    if self.used >= self.budget:
+                        raise SourceUnavailable(h.name, "budget de requêtes épuisé")
+                else:
+                    while self._window and now - self._window[0] >= self.budget_window_s:
+                        self._window.popleft()
+                    if len(self._window) >= self.budget:
+                        raise SourceUnavailable(h.name, f"budget de requêtes épuisé pour cette fenêtre ({self.budget} en "
+                                                        f"{self.budget_window_s:.0f} s)")
+                    self._window.append(now)
                 wait = max(0.0, st.next_slot - now)
                 st.next_slot = max(now, st.next_slot) + 1.0 / h.rps
                 self.used += 1
@@ -296,4 +313,8 @@ class PublicClient:
                 out[name] = {"calls": st.calls, "errors": st.errors, "consecutive_failures": st.failures,
                              "circuit_open": now < st.open_until, "last_error": st.last_error, "last_ok_ms": st.last_ok_ms,
                              "latency_ms_median": lat[len(lat) // 2] if lat else None}
-            return {"used": self.used, "budget": self.budget, "hosts": out}
+            window = None
+            if self.budget_window_s is not None:
+                window = {"seconds": self.budget_window_s,
+                          "used": sum(1 for t in self._window if now - t < self.budget_window_s)}
+            return {"used": self.used, "budget": self.budget, "budget_window": window, "hosts": out}

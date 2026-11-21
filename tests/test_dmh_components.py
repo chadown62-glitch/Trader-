@@ -3,6 +3,7 @@ import hashlib
 import json
 import logging
 import random
+from pathlib import Path
 
 import pytest
 
@@ -85,6 +86,39 @@ def test_public_client_honours_retry_after_and_counts_the_budget():
     c2.get("api.kraken.com", "/0/public/Time")
     with pytest.raises(SourceUnavailable):
         c2.get("api.kraken.com", "/0/public/Time")
+
+
+def test_public_client_budget_renews_over_a_sliding_window():
+    t = {"now": 0.0}
+    c = PublicClient(transport=lambda *a: (200, {}, b"{}"), monotonic=lambda: t["now"], sleep=lambda s: t.__setitem__("now", t["now"] + s),
+                     budget=3, budget_window_s=60)
+    for _ in range(3):
+        c.get("api.kraken.com", "/0/public/Time")
+    with pytest.raises(SourceUnavailable) as e:
+        c.get("api.kraken.com", "/0/public/Time")
+    assert "fenêtre" in str(e.value) and c.used == 3  # a refused request is not sent and not counted
+    first = t["now"]
+    t["now"] = 61.0  # every request of the window has aged out: the budget is renewed, still capped
+    for _ in range(3):
+        c.get("api.kraken.com", "/0/public/Time")
+    assert c.used == 6 and c.health()["budget_window"] == {"seconds": 60, "used": 3} and first < 60
+    with pytest.raises(SourceUnavailable):
+        c.get("api.kraken.com", "/0/public/Time")
+    for bad in (0, -5, "60"):
+        with pytest.raises(ValueError):
+            PublicClient(budget_window_s=bad)
+    lifetime = PublicClient(transport=lambda *a: (200, {}, b"{}"), budget=1)  # unchanged default: a lifetime cap
+    lifetime.get("api.kraken.com", "/0/public/Time")
+    with pytest.raises(SourceUnavailable):
+        lifetime.get("api.kraken.com", "/0/public/Time")
+    assert lifetime.health()["budget_window"] is None
+
+
+def test_the_hub_client_uses_a_renewable_bounded_budget():
+    from sentinelle.dmh import service
+    assert (service.HUB_BUDGET, service.HUB_BUDGET_WINDOW_S) == (500, 300.0)
+    source = Path(service.__file__).read_text(encoding="utf-8")
+    assert "PublicClient(budget=HUB_BUDGET, budget_window_s=HUB_BUDGET_WINDOW_S)" in source
 
 
 def test_unit_conversion_of_source_timestamps():
