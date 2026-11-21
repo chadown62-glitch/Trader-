@@ -97,7 +97,10 @@ def sniper_check(asset, point):
 
 
 def evaluate(client, asset, point, whale):
-    guard = assess_candidate(client, TokenId("solana", asset["symbol"]), point["liquidity_usd"])
+    # A pool admitted by M58 is re-checked with the M58 depth rule (20,000 USD), not the guardian's global 25,000 USD
+    # default kept for every other caller; every other veto is unchanged.
+    depth = {"min_liquidity_usd": M58_MIN_LIQUIDITY_USD} if asset.get("dex_id") else {}
+    guard = assess_candidate(client, TokenId("solana", asset["symbol"]), point["liquidity_usd"], **depth)
     if not guard["allowed"]:
         return [], guard  # the anti-rug veto comes first: no signal at all
     previous = asset.get("last")
