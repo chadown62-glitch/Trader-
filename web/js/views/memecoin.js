@@ -107,15 +107,39 @@ export default {
           flash.value = f.strategy; clearTimeout(timer); timer = setTimeout(() => flash.value = '', 3500);
         }));
       refresh(); refreshRadar(); refreshFunnel();
-      radarTimer = setInterval(() => { refreshRadar(); refreshFunnel(); }, 60000);
+      radarTimer = setInterval(() => { refreshRadar(); refreshFunnel(); if (!store.ws && !document.hidden) refresh(); }, 60000);
       off.push(on('memecoin_session', refreshFunnel));
       document.addEventListener('visibilitychange', refreshRadar);
     });
     onBeforeUnmount(() => { live = false; clearInterval(radarTimer); document.removeEventListener('visibilitychange', refreshRadar); off.forEach(unsub => unsub()); clearTimeout(timer); });
+    const tab = ref('Live');
+    const lots = computed(() => analytics.value?.recent_closed_positions || []);
+    const holdings = computed(() => analytics.value?.open_positions ?? Object.values(session.value?.positions || {}).map(p => ({
+      mint: p.mint, strategy: p.strategy, quantity: p.qty, cost_basis_usd: p.basis, value_usd: p.mark,
+      stale: session.value.stale_marks?.includes(p.mint), unrealized_pnl_pct: p.basis > 0 ? 100 * (p.mark / p.basis - 1) : null
+    })));
+    const price = value => Number.isFinite(value) ? value.toLocaleString('fr-FR', {maximumSignificantDigits: 6}) + ' $' : '—';
+    function meanProfit(key) {
+      const stats = analytics.value.strategies[key];
+      if (Number.isFinite(stats.avg_profit_pct)) return stats.avg_profit_pct;
+      const rows = lots.value.filter(p => p.strategy === key);
+      if (!rows.length || rows.length !== stats.closed_trades) return null;
+      const returns = rows.map(p => p.profit_pct ?? (p.initial_usd > 0 && Number.isFinite(p.pnl_usd) ? 100 * p.pnl_usd / p.initial_usd : null));
+      return returns.every(Number.isFinite) ? returns.reduce((a,b) => a+b, 0) / rows.length : null;
+    }
+    function factor(key) {
+      const f = analytics.value?.strategy_profit_factors?.[key];
+      return f?.ratio?.toLocaleString('fr-FR', {maximumFractionDigits: 2}) ?? (f?.only_gains ? '∞' : '—');
+    }
+    function ladder(p) {
+      const policy = session.value?.positions?.[p.strategy + '/' + p.mint]?.exit_policy;
+      if (policy === 'calibrated-v1') return [0.8, 1.25, 3, 6, 10];
+      return session.value?.positions?.[p.strategy + '/' + p.mint] ? [0.83, 1.5, 2] : [];
+    }
     const chart = computed(() => session.value && equityChart(session.value));
     const activity = computed(() => (session.value?.activity || []).slice().reverse());
     const maximum = computed(() => Math.max(0.001, ...(session.value?.token_ranking || []).map(row => Math.abs(row[1]))));
-    return { analytics, analyticsError, radar, radarError, funnel, funnelError, stages, decisions, session, worker, interval, amount, currency, busy, error, flash, act, chart, activity, maximum,
+    return { tab, lots, holdings, price, meanProfit, factor, ladder, analytics, analyticsError, radar, radarError, funnel, funnelError, stages, decisions, session, worker, interval, amount, currency, busy, error, flash, act, chart, activity, maximum,
       strategies, reasons, store, dt, cls, money, signed, pct, plainPct };
   },
   template: `
@@ -125,10 +149,15 @@ export default {
     <p v-if="error || worker?.error" role="alert" class="note danger">{{ error || worker.error }}</p>
     <p v-if="!session" class="muted">Chargement de la session…</p>
     <template v-else>
+      <nav class="mc-tabs" aria-label="Rubriques Memecoin">
+        <button v-for="name in ['Live','Positions','Radar','Stratégies']" :key="name" :aria-pressed="tab===name" @click="tab=name">{{ name }}</button>
+      </nav>
+      <div v-if="tab==='Live'" class="mc-live">
       <section class="card mc-head">
         <div><div class="muted">Valeur du sous-portefeuille</div><strong class="mc-equity">{{ money(session.equity, 'USD') }}</strong>
-          <span v-if="session.equity != null" :class="cls(session.equity - session.initial_capital)">{{ pct(session.equity / session.initial_capital - 1) }}</span>
+          <span v-if="session.equity != null" :class="cls(session.equity - session.initial_capital)">{{ signed(session.equity - session.initial_capital, '$') }} · {{ pct(session.equity / session.initial_capital - 1) }}</span>
           <span v-else>Valorisation en attente · P&amp;L aux derniers cours disponibles</span>
+          <div class="muted">Liquidités · {{ money(session.cash, '$') }}</div>
           <div>Capital de départ · {{ money(session.deposit.amount, session.deposit.currency) }}<span v-if="session.deposit.currency !== 'USD'"> ({{ money(session.initial_capital, 'USD') }})</span></div>
           <span v-if="activity.length" class="badge">Dernière exécution · {{ strategies[activity[0].strategy] }} · {{ reasons[activity[0].reason] }}</span>
         </div>
@@ -153,7 +182,23 @@ export default {
           <path v-for="side in ['up','down']" :key="side" :d="chart.path" :clip-path="'url(#mc-'+side+')'" :class="side" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
         </svg><div class="mc-axis"><small>{{ dt(chart.first) }}</small><small>Référence {{ money(session.initial_capital, 'USD') }}</small><small>{{ dt(chart.last) }}</small></div></template>
       </section>
-      <section class="card"><h2>Performance &amp; Stratégies</h2>
+      </div>
+      <section v-if="tab==='Positions'" class="mc-holdings">
+        <h2>Actifs détenus</h2><p v-if="!holdings.length" class="card empty">Aucune position ouverte.</p>
+        <article v-for="p in holdings" :key="p.strategy+p.mint" class="card mc-position">
+          <header><div><small>{{ strategies[p.strategy] }}</small><h3>{{ p.mint }}</h3></div>
+            <b :class="cls(p.unrealized_pnl_pct)">{{ pct(p.unrealized_pnl_pct, 2, true) }}</b></header>
+          <p v-if="p.stale" class="warn">Dernière valorisation connue · cours en attente</p>
+          <dl><div><dt>Entrée, frais inclus</dt><dd>{{ price(p.quantity > 0 ? p.cost_basis_usd / p.quantity : null) }}</dd></div>
+            <div><dt>Dernier cours</dt><dd>{{ price(p.price_usd) }}</dd></div>
+            <div><dt>Valeur nette</dt><dd>{{ money(p.value_usd,'$') }}</dd></div></dl>
+          <div class="mc-ladder" aria-label="Seuils de la position">
+            <span v-for="(level,i) in ladder(p)" :key="level" :class="{reached: p.unrealized_pnl_pct != null && 1+p.unrealized_pnl_pct/100 >= level}">
+              {{ i ? '×' + level.toLocaleString('fr-FR') : 'Stop ' + Math.round(100*(level-1)) + ' %' }}</span>
+          </div>
+        </article>
+      </section>
+      <section v-if="tab==='Stratégies'" class="card mc-performance"><h2>Performance &amp; Stratégies</h2>
         <p v-if="analyticsError" role="alert" class="note warn">{{ analyticsError }}</p>
         <p v-else-if="!analytics" class="muted">Chargement du bilan…</p>
         <p v-else-if="analytics.status === 'empty'" class="empty">Aucune session memecoin enregistrée.</p>
@@ -163,13 +208,16 @@ export default {
           <div class="mc-axis"><span>Profit factor</span><b>{{ analytics.profit_factor?.toLocaleString('fr-FR', {maximumFractionDigits: 2})
             ?? (analytics.gross_profit > 0 ? '∞ (aucune perte clôturée)' : '—') }}</b></div>
           <div class="mc-axis"><span>Drawdown maximal observé</span><b>{{ analytics.max_drawdown_pct?.toLocaleString('fr-FR', {maximumFractionDigits: 2}) }} %</b></div>
-          <table><thead><tr><th>Stratégie</th><th>P&amp;L net</th><th>Réussite sur clôtures</th></tr></thead>
+          <table class="mc-strategies"><thead><tr><th>Stratégie</th><th>Profit moyen (%)</th><th>Win rate</th><th>Profit factor</th><th>P&amp;L net</th></tr></thead>
             <tbody><tr v-for="(name,key) in strategies" :key="key"><th scope="row">{{ name }}</th>
-              <td :class="cls(analytics.strategies[key].pnl)">{{ signed(analytics.strategies[key].pnl,'USD') }}</td>
-              <td>{{ plainPct(analytics.strategies[key].win_rate) }}</td></tr></tbody></table>
+              <td :class="cls(meanProfit(key))">{{ pct(meanProfit(key),2,true) }}</td><td>{{ plainPct(analytics.strategies[key].win_rate) }}</td>
+              <td>{{ factor(key) }}</td><td :class="cls(analytics.strategies[key].pnl)">{{ signed(analytics.strategies[key].pnl,'$') }}</td></tr></tbody></table>
+          <h3>Dernières positions clôturées</h3><p v-if="!lots.length" class="muted">Aucune clôture enregistrée.</p>
+          <div v-for="(p,i) in lots" :key="i" class="mc-closed"><time>{{ p.closed_at ? dt(p.closed_at) : '—' }}</time>
+            <span>{{ strategies[p.strategy] }} · {{ p.mint }}</span><b :class="cls(p.pnl_usd)">{{ signed(p.pnl_usd,'$') }} · {{ pct(p.profit_pct,2,true) }}</b></div>
         </template>
       </section>
-      <section class="card mc-funnel"><div class="card-head"><h2>Pools établis &amp; flotte d'agents</h2><span class="spacer"></span><small>24 h</small></div>
+      <section v-if="tab==='Radar'" class="card mc-funnel"><div class="card-head"><h2>Pools établis &amp; flotte d'agents</h2><span class="spacer"></span><small>24 h</small></div>
         <p v-if="funnelError" class="note warn">{{ funnelError }}</p>
         <p v-if="!funnel && !funnelError" class="muted">Chargement de l'entonnoir…</p>
         <template v-if="funnel">
@@ -177,9 +225,9 @@ export default {
           <div v-for="(n, stage) in funnel.refused_by_stage" :key="stage" class="mc-axis"><span>Refusés · {{ stages[stage] || stage }}</span><b>{{ n }}</b></div>
           <div class="mc-axis"><span>Retenus</span><b>{{ funnel.accepted }}</b></div>
           <div class="mc-axis"><span>Liquidité médiane des pools vus</span><b>{{ money(funnel.median_liquidity_usd, 'USD') }}</b></div>
-          <small class="muted">Critères : liquidité ≥ {{ money(funnel.thresholds.min_liquidity_usd, 'USD') }}, pool d'au moins une heure, dernière heure
+          <details class="mc-rules"><summary>Critères des pools établis</summary><small class="muted">Liquidité ≥ {{ money(funnel.thresholds.min_liquidity_usd, 'USD') }}, pool d'au moins une heure, dernière heure
             ≥ {{ money(funnel.thresholds.min_volume_h1_usd, 'USD') }} avec {{ funnel.thresholds.min_trades_h1 }} achats et ventes, aller-retour Jupiter
-            ≤ {{ plainPct(funnel.thresholds.max_round_trip_loss) }}, puis veto anti-arnaque. Simulation seulement.</small>
+            ≤ {{ plainPct(funnel.thresholds.max_round_trip_loss) }}, puis veto anti-arnaque.</small></details>
           <h3>Candidats retenus</h3><p v-if="!funnel.candidates.length" class="muted">Aucun pool établi retenu sur la période.</p>
           <div v-for="c in funnel.candidates" :key="c.mint" class="mc-axis"><strong :title="c.mint">{{ c.name || c.mint }}</strong><small>{{ c.dex_id }}</small>
             <span>{{ money(c.liquidity_usd, 'USD') }} · {{ money(c.volume_h1_usd, 'USD') }} sur 1 h · aller-retour {{ plainPct(c.round_trip_loss) }}</span></div>
@@ -188,7 +236,7 @@ export default {
             <b>{{ decisions[d.decision] || d.decision }}</b><span>{{ d.why[0] }}</span></div>
         </template>
       </section>
-      <section class="card"><div class="card-head"><h2>Radar Solana &amp; Top Smart Wallets</h2>
+      <section v-if="tab==='Radar'" class="card"><div class="card-head"><h2>Radar Solana &amp; Top Smart Wallets</h2>
         <span v-if="radar" class="spacer"></span><small v-if="radar">{{ dt(radar.observed_at) }}</small></div>
         <p v-if="radarError" class="note warn">{{ radarError }}</p>
         <p v-if="!radar && !radarError" class="muted">Collecte des observations publiques…</p>
@@ -206,11 +254,11 @@ export default {
             <span>{{ w.score_72h_sol.toFixed(4) }} SOL pondérés · {{ plainPct(w.win_rate) }} gagnants · aucun dump signalé</span></div>
         </template>
       </section>
-      <div class="mc-grid"><article v-for="(name,key) in strategies" :key="key" class="card" :class="{'mc-flash': flash === key}">
+      <div v-if="tab==='Live'" class="mc-grid"><article v-for="(name,key) in strategies" :key="key" class="card" :class="{'mc-flash': flash === key}">
         <h2>{{ name }}</h2><strong :class="cls(session.strategies[key].pnl)">{{ signed(session.strategies[key].pnl,'USD') }}</strong>
         <div class="muted">{{ session.strategies[key].trades }} entrées · {{ session.tracked_wallet_count }} wallets qualifiés suivis (session)</div>
       </article></div>
-      <div class="mc-grid"><section class="card"><h2>Activité récente</h2><p v-if="!activity.length" class="muted">Aucune exécution simulée.</p>
+      <div v-if="tab==='Live'" class="mc-grid"><section class="card"><h2>Activité récente</h2><p v-if="!activity.length" class="muted">Aucune exécution simulée.</p>
         <ol class="mc-activity"><li v-for="(f,i) in activity" :key="i"><time>{{ dt(f.ts) }}</time><span>{{ strategies[f.strategy] }} · {{ reasons[f.reason] }}<small :title="f.mint">{{ f.mint }}</small></span><b :class="cls(f.pnl)">{{ f.side === 'sell' ? signed(f.pnl,'USD') : 'Achat' }}</b></li></ol></section>
         <section class="card"><h2>Bilan de session</h2><p>{{ session.closed_trades }} positions clôturées</p>
           <div class="mc-axis"><span>Taux de réussite</span><b>{{ plainPct(session.win_rate) }}</b></div>
