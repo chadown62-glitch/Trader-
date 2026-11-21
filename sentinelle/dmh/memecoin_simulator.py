@@ -10,6 +10,8 @@ Candidates (M58): established pools (``established_pools``: liquidity >= 20,000 
 last hour, a Jupiter round trip quoted without a wallet, then the anti-rug veto) instead of pools born minutes ago.
 Before any fictitious entry the agent fleet (``sentinelle.fleet``) is consulted: a veto, a risk refusal, an alert or an
 objection (impact, cost, unconfirmed resale) means no entry; exits are never blocked.
+A new stake is the Kelly target scaled by the bounded multiplier of ``memecoin_learner`` (0.5x-1.5x, learned from the
+closed lots), within the unchanged hard limits; each position records its entry conditions and why it was so sized.
 Paper only: no order, no key; every fill is tagged ``asset_domain="memecoin"`` and ``simulated``."""
 
 import json
@@ -18,9 +20,9 @@ import math
 from ..ai.features_memecoin import extract_features
 from ..config import paper_capital
 from ..fleet import agents as fleet_agents, coordinator as fleet_coordinator
-from . import established_pools, smart_wallets
+from . import established_pools, memecoin_learner, smart_wallets
 from .dex import _rpc
-from .memecoin_strategies import CALIBRATED, MemecoinIsolatedLearner, NAMES, evaluate, exit_decision
+from .memecoin_strategies import CALIBRATED, MemecoinIsolatedLearner, NAMES, confidence, evaluate, exit_decision
 from .net import SourceUnavailable
 
 KEY = "memecoin:paper-session:v1"
@@ -145,7 +147,9 @@ def quote(client, asset, now):
     price = float(pair["priceUsd"])
     if not math.isfinite(price) or price <= 0 or not point["liquidity_usd"]:
         raise ValueError("prix ou profondeur indisponible")
-    point.update(price=price, ts=now)
+    h1 = (pair.get("volume") or {}).get("h1")
+    finite = isinstance(h1, (int, float)) and not isinstance(h1, bool) and math.isfinite(h1) and h1 >= 0
+    point.update(price=price, ts=now, volume_h1_usd=float(h1) if finite else None)
     return point
 
 
@@ -183,6 +187,7 @@ def equity(state):
 def process(state, mint, point, signals, network):
     asset = state["assets"][mint]
     learner = MemecoinIsolatedLearner(state["completed"])
+    adaptive = memecoin_learner.multipliers(state["completed"])  # bounded 0.5x-1.5x, from closed lots only
     for strategy in NAMES:
         key = strategy + "/" + mint
         pos = state["positions"].get(key)
@@ -207,19 +212,24 @@ def process(state, mint, point, signals, network):
             pos["stage"] += 1
             pos["mark"] = value(pos["qty"], point, network)[0]
             if fraction >= 1:
-                state["completed"].append({"strategy": strategy, "mint": mint, "return": pos["pnl"] / pos["initial"]})
+                state["completed"].append({"strategy": strategy, "mint": mint, "return": pos["pnl"] / pos["initial"],
+                                           **{k: pos[k] for k in ("entry", "sizing") if k in pos}})
                 del state["positions"][key]
             side = "sell"
         elif strategy in signals:
             eq = equity(state)
             used = sum(p["basis"] for p in state["positions"].values() if p["mint"] == mint)
             strategy_used = sum(p["basis"] for p in state["positions"].values() if p["strategy"] == strategy)
-            size = min(
-                eq * learner.fractions[strategy] * learner.weights[strategy],
-                0.10 * eq - used,
-                eq * learner.weights[strategy] - strategy_used,
-                state["cash"] - 0.25 * eq,
-            )
+            target = eq * learner.fractions[strategy] * learner.weights[strategy]
+            learned = adaptive[strategy]
+            # The learned multiplier scales the Kelly target only: the hard limits below never move.
+            limits = {
+                "kelly_target": target * learned["multiplier"],
+                "token_cap": 0.10 * eq - used,
+                "strategy_budget": eq * learner.weights[strategy] - strategy_used,
+                "cash_reserve": state["cash"] - 0.25 * eq,
+            }
+            size = min(limits.values())
             if size <= network * 2 or size < 0.05:
                 continue
             gross = (size - network) / (1 + DEX_FEE)
@@ -239,6 +249,12 @@ def process(state, mint, point, signals, network):
                 "pnl": 0.0,
                 "exit_policy": state.get("exit_policy", LEGACY_EXITS),
                 "asset_domain": DOMAIN,
+                # Entry conditions, compared later between winning and losing lots (threshold recommendations).
+                "entry": {"liquidity_usd": point["liquidity_usd"], "volume_h1_usd": point.get("volume_h1_usd"),
+                          "confidence": confidence(signals), "signals": sorted(signals)},
+                "sizing": {"learner": memecoin_learner.VERSION, "multiplier": learned["multiplier"], "score": learned["score"],
+                           "closed_trades": learned["closed_trades"], "kelly_target_usd": target, "size_usd": size,
+                           "binding": min(limits, key=limits.get), "reason": learned["reason"]},
             }
             side, reason, detail, pnl = "buy", "signal", "signal", 0.0
         else:

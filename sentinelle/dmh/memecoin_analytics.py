@@ -5,7 +5,7 @@ import sqlite3
 from contextlib import closing
 from pathlib import Path
 
-from . import memecoin_simulator as sim
+from . import memecoin_learner, memecoin_simulator as sim
 from .memecoin_strategies import LEGACY
 
 
@@ -125,12 +125,14 @@ def build_analytics_report(db_path):
     ``avg_profit_pct`` is the arithmetic mean, over closed lots, of each lot's return on its initial stake (net of
     fees, slippage and network costs, partial exits included); every strategy carries its own. ``open_positions``
     values each open lot at the last mark of the paper worker; ``price_usd`` is its current price, ``tier_reached``
-    the last take-profit multiple sold (``None`` before the first slice).
+    the last take-profit multiple sold (``None`` before the first slice). ``learning`` holds the bounded allocation
+    multipliers and the entry-threshold suggestions of ``memecoin_learner``, read from the same snapshot.
     """
     state = _read_snapshot(Path(db_path))
     result = {"asset_domain": sim.DOMAIN, "currency": "USD", "paper_only": True}
     if state is None:
-        return {**result, "status": "empty", "avg_profit_pct": None, "open_positions": [], "recent_closed_positions": []}
+        return {**result, "status": "empty", "avg_profit_pct": None, "open_positions": [], "recent_closed_positions": [],
+                "learning": memecoin_learner.learn_from_state(None)}
 
     for record in (state, *state["positions"].values(), *state["fills"], *state["completed"]):
         if record.get("asset_domain", sim.DOMAIN) != sim.DOMAIN or record.get("simulated", True) is not True:
@@ -161,6 +163,7 @@ def build_analytics_report(db_path):
         "gross_profit": gains, "gross_loss": losses, "max_drawdown_pct": drawdown,
         "avg_profit_pct": _mean([lot["profit_pct"] for lot in lots]), "strategies": strategies,
         "open_positions": _open_positions(state), "recent_closed_positions": lots[::-1][:RECENT_CLOSED],
+        "learning": memecoin_learner.learn_from_state(state),  # same snapshot: bounded multipliers and suggestions
         "top_tokens": [(mint, pnl) for mint, pnl in ranking if pnl > 0][:5],
         "flop_tokens": [(mint, pnl) for mint, pnl in reversed(ranking) if pnl < 0][:5],
     }
