@@ -35,6 +35,12 @@ from .view import LiveView, MarketView
 
 log = logging.getLogger("sentinelle.dmh")
 ASSETS = ("BTC", "ETH", "SOL", "DOGE", "BONK", "WIF", "PEPE")
+# Long-running hub (cockpit, memecoin worker): a request budget renewed over a sliding window instead of a lifetime cap,
+# which a session exhausted after about ten cycles (measured on public data: 19 to 50 requests per cycle, one cycle
+# every 35 to 75 s, i.e. at most about 70 per minute). 500 per 5 minutes (100 per minute) keeps that margin and still
+# stops a runaway loop; the per-host rate limits of the client bind first.
+HUB_BUDGET = 500
+HUB_BUDGET_WINDOW_S = 300.0
 _REQ = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
 REFERENCE_ENGINE = {"fee_bps": 10.0, "slippage_bps": 5.0, "fx_bps": 5.0,
                     "note": "réglages actuels du moteur papier existant (paper.fee_rate 0,1 %, slippage 5 pb, conversion 5 pb)"}
@@ -93,7 +99,7 @@ class HubService:
                 b.external_value = svc.ledger.liquidation_value
             return b
         news = (app.settings.get("news") or {})
-        client = PublicClient()
+        client = PublicClient(budget=HUB_BUDGET, budget_window_s=HUB_BUDGET_WINDOW_S)
         from .tokenrisk import TokenRiskService
         registry = load_registry()
         svc = cls(app.db, aid, cash=MainAccountCash(broker), registry=registry, client=client,

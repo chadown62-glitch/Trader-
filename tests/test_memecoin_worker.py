@@ -115,6 +115,83 @@ def test_repeated_autonomous_cycles(monkeypatch):
     asyncio.run(exercise())
 
 
+class _Bus:
+    def __init__(self):
+        self.events = []
+
+    def publish(self, topic, payload):
+        self.events.append((topic, payload))
+
+
+def _fast_waits(monkeypatch, delays):
+    original = asyncio.wait_for
+
+    async def fast(wait, timeout):
+        delays.append(timeout)  # the delay the worker asked for, recorded, then shortened for the test
+        return await original(wait, 0.001)
+
+    monkeypatch.setattr(asyncio, "wait_for", fast)
+
+
+def test_a_failed_cycle_is_recorded_and_retried_after_a_bounded_delay(monkeypatch):
+    import sqlite3
+    calls, delays = [], []
+
+    def cycle():
+        calls.append(1)
+        if len(calls) <= 2:
+            raise sqlite3.OperationalError("database is locked")  # a transient failure, twice
+
+    async def exercise():
+        worker = MemecoinSessionWorker(cycle, lambda *_: None, _Bus())
+        _fast_waits(monkeypatch, delays)
+        await worker.start(15)
+        async with asyncio.timeout(3):
+            while worker.cycles < 2:
+                await asyncio.sleep(0.002)
+        status = worker.status()
+        await worker.stop()
+        return status
+
+    status = asyncio.run(exercise())
+    assert status["active"] and status["cycles"] >= 2  # the worker kept running after the failures
+    assert status["failed_cycles"] == 2 and status["consecutive_failures"] == 0 and status["error"] is None
+    assert [e["type"] for e in status["recent_errors"]] == ["OperationalError", "OperationalError"]
+    assert delays[:3] == [30, 60, 15]  # doubled after each failure, back to the interval after a success
+
+
+def test_retry_delays_are_bounded_and_never_shorter_than_the_interval():
+    from sentinelle.dmh.memecoin_worker import MAX_BACKOFF_S, backoff
+    assert [backoff(15, f) for f in (0, 1, 2, 3, 6, 50)] == [15, 30, 60, 120, MAX_BACKOFF_S, MAX_BACKOFF_S] and MAX_BACKOFF_S == 900
+    assert backoff(3600, 1) == backoff(3600, 9) == 3600  # a long interval is kept: a failure never speeds the cadence up
+
+
+@pytest.mark.parametrize("refusal", ["safety", "security", "ledger"])
+def test_a_security_refusal_stops_the_worker_instead_of_retrying(monkeypatch, refusal):
+    from sentinelle.dmh.ledger import Blocked
+    from sentinelle.dmh.security import SecurityRefusal
+    from sentinelle.safety import RealTradingForbidden
+    calls = []
+    errors = {"safety": lambda: RealTradingForbidden("ordre réel refusé"), "security": lambda: SecurityRefusal("refus", ["x"]),
+              "ledger": lambda: Blocked("journal bloqué")}
+
+    def cycle():
+        calls.append(1)
+        raise errors[refusal]()
+
+    async def exercise():
+        worker = MemecoinSessionWorker(cycle, lambda *_: None, _Bus())
+        _fast_waits(monkeypatch, [])
+        await worker.start(15)
+        async with asyncio.timeout(3):
+            while worker.status()["active"]:
+                await asyncio.sleep(0.002)
+        return worker.status()
+
+    status = asyncio.run(exercise())
+    assert not status["active"] and len(calls) == 1 and status["error"] and status["failed_cycles"] == 1
+
+
 def test_dated_eur_funding_once_and_fx_failure(db, monkeypatch):
     class Price:
         received_ms = 12345
