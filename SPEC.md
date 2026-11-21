@@ -103,7 +103,7 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
 ### Décisions du propriétaire (21 novembre 2026)
 
 - **Campagne prospective sur données réelles :** non couverte par ce cadrage. Elle exige une autorisation distincte, une base SQLite dédiée et une configuration figée.
-- **Fusion :** chaque PR de la campagne est ouverte en brouillon. Elle n'est fusionnée qu'avec la CI verte sur son dernier commit et une validation humaine explicite, protections de `main` comprises.
+- **Fusion (directive du propriétaire du 21 novembre 2026) :** l'approbation humaine individuelle n'est plus une condition de lancement ni de fusion. Une PR de la campagne est fusionnée dès que les contrôles CI obligatoires (pytest ubuntu-latest, pytest windows-latest, Vue cockpit Chromium) sont verts sur son dernier commit, sans contourner aucune protection technique de `main`. Les tests restent obligatoires et aucun test n'est déclaré réussi sans avoir été exécuté. Les étapes déjà autorisées s'enchaînent sans attendre de nouvelle instruction ; un blocage technique est signalé, puis le travail continue sur une tâche indépendante déjà autorisée.
 
 ### Protocole historique et audit indépendant
 
