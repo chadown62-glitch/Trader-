@@ -30,7 +30,8 @@ from ..config import paper_capital
 from ..fleet import agents as fleet_agents, coordinator as fleet_coordinator
 from . import established_pools, memecoin_learner, smart_wallets
 from .dex import _rpc
-from .memecoin_strategies import CALIBRATED, MemecoinIsolatedLearner, NAMES, entry_confidence, evaluate, exit_decision
+from .memecoin_strategies import (CALIBRATED, DEFAULT_PROFILE, PROFILES, PROFILES_VERSION, MemecoinIsolatedLearner, NAMES,
+                                  entry_confidence, evaluate, exit_decision)
 from .net import SourceUnavailable
 
 KEY = "memecoin:paper-session:v1"
@@ -334,10 +335,61 @@ def _sell(state, mint, strategy, key, pos, point, network, detail, fraction, ext
                  fee, network, extra)
 
 
+def profile_for(state):
+    """The session's experimental risk profile (MODERATE when none was chosen), checked against the hard caps it can
+    never lift: the fleet's open-lot and session-loss limits, the M58 pool depth and round trip, no leverage."""
+    profile = PROFILES.get(state.get("profile", DEFAULT_PROFILE))
+    if profile is None:
+        raise ValueError(f"profil inconnu : {state.get('profile')}")
+    rc = fleet_agents.RiskCommander
+    if (profile.max_open > rc.MEMECOIN_MAX_OPEN or profile.session_loss_stop > rc.MEMECOIN_MAX_SESSION_LOSS
+            or profile.min_liquidity_usd < established_pools.MIN_LIQUIDITY_USD
+            or profile.max_round_trip_loss > established_pools.MAX_ROUND_TRIP_LOSS):
+        raise ValueError(f"le profil {profile.id} dépasse une limite de la flotte ou du filtre M58")
+    return profile
+
+
+def profile_refusal(state, asset, point):
+    """``None`` when the session's profile admits a new entry on this observation; otherwise why not. Only the limits
+    stricter than the hard caps are checked here: at the hard cap itself the fleet and the Guardian keep deciding, with
+    their own reasons (a MODERATE session is therefore unchanged)."""
+    profile = profile_for(state)
+    rc = fleet_agents.RiskCommander
+    if profile.max_open < rc.MEMECOIN_MAX_OPEN and len(state["positions"]) >= profile.max_open:
+        return f"profil {profile.id} : {profile.max_open} lots ouverts au plus"
+    if (profile.session_loss_stop < rc.MEMECOIN_MAX_SESSION_LOSS
+            and sizing_equity(state) <= (1 - profile.session_loss_stop) * state.get("initial", INITIAL)):
+        return f"profil {profile.id} : perte de session au-delà de {100 * profile.session_loss_stop:.0f} %"
+    if profile.min_liquidity_usd > established_pools.MIN_LIQUIDITY_USD and not (
+            _finite(point.get("liquidity_usd")) and point["liquidity_usd"] >= profile.min_liquidity_usd):
+        return f"profil {profile.id} : liquidité sous {profile.min_liquidity_usd:,.0f} $".replace(",", " ")
+    loss = asset.get("round_trip_loss")
+    if profile.max_round_trip_loss < established_pools.MAX_ROUND_TRIP_LOSS and not (_finite(loss) and loss <= profile.max_round_trip_loss):
+        return f"profil {profile.id} : aller-retour Jupiter non mesuré ou au-delà de {100 * profile.max_round_trip_loss:.0f} %"
+    return None
+
+
+def select_profile(db, profile_id):
+    """Choose the experimental profile of a session that has not traded yet (each profile runs in its own session)."""
+    if profile_id not in PROFILES:
+        raise ValueError(f"profil inconnu : {profile_id}")
+    with db.transaction():
+        raw = db.get_meta(KEY)
+        state = json.loads(raw) if raw else load(db)[0]
+        if state.get("fills") or state.get("positions") or state.get("orders"):
+            if state.get("profile", DEFAULT_PROFILE) != profile_id:
+                raise ValueError("Le profil d'une session ayant déjà négocié ne change pas")
+            return
+        state.update(profile=profile_id, profiles_version=PROFILES_VERSION)
+        db.set_meta(KEY, json.dumps(state, allow_nan=False))
+
+
 def _buy(state, mint, strategy, key, point, network, signals, learner, adaptive, asset, entry=None, extra=None):
-    """Fictitious entry at this observation: Kelly target x bounded multiplier, never under the exploration floor, within
-    the token cap, the strategy budget and the 25 % cash reserve; fees and slippage are paid from the stake. Targets and
+    """Fictitious entry at this observation: Kelly target x bounded multiplier x the profile's stake scale, never under
+    the exploration floor, within the profile's token cap, the strategy budget and the profile's cash reserve (and its
+    exposure cap when the reserve does not already imply it); fees and slippage are paid from the stake. Targets and
     caps use ``sizing_equity`` (an unquoted lot counts for nothing); the reserve uses the larger equity (stricter)."""
+    profile = profile_for(state)
     eq = sizing_equity(state)
     if not point.get("liquidity_usd") or point["liquidity_usd"] <= 0:
         return None  # no depth: no entry
@@ -347,14 +399,18 @@ def _buy(state, mint, strategy, key, point, network, signals, learner, adaptive,
     learned = adaptive[strategy]
     # The learned multiplier scales the Kelly target only: the hard limits below never move. A strategy whose
     # Kelly fraction fell to zero still explores with a small stake instead of freezing.
-    desired = target * learned["multiplier"]
+    desired = target * learned["multiplier"] * profile.stake_scale
     floor = memecoin_learner.exploration_floor(eq, learned["multiplier"])
     limits = {
         "exploration_floor" if floor > desired else "kelly_target": max(desired, floor),
-        "token_cap": 0.10 * eq - used,
+        "token_cap": profile.token_cap * eq - used,
         "strategy_budget": eq * learner.weights[strategy] - strategy_used,
-        "cash_reserve": state["cash"] - 0.25 * max(eq, known_equity(state) or eq),
+        "cash_reserve": state["cash"] - profile.cash_reserve * max(eq, known_equity(state) or eq),
     }
+    if profile.max_exposure + profile.cash_reserve < 1 - 1e-9:  # otherwise the reserve already bounds the exposure
+        stale = set(state.get("stale_marks", []))
+        exposed = sum(p["mark"] for p in state["positions"].values() if p["mint"] not in stale and _finite(p.get("mark")))
+        limits["exposure_cap"] = profile.max_exposure * eq - exposed
     size = min(limits.values())
     if size <= network * 2 or size < 0.05:
         return None
@@ -384,6 +440,7 @@ def _buy(state, mint, strategy, key, point, network, signals, learner, adaptive,
                    "closed_trades": learned["closed_trades"], "open_lots": learned["open_lots"],
                    "kelly_target_usd": target, "exploration_floor_usd": floor, "size_usd": size,
                    "binding": min(limits, key=limits.get), "reason": learned["reason"]},
+        "profile": profile.id,
     }
     return _fill(state, point, strategy, mint, "buy", "signal", "signal", state["positions"][key]["exit_policy"], 0.0, qty, slip,
                  fee, network, extra)
@@ -506,6 +563,9 @@ def _execute_buy(state, oid, order, point, network, now, executed, asset, guard,
         drift = point["price"] / decided_price - 1
         return _resolve(state, oid, "cancelled",
                         f"dérive de prix depuis la décision : {100 * drift:+.1f} % (limite ±{100 * MAX_ENTRY_DRIFT:.0f} %)", now)
+    refusal = profile_refusal(state, asset, point)
+    if refusal:
+        return _resolve(state, oid, "cancelled", refusal, now)
     # The fleet's risk limits again, on the execution observation (depth, round trip, open lots, session loss).
     judged = recheck_fleet(fleet, state, order, asset, point, guard, network, now)
     if judged["decision"] != fleet_coordinator.PROPOSAL:
@@ -524,10 +584,11 @@ FLEET_LOG = 50  # dernières décisions de la flotte gardées dans la session
 def _candidate(state, mint, asset, point, signals, guard, network):
     """Ce que la flotte juge pour une entrée sur cette observation : plafond, impact, aller-retour, lots ouverts, équité.
     L'équité retenue ne compte un lot sans cotation valide pour rien (``sizing_equity``), comme le dimensionnement."""
+    profile = profile_for(state)
     eq = sizing_equity(state)
     used = sum(p["basis"] for p in state["positions"].values() if p["mint"] == mint)
-    reserve = 0.25 * max(eq, known_equity(state) or eq)
-    notional = max(0.0, min(0.10 * eq - used, state["cash"] - reserve))  # plafond de process() pour ce token
+    reserve = profile.cash_reserve * max(eq, known_equity(state) or eq)
+    notional = max(0.0, min(profile.token_cap * eq - used, state["cash"] - reserve))  # plafond de _buy pour ce token
     liquidity = point.get("liquidity_usd") or 0.0
     impact = notional / (notional + liquidity / 2) if notional > 0 and liquidity > 0 else None
     data = {"asset_domain": DOMAIN, "observed_ms": int(point["ts"] * 1000), "price": point["price"], "signals": list(signals),
@@ -685,6 +746,8 @@ def report(state, wallets):
         "last_marked_equity": last,
         "equity_status": status,
         "estimate": estimate(state),
+        "profile": {"id": profile_for(state).id, "label": profile_for(state).label,
+                    "version": state.get("profiles_version", PROFILES_VERSION)},
         "entry_gate": state.get("entry_gate"),
         "return_24h": return_24h(state),
         "stale_marks": state.get("stale_marks", []),
@@ -851,6 +914,9 @@ def tick(hub, db, bus):
                         decision = _exit(state, key, pos, point)
                         if decision is not None:
                             _decide(state, "sell", key, mint, pos["strategy"], point, now, detail=decision[0], fraction=decision[1])
+                if signals and gate["open"] and profile_refusal(state, asset, point):
+                    trace["evaluations"].setdefault(mint, {})["profile_refusal"] = profile_refusal(state, asset, point)
+                    signals = []  # the session's profile refuses this entry before the fleet is asked
                 if signals and gate["open"]:  # no new entry while a lot's value is only transiently unknown
                     signals = consult_fleet(fleet, state, mint, asset, point, signals, guard, network, now)
                     entry = _entry(point, asset, signals) if signals else None  # conditions seen at the decision

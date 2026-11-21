@@ -166,6 +166,49 @@ class ExitPolicy:
             raise ValueError("tiers must increase above the cover ratio")
 
 
+# -- experimental risk profiles (SPEC.md, campaign guarantee 6) -------------------------------------------------------
+@dataclass(frozen=True)
+class RiskProfile:
+    """Limits of one experimental variant of the paper session. A profile only bounds exposure and stakes: it never lifts
+    the Guardian, the fleet's limits, the M58 pool filters, the ban on leverage and short selling, or the causal
+    execution of #91, and no return target is attached to it. Each profile runs in its own session."""
+
+    id: str
+    label: str
+    max_exposure: float  # value of the open lots at most this fraction of the sizing equity
+    token_cap: float  # cost basis per token at most this fraction of the sizing equity
+    cash_reserve: float  # cash kept: at least this fraction of the equity
+    max_open: int  # open lots at most
+    session_loss_stop: float  # no new entry once the sizing equity is at or below (1 - this) x the initial capital
+    min_liquidity_usd: float  # pool depth at least
+    max_round_trip_loss: float  # measured Jupiter round trip at most
+    stake_scale: float  # multiplies the Kelly target only; the exploration floor and every cap still apply
+
+    def __post_init__(self):
+        if not (0 < self.token_cap <= self.max_exposure and 0 < self.cash_reserve < 1
+                and self.max_exposure + self.cash_reserve <= 1 + 1e-12):
+            raise ValueError("profil invalide : exposition, plafond par token ou réserve incohérents (aucun levier)")
+        if not (1 <= self.max_open and 0 < self.session_loss_stop < 1 and self.min_liquidity_usd > 0
+                and 0 < self.max_round_trip_loss < 1 and 0 < self.stake_scale):
+            raise ValueError("profil invalide")
+
+
+# Proposed values, versioned before any result: they are pre-registered jointly with the evaluation before a trial
+# (SPEC.md) and never tuned on the final evaluation block. MODERATE reproduces the session limits in force before the
+# profiles (token cap 10 %, reserve 25 %, the fleet's 12 lots and 50 % session loss, the M58 20,000 USD and 10 % round
+# trip), so a session without a profile is unchanged. The other profiles move monotonically from SAFE to MAX and stay
+# within the hard caps checked by memecoin_simulator.profile_for (fleet, M58, no leverage).
+PROFILES_VERSION = "profiles-v1-proposed"
+PROFILES = {p.id: p for p in (
+    RiskProfile("SAFE", "SAFE", 0.30, 0.05, 0.50, 4, 0.10, 50_000.0, 0.05, 0.5),
+    RiskProfile("MODERATE", "MODERATE", 0.75, 0.10, 0.25, 12, 0.50, 20_000.0, 0.10, 1.0),
+    RiskProfile("RISK", "RISK", 0.80, 0.15, 0.20, 12, 0.50, 20_000.0, 0.10, 1.25),
+    RiskProfile("ULTRA_RISK", "ULTRA RISK", 0.85, 0.20, 0.15, 12, 0.50, 20_000.0, 0.10, 1.5),
+    RiskProfile("MAX", "MAX", 0.90, 0.25, 0.10, 12, 0.50, 20_000.0, 0.10, 2.0),
+)}
+DEFAULT_PROFILE = "MODERATE"
+
+
 # Legacy thresholds of the paper session before calibration (memecoin_simulator.process), kept for comparison.
 LEGACY = {"stop_loss": 0.17, "tiers": ((1.5, 0.5), (2.0, 0.5)), "trailing": 0.20}
 # Selected by memecoin_calibrator.calibrate() with its default grid and seeds (see tests/test_memecoin_calibrator.py).
