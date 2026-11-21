@@ -128,6 +128,50 @@ def _pct(value):
     return "n/d" if value is None else f"{value:.2f} %"
 
 
+LEARNING_STATUS = {"empty": "aucune clôture, toutes les mises restent neutres (1,00x)", "learning": "en apprentissage",
+                   "active": "actif sur les quatre stratégies"}
+RECOMMENDATION_STATUS = {"insufficient_sample": "échantillon insuffisant", "no_improvement": "aucun seuil plus strict utile",
+                         "suggested": "seuil suggéré"}
+
+
+def _fr(value, digits=2, sign=False):
+    return "n/d" if value is None else (f"{value:+.{digits}f}" if sign else f"{value:.{digits}f}").replace(".", ",")
+
+
+def _cell(text):
+    return str(text).replace("|", "/").replace("\n", " ")  # a reason never breaks the table
+
+
+def _threshold(feature, value):
+    return _usd(value) if feature.endswith("_usd") else _fr(value)
+
+
+def learning_markdown(a):
+    """Bounded allocation multipliers of ``memecoin_learner`` and its entry-threshold suggestions (never applied)."""
+    lines = ["", "### Apprentissage & multiplicateurs de mise", ""]
+    learning = a.get("learning")
+    if not learning:
+        return lines + [f"_Apprentissage indisponible : {a.get('reason') or 'bilan analytique sans section apprentissage'}._"]
+    bounds = learning["bounds"]
+    lines += [f"Apprenant `{learning['version']}` · {LEARNING_STATUS.get(learning['status'], learning['status'])} · "
+              f"{learning['closed_trades']} clôture(s) · multiplicateur borné de {_fr(bounds['min'])}x à {_fr(bounds['max'])}x, "
+              f"hausse possible à partir de {learning['min_trades']} clôtures par stratégie (fenêtre glissante de "
+              f"{learning['window']}). Il ne s'applique qu'à la mise cible de Kelly ; les plafonds de risque ne bougent pas.", "",
+              "| Stratégie | Multiplicateur | Score | Clôtures | Raison du dimensionnement |", "|---|---|---|---|---|"]
+    for name, s in learning["strategies"].items():
+        reason = s["reason"].split(" : ", 1)[1] if s["reason"].startswith(name + " : ") else s["reason"]
+        lines.append(f"| {name} | {_fr(s['multiplier'])}x | {_fr(s['score'], sign=True)} | {s['closed_trades']} | {_cell(reason)} |")
+    lines += ["", "#### Recommandations de seuils d'entrée", "",
+              "_Suggestions pour une décision humaine, mesurées sur l'historique : aucune n'est appliquée automatiquement._", ""]
+    for rec in learning["recommendations"]:
+        status = RECOMMENDATION_STATUS.get(rec["status"], rec["status"])
+        if rec["status"] == "suggested":
+            status += (f" {_threshold(rec['feature'], rec['suggested_threshold'])} "
+                       f"(règle actuelle {_threshold(rec['feature'], rec['current_threshold'])})")
+        lines.append(f"- `{rec['feature']}` · {status} · `applied: {str(bool(rec['applied'])).lower()}` — {rec['explanation']}")
+    return lines
+
+
 def markdown(report):
     """Job summary for GitHub Actions: readable at a glance, on a phone too."""
     a, m58 = report["analytics"], report["pipeline"]
@@ -185,6 +229,7 @@ def markdown(report):
               "", "### Stratégies", "", "| Stratégie | P&L | Entrées |", "|---|---|---|"]
     strategies = a["strategies"] if ok else report["strategies"]
     lines += [f"| {name} | {_usd(s['pnl'])} | {s['trades']} |" for name, s in strategies.items()]
+    lines += learning_markdown(a)
     if m58["candidates"]:
         lines += ["", "### Pools retenus (24 h)", "", "| Pool | DEX | Liquidité | Volume 1 h | Aller-retour |", "|---|---|---|---|---|"]
         lines += [f"| {c['name'] or c['mint'][:8]} | {c['dex_id']} | {_usd(c['liquidity_usd'])} | {_usd(c['volume_h1_usd'])} | "

@@ -172,7 +172,9 @@ def test_analytics_are_read_after_close_and_rendered_or_reported_unavailable(tmp
     monkeypatch.setattr(runner, "build_analytics_report", None)
     report = runner.run(1, db_path, output, initial_capital=30)
     assert report["analytics"]["status"] == "unavailable" and report["analytics"]["asset_domain"] == "memecoin"
-    assert "Analytique complète indisponible" in output.with_suffix(".md").read_text(encoding="utf-8")
+    md = output.with_suffix(".md").read_text(encoding="utf-8")
+    assert "Analytique complète indisponible" in md
+    assert "### Apprentissage & multiplicateurs de mise\n\n_Apprentissage indisponible : module memecoin_analytics absent._" in md
     calls = []
 
     def analytics(path):
@@ -187,7 +189,8 @@ def test_analytics_are_read_after_close_and_rendered_or_reported_unavailable(tmp
     md = output.with_suffix(".md").read_text(encoding="utf-8")
     assert calls == [runner.APPLICATION_ID] and report["analytics"]["profit_factor"] == 2.0
     for fragment in ("| Profit factor | 2.00 |", "| Drawdown maximal | 4.25 % |", "| Win rate (positions clôturées) | 50.00 % |",
-                     "| P&L net | 1.50 $ (5.00 %) |", "| momentum | 1.50 $ | 4 |"):
+                     "| P&L net | 1.50 $ (5.00 %) |", "| momentum | 1.50 $ | 4 |",
+                     "_Apprentissage indisponible : bilan analytique sans section apprentissage._"):
         assert fragment in md, fragment
 
     def refused(path):
@@ -195,7 +198,8 @@ def test_analytics_are_read_after_close_and_rendered_or_reported_unavailable(tmp
 
     monkeypatch.setattr(runner, "build_analytics_report", refused)
     report = runner.run(1, db_path, output)
-    assert report["analytics"]["status"] == "error" and "incomplet" in output.with_suffix(".md").read_text(encoding="utf-8")
+    md = output.with_suffix(".md").read_text(encoding="utf-8")
+    assert report["analytics"]["status"] == "error" and "_Apprentissage indisponible : Historique des clôtures incomplet._" in md
 
 
 @pytest.mark.skipif(importlib.util.find_spec("sentinelle.dmh.memecoin_analytics") is None,
@@ -210,6 +214,93 @@ def test_real_analytics_module_feeds_the_report(tmp_path, monkeypatch):
     assert report["analytics"]["asset_domain"] == "memecoin" and report["analytics"]["status"] == "ok"
     assert {"profit_factor", "max_drawdown_pct", "win_rate", "net_pnl", "strategies"} <= set(report["analytics"])
     assert "| Drawdown maximal | 0.00 % |" in output.with_suffix(".md").read_text(encoding="utf-8")
+
+
+def learning_section(md):
+    section = md.split("### Apprentissage & multiplicateurs de mise\n", 1)[1]
+    return section.split("\n### ", 1)[0]
+
+
+def test_learning_section_on_an_empty_session_shows_neutral_stakes(tmp_path, monkeypatch):
+    from sentinelle.dmh import memecoin_analytics
+
+    monkeypatch.setattr(sim, "scan_once", lambda *a, **k: {"errors": []})
+    monkeypatch.setattr(runner, "build_analytics_report", memecoin_analytics.build_analytics_report)
+    output = tmp_path / "report.json"
+    report = runner.run(1, tmp_path / "session.sqlite", output, initial_capital=30)
+    assert report["analytics"]["learning"]["status"] == "empty"
+    md = output.with_suffix(".md").read_text(encoding="utf-8")
+    section = learning_section(md)
+    assert md.index("### Stratégies") < md.index("### Apprentissage & multiplicateurs de mise")
+    assert ("Apprenant `adaptive-v1` · aucune clôture, toutes les mises restent neutres (1,00x) · 0 clôture(s) · "
+            "multiplicateur borné de 0,50x à 1,50x, hausse possible à partir de 8 clôtures par stratégie") in section
+    assert "| Stratégie | Multiplicateur | Score | Clôtures | Raison du dimensionnement |\n|---|---|---|---|---|" in section
+    for name in ("sniper", "momentum", "dip_hunter", "whale_tail"):
+        assert f"| {name} | 1,00x | +0,00 | 0 | aucune clôture, mise neutre 1,00x |" in section
+    bullets = [line for line in section.splitlines() if line.startswith("- `")]
+    assert [b.split("`")[1] for b in bullets] == ["liquidity_usd", "volume_h1_usd", "confidence"]
+    assert all(" · échantillon insuffisant · `applied: false` — " in b and "il en faut 20" in b for b in bullets)
+    assert "aucune n'est appliquée automatiquement" in section
+
+
+def test_learning_section_follows_a_real_closed_lot(tmp_path, monkeypatch):
+    from sentinelle.dmh import memecoin_analytics, memecoin_learner
+
+    feed = ThreePools()
+    monkeypatch.setattr(runner, "PublicClient", lambda **_: feed.client)
+    real_tick, ticks = sim.tick, []
+
+    def tick(hub, db, bus):
+        if len(ticks) == 1:  # momentum entry on the retained pool
+            feed.pair.update(volume={"m5": 2000, "h1": 30000}, txns={"m5": {"buys": 12, "sells": 3}})
+        if len(ticks) >= 2:  # price halves: the stop closes the lot
+            feed.pair["priceUsd"] = str(float(feed.pair["priceUsd"]) * 0.5)
+        ticks.append(1)
+        return real_tick(hub, db, bus)
+
+    monkeypatch.setattr(sim, "tick", tick)
+    monkeypatch.setattr(runner, "build_analytics_report", memecoin_analytics.build_analytics_report)
+    output = tmp_path / "report.json"
+    runner.run(4, tmp_path / "session.sqlite", output, initial_capital=30)
+    learned = memecoin_learner.learn(tmp_path / "session.sqlite")["strategies"]["momentum"]
+    assert learned["closed_trades"] == 1 and 0.5 <= learned["multiplier"] < 1.0
+    section = learning_section(output.with_suffix(".md").read_text(encoding="utf-8"))
+    multiplier = f"{learned['multiplier']:.2f}".replace(".", ",")
+    score = f"{learned['score']:+.2f}".replace(".", ",")
+    assert "· en apprentissage · 1 clôture(s) ·" in section
+    assert f"| momentum | {multiplier}x | {score} | 1 | 1 clôtures récentes, profit moyen -" in section
+    assert f"-> {multiplier}x (hausse bloquée : 1/8 clôtures) |" in section
+    assert "| sniper | 1,00x | +0,00 | 0 | aucune clôture, mise neutre 1,00x |" in section
+
+
+def test_learning_section_lists_a_suggested_threshold_never_applied(tmp_path, monkeypatch):
+    from sentinelle.dmh import memecoin_analytics, memecoin_learner
+
+    history = [{"strategy": "momentum", "mint": "L", "return": -0.2, "entry": {"liquidity_usd": x, "volume_h1_usd": 8_000, "confidence": 0.55}}
+               for x in range(21_000, 31_000, 1_000)]
+    history += [{"strategy": "momentum", "mint": "L", "return": -0.1, "entry": {"liquidity_usd": x, "volume_h1_usd": 8_000, "confidence": 0.55}}
+                for x in (80_000, 90_000)]
+    history += [{"strategy": "momentum", "mint": "W", "return": 0.3, "entry": {"liquidity_usd": x, "volume_h1_usd": 8_000, "confidence": 0.55}}
+                for x in range(35_000, 85_000, 5_000)]
+
+    def with_history(path):
+        return {**memecoin_analytics.build_analytics_report(path), "learning": memecoin_learner.learn_from_state({"completed": history})}
+
+    monkeypatch.setattr(sim, "scan_once", lambda *a, **k: {"errors": []})
+    monkeypatch.setattr(runner, "build_analytics_report", with_history)
+    output = tmp_path / "report.json"
+    runner.run(1, tmp_path / "session.sqlite", output, initial_capital=30)
+    section = learning_section(output.with_suffix(".md").read_text(encoding="utf-8"))
+    assert "· actif sur les quatre stratégies ·" not in section and "· en apprentissage · 22 clôture(s) ·" in section
+    momentum = memecoin_learner.multipliers(history)["momentum"]  # last 20 lots: mean +6 %, upside unlocked
+    assert momentum["upside_unlocked"] and 1.0 < momentum["multiplier"] <= 1.5
+    assert (f"| momentum | {momentum['multiplier']:.2f}x | {momentum['score']:+.2f} | 22 | ".replace(".", ",")) in section
+    assert "| whale_tail | 1,00x | +0,00 | 0 |" in section
+    assert ("- `liquidity_usd` · seuil suggéré 35 000.00 $ (règle actuelle 20 000.00 $) · `applied: false` — "
+            "liquidité du pool (USD) : médiane 57500,00 pour les gagnantes") in section
+    assert "- `volume_h1_usd` · aucun seuil plus strict utile · `applied: false` — " in section
+    assert "- `confidence` · aucun seuil plus strict utile · `applied: false` — " in section
+    assert "applied: true" not in section
 
 
 def test_paper_sim_workflow_is_well_formed_and_publishes_the_markdown_summary():
