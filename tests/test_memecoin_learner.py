@@ -247,6 +247,7 @@ def test_quote_records_the_one_hour_volume_when_it_is_valid(h1, expected):
 
 
 def test_real_paper_session_records_entries_and_learns_from_the_closed_lot(tmp_path, monkeypatch):
+    from tests.test_dmh_scanner import NOW
     from tests.test_memecoin_cloud_runner import ThreePools, runner
 
     feed = ThreePools()
@@ -254,16 +255,19 @@ def test_real_paper_session_records_entries_and_learns_from_the_closed_lot(tmp_p
     real_tick, ticks = sim.tick, []
 
     def tick(hub, db, bus):
-        if len(ticks) == 1:  # volume and buying pressure accelerate: momentum entry
+        feed.client.clock = lambda n=len(ticks): NOW + 60 * n  # each cycle observes strictly later than the previous one
+        if len(ticks) == 1:  # volume and buying pressure accelerate: momentum decision
             feed.pair.update(volume={"m5": 2000, "h1": 30000}, txns={"m5": {"buys": 12, "sells": 3}})
-        if len(ticks) >= 2:  # price halves: the stop closes the lot
+        if len(ticks) == 2:  # a later, distinct quote fills the decided entry (causal contract)
+            feed.pair["priceUsd"] = "1.001"
+        if len(ticks) >= 3:  # price halves twice: the stop is decided, then filled on the next, even lower quote
             feed.pair["priceUsd"] = str(float(feed.pair["priceUsd"]) * 0.5)
         ticks.append(1)
         return real_tick(hub, db, bus)
 
     monkeypatch.setattr(sim, "tick", tick)
     monkeypatch.setattr(runner, "build_analytics_report", None)
-    runner.run(4, tmp_path / "session.sqlite", tmp_path / "report.json", initial_capital=30)
+    runner.run(5, tmp_path / "session.sqlite", tmp_path / "report.json", initial_capital=30)
     with closing(sqlite3.connect(tmp_path / "session.sqlite")) as conn:
         state = json.loads(conn.execute("SELECT value FROM meta WHERE key=?", (sim.KEY,)).fetchone()[0])
     [lot] = state["completed"]

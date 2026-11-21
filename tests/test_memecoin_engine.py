@@ -277,9 +277,15 @@ def test_authenticated_cycle_on_established_pools(api_setup, monkeypatch):
         first = response.json()
         asset = sim.load(app.db)[0]["assets"][MINT]
         assert asset["dex_id"] == "pumpswap" and first["activity"] == []  # un pool d'une heure n'est pas un « sniper »
+        feed.client.clock = lambda: NOW + 60
         feed.pair.update(volume={"m5": 2000}, txns={"m5": {"buys": 12, "sells": 3}})  # volume et pression acheteuse accélèrent
+        decided = sim.tick(app.dmh, app.db, app.bus)
+        # Contrat causal : la décision prise sur cette cotation n'est jamais exécutée sur elle-même.
+        assert decided["activity"] == [] and [o["key"] for o in decided["pending_orders"]] == ["momentum/" + MINT]
+        feed.client.clock = lambda: NOW + 120
+        feed.pair["priceUsd"] = "1.001"  # une cotation ultérieure et distincte exécute l'entrée décidée
         state = sim.tick(app.dmh, app.db, app.bus)
-        assert {f["strategy"] for f in state["activity"]} == {"momentum"}
+        assert {f["strategy"] for f in state["activity"]} == {"momentum"} and state["pending_orders"] == []
         assert state["asset_domain"] == "memecoin" and balances() == before
         assert {"memecoin_fill", "memecoin_session", "decision"} <= set(events)
         assert c.post(url + "/tick", headers={"X-Sentinelle": "1"}, json={"mode": "paper"}).status_code == 429
@@ -289,7 +295,7 @@ def test_authenticated_cycle_on_established_pools(api_setup, monkeypatch):
 
         monkeypatch.setattr(sim, "quote", missing_quote)
         result = sim.tick(app.dmh, app.db, app.bus)
-        assert result["equity"] is None and result["stale_marks"] == [MINT]
+        assert result["equity"] is None and result["stale_marks"] == [MINT] and result["equity_status"] == "stale"
         assert result["last_marked_equity"] == state["equity"] and result["activity"] == state["activity"]
     finally:
         app.bus.remove_listener(listener)
@@ -447,9 +453,13 @@ def test_a_missing_signature_is_not_a_source_failure_and_does_not_block_momentum
     state = sim.load(db)[0]
     assert state["assets"][MINT]["identity"]["status"] == "unknown"
     assert not any(isinstance(e, dict) and "wallets" in e for e in first["errors"] + state["errors"])  # no "'signature'" failure
+    feed.client.clock = lambda: NOW + 60
     feed.pair.update(volume={"m5": 2000}, txns={"m5": {"buys": 12, "sells": 3}})
-    second = sim.tick(hub, db, EventBus(db))
-    assert {f["strategy"] for f in second["activity"]} == {"momentum"}
+    sim.tick(hub, db, EventBus(db))  # momentum decision
+    feed.client.clock = lambda: NOW + 120
+    feed.pair["priceUsd"] = "1.001"
+    third = sim.tick(hub, db, EventBus(db))  # filled on the later, distinct quote
+    assert {f["strategy"] for f in third["activity"]} == {"momentum"}
 
 
 # -- D5 : sniper on an established pool --------------------------------------------------------------------------------
@@ -515,6 +525,10 @@ def test_sniper_enters_through_the_paper_tick_only_on_a_recent_verified_accelera
     sim.tick(hub, db, EventBus(db))  # first observation: nothing to compare with
     feed.client.clock = lambda: NOW + gap
     feed.pair.update(priceUsd="1.05", volume={"m5": 2000, "h1": 12_000}, txns={"m5": {"buys": 12, "sells": 3}})
+    decided = sim.tick(hub, db, EventBus(db))
+    assert decided["activity"] == [] and {o["key"].split("/")[0] for o in decided["pending_orders"]} == expected
+    feed.client.clock = lambda: NOW + gap + 60
+    feed.pair["priceUsd"] = "1.06"  # later, distinct quote: the decided entries are filled
     state = sim.tick(hub, db, EventBus(db))
     assert {f["strategy"] for f in state["activity"]} == expected
     held = sim.load(db)[0]["positions"]
@@ -590,6 +604,214 @@ def test_legacy_confidence_is_unchanged_and_m58_entries_record_the_continuous_sc
     assert old == {"liquidity_usd": 100_000.0, "volume_h1_usd": 50_000.0, "confidence": 0.55, "signals": ["momentum"]}
     assert new["confidence"] == pytest.approx(score()["score"]) and new["confidence_model"] == "m58-continuous-v1"
     assert new["confidence_components"] == pytest.approx(score()["components"]) and new["round_trip_loss"] == 0.02
+
+
+# -- stabilisation V1 : causal paper execution, reliable valuation, M58 guardian depth --------------------------------------
+ACCELERATION = {"volume": {"m5": 2000}, "txns": {"m5": {"buys": 12, "sells": 3}}}
+
+
+def causal_session(db):
+    """An established PumpSwap pool and a clock that only moves when the test says so."""
+    feed = EstablishedFeed()
+    clock = {"t": NOW}
+    feed.client.clock = lambda: clock["t"]
+    hub = SimpleNamespace(client=feed.client, registry=load_registry())
+
+    def step(seconds=60, **pair):
+        clock["t"] += seconds
+        feed.pair.update(pair)
+        return sim.tick(hub, db, EventBus(db))
+
+    return feed, clock, step
+
+
+def entered(db):
+    """Baseline, momentum decision, then the fill on a later distinct quote: returns the feed, clock, step and order."""
+    feed, clock, step = causal_session(db)
+    step(0)
+    decided = step(60, **ACCELERATION)
+    [order] = decided["pending_orders"]
+    step(60, priceUsd="1.02")
+    return feed, clock, step, order
+
+
+def test_a_signal_is_never_filled_on_its_own_quote_but_on_a_later_distinct_one(db):
+    feed, clock, step = causal_session(db)
+    step(0)
+    decided = step(60, **ACCELERATION)
+    assert decided["activity"] == [] and decided["positions"] == {}  # 1. signal at T: no immediate buy
+    [order] = decided["pending_orders"]
+    assert (order["kind"], order["key"], order["decided_at"]) == ("buy", "momentum/" + MINT, NOW + 60)
+    stored = sim.load(db)[0]["orders"][order["id"]]
+    assert stored["decision"]["received_ms"] == (NOW + 60) * 1000 and len(stored["decision"]["sha256"]) == 64
+    assert stored["decision"]["price"] == 1.0 and stored["entry"]["signals"] == ["momentum"] and stored["asset_domain"] == "memecoin"
+    filled = step(60, priceUsd="1.02")  # 2. a later, distinct, fresh quote: the fill is possible
+    [fill] = filled["activity"]
+    assert (fill["side"], fill["ts"], fill["order_id"], fill["decided_at"]) == ("buy", NOW + 120, order["id"], NOW + 60)
+    assert fill["decision_received_ms"] == (NOW + 60) * 1000 < fill["execution_received_ms"] == (NOW + 120) * 1000
+    assert fill["decision_sha256"] != fill["execution_sha256"] and fill["simulated"] is True
+    pos = filled["positions"]["momentum/" + MINT]
+    gross = (pos["initial"] - fill["network_fee_usd"]) / (1 + sim.DEX_FEE)
+    assert pos["qty"] * 1.02 + fill["slippage_usd"] == pytest.approx(gross)  # filled at the later price, not at 1.00
+    assert filled["pending_orders"] == [] and sim.load(db)[0]["order_log"][-1]["status"] == "executed"
+
+
+@pytest.mark.parametrize("case,refusal", [
+    ("same_instant", "chronologie ambiguë"),
+    ("same_snapshot", "identique au snapshot"),
+    ("expired", None),
+])
+def test_a_replayed_ambiguous_or_expired_quote_never_fills(db, case, refusal):
+    feed, clock, step = causal_session(db)
+    step(0)
+    step(60, **ACCELERATION)
+    if case == "same_instant":
+        state = step(0, priceUsd="1.02")  # same reception time as the decision
+    elif case == "same_snapshot":
+        state = step(60)  # identical response: a replay of the decision snapshot
+    else:
+        state = step(sim.ORDER_TTL_S + 1, priceUsd="1.02")
+    assert state["activity"] == [] and state["positions"] == {}  # 3. no fill
+    stored = sim.load(db)[0]
+    if refusal:
+        [order] = stored["orders"].values()
+        assert refusal in order["last_refusal"]
+    else:
+        assert stored["orders"] == {} and stored["order_log"][-1]["status"] == "expired"
+
+
+def test_execution_check_refuses_old_or_unprovenanced_quotes():
+    order = {"decided_at": NOW, "decision": {"received_ms": NOW * 1000, "sha256": "a" * 64}}
+    fresh = {"ts": NOW + 60, "received_ms": (NOW + 60) * 1000, "source_sha256": "b" * 64}
+    assert sim.execution_check(order, fresh, {}, NOW + 60) is None
+    assert "trop ancienne" in sim.execution_check(order, fresh, {}, NOW + 60 + sim.MAX_QUOTE_AGE_S + 1)
+    assert "sans heure de réception" in sim.execution_check(order, {**fresh, "received_ms": None}, {}, NOW + 60)
+    assert "précédent" in sim.execution_check(order, fresh, {"last": {"source_sha256": "b" * 64}}, NOW + 60)
+
+
+def test_a_restart_between_decision_and_fill_never_duplicates_it(db):
+    feed, clock, step = causal_session(db)
+    step(0)
+    step(60, **ACCELERATION)
+    saved = sim.load(db)[0]  # what a restarted worker reloads: the decision survives the restart
+    [(oid, order)] = saved["orders"].items()
+    filled = step(60, priceUsd="1.02")
+    step(60, priceUsd="1.03")
+    buys = lambda: [f for f in sim.load(db)[0]["fills"] if f["side"] == "buy"]
+    assert len(buys()) == 1 and buys()[0]["order_id"] == oid  # 4. one fill only
+    # A crash after the fill was saved but with the order still pending: the fill is recognised, never repeated.
+    state = sim.load(db)[0]
+    state["orders"][oid] = order
+    db.set_meta(sim.KEY, json.dumps(state))
+    step(60, priceUsd="1.04")
+    assert len(buys()) == 1 and sim.load(db)[0]["order_log"][-1]["status"] == "duplicate"
+    # 8. lots and cash survive the restarts unchanged by any replay.
+    reloaded = sim.load(db)[0]
+    assert set(reloaded["positions"]) == set(filled["positions"]) and reloaded["cash"] == pytest.approx(filled["cash"])
+
+
+def test_a_stop_is_a_trigger_filled_at_the_later_lower_price(db):
+    feed, clock, step, order = entered(db)
+    decided = step(60, priceUsd="0.7")  # net ratio ~0.68: the stop triggers on this quote...
+    assert not [f for f in decided["activity"] if f["side"] == "sell"] and "momentum/" + MINT in decided["positions"]
+    [sell] = [o for o in decided["pending_orders"] if o["kind"] == "sell"]  # (dip_hunter may decide to buy the dip too)
+    assert sell["key"] == "momentum/" + MINT and sim.load(db)[0]["orders"][sell["id"]]["detail"] == "stop_loss"
+    closed = step(60, priceUsd="0.3")  # ...and is filled on the next quote, after a gap down
+    [fill] = [f for f in closed["activity"] if f["side"] == "sell"]
+    assert (fill["side"], fill["detail"], fill["ts"], fill["decided_at"]) == ("sell", "stop_loss", clock["t"], clock["t"] - 60)
+    [lot] = sim.load(db)[0]["completed"]
+    assert lot["exit"] == "stop_loss" and lot["return"] < -0.60  # 5. a -20 % trigger, not a -20 % guarantee
+
+
+def test_an_unsellable_lot_credits_no_fictitious_cash(db):
+    feed, clock, step, order = entered(db)
+    step(60, priceUsd="0.7")  # stop decided
+    cash = sim.load(db)[0]["cash"]
+    state = step(60, priceUsd="0.69", liquidity={"usd": 0.0001})  # the pool is drained: the sale nets nothing after fees
+    assert [f for f in state["activity"] if f["side"] == "sell"] == [] and state["cash"] == pytest.approx(cash)  # 6.
+    [pending] = sim.load(db)[0]["orders"].values()
+    assert pending["unsellable"] == 1 and "vente impossible" in pending["last_refusal"]
+    pos = state["positions"]["momentum/" + MINT]
+    assert pos["mark"] == 0.0 and state["equity"] == pytest.approx(state["cash"])  # valued at what can be realised: nothing
+
+
+def test_a_processing_failure_after_the_quote_makes_the_equity_unavailable(db, monkeypatch):
+    feed, clock, step, order = entered(db)
+    before = sim.load(db)[0]
+    previous = sim.equity(before)
+
+    def broken(pos, point, network):
+        raise ValueError("valorisation impossible")
+
+    monkeypatch.setattr(sim, "_mark", broken)
+    state = step(60, priceUsd="1.03")  # the quote arrives, then the valuation fails
+    assert state["equity"] is None and state["equity_status"] == "stale" and state["stale_marks"] == [MINT]  # 7.
+    assert state["last_marked_equity"] == pytest.approx(previous) and state["return_24h"] is None
+    assert any(isinstance(e, dict) and e.get("stage") == "valorisation" for e in state["errors"])
+    assert sim.load(db)[0]["curve"][-1]["equity"] is None  # no current equity published on the curve
+    state = sim.load(db)[0]
+    state["positions"]["momentum/" + MINT]["mark"] = None
+    assert sim.valuation(state) == ("unavailable", None) and sim.report(state, {})["equity"] is None
+
+
+def test_entries_are_suspended_while_the_valuation_is_not_reliable():
+    order = {"kind": "buy", "key": "momentum/M", "mint": "M", "strategy": "momentum", "decided_at": NOW, "signals": ["momentum"],
+             "entry": {}, "decision": {"received_ms": NOW * 1000, "sha256": "a" * 64}}
+    state = {"orders": {"1:buy:momentum/M": order}, "positions": {}, "fills": [], "completed": [], "cash": 30.0}
+    point = {"ts": NOW + 60, "received_ms": (NOW + 60) * 1000, "source_sha256": "b" * 64, "price": 1.0, "liquidity_usd": 1e5}
+    sim._execute_buy(state, "1:buy:momentum/M", order, point, 0.001, NOW + 60, set(), {}, {"allowed": True}, False)
+    assert state["fills"] == [] and "valorisation non fiable" in order["last_refusal"] and "1:buy:momentum/M" in state["orders"]
+    sim._execute_buy(state, "1:buy:momentum/M", order, point, 0.001, NOW + 60, set(), {}, {"allowed": False}, True)
+    assert state["orders"] == {} and state["order_log"][-1]["reason"] == "veto du Guardian à l'exécution"
+
+
+def test_m58_pool_at_22000_usd_uses_the_m58_depth_and_keeps_every_other_veto():
+    feed = EstablishedFeed()
+    point = observation(liquidity_usd=22_000.0)
+    m58 = {**sniper_asset(), "dex_id": "pumpswap"}
+    assert evaluate(feed.client, m58, point, False)[1]["allowed"]  # 9. M58 admits 22,000 USD: so does its guardian check
+    legacy = {k: v for k, v in sniper_asset().items() if k != "dex_id"}
+    _, guard = evaluate(feed.client, legacy, point, False)  # any other caller keeps the guardian's 25,000 USD default
+    assert not guard["allowed"] and "liquidity" in {v["code"] for v in guard["vetoes"]}
+    feed.info["mintAuthority"] = POOL  # another veto still applies at 22,000 USD on M58
+    _, guard = evaluate(feed.client, m58, point, False)
+    assert not guard["allowed"] and "liquidity" not in {v["code"] for v in guard["vetoes"]}
+
+
+def test_accounting_identity_after_buy_partial_sale_close_and_fees(db):
+    state, _ = sim.load(db)
+    state["assets"]["A"] = {"symbol": "A"}
+    sim.adopt_calibrated_exits(state)
+    network, cash0 = 0.002, state["cash"]
+    point = {"price": 1.0, "liquidity_usd": 50_000.0, "ts": 1, "volume_h1_usd": 10_000.0}
+
+    def identity():
+        assert sim.equity(state) == pytest.approx(state["cash"] + sum(p["mark"] for p in state["positions"].values()))
+
+    sim.process(state, "A", point, ["momentum"], network)
+    pos, buy = state["positions"]["momentum/A"], state["fills"][-1]
+    stake = pos["initial"]
+    gross = (stake - network) / (1 + sim.DEX_FEE)
+    assert stake == pytest.approx(network + gross + buy["dex_fee_usd"]) and pos["qty"] * 1.0 + buy["slippage_usd"] == pytest.approx(gross)
+    assert state["cash"] == pytest.approx(cash0 - stake)  # the stake pays every entry cost, once
+    identity()
+    sim.process(state, "A", {**point, "price": 1.4, "ts": 2}, [], network)  # 20 % sold at the cover ratio
+    partial = state["fills"][-1]
+    assert partial["detail"] == "take_profit" and state["cash"] == pytest.approx(cash0 - stake + partial["pnl"] + 0.2 * stake)
+    identity()
+    sim.process(state, "A", {**point, "price": 0.9, "ts": 3}, [], network)  # back under the break-even floor: closed
+    assert state["positions"] == {} and state["fills"][-1]["side"] == "sell"
+    realised = sum(f["pnl"] for f in state["fills"])
+    assert state["cash"] == pytest.approx(cash0 + realised) == pytest.approx(sim.equity(state))  # 10. costs counted once
+    assert state["completed"][-1]["return"] == pytest.approx(realised / stake)
+
+
+def test_daily_return_only_between_validated_bounds():
+    state = {"curve": [{"ts": 0, "equity": 30.0}, {"ts": 43_200, "equity": 30.6}, {"ts": 86_400, "equity": 31.5}], "stale_marks": []}
+    assert sim.return_24h(state) == {"pct": pytest.approx(5.0), "from_ts": 0, "to_ts": 86_400}
+    assert sim.return_24h({**state, "stale_marks": ["M"]}) is None  # the end bound is not a validated value
+    assert sim.return_24h({**state, "curve": [{"ts": 0, "equity": None}, *state["curve"][1:]]}) is None  # nor the start
+    assert sim.return_24h({**state, "curve": state["curve"][1:]}) is None  # less than 24 h of history
 
 
 # -- invariants ----------------------------------------------------------------------------------------------------------

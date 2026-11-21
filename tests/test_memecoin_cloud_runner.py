@@ -10,7 +10,7 @@ import pytest
 from sentinelle.dmh import memecoin_cloud_runner as runner
 from sentinelle.dmh import memecoin_simulator as sim
 from tests import test_configurable_capital as frozen
-from tests.test_dmh_scanner import MINT, POOL, WSOL, b58
+from tests.test_dmh_scanner import MINT, NOW, POOL, WSOL, b58
 from tests.test_memecoin_engine import EstablishedFeed
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -136,17 +136,20 @@ def test_m58_pipeline_filters_vetoes_consults_the_fleet_and_publishes_markdown(t
     real_tick, ticks = sim.tick, []
 
     def tick(hub, db, bus):
-        if ticks:  # second cycle : volume et pression acheteuse accélèrent sur le pool retenu
+        feed.client.clock = lambda n=len(ticks): NOW + 60 * n  # each cycle observes strictly later than the previous one
+        if len(ticks) == 1:  # second cycle : volume et pression acheteuse accélèrent sur le pool retenu (décision)
             feed.pair.update(volume={"m5": 2000}, txns={"m5": {"buys": 12, "sells": 3}})
+        if len(ticks) == 2:  # troisième cycle : une cotation ultérieure et distincte exécute l'entrée décidée (contrat causal)
+            feed.pair["priceUsd"] = "1.001"
         ticks.append(1)
         return real_tick(hub, db, bus)
 
     monkeypatch.setattr(sim, "tick", tick)
     monkeypatch.setattr(runner, "build_analytics_report", None)
     output = tmp_path / "report.json"
-    report = runner.run(2, tmp_path / "session.sqlite", output, initial_capital=30)
+    report = runner.run(3, tmp_path / "session.sqlite", output, initial_capital=30)
     m58 = report["pipeline"]
-    assert report["asset_domain"] == m58["asset_domain"] == "memecoin" and report["paper_only"] and report["ticks_completed"] == 2
+    assert report["asset_domain"] == m58["asset_domain"] == "memecoin" and report["paper_only"] and report["ticks_completed"] == 3
     assert m58["thresholds"]["min_liquidity_usd"] == 20000 and m58["run"]["pools"] == 3 and m58["run"]["accepted"] == 1
     assert m58["run"]["refused_by_stage"]["liquidity"] == 1 and m58["vetoes"]["guardian"] == 1  # filtre puis veto anti-arnaque
     assert m58["fleet"]["decisions"] == {"PROPOSITION_SIMULÉE": 1} and report["strategies"]["momentum"]["trades"] == 1
@@ -251,9 +254,12 @@ def test_learning_section_follows_a_real_closed_lot(tmp_path, monkeypatch):
     real_tick, ticks = sim.tick, []
 
     def tick(hub, db, bus):
-        if len(ticks) == 1:  # momentum entry on the retained pool
+        feed.client.clock = lambda n=len(ticks): NOW + 60 * n  # each cycle observes strictly later than the previous one
+        if len(ticks) == 1:  # momentum decision on the retained pool
             feed.pair.update(volume={"m5": 2000, "h1": 30000}, txns={"m5": {"buys": 12, "sells": 3}})
-        if len(ticks) >= 2:  # price halves: the stop closes the lot
+        if len(ticks) == 2:  # a later, distinct quote fills the decided entry (causal contract)
+            feed.pair["priceUsd"] = "1.001"
+        if len(ticks) >= 3:  # price halves twice: the stop is decided, then filled on the next, even lower quote
             feed.pair["priceUsd"] = str(float(feed.pair["priceUsd"]) * 0.5)
         ticks.append(1)
         return real_tick(hub, db, bus)
@@ -261,7 +267,7 @@ def test_learning_section_follows_a_real_closed_lot(tmp_path, monkeypatch):
     monkeypatch.setattr(sim, "tick", tick)
     monkeypatch.setattr(runner, "build_analytics_report", memecoin_analytics.build_analytics_report)
     output = tmp_path / "report.json"
-    runner.run(4, tmp_path / "session.sqlite", output, initial_capital=30)
+    runner.run(5, tmp_path / "session.sqlite", output, initial_capital=30)
     learned = memecoin_learner.learn(tmp_path / "session.sqlite")["strategies"]["momentum"]
     assert learned["closed_trades"] == 1 and 0.5 <= learned["multiplier"] < 1.0
     section = learning_section(output.with_suffix(".md").read_text(encoding="utf-8"))
