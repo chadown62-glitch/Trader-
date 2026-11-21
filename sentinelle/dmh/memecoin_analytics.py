@@ -6,6 +6,7 @@ from contextlib import closing
 from pathlib import Path
 
 from . import memecoin_simulator as sim
+from .memecoin_strategies import LEGACY
 
 
 def _read_snapshot(path):
@@ -68,20 +69,52 @@ def _closed_lots(state):
     return lots
 
 
+def _ladder(policy_name):
+    """Take-profit multiples of an exit policy, in the order the open lot sells them (None if unknown)."""
+    if policy_name == sim.LEGACY_EXITS:
+        return tuple(multiple for multiple, _ in LEGACY["tiers"])
+    policy = sim.EXIT_POLICIES.get(policy_name)
+    return None if policy is None else (policy.cover_ratio, *policy.tiers)
+
+
+def _tier(pos):
+    """Last take-profit multiple sold and the next one. Full exits close the lot, so an open lot's stage counts
+    its take-profit slices only."""
+    policy_name = pos.get("exit_policy", sim.LEGACY_EXITS)
+    ladder, stage = _ladder(policy_name), pos["stage"]
+    if ladder is None:
+        return policy_name, None, None
+    return policy_name, ladder[min(stage, len(ladder)) - 1] if stage else None, ladder[stage] if stage < len(ladder) else None
+
+
+def _entry_price(buy, initial):
+    """Market price at entry: the stake less the recorded DEX fee, network fee and slippage, per token bought."""
+    costs = [buy.get(k) for k in ("dex_fee_usd", "network_fee_usd", "slippage_usd")]
+    quantity = buy.get("quantity")
+    if None in costs or not quantity or quantity <= 0:
+        return None  # lot opened before these costs were recorded
+    return (initial - sum(costs)) / quantity
+
+
 def _open_positions(state):
-    """Open lots at their last liquidation mark: value, unrealized P&L in USD and in % of the remaining cost."""
+    """Open lots at their last liquidation mark: entry and current price, value, unrealized P&L in USD and in % of the
+    remaining cost, and the take-profit tier reached."""
     stale = set(state.get("stale_marks", []))
-    opened = {fill["strategy"] + "/" + fill["mint"]: fill.get("ts") for fill in state["fills"] if fill["side"] == "buy"}
+    buys = {fill["strategy"] + "/" + fill["mint"]: fill for fill in state["fills"] if fill["side"] == "buy"}
     rows = []
     for key, pos in state["positions"].items():
         last = state.get("assets", {}).get(pos["mint"], {}).get("last") or {}
+        buy = buys.get(key, {})
         unrealized = pos["mark"] - pos["basis"]
+        policy_name, reached, upcoming = _tier(pos)
         rows.append({
             "strategy": pos["strategy"], "mint": pos["mint"], "quantity": pos["qty"],
+            "entry_price_usd": _entry_price(buy, pos["initial"]), "price_usd": last.get("price"),
             "initial_usd": pos["initial"], "cost_basis_usd": pos["basis"], "value_usd": pos["mark"],
             "unrealized_pnl_usd": unrealized, "unrealized_pnl_pct": _pct(unrealized, pos["basis"]),
-            "realized_pnl_usd": pos["pnl"], "exits": pos["stage"], "price_usd": last.get("price"),
-            "marked_at": last.get("ts"), "opened_at": opened.get(key), "stale": pos["mint"] in stale,
+            "realized_pnl_usd": pos["pnl"], "exits": pos["stage"], "exit_policy": policy_name,
+            "tier_reached": reached, "next_tier": upcoming, "peak_ratio": pos.get("high"),
+            "marked_at": last.get("ts"), "opened_at": buy.get("ts"), "stale": pos["mint"] in stale,
         })
     return rows
 
@@ -91,7 +124,8 @@ def build_analytics_report(db_path):
 
     ``avg_profit_pct`` is the arithmetic mean, over closed lots, of each lot's return on its initial stake (net of
     fees, slippage and network costs, partial exits included); every strategy carries its own. ``open_positions``
-    values each open lot at the last mark of the paper worker.
+    values each open lot at the last mark of the paper worker; ``price_usd`` is its current price, ``tier_reached``
+    the last take-profit multiple sold (``None`` before the first slice).
     """
     state = _read_snapshot(Path(db_path))
     result = {"asset_domain": sim.DOMAIN, "currency": "USD", "paper_only": True}
@@ -140,6 +174,12 @@ def render_report(report):
     def fmt(value):
         return "n/d" if value is None else f"{value:.2f}"
 
+    def price(value):  # memecoin prices often sit far below one cent
+        return "n/d" if value is None else f"{value:.6g}"
+
+    def tier(value):
+        return "aucun" if value is None else f"{value:g}x".replace(".", ",")
+
     win = report["win_rate"]
     factor = fmt(report["profit_factor"])
     if report["gross_profit"] and not report["gross_loss"]:
@@ -155,8 +195,9 @@ def render_report(report):
     lines.extend(f"{name} : {fmt(stats['pnl'])} | {stats['trades']} | {fmt(stats['avg_profit_pct'])}"
                  for name, stats in report["strategies"].items())
     lines.append(f"Positions ouvertes : {len(report['open_positions'])}")
-    lines.extend(f"{p['strategy']} {p['mint']} : valeur {fmt(p['value_usd'])} USD | latent {fmt(p['unrealized_pnl_usd'])} USD "
-                 f"({fmt(p['unrealized_pnl_pct'])} %)" + (" | cotation en attente" if p["stale"] else "")
+    lines.extend(f"{p['strategy']} {p['mint']} : entrée {price(p['entry_price_usd'])} → {price(p['price_usd'])} USD | "
+                 f"valeur {fmt(p['value_usd'])} USD | latent {fmt(p['unrealized_pnl_usd'])} USD ({fmt(p['unrealized_pnl_pct'])} %) | "
+                 f"palier {tier(p['tier_reached'])}" + (" | cotation en attente" if p["stale"] else "")
                  for p in report["open_positions"])
     for label, key in (("Top", "top_tokens"), ("Flop", "flop_tokens")):
         lines.append(label + " : " + (", ".join(f"{mint} {fmt(pnl)} USD" for mint, pnl in report[key]) or "aucun"))

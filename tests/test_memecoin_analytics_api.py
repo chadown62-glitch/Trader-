@@ -77,9 +77,10 @@ def test_report_and_strategy_denominators(session_api):
 def test_open_positions_are_valued_at_the_last_mark(session_api):
     db, client = session_api
     state = dict(initial=30, cash=24, revision=7, curve=[{"equity": 30}], errors=[], completed=[], fills=[
-        dict(strategy="whale_tail", mint="C", side="buy", pnl=0, ts=1700000000, asset_domain="memecoin", simulated=True)],
+        dict(strategy="whale_tail", mint="C", side="buy", pnl=0, ts=1700000000, asset_domain="memecoin", simulated=True,
+             quantity=50, dex_fee_usd=0.3, network_fee_usd=0.1, slippage_usd=0.1)],  # (6 - 0.5) / 50 = 0.11 USD
         positions={"whale_tail/C": dict(asset_domain="memecoin", strategy="whale_tail", mint="C", qty=50, initial=6, basis=6,
-                                        mark=7.2, pnl=0.0, stage=0)},
+                                        mark=7.2, pnl=0.0, stage=0, high=1.2, exit_policy=sim.CALIBRATED_EXITS)},
         assets={"C": {"symbol": "C", "last": {"price": 0.15, "ts": 1700000060}}})
     raw = json.dumps(state)
     db.set_meta(sim.KEY, raw)
@@ -88,9 +89,11 @@ def test_open_positions_are_valued_at_the_last_mark(session_api):
     r = response.json()
     assert r["status"] == "ok" and r["equity"] == pytest.approx(31.2) and r["avg_profit_pct"] is None
     assert r["open_positions"] == [{
-        "strategy": "whale_tail", "mint": "C", "quantity": 50, "initial_usd": 6, "cost_basis_usd": 6, "value_usd": 7.2,
-        "unrealized_pnl_usd": pytest.approx(1.2), "unrealized_pnl_pct": pytest.approx(20), "realized_pnl_usd": 0,
-        "exits": 0, "price_usd": 0.15, "marked_at": 1700000060, "opened_at": 1700000000, "stale": False}]
+        "strategy": "whale_tail", "mint": "C", "quantity": 50, "entry_price_usd": pytest.approx(0.11), "price_usd": 0.15,
+        "initial_usd": 6, "cost_basis_usd": 6, "value_usd": 7.2, "unrealized_pnl_usd": pytest.approx(1.2),
+        "unrealized_pnl_pct": pytest.approx(20), "realized_pnl_usd": 0, "exits": 0, "exit_policy": "calibrated-v1",
+        "tier_reached": None, "next_tier": 1.25, "peak_ratio": 1.2, "marked_at": 1700000060, "opened_at": 1700000000,
+        "stale": False}]
     assert db.get_meta(sim.KEY) == raw  # read-only
 
 
