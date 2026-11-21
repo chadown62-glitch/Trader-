@@ -98,12 +98,24 @@ def exit_for(pos, ratio):
 SOURCE_ERRORS = (SourceUnavailable, KeyError, TypeError, ValueError, IndexError, OverflowError)
 
 
+JOURNAL_SCHEMA = (
+    "CREATE TABLE IF NOT EXISTS memecoin_journal(id INTEGER PRIMARY KEY AUTOINCREMENT, revision INTEGER NOT NULL UNIQUE, "
+    "ts INTEGER NOT NULL, asset_domain TEXT NOT NULL CHECK(asset_domain='memecoin'), data TEXT NOT NULL)",
+    "CREATE TRIGGER IF NOT EXISTS memecoin_journal_no_update BEFORE UPDATE ON memecoin_journal "
+    "BEGIN SELECT RAISE(ABORT,'journal memecoin en ajout seul'); END",
+    "CREATE TRIGGER IF NOT EXISTS memecoin_journal_no_delete BEFORE DELETE ON memecoin_journal "
+    "BEGIN SELECT RAISE(ABORT,'journal memecoin en ajout seul'); END",
+)
+
+
 def load(db):
     with db.transaction():
         db.execute(
             "CREATE TABLE IF NOT EXISTS smart_wallets(address TEXT PRIMARY KEY, asset_domain TEXT NOT NULL "
             "CHECK(asset_domain='memecoin'), data TEXT NOT NULL)"
         )
+        for statement in JOURNAL_SCHEMA:
+            db.execute(statement)
         wallets = {r["address"]: json.loads(r["data"]) for r in db.query("SELECT address,data FROM smart_wallets")}
         raw = db.get_meta(KEY)
     state = (
@@ -434,9 +446,12 @@ def _causal(oid, order, point):
 
 def _resolve(state, oid, status, reason, now):
     order = state["orders"].pop(oid)
-    state.setdefault("order_log", []).append({"id": oid, "kind": order["kind"], "key": order["key"], "status": status,
-                                              "reason": reason, "decided_at": order["decided_at"], "resolved_at": now})
+    entry = {"id": oid, "kind": order["kind"], "key": order["key"], "status": status, "reason": reason,
+             "decided_at": order["decided_at"], "resolved_at": now}
+    state.setdefault("order_log", []).append(entry)
     del state["order_log"][:-ORDER_LOG]
+    if "_cycle" in state:
+        state["_cycle"]["resolved"].append(entry)  # the journal keeps every resolution, whatever the in-session cap
 
 
 def _decide(state, kind, key, mint, strategy, point, now, **details):
@@ -518,11 +533,14 @@ def consult_fleet(coordinator, state, mint, asset, point, signals, guard, networ
     data = _candidate(state, mint, asset, point, signals, guard, network)
     record = coordinator.decide(fleet_agents.Event("memecoin_candidate", mint, int(now * 1000), data), {})
     accepted = record["decision"] == fleet_coordinator.PROPOSAL
-    state.setdefault("fleet", []).append({
+    entry = {
         "asset_domain": DOMAIN, "ts": now, "mint": mint, "signals": list(signals), "decision": record["decision"],
         "why": record["why"][:4], "pivotal": sorted(a for a, changed in record["contribution"].items() if changed),
-        "findings": [{"agent": f["agent"], "stance": f["stance"], "summary": f["summary"]} for f in record["findings"]]})
+        "findings": [{"agent": f["agent"], "stance": f["stance"], "summary": f["summary"]} for f in record["findings"]]}
+    state.setdefault("fleet", []).append(entry)
     del state["fleet"][:-FLEET_LOG]
+    if "_cycle" in state:
+        state["_cycle"]["fleet"].append(entry)
     return list(signals) if accepted else []
 
 
@@ -674,6 +692,29 @@ def report(state, wallets):
     }
 
 
+def journal(db, since_revision=0):
+    """Cycle traces of the session, oldest first (append-only: never updated, never deleted)."""
+    load(db)  # creates the table on a session recorded before the journal existed
+    return [json.loads(r["data"]) for r in db.query(
+        "SELECT data FROM memecoin_journal WHERE revision>? ORDER BY revision", (since_revision,))]
+
+
+def replay(rows):
+    """Results rebuilt from the journal alone: fills, resolved orders, fleet decisions, equity curve and final cash."""
+    out = {"fills": [], "order_log": [], "fleet": [], "curve": [], "cash": None, "revision": None}
+    for row in rows:
+        out["fills"] += row["fills"]
+        out["order_log"] += row["resolved"]
+        out["fleet"] += row["fleet"]
+        out["curve"].append(row["curve_point"])
+        out["cash"], out["revision"] = row["valuation"]["cash_usd"], row["revision"]
+    return out
+
+
+def _quote_trace(point):
+    return {k: point.get(k) for k in ("received_ms", "pool_sha256", "source_sha256", "price", "liquidity_usd", "volume_h1_usd")}
+
+
 def watch_rotation(assets, priority):
     """Assets quoted in rotation this cycle besides ``priority`` (held lots, pending orders): among the ``WATCH_LIMIT``
     most recently admitted pools, the ``ROTATION`` least recently checked. Older candidates stay recorded, unquoted."""
@@ -730,11 +771,15 @@ def tick(hub, db, bus):
     ordered = {o["mint"] for o in orders.values() if o["mint"] in assets} - held
     points = {}
     fleet = fleet_coordinator.Coordinator(clock=client.clock)  # cycle fini : une flotte par passage, sans pouvoir d'ordre
+    trace = {"quotes": {}, "evaluations": {}}
+    state["_cycle"] = {"resolved": [], "fleet": []}  # transient: what this cycle resolved and asked the fleet
     for mint in sorted(held) + sorted(ordered) + watch_rotation(assets, held | ordered):
         try:
             points[mint] = quote(client, assets[mint], now)
+            trace["quotes"][mint] = _quote_trace(points[mint])
         except SOURCE_ERRORS as exc:
             state["errors"].append({"mint": mint, "reason": str(exc)})
+            trace["quotes"][mint] = {"error": str(exc)[:200]}
         assets[mint]["checked"] = now
     state["stale_marks"] = sorted(held - points.keys() if network is not None else held)
     executed = {f["order_id"] for f in state["fills"] if f.get("order_id")}
@@ -760,8 +805,12 @@ def tick(hub, db, bus):
     for mint, point in points.items():
         asset = assets[mint]
         try:
+            previous = asset.get("last") or {}
             signals, guard = evaluate(client, asset, point, False)
             signals = tradable_signals(asset, signals)
+            trace["evaluations"][mint] = {"signals": sorted(signals), "allowed": bool(guard.get("allowed")),
+                                          "vetoes": [v.get("code") for v in guard.get("vetoes", [])],
+                                          "gap_s": point["ts"] - previous["ts"] if _finite(previous.get("ts")) else None}
             asset["blocked"] = not guard["allowed"]
             if not guard["allowed"]:
                 winners.discard(mint)
@@ -774,6 +823,7 @@ def tick(hub, db, bus):
                 try:
                     if smart_wallets.follow(client, asset, wallets, winners, now):
                         signals.append("whale_tail")
+                        trace["evaluations"][mint]["signals"] = sorted(signals)
                 except SOURCE_ERRORS as exc:
                     state["errors"].append({"mint": mint, "wallets": str(exc)})
             if network is not None:
@@ -809,11 +859,20 @@ def tick(hub, db, bus):
     state["revision"] += 1
     state["curve"].append({"ts": now, "equity": None if state["stale_marks"] else equity(state),
                            "floor": sizing_equity(state), "last_known": known_equity(state)})
+    status, _ = valuation(state)
+    trace.update(revision=state["revision"], ts=now, asset_domain=DOMAIN, network_fee_usd=network,
+                 decided=sorted(o for o, order in orders.items() if order["decided_at"] == now),
+                 **state.pop("_cycle"),  # resolved orders and fleet decisions of this cycle, never capped
+                 fills=state["fills"][start:], errors=state["errors"], curve_point=state["curve"][-1],
+                 valuation={"status": status, "cash_usd": state["cash"], "stale_marks": state["stale_marks"],
+                            "entry_gate": state["entry_gate"]})
     with db.transaction():
         prior = json.loads(db.get_meta(KEY, "{}"))
         if prior.get("revision", 0) != base:
             raise ValueError("session modifiée par un autre tick")
         db.set_meta(KEY, json.dumps(state, allow_nan=False))
+        db.execute("INSERT INTO memecoin_journal(revision, ts, asset_domain, data) VALUES(?,?,?,?)",
+                   (state["revision"], now, DOMAIN, json.dumps(trace, allow_nan=False)))  # same transaction as the state
         for address, w in wallets.items():
             db.execute("INSERT OR REPLACE INTO smart_wallets VALUES(?,?,?)", (address, DOMAIN, json.dumps(w, allow_nan=False)))
         for fill in state["fills"][start:]:
