@@ -170,7 +170,7 @@ def register_routes(api, app, service_factory) -> MemecoinSessionWorker:
 
     def analytics_snapshot():
         try:
-            from .memecoin_analytics import build_analytics_report
+            from .memecoin_analytics import _closed_lots, build_analytics_report
         except ModuleNotFoundError as exc:
             if exc.name != "sentinelle.dmh.memecoin_analytics":
                 raise
@@ -191,12 +191,23 @@ def register_routes(api, app, service_factory) -> MemecoinSessionWorker:
                     "strategies": {name: {"pnl": 0, "trades": 0, "closed_trades": 0, "win_rate": None}
                                    for name in memecoin_simulator.NAMES}}
 
-        completed = json.loads(raw)["completed"]
+        snapshot = json.loads(raw)
+        completed = snapshot["completed"]
+        # Recent history is capped for display. Factors must include every closed lot.
+        lots = report["recent_closed_positions"]
+        if len(lots) < len(completed):
+            lots = _closed_lots(snapshot)
+        factors = {}
+
         for name, stats in report["strategies"].items():
             outcomes = [trade["return"] for trade in completed if trade["strategy"] == name]
+            realized = [lot["pnl_usd"] for lot in lots if lot["strategy"] == name]
+            gains = sum(pnl for pnl in realized if pnl > 0)
+            losses = -sum(pnl for pnl in realized if pnl < 0)
+            factors[name] = {"ratio": gains / losses if losses else None, "only_gains": gains > 0 and not losses}
             stats["closed_trades"] = len(outcomes)
             stats["win_rate"] = sum(value > 0 for value in outcomes) / len(outcomes) if outcomes else None
-        return report
+        return {**report, "strategy_profit_factors": factors}
 
     @api.get("/api/dmh/memecoin/analytics")
     async def memecoin_analytics():
