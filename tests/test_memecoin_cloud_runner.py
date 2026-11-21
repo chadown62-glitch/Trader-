@@ -170,11 +170,13 @@ def test_m58_pipeline_filters_vetoes_consults_the_fleet_and_publishes_markdown(t
 
 
 def test_the_six_hourly_cloud_runner_can_no_longer_measure_new_entries(tmp_path, monkeypatch):
-    """Cadence of the workflow, unchanged: one tick per run (``--ticks 1``), one run every 6 hours. An entry decided in a
-    run needs a later valid quote within 10 minutes; the next run comes 6 hours later, so every entry expires unfilled.
-    The cloud runner still follows the pipeline, the fleet and the lots already open; it no longer measures new entries."""
+    """Cadence of the workflow, unchanged: one tick per run (``--ticks 1``), one run every 6 hours. Each observation of a
+    pool is 6 hours older than the next one, beyond the 600 s momentum and the sniper accept between the two observations
+    they compare: no entry is even decided (and any entry would expire unfilled after 10 minutes). The cloud runner still
+    follows the pipeline, the Guardian and the lots already open; it no longer measures new entries."""
+    from sentinelle.dmh import memecoin_strategies as ms
     assert "--ticks 1" in WORKFLOW.read_text(encoding="utf-8") and "cron: '0 */6 * * *'" in WORKFLOW.read_text(encoding="utf-8")
-    assert sim.ORDER_TTL_S == 600 < 6 * 3600
+    assert sim.ORDER_TTL_S == ms.MOMENTUM_MAX_GAP_S == ms.SNIPER_MAX_GAP_S == 600 < 6 * 3600
     feed = ThreePools()
     monkeypatch.setattr(runner, "PublicClient", lambda **_: feed.client)
     monkeypatch.setattr(runner, "build_analytics_report", None)
@@ -182,7 +184,7 @@ def test_the_six_hourly_cloud_runner_can_no_longer_measure_new_entries(tmp_path,
     reports = []
     for run in range(4):
         feed.client.clock = lambda n=run: NOW + 6 * 3600 * n
-        if run:  # from the second run on, the retained pool keeps accelerating: a momentum entry is decided at each run
+        if run:  # from the second run on, the retained pool keeps accelerating, but against an observation 6 h old
             feed.pair.update(volume={"m5": 2000 * 2 ** (run - 1)}, txns={"m5": {"buys": 12 + 3 * (run - 1), "sells": 3}})
         feed.pair["priceUsd"] = str(1 + run / 1000)  # every run receives a later, distinct, fresh quote
         reports.append(runner.run(1, db_path, output, initial_capital=30 if run == 0 else None))
@@ -194,11 +196,8 @@ def test_the_six_hourly_cloud_runner_can_no_longer_measure_new_entries(tmp_path,
     finally:
         db.close()
     assert [f for f in state["fills"] if f["side"] == "buy"] == [] and state["positions"] == {}
-    log = [(r["status"], r["resolved_at"] - r["decided_at"]) for r in state["order_log"]]
-    assert log == [("expired", 6 * 3600), ("expired", 6 * 3600)]  # decided at runs 2 and 3, expired at the next run
-    assert len(state["orders"]) == 1  # the entry decided at the last run will expire at the next one
-    assert [d["decision"] for d in state["fleet"]] == ["PROPOSITION_SIMULÉE"] * 3  # the fleet still accepts entries...
-    assert "Entrée fictive autorisée" in output.with_suffix(".md").read_text(encoding="utf-8")  # ...reported, never filled
+    assert state.get("order_log", []) == [] and state["orders"] == {} and state.get("fleet", []) == []  # nothing decided
+    assert "Entrée fictive autorisée" not in output.with_suffix(".md").read_text(encoding="utf-8")
 
 
 def test_analytics_are_read_after_close_and_rendered_or_reported_unavailable(tmp_path, monkeypatch):

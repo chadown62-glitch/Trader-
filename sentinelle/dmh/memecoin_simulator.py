@@ -43,6 +43,11 @@ EXIT_POLICIES = {CALIBRATED_EXITS: CALIBRATED}  # stop -20 %, 20 % at 1.25x, bre
 DISPLAY_REASON = {"break_even_stop": "trailing_stop"}
 MAX_HOLD_S = 24 * 3600  # time exit of a stagnant lot (no stop, no slice sold); per session: state["max_hold_s"]
 ORDER_TTL_S = 600  # a fictitious entry decided at T is cancelled without a valid later quote within 10 minutes
+# An entry whose price moved by more than 10 % (either way) between the decision and the fill is cancelled: the decision's
+# snapshot no longer describes the market the order would enter. Fixed before any result (SPEC.md, campaign parameters):
+# half the calibrated stop distance (20 %), so that a fill never starts already half-way to its stop or chasing a move
+# the signal did not see. Exits are never blocked by it.
+MAX_ENTRY_DRIFT = 0.10
 MAX_QUOTE_AGE_S = 120  # an execution quote received more than 2 minutes before the tick is too old
 ORDER_LOG = 200  # resolved orders (executed, cancelled, expired) kept for audit
 # A held lot without a valid quote of its exact pool blocks new entries for as long as an entry order may wait for its
@@ -496,6 +501,11 @@ def _execute_buy(state, oid, order, point, network, now, executed, asset, guard,
     if problem:
         order["last_refusal"] = problem
         return None
+    decided_price = order["decision"].get("price")
+    if _finite(decided_price) and decided_price > 0 and abs(point["price"] / decided_price - 1) > MAX_ENTRY_DRIFT:
+        drift = point["price"] / decided_price - 1
+        return _resolve(state, oid, "cancelled",
+                        f"dérive de prix depuis la décision : {100 * drift:+.1f} % (limite ±{100 * MAX_ENTRY_DRIFT:.0f} %)", now)
     # The fleet's risk limits again, on the execution observation (depth, round trip, open lots, session loss).
     judged = recheck_fleet(fleet, state, order, asset, point, guard, network, now)
     if judged["decision"] != fleet_coordinator.PROPOSAL:

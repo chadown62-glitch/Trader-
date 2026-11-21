@@ -42,6 +42,12 @@ SNIPER_BUY_SELL = 2.0  # at least two buys per sell over 5 minutes, and more tha
 SNIPER_PRICE_MOVE = (0.02, 0.25)  # price up 2 % to 25 %: a real move, not already a parabolic candle
 SNIPER_LIQUIDITY_KEPT = 0.95  # liquidity kept within 5 %: no withdrawal during the burst
 LEGACY_SNIPER_MAX_AGE_MINUTES = 3  # former fresh-pool rule, only for candidates that did not come through M58 (display)
+# Momentum compares the 5-minute windows (volume, buy/sell counts) of two observations of the same pool. Fixed before any
+# result (SPEC.md, campaign parameters): beyond 600 s the two 5-minute windows are not adjacent, so a "jump" between them
+# says nothing about an acceleration; the same bound as the sniper's baseline. The previous observation must also be
+# strictly older (a replayed snapshot is no evidence).
+MOMENTUM_MIN_GAP_S = 1
+MOMENTUM_MAX_GAP_S = 600
 _SNIPER_FIELDS = ("price", "liquidity_usd", "volume_usd_per_min_m5", "buy_sell_count_ratio_m5", "ts")
 
 
@@ -111,8 +117,11 @@ def evaluate(client, asset, point, whale):
     elif _number(point.get("pool_age_minutes")) and 0 <= point["pool_age_minutes"] <= LEGACY_SNIPER_MAX_AGE_MINUTES:
         signals.append("sniper")  # former fresh-pool rule (live radar display); the paper simulator never enters on it
     if previous:
+        gap = point["ts"] - previous["ts"] if _number(point.get("ts")) and _number(previous.get("ts")) else None
         if (
-            previous["volume_usd_per_min_m5"]
+            gap is not None
+            and MOMENTUM_MIN_GAP_S <= gap <= MOMENTUM_MAX_GAP_S
+            and previous["volume_usd_per_min_m5"]
             and previous["buy_sell_count_ratio_m5"]
             and (point["volume_usd_per_min_m5"] or 0) > 1.5 * previous["volume_usd_per_min_m5"]
             and (point["buy_sell_count_ratio_m5"] or 0) > max(1, previous["buy_sell_count_ratio_m5"])
