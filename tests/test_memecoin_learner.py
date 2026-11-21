@@ -4,6 +4,7 @@ import json
 import math
 import random
 import sqlite3
+import statistics
 from contextlib import closing
 
 import pytest
@@ -113,6 +114,8 @@ def test_recommendations_compare_winners_and_losers_and_are_never_applied():
     assert (liquidity["samples"], liquidity["winners"], liquidity["losers"]) == (22, 10, 12)
     assert (liquidity["winners_median"], liquidity["losers_median"]) == (57_500, 26_500)
     assert (liquidity["kept_trades"], liquidity["excluded_losers"], liquidity["excluded_winners"]) == (12, 10, 0)
+    assert liquidity["p_value"] <= 0.01 and [f["confirmed"] for f in liquidity["cross_validation"]] == [True, True]
+    assert [f["train_threshold"] for f in liquidity["cross_validation"]] == [35_000, 40_000]  # each half, fitted alone
     assert liquidity["avg_profit_pct_before"] == pytest.approx(100 * 0.8 / 22)
     assert liquidity["avg_profit_pct_after"] == pytest.approx(100 * 2.8 / 12)
     assert "35000,00" in liquidity["explanation"] and "avant toute adoption humaine" in liquidity["explanation"]
@@ -198,14 +201,18 @@ def test_simulator_scales_the_kelly_target_and_logs_the_sizing_reason():
     target = 100.0 * kelly.fractions["momentum"] * kelly.weights["momentum"]
     assert learned["multiplier"] == pytest.approx(1 + learned["score"]) and 1.0 < learned["multiplier"] < 1.5
     assert pos["initial"] == pytest.approx(target * learned["multiplier"])
-    assert pos["sizing"] == {"learner": "adaptive-v1", "multiplier": learned["multiplier"], "score": learned["score"],
-                             "closed_trades": 8, "kelly_target_usd": pytest.approx(target), "size_usd": pos["initial"],
-                             "binding": "kelly_target", "reason": learned["reason"]}
+    assert pos["sizing"] == {"learner": "adaptive-v1", "scoring": "lots-v2", "multiplier": learned["multiplier"],
+                             "score": learned["score"], "closed_trades": 8, "open_lots": 0,
+                             "kelly_target_usd": pytest.approx(target),
+                             "exploration_floor_usd": pytest.approx(max(0.05, 0.005 * 100.0 * learned["multiplier"])),
+                             "size_usd": pos["initial"], "binding": "kelly_target", "reason": learned["reason"]}
+    assert pos["opened_at"] == 100
     assert pos["entry"] == {"liquidity_usd": 200_000.0, "volume_h1_usd": 12_000.0, "confidence": 0.55, "signals": ["momentum"]}
     # A full exit carries the entry conditions and the sizing into the closed lot the learner reads next.
     sim.process(state, "T", dict(POINT, price=0.5, ts=200), [], 0.001)
     assert "momentum/T" not in state["positions"]
     assert state["completed"][-1]["entry"] == pos["entry"] and state["completed"][-1]["sizing"]["multiplier"] == learned["multiplier"]
+    assert (state["completed"][-1]["opened_at"], state["completed"][-1]["closed_at"], state["completed"][-1]["exit"]) == (100, 200, "stop_loss")
 
 
 def test_hard_limits_bind_whatever_the_multiplier():
@@ -267,6 +274,161 @@ def test_real_paper_session_records_entries_and_learns_from_the_closed_lot(tmp_p
     momentum = report["strategies"]["momentum"]
     assert report["status"] == "learning" and momentum["closed_trades"] == 1 and 0.5 <= momentum["multiplier"] < 1.0
     assert report["recommendations"][0]["status"] == "insufficient_sample"
+
+
+# -- D1 : open lots are evaluated, as one entry cohort ---------------------------------------------------------------------
+def lot(strategy, mint, *, opened, initial=1.0, basis=1.0, mark=1.0, pnl=0.0, stage=0):
+    return {"asset_domain": "memecoin", "strategy": strategy, "mint": mint, "opened_at": opened, "initial": initial,
+            "basis": basis, "mark": mark, "pnl": pnl, "stage": stage, "qty": 1.0}
+
+
+def session(positions, marks, completed=(), fills=(), stale=()):
+    return {"positions": positions, "assets": {m: {"symbol": m, "last": {"price": 1.0, "ts": ts}} for m, ts in marks.items()},
+            "fills": list(fills), "completed": list(completed), "stale_marks": list(stale)}
+
+
+def test_open_lots_count_partial_sales_and_the_liquidation_mark_once_mature():
+    positions = {
+        "whale_tail/A": lot("whale_tail", "A", opened=0, initial=2.0, basis=1.6, mark=4.8, pnl=0.5, stage=1),  # young, one slice sold
+        "momentum/B": lot("momentum", "B", opened=0, mark=0.9),  # held 3 h, nothing sold
+        "dip_hunter/C": lot("dip_hunter", "C", opened=0, mark=1.3),  # 30 min, nothing sold: too young
+        "sniper/D": lot("sniper", "D", opened=0, mark=2.0),  # stale quote: value unknown
+        "sniper/E": {**lot("sniper", "E", opened=0, mark=3.0), "asset_domain": "majors"},  # another domain
+    }
+    rows = learner.open_lots(session(positions, {"A": 600, "B": 3 * 3600, "C": 1800, "D": 7200, "E": 7200}, stale=["D"]))
+    assert [(r["strategy"], r["mint"]) for r in rows] == [("whale_tail", "A"), ("momentum", "B")]
+    assert rows[0]["return"] == pytest.approx((0.5 + 4.8 - 1.6) / 2.0) and rows[0]["held_s"] == 600
+    assert rows[1]["return"] == pytest.approx(-0.1) and rows[1]["held_s"] == 3 * 3600
+    legacy = {"momentum/F": {**lot("momentum", "F", opened=None, mark=1.2)}}  # opened before opening times were recorded
+    [row] = learner.open_lots(session(legacy, {"F": 100 + 3600}, fills=[{"strategy": "momentum", "mint": "F", "side": "buy", "ts": 100}]))
+    assert row["held_s"] == 3600 and row["return"] == pytest.approx(0.2)
+
+
+def bench_state():
+    """The bench: whale_tail stops fast (14 lots at -20 %) while its winners stay open behind their trailing stop."""
+    completed, positions, marks = [], {}, {}
+    for i in range(20):
+        if i % 3 == 2:  # 6 winners kept open: 20 % sold at 1.25x, the rest marked at x3
+            positions[f"whale_tail/W{i}"] = lot("whale_tail", f"W{i}", opened=600 * i, basis=0.8, mark=2.4, pnl=0.05, stage=1)
+            marks[f"W{i}"] = 600 * 20 + 2 * 3600
+        else:
+            completed.append({"strategy": "whale_tail", "mint": f"L{i}", "return": -0.2, "opened_at": 600 * i})
+        completed.append({"strategy": "momentum", "mint": f"M{i}", "return": -0.2, "opened_at": 600 * i})
+    return session(positions, marks, completed)
+
+
+def test_bench_scenario_the_winner_kept_open_lifts_its_strategy_above_one():
+    state = bench_state()
+    assert learner.multipliers(state["completed"])["whale_tail"]["multiplier"] == 0.5  # closed-only: survivorship bias
+    result = learner.multipliers_for_state(state)
+    whale = result["whale_tail"]
+    assert (whale["closed_trades"], whale["open_lots"], whale["evaluated_lots"]) == (14, 6, 20)
+    assert whale["avg_profit_pct"] == pytest.approx(100 * (14 * -0.2 + 6 * (0.05 + 2.4 - 0.8)) / 20)
+    assert whale["upside_unlocked"] and whale["multiplier"] > 1.0
+    assert "whale_tail : 14 clôtures récentes et 6 positions ouvertes évaluées" in whale["reason"]
+    assert result["momentum"]["multiplier"] == 0.5  # a strategy that only stops stays at the bottom of its range
+    report = learner.learn_from_state(state)
+    assert report["open_lots_evaluated"] == 6 and report["scoring"] == "lots-v2" and report["status"] == "learning"
+
+
+def test_old_open_survivors_leave_the_window_as_newer_entries_arrive():
+    positions = {"dip_hunter/OLD": lot("dip_hunter", "OLD", opened=0, basis=0.5, mark=5.0, pnl=0.4, stage=2)}
+    completed = [{"strategy": "dip_hunter", "mint": f"N{i}", "return": -0.2, "opened_at": 3600 + 60 * i} for i in range(20)]
+    d = learner.multipliers_for_state(session(positions, {"OLD": 10_000}, completed))["dip_hunter"]
+    assert (d["evaluated_lots"], d["window_trades"], d["open_lots"]) == (21, 20, 1)  # the old winner is outside the window
+    assert d["avg_profit_pct"] == pytest.approx(-20) and d["multiplier"] == 0.5
+    assert d["reason"].startswith("dip_hunter : 20 clôtures récentes, profit moyen -20,0 %")
+
+
+def test_latent_gains_alone_never_raise_a_stake():
+    positions = {f"sniper/O{i}": lot("sniper", f"O{i}", opened=i, mark=3.0, stage=1) for i in range(8)}
+    completed = [{"strategy": "sniper", "mint": f"C{i}", "return": 0.5} for i in range(2)]
+    s = learner.multipliers_for_state(session(positions, {f"O{i}": 9000 for i in range(8)}, completed))["sniper"]
+    assert (s["evaluated_lots"], s["closed_trades"], s["upside_unlocked"], s["multiplier"]) == (10, 2, False, 1.0)
+    assert "(hausse bloquée : 10/8 positions évaluées, 2/4 clôtures)" in s["reason"]
+
+
+# -- D2 : a run of stops never freezes a strategy ------------------------------------------------------------------------
+def test_exploration_floor_is_small_and_never_under_the_minimum_stake():
+    assert learner.exploration_floor(100.0, 1.0) == pytest.approx(0.5)
+    assert learner.exploration_floor(100.0, 0.5) == pytest.approx(0.25)
+    assert learner.exploration_floor(30.0, 0.5) == pytest.approx(0.075)
+    assert learner.exploration_floor(5.0, 0.5) == learner.exploration_floor(-1.0, 1.0) == 0.05
+
+
+def test_a_run_of_stops_never_freezes_a_strategy():
+    history = closed("momentum", [-0.2] * 20)
+    assert MemecoinIsolatedLearner(history).fractions["momentum"] == 0.0  # Kelly alone would stop trading for good
+    state = paper_state(history)
+    for k in range(5):
+        mint = f"T{k}"
+        state["assets"][mint] = {"symbol": mint}
+        sim.process(state, mint, dict(POINT, ts=100 + k), ["momentum"], 0.001)
+        sizing = state["positions"][f"momentum/{mint}"]["sizing"]
+        assert sizing["binding"] == "exploration_floor" and sizing["kelly_target_usd"] == 0.0
+        assert sizing["multiplier"] == 0.5 and state["positions"][f"momentum/{mint}"]["initial"] == pytest.approx(sizing["exploration_floor_usd"])
+    assert sum(f["side"] == "buy" for f in state["fills"]) == 5  # five signals, five small stakes: the strategy keeps learning
+    assert state["positions"]["momentum/T0"]["sizing"]["exploration_floor_usd"] == pytest.approx(0.005 * 100.0 * 0.5)
+
+
+# -- D3 : thresholds must raise the mean out of sample and beat chance ------------------------------------------------------
+def noise_history(seed, n=60):
+    """Bench-like returns (fast stops, small and big winners) with liquidity and volume drawn independently of them."""
+    rng = random.Random(seed)
+    rows = []
+    for i in range(n):
+        u = rng.random()
+        ret = rng.uniform(-0.35, -0.18) if u < 0.65 else rng.uniform(-0.05, 0.4) if u < 0.9 else rng.uniform(1.0, 6.0)
+        rows.append({"strategy": "momentum", "mint": f"M{i}", "return": ret, "opened_at": 60 * i,
+                     "entry": {"liquidity_usd": rng.uniform(20_000, 300_000), "volume_h1_usd": rng.uniform(5_000, 120_000),
+                               "confidence": 0.55}})
+    return rows
+
+
+def test_a_random_criterion_does_not_produce_false_thresholds():
+    outcomes = []
+    for seed in range(100):
+        for rec in learner.learn_from_state({"completed": noise_history(seed)})["recommendations"]:
+            outcomes.append((rec["status"], rec["rejection"]))
+            assert rec["applied"] is False
+    suggested = sum(status == "suggested" for status, _ in outcomes)
+    # alpha = 1 % per criterion: 200 random criteria here give 3 (1.5 %); 1,000 noise histories measured 0.9-1.0 %.
+    assert suggested <= 4
+    assert {r for _, r in outcomes} >= {"cross_validation", "noise"}  # both guards are exercised
+
+
+def test_a_threshold_that_lowers_the_mean_is_never_suggested():
+    # The bench case: mostly stops whatever the depth, deeper pools slightly worse.
+    rows = []
+    for i in range(40):
+        liquidity = 20_000 + 2_000 * i
+        ret = (0.3 if i % 5 == 0 else -0.2) - (0.05 if liquidity > 60_000 else 0.0)
+        rows.append({"strategy": "momentum", "mint": f"M{i}", "return": ret, "opened_at": i,
+                     "entry": {"liquidity_usd": liquidity, "volume_h1_usd": 8_000, "confidence": 0.55}})
+    rec = learner.learn_from_state({"completed": rows})["recommendations"][0]
+    assert (rec["status"], rec["rejection"], rec["suggested_threshold"], rec["applied"]) == ("no_improvement", "no_threshold", None, False)
+    deep_half = sorted(rows, key=lambda r: r["entry"]["liquidity_usd"])[20:]
+    # The former criterion (sum of the kept returns) would have kept this half: its sum is higher, its mean lower.
+    assert sum(r["return"] for r in deep_half) > sum(r["return"] for r in rows)
+    assert statistics.fmean(r["return"] for r in deep_half) < statistics.fmean(r["return"] for r in rows)
+
+
+def test_a_real_effect_is_confirmed_out_of_sample_and_beyond_chance():
+    rng = random.Random(7)
+    rows = []
+    for i in range(60):
+        liquidity = rng.uniform(20_000, 200_000)
+        win = rng.random() < (0.6 if liquidity >= 80_000 else 0.15)
+        ret = rng.uniform(0.2, 1.0) if win else rng.uniform(-0.3, -0.18)
+        rows.append({"strategy": "dip_hunter", "mint": f"D{i}", "return": ret, "opened_at": i,
+                     "entry": {"liquidity_usd": liquidity, "volume_h1_usd": rng.uniform(5_000, 120_000), "confidence": 0.55}})
+    liquidity, volume, _ = learner.learn_from_state({"completed": rows})["recommendations"]
+    assert liquidity["status"] == "suggested" and liquidity["p_value"] <= 0.01 and liquidity["applied"] is False
+    assert all(f["confirmed"] and f["test_avg_profit_pct_after"] > f["test_avg_profit_pct_before"] for f in liquidity["cross_validation"])
+    assert liquidity["avg_profit_pct_after"] > liquidity["avg_profit_pct_before"]
+    assert 50_000 <= liquidity["suggested_threshold"] <= 110_000
+    assert "confirmée hors échantillon" in liquidity["explanation"] and "avant toute adoption humaine" in liquidity["explanation"]
+    assert volume["status"] == "no_improvement"  # drawn at random: rejected
 
 
 @pytest.mark.parametrize(("base", "head", "expected"), frozen.FROZEN)

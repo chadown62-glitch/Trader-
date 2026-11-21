@@ -11,7 +11,10 @@ last hour, a Jupiter round trip quoted without a wallet, then the anti-rug veto)
 Before any fictitious entry the agent fleet (``sentinelle.fleet``) is consulted: a veto, a risk refusal, an alert or an
 objection (impact, cost, unconfirmed resale) means no entry; exits are never blocked.
 A new stake is the Kelly target scaled by the bounded multiplier of ``memecoin_learner`` (0.5x-1.5x, learned from the
-closed lots), within the unchanged hard limits; each position records its entry conditions and why it was so sized.
+closed lots and the mature or partially sold open lots), never under its exploration floor, within the unchanged hard
+limits; each position records its opening time, its entry conditions and why it was so sized. A lot that has neither
+hit its stop nor sold a slice after ``MAX_HOLD_S`` (24 h by default, ``state["max_hold_s"]`` per session) is closed by a
+time exit, which frees its budget.
 Paper only: no order, no key; every fill is tagged ``asset_domain="memecoin"`` and ``simulated``."""
 
 import json
@@ -33,6 +36,23 @@ LEGACY_EXITS, CALIBRATED_EXITS = "legacy", "calibrated-v1"
 EXIT_POLICIES = {CALIBRATED_EXITS: CALIBRATED}  # stop -20 %, 20 % at 1.25x, break-even floor, x3/x6/x10, adaptive trailing
 # The cockpit labels four reasons; the break-even floor is a protective trailing exit, its exact cause stays in ``detail``.
 DISPLAY_REASON = {"break_even_stop": "trailing_stop"}
+MAX_HOLD_S = 24 * 3600  # time exit of a stagnant lot (no stop, no slice sold); per session: state["max_hold_s"]
+
+
+def opened_at(state, key, pos):
+    """Opening time of an open lot; lots opened before it was recorded fall back to their latest buy fill."""
+    if pos.get("opened_at") is not None:
+        return pos["opened_at"]
+    return next((f.get("ts") for f in reversed(state["fills"]) if f["side"] == "buy" and f["strategy"] + "/" + f["mint"] == key), None)
+
+
+def time_exit(state, key, pos, now):
+    """A lot that has neither hit its stop nor sold any take-profit slice is closed once held ``max_hold_s``."""
+    limit = state.get("max_hold_s", MAX_HOLD_S)
+    start = opened_at(state, key, pos)
+    if pos.get("stage", 0) or start is None or not isinstance(limit, (int, float)) or limit <= 0:
+        return None
+    return ("time_exit", 1.0) if now - start >= limit else None
 
 
 def adopt_calibrated_exits(state):
@@ -187,14 +207,15 @@ def equity(state):
 def process(state, mint, point, signals, network):
     asset = state["assets"][mint]
     learner = MemecoinIsolatedLearner(state["completed"])
-    adaptive = memecoin_learner.multipliers(state["completed"])  # bounded 0.5x-1.5x, from closed lots only
+    # Bounded 0.5x-1.5x, from the closed lots and the mature or partially sold open lots (no survivorship bias).
+    adaptive = memecoin_learner.multipliers_for_state(state)
     for strategy in NAMES:
         key = strategy + "/" + mint
         pos = state["positions"].get(key)
         if pos:
             liquidation, _, _ = value(pos["qty"], point, network)
             pos["mark"] = liquidation
-            decision = exit_for(pos, liquidation / pos["basis"])
+            decision = exit_for(pos, liquidation / pos["basis"]) or time_exit(state, key, pos, point["ts"])
             if decision is None:
                 continue
             detail, fraction = decision
@@ -213,7 +234,8 @@ def process(state, mint, point, signals, network):
             pos["mark"] = value(pos["qty"], point, network)[0]
             if fraction >= 1:
                 state["completed"].append({"strategy": strategy, "mint": mint, "return": pos["pnl"] / pos["initial"],
-                                           **{k: pos[k] for k in ("entry", "sizing") if k in pos}})
+                                           **{k: pos[k] for k in ("entry", "sizing", "opened_at") if k in pos},
+                                           "closed_at": point["ts"], "exit": detail})
                 del state["positions"][key]
             side = "sell"
         elif strategy in signals:
@@ -222,9 +244,12 @@ def process(state, mint, point, signals, network):
             strategy_used = sum(p["basis"] for p in state["positions"].values() if p["strategy"] == strategy)
             target = eq * learner.fractions[strategy] * learner.weights[strategy]
             learned = adaptive[strategy]
-            # The learned multiplier scales the Kelly target only: the hard limits below never move.
+            # The learned multiplier scales the Kelly target only: the hard limits below never move. A strategy whose
+            # Kelly fraction fell to zero still explores with a small stake instead of freezing.
+            desired = target * learned["multiplier"]
+            floor = memecoin_learner.exploration_floor(eq, learned["multiplier"])
             limits = {
-                "kelly_target": target * learned["multiplier"],
+                "exploration_floor" if floor > desired else "kelly_target": max(desired, floor),
                 "token_cap": 0.10 * eq - used,
                 "strategy_budget": eq * learner.weights[strategy] - strategy_used,
                 "cash_reserve": state["cash"] - 0.25 * eq,
@@ -252,8 +277,11 @@ def process(state, mint, point, signals, network):
                 # Entry conditions, compared later between winning and losing lots (threshold recommendations).
                 "entry": {"liquidity_usd": point["liquidity_usd"], "volume_h1_usd": point.get("volume_h1_usd"),
                           "confidence": confidence(signals), "signals": sorted(signals)},
-                "sizing": {"learner": memecoin_learner.VERSION, "multiplier": learned["multiplier"], "score": learned["score"],
-                           "closed_trades": learned["closed_trades"], "kelly_target_usd": target, "size_usd": size,
+                "opened_at": point["ts"],
+                "sizing": {"learner": memecoin_learner.VERSION, "scoring": memecoin_learner.SCORING,
+                           "multiplier": learned["multiplier"], "score": learned["score"],
+                           "closed_trades": learned["closed_trades"], "open_lots": learned["open_lots"],
+                           "kelly_target_usd": target, "exploration_floor_usd": floor, "size_usd": size,
                            "binding": min(limits, key=limits.get), "reason": learned["reason"]},
             }
             side, reason, detail, pnl = "buy", "signal", "signal", 0.0
