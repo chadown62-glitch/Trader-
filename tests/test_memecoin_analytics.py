@@ -102,9 +102,9 @@ def lot_session():
     """Unequal stakes, partial exits and interleaved lots: the average is per lot, not weighted by size."""
     fills = []
 
-    def fill(ts, strategy, mint, side, pnl=0.0, reason="signal"):
+    def fill(ts, strategy, mint, side, pnl=0.0, reason="signal", **costs):
         fills.append(dict(asset_domain="memecoin", simulated=True, ts=ts, strategy=strategy, mint=mint, side=side,
-                          pnl=pnl, reason=reason))
+                          pnl=pnl, reason=reason, **costs))
 
     fill(1, "sniper", "A", "buy")                           # stake 10 USD
     fill(2, "momentum", "B", "buy")                         # stake 5 USD
@@ -113,16 +113,17 @@ def lot_session():
     fill(5, "sniper", "A", "sell", 3, "stop suiveur")       # sniper/A closed: (2 + 3) / 10 = +50 %
     fill(6, "sniper", "A", "buy")                           # stake 4 USD
     fill(7, "sniper", "A", "sell", -1, "stop -20 %")        # sniper/A closed again: -1 / 4 = -25 %
-    fill(8, "whale_tail", "C", "buy")                       # stake 8 USD, still open
-    fill(9, "whale_tail", "C", "sell", 0.5, "palier 1,25x")
-    fill(10, "dip_hunter", "D", "buy")                      # stake 4 USD, still open, quote not refreshed
+    # stake 8 USD: 75 tokens at 0.10 USD once 0.20 + 0.05 + 0.25 USD of DEX fee, network fee and slippage are paid
+    fill(8, "whale_tail", "C", "buy", quantity=75, dex_fee_usd=0.2, network_fee_usd=0.05, slippage_usd=0.25)
+    fill(9, "whale_tail", "C", "sell", 0.5, "palier 1,25x")  # 20 % sold at 1.25x (calibrated-v1), still open
+    fill(10, "dip_hunter", "D", "buy")                      # stake 4 USD, legacy fill without costs, quote not refreshed
     completed = [dict(strategy="momentum", mint="B", **{"return": 0.2}), dict(strategy="sniper", mint="A", **{"return": 0.5}),
                  dict(strategy="sniper", mint="A", **{"return": -0.25})]
     positions = {
-        "whale_tail/C": dict(asset_domain="memecoin", strategy="whale_tail", mint="C", qty=60, initial=8, basis=6, mark=7.5,
-                             pnl=0.5, stage=1),
+        "whale_tail/C": dict(asset_domain="memecoin", strategy="whale_tail", mint="C", qty=60, initial=8, basis=6.4, mark=7.2,
+                             pnl=0.5, stage=1, high=1.3, exit_policy=sim.CALIBRATED_EXITS),
         "dip_hunter/D": dict(asset_domain="memecoin", strategy="dip_hunter", mint="D", qty=40, initial=4, basis=4, mark=3,
-                             pnl=0.0, stage=0),
+                             pnl=0.0, stage=0, high=1.0),  # opened under the legacy exits
     }
     assets = {"C": {"symbol": "C", "last": {"price": 0.125, "ts": 9}}, "D": {"symbol": "D"}}
     return dict(initial=100, cash=88.5, revision=10, curve=[{"equity": 101}, {"equity": 99}], positions=positions,
@@ -147,17 +148,29 @@ def test_average_profit_pct_and_open_positions_are_exact(tmp_path):
          "exit_reason": "prise de profit", "exits": 1},
     ]
     assert r["open_positions"] == [
-        {"strategy": "whale_tail", "mint": "C", "quantity": 60, "initial_usd": 8, "cost_basis_usd": 6, "value_usd": 7.5,
-         "unrealized_pnl_usd": 1.5, "unrealized_pnl_pct": pytest.approx(25), "realized_pnl_usd": 0.5, "exits": 1,
-         "price_usd": 0.125, "marked_at": 9, "opened_at": 8, "stale": False},
-        {"strategy": "dip_hunter", "mint": "D", "quantity": 40, "initial_usd": 4, "cost_basis_usd": 4, "value_usd": 3,
-         "unrealized_pnl_usd": -1, "unrealized_pnl_pct": pytest.approx(-25), "realized_pnl_usd": 0, "exits": 0,
-         "price_usd": None, "marked_at": None, "opened_at": 10, "stale": True},
+        {"strategy": "whale_tail", "mint": "C", "quantity": 60, "entry_price_usd": pytest.approx(0.1), "price_usd": 0.125,
+         "initial_usd": 8, "cost_basis_usd": 6.4, "value_usd": 7.2, "unrealized_pnl_usd": pytest.approx(0.8),
+         "unrealized_pnl_pct": pytest.approx(12.5), "realized_pnl_usd": 0.5, "exits": 1, "exit_policy": "calibrated-v1",
+         "tier_reached": 1.25, "next_tier": 3.0, "peak_ratio": 1.3, "marked_at": 9, "opened_at": 8, "stale": False},
+        {"strategy": "dip_hunter", "mint": "D", "quantity": 40, "entry_price_usd": None, "price_usd": None,
+         "initial_usd": 4, "cost_basis_usd": 4, "value_usd": 3, "unrealized_pnl_usd": -1,
+         "unrealized_pnl_pct": pytest.approx(-25), "realized_pnl_usd": 0, "exits": 0, "exit_policy": "legacy",
+         "tier_reached": None, "next_tier": 1.5, "peak_ratio": 1.0, "marked_at": None, "opened_at": 10, "stale": True},
     ]
     text = analytics.render_report(r)
     assert "Profit moyen par clôture : 15.00 %" in text and "sniper : 4.00 | 2 | 12.50" in text
-    assert "whale_tail C : valeur 7.50 USD | latent 1.50 USD (25.00 %)" in text
-    assert "dip_hunter D : valeur 3.00 USD | latent -1.00 USD (-25.00 %) | cotation en attente" in text
+    assert "whale_tail C : entrée 0.1 → 0.125 USD | valeur 7.20 USD | latent 0.80 USD (12.50 %) | palier 1,25x" in text
+    assert ("dip_hunter D : entrée n/d → n/d USD | valeur 3.00 USD | latent -1.00 USD (-25.00 %) | palier aucun"
+            " | cotation en attente") in text
+
+
+@pytest.mark.parametrize("policy,stage,reached,upcoming", [
+    ("calibrated-v1", 0, None, 1.25), ("calibrated-v1", 1, 1.25, 3), ("calibrated-v1", 2, 3, 6),
+    ("calibrated-v1", 3, 6, 10), ("calibrated-v1", 4, 10, None),  # after x10 only the trailing stop remains
+    ("legacy", 0, None, 1.5), ("legacy", 1, 1.5, 2), ("legacy", 2, 2, None), ("inconnue", 1, None, None),
+])
+def test_tier_reached_follows_the_exit_policy_of_the_lot(policy, stage, reached, upcoming):
+    assert analytics._tier({"exit_policy": policy, "stage": stage}) == (policy, reached, upcoming)
 
 
 def test_closed_lot_without_matching_record_is_refused(tmp_path):
