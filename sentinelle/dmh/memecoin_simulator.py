@@ -8,6 +8,9 @@ policy it was opened under (a lot never changes rules mid-flight); positions ope
 state that never went through ``tick``, keep the legacy ladder (-17 %, 50 % at 1.5x and 2x, trailing 20 %).
 Candidates (M58): established pools (``established_pools``: liquidity >= 20,000 USD, at least one hour old, an active
 last hour, a Jupiter round trip quoted without a wallet, then the anti-rug veto) instead of pools born minutes ago.
+The four strategies run on these pools: ``sniper`` on a verified acceleration between two observations, ``whale_tail``
+only when the pool's creator and deployer can be attributed from public data (otherwise it abstains, which is not a
+source failure); each M58 entry records a continuous confidence (0.45-0.95) with its components.
 Before any fictitious entry the agent fleet (``sentinelle.fleet``) is consulted: a veto, a risk refusal, an alert or an
 objection (impact, cost, unconfirmed resale) means no entry; exits are never blocked.
 A new stake is the Kelly target scaled by the bounded multiplier of ``memecoin_learner`` (0.5x-1.5x, learned from the
@@ -25,7 +28,7 @@ from ..config import paper_capital
 from ..fleet import agents as fleet_agents, coordinator as fleet_coordinator
 from . import established_pools, memecoin_learner, smart_wallets
 from .dex import _rpc
-from .memecoin_strategies import CALIBRATED, MemecoinIsolatedLearner, NAMES, confidence, evaluate, exit_decision
+from .memecoin_strategies import CALIBRATED, MemecoinIsolatedLearner, NAMES, entry_confidence, evaluate, exit_decision
 from .net import SourceUnavailable
 
 KEY = "memecoin:paper-session:v1"
@@ -200,6 +203,24 @@ def value(qty, point, network):
     return max(0.0, gross * (1 - DEX_FEE) - network), mid * impact, gross * DEX_FEE
 
 
+def tradable_signals(asset, signals):
+    """Signals the paper session may act on: ``sniper`` only on a pool admitted by M58 (``dex_id``), never on the former
+    fresh-pool rule, so no entry ever bypasses the established-pool filter."""
+    return [s for s in signals if s != "sniper" or asset.get("dex_id")]
+
+
+def _entry(point, asset, signals):
+    """Entry conditions of a new lot. An M58 pool records its continuous confidence and why (components, missing
+    inputs, measured round trip); any other candidate keeps the legacy agreement score, unchanged."""
+    judged = entry_confidence(signals, point, asset)
+    entry = {"liquidity_usd": point["liquidity_usd"], "volume_h1_usd": point.get("volume_h1_usd"),
+             "confidence": judged["score"], "signals": sorted(signals)}
+    if judged["model"] != "legacy-agreement":
+        entry.update(confidence_model=judged["model"], confidence_components=judged["components"],
+                     confidence_missing=judged["missing"], round_trip_loss=asset.get("round_trip_loss"))
+    return entry
+
+
 def equity(state):
     return state["cash"] + sum(pos["mark"] for pos in state["positions"].values())
 
@@ -275,8 +296,7 @@ def process(state, mint, point, signals, network):
                 "exit_policy": state.get("exit_policy", LEGACY_EXITS),
                 "asset_domain": DOMAIN,
                 # Entry conditions, compared later between winning and losing lots (threshold recommendations).
-                "entry": {"liquidity_usd": point["liquidity_usd"], "volume_h1_usd": point.get("volume_h1_usd"),
-                          "confidence": confidence(signals), "signals": sorted(signals)},
+                "entry": _entry(point, asset, signals),
                 "opened_at": point["ts"],
                 "sizing": {"learner": memecoin_learner.VERSION, "scoring": memecoin_learner.SCORING,
                            "multiplier": learned["multiplier"], "score": learned["score"],
@@ -420,6 +440,7 @@ def tick(hub, db, bus):
         asset = assets[mint]
         try:
             signals, guard = evaluate(client, asset, point, False)
+            signals = tradable_signals(asset, signals)
             asset["blocked"] = not guard["allowed"]
             if not guard["allowed"]:
                 winners.discard(mint)

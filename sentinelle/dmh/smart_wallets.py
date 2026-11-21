@@ -3,6 +3,13 @@
 Recency: closed cycles are weighted by age (half-life 24 h, nothing counts beyond 72 h); a wallet qualifies only on its
 recent record. Anti-manipulation: a wallet that resold within seconds of its own buy INTO later buyers (followers who
 bought after it) is flagged as a dumper and excluded for good, whatever its profits.
+
+Attribution (who created the pool and deployed the mint, excluded from the tracked wallets): the fresh-pool scanner
+records the creation signature; an established pool (GeckoTerminal, M58) only carries its creation date, so the creation
+is reconstructed from the pool's FIRST on-chain transaction, read within a bounded history and verified as a Raydium
+AMM v4 / CPMM initialisation of this pool and mint. Three cases are kept apart: a missing signature (reconstructed), an
+identity that public data cannot establish (``asset["identity"]["status"] == "unknown"``: whale_tail abstains, not an
+error) and an RPC failure (raised and reported, then retried after ``IDENTITY_RETRY_S``). Nothing is ever invented.
 """
 
 import hashlib
@@ -10,7 +17,8 @@ import math
 from collections import defaultdict
 
 from .dex import _rpc
-from .solana_scanner import AMM4, CPMM
+from .net import SourceUnavailable
+from .solana_scanner import AMM4, CPMM, LAYOUTS, QUOTE_MINTS
 
 from .tokens import b58decode
 
@@ -21,6 +29,10 @@ HORIZON_S = 72 * 3600  # older cycles no longer count toward eligibility
 DUMP_WINDOW_S = 30  # a resale within 30 s of the wallet's own buy...
 DUMP_SHARE = 0.5  # ...of at least half of the lot...
 MAX_BUY_LOG = 16  # buys remembered per wallet and mint (to recognise followers)
+HISTORY_PAGE = 1000  # signatures per getSignaturesForAddress call (the RPC maximum)
+MAX_HISTORY_PAGES = 3  # at most 3,000 signatures read per address to reach its first transaction
+IDENTITY_RETRY_S = 900  # after an RPC failure (reported once), the attribution is retried 15 minutes later
+FIRST_TRANSACTION = "rpc:first-transaction"
 
 
 def recency_weight(age_s: float) -> float:
@@ -50,31 +62,111 @@ def transaction(client, signature):
     return None
 
 
-def identities(client, asset):
-    tx = transaction(client, asset["creation"]["signature"])
+def first_signature(client, address):
+    """Oldest signature row of ``address`` when its whole history fits in ``MAX_HISTORY_PAGES`` pages; ``None`` when the
+    address has no transaction; ``False`` when its history is longer (the first transaction is out of reach)."""
+    before, last = None, None
+    for _ in range(MAX_HISTORY_PAGES):
+        options = {"limit": HISTORY_PAGE, "commitment": "finalized"}
+        if before:
+            options["before"] = before
+        rows, _ = _rpc(client, "solana", "getSignaturesForAddress", [address, options])
+        if not isinstance(rows, list) or any(not isinstance(r, dict) or not isinstance(r.get("signature"), str) for r in rows):
+            raise ValueError("historique de signatures malformé")
+        if rows:
+            last = rows[-1]  # newest first: the last row of a page is its oldest
+        if len(rows) < HISTORY_PAGE:
+            return last
+        before = last["signature"]
+    return False
+
+
+def _pool_initialisation(tx, signature, pool, mint, quote):
+    """Program of a top-level Raydium initialisation of ``pool`` for ``mint``/``quote`` in ``tx``, or ``None``."""
+    if not tx or tx["transaction"]["signatures"][0] != signature:
+        return None
+    for ix in tx["transaction"]["message"]["instructions"]:
+        program = ix.get("programId")
+        if program not in LAYOUTS:
+            continue
+        prefix, length, pool_i, a_i, b_i = LAYOUTS[program]
+        encoded, accounts = ix.get("data"), ix.get("accounts") or []
+        if not isinstance(encoded, str) or len(encoded) > 50 or len(accounts) <= max(pool_i, a_i, b_i):
+            continue
+        data = b58decode(encoded)
+        if len(data) == length and data.startswith(prefix) and accounts[pool_i] == pool and quote in QUOTE_MINTS \
+                and {accounts[a_i], accounts[b_i]} == {mint, quote}:
+            return program
+    return None
+
+
+def creation_record(client, asset):
+    """``(creation, tx, None)`` with a verified creation of the pool (``tx`` when already fetched), or
+    ``(None, None, reason)`` when public data cannot establish it. The scanner's record is used when it carries a
+    signature; otherwise the creation is reconstructed from the pool's first transaction. RPC failures are raised,
+    never turned into an unknown identity."""
+    creation = asset.get("creation") or {}
+    if creation.get("signature") and creation.get("program") in LAYOUTS:
+        return creation, None, None
+    row = first_signature(client, asset["pool"])
+    if row is False:
+        return None, None, (f"historique du pool de plus de {MAX_HISTORY_PAGES * HISTORY_PAGE} transactions : "
+                            "première transaction hors de portée")
+    if row is None:
+        return None, None, "aucune transaction connue pour ce pool"
+    tx = transaction(client, row["signature"])
+    program = _pool_initialisation(tx, row["signature"], asset["pool"], asset["symbol"], asset.get("quote_mint"))
+    if program is None:
+        return None, None, "première transaction du pool sans initialisation Raydium (AMM v4 ou CPMM) vérifiable"
+    return {"program": program, "signature": row["signature"], "slot": tx.get("slot"), "block_time": tx.get("blockTime"),
+            "source": FIRST_TRANSACTION}, tx, None
+
+
+def _mint_deployer(tx, mint):
+    """Signers and mint authority of a witnessed ``initializeMint`` of ``mint`` in ``tx``, or ``None``."""
     if not tx:
+        return None
+    msg = tx["transaction"]["message"]
+    for ix in msg["instructions"]:
+        parsed = ix.get("parsed") or {}
+        info = parsed.get("info", {})
+        if ix.get("program") == "spl-token" and parsed.get("type") in ("initializeMint", "initializeMint2") and info.get("mint") == mint:
+            return {k["pubkey"] for k in msg["accountKeys"] if k["signer"]} | ({info["mintAuthority"]} if info.get("mintAuthority") else set())
+    return None
+
+
+def identities(client, asset):
+    """Wallets to exclude (pool creator and fee payer, mint deployer and authority), or ``[]`` with
+    ``asset["identity"]["status"] == "unknown"`` when they cannot be established. Unknown deployer => no attribution."""
+    creation, tx, reason = creation_record(client, asset)
+    if creation and tx is None:
+        tx = transaction(client, creation["signature"])
+    if creation and not tx:
+        reason = "transaction de création en échec ou introuvable"
+    if not tx:
+        asset["identity"] = {"status": "unknown", "reason": reason}
         return []
     signers = {k["pubkey"] for k in tx["transaction"]["message"]["accountKeys"] if k["signer"]}
     # Include the AMM creator explicitly, even if an instruction uses a separate fee payer.
     for ix in tx["transaction"]["message"]["instructions"]:
-        if ix.get("programId") == asset["creation"]["program"] and asset["pool"] in ix.get("accounts", []):
+        if ix.get("programId") == creation["program"] and asset["pool"] in ix.get("accounts", []):
             signers.add(ix["accounts"][0 if ix["programId"] == CPMM else 17])
-    # Require a witnessed mint initialization. Unknown deployer => no wallet attribution.
-    for row in recent(client, asset["symbol"], 8):
-        mint_tx = transaction(client, row["signature"])
-        if not mint_tx:
-            continue
-        msg = mint_tx["transaction"]["message"]
-        for ix in msg["instructions"]:
-            parsed = ix.get("parsed") or {}
-            info = parsed.get("info", {})
-            if (
-                ix.get("program") == "spl-token"
-                and parsed.get("type") in ("initializeMint", "initializeMint2")
-                and info.get("mint") == asset["symbol"]
-            ):
-                return sorted(signers | {k["pubkey"] for k in msg["accountKeys"] if k["signer"]} | {info["mintAuthority"]})
-    return []
+    deployer = None
+    if creation.get("source") != FIRST_TRANSACTION:  # a fresh pool: the mint was initialised among its latest transactions
+        for row in recent(client, asset["symbol"], 8):
+            deployer = _mint_deployer(transaction(client, row["signature"]), asset["symbol"])
+            if deployer:
+                break
+    if not deployer:  # an established token: its initialisation is its first transaction
+        row = first_signature(client, asset["symbol"])  # None (no history) or False (beyond the bound): unknown
+        deployer = _mint_deployer(transaction(client, row["signature"]), asset["symbol"]) if row else None
+    if not deployer:
+        asset["identity"] = {"status": "unknown", "reason": "initialisation du mint non observée : déployeur inconnu"}
+        return []
+    excluded = sorted(signers | deployer)
+    asset["identity"] = {"status": "verified", "source": creation.get("source", "scanner"), "program": creation["program"],
+                         "creation_signature": creation["signature"], "excluded": len(excluded)}
+    return excluded
 
 
 def swap(tx, asset):
@@ -242,7 +334,16 @@ def confluence(wallets, mint, now, excluded):
 def follow(client, asset, wallets, winners, now):
     mint = asset["symbol"]
     if not asset.get("excluded"):
-        asset["excluded"] = identities(client, asset)
+        identity = asset.get("identity") or {}
+        if identity.get("status") == "unknown":
+            return False  # abstain: public data cannot attribute this pool (cached, not an error)
+        if identity.get("status") == "retry" and now < identity.get("retry_at", 0):
+            return False  # the RPC failure was reported; the attribution is retried later
+        try:
+            asset["excluded"] = identities(client, asset)
+        except (SourceUnavailable, ValueError, KeyError, TypeError) as exc:
+            asset["identity"] = {"status": "retry", "reason": str(exc)[:200], "retry_at": now + IDENTITY_RETRY_S}
+            raise  # a real outage or malformed data is reported by the caller
     if not asset["excluded"]:
         return False
     seen = set(asset.get("seen", []))

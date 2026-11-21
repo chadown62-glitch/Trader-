@@ -8,27 +8,105 @@ Asymmetric management (calibrated offline by ``memecoin_calibrator`` on determin
 - size by capped fractional Kelly, scaled by a confidence score and the pool liquidity, and reallocate the budget
   toward the strategies that performed best on the recent window.
 
+Signals on established pools (M58): ``sniper`` fires on a sudden, verifiable acceleration between two successive
+observations of an admissible pool (``sniper_check``); the anti-rug veto is evaluated first and suppresses every signal.
+A candidate that did not come through M58 (the fresh-pool live radar) keeps the former age rule for display only: the
+paper simulator drops ``sniper`` for such a candidate (``memecoin_simulator.tradable_signals``).
+The confidence of an M58 entry is continuous and explainable (``confidence_breakdown``, 0.45 to 0.95).
+
 Nothing here places an order: the paper simulator alone consumes these rules, with fictitious funds.
 """
 
 import math
 from dataclasses import dataclass, field
 
+from . import established_pools
 from .tokenrisk import assess_candidate
 from .tokens import TokenId
 
 ASSET_DOMAIN = "memecoin"
 NAMES = ("sniper", "momentum", "dip_hunter", "whale_tail")
 
+# -- sniper on established pools (M58) ------------------------------------------------------------------------------
+# A sudden, verifiable acceleration between two successive observations of an ADMISSIBLE established pool. The pool
+# rules of M58 are re-checked here (defence in depth): the signal never widens the universe the scanner admitted.
+SNIPER_MIN_AGE_MINUTES = established_pools.MIN_AGE_MINUTES  # 60 min: M58 never admits a younger pool
+M58_MIN_LIQUIDITY_USD = established_pools.MIN_LIQUIDITY_USD  # 20,000 USD
+SNIPER_MIN_LIQUIDITY_USD = M58_MIN_LIQUIDITY_USD
+SNIPER_MIN_GAP_S = 1  # the previous observation must be strictly older (same snapshot: no signal)
+SNIPER_MAX_GAP_S = 600  # ...and at most 10 minutes old: an older baseline says nothing about a "sudden" move
+SNIPER_VOLUME_JUMP = 3.0  # 5-min volume pace at least 3x the previous one (momentum asks 1.5x: a burst, not a trend)
+SNIPER_HOURLY_PACE = 2.0  # and at least twice the average pace of the last hour (acceleration against the hour)
+SNIPER_MIN_PACE_USD_MIN = 100.0  # at least 100 USD/min (500 USD in 5 min): a jump on dust volume is noise
+SNIPER_BUY_SELL = 2.0  # at least two buys per sell over 5 minutes, and more than at the previous observation
+SNIPER_PRICE_MOVE = (0.02, 0.25)  # price up 2 % to 25 %: a real move, not already a parabolic candle
+SNIPER_LIQUIDITY_KEPT = 0.95  # liquidity kept within 5 %: no withdrawal during the burst
+LEGACY_SNIPER_MAX_AGE_MINUTES = 3  # former fresh-pool rule, only for candidates that did not come through M58 (display)
+_SNIPER_FIELDS = ("price", "liquidity_usd", "volume_usd_per_min_m5", "buy_sell_count_ratio_m5", "ts")
+
+
+def _number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def sniper_check(asset, point):
+    """``{"signal": bool, "reason": str, ...}`` for a sudden acceleration on an admissible established pool.
+
+    Deterministic and stateless: it compares the current observation with the previous one kept in ``asset["last"]``
+    and refuses on missing, inconsistent or stale data, or on an unchanged observation (no repeated trigger)."""
+    previous = asset.get("last")
+    if not isinstance(previous, dict):
+        return {"signal": False, "reason": "aucune observation précédente"}
+    for name, obs in (("courante", point), ("précédente", previous)):
+        if not all(_number(obs.get(k)) for k in _SNIPER_FIELDS):
+            return {"signal": False, "reason": f"observation {name} incomplète"}
+        if obs["price"] <= 0 or obs["liquidity_usd"] <= 0 or obs["volume_usd_per_min_m5"] < 0 or obs["buy_sell_count_ratio_m5"] < 0:
+            return {"signal": False, "reason": f"observation {name} incohérente"}
+    age, hour = point.get("pool_age_minutes"), point.get("volume_h1_usd")
+    if not _number(age) or age < SNIPER_MIN_AGE_MINUTES:
+        return {"signal": False, "reason": "pool hors M58 : âge inconnu ou inférieur à 60 min"}
+    if point["liquidity_usd"] < SNIPER_MIN_LIQUIDITY_USD:
+        return {"signal": False, "reason": "pool hors M58 : liquidité sous 20 000 $"}
+    if not _number(hour) or hour <= 0:
+        return {"signal": False, "reason": "volume sur 1 h inconnu"}
+    gap = point["ts"] - previous["ts"]
+    if gap < SNIPER_MIN_GAP_S:
+        return {"signal": False, "reason": "même observation ou observation antérieure"}
+    if gap > SNIPER_MAX_GAP_S:
+        return {"signal": False, "reason": f"observation précédente périmée ({gap:.0f} s > {SNIPER_MAX_GAP_S} s)"}
+    if all(point[k] == previous[k] for k in _SNIPER_FIELDS[:4]):
+        return {"signal": False, "reason": "observation inchangée"}
+    pace, before = point["volume_usd_per_min_m5"], previous["volume_usd_per_min_m5"]
+    move = point["price"] / previous["price"] - 1
+    metrics = {"volume_jump": pace / before if before > 0 else None, "hourly_pace": pace / (hour / 60),
+               "buy_sell": point["buy_sell_count_ratio_m5"], "price_move": move,
+               "liquidity_kept": point["liquidity_usd"] / previous["liquidity_usd"], "gap_s": gap}
+    checks = (
+        (pace >= SNIPER_MIN_PACE_USD_MIN, "volume sur 5 min trop faible"),
+        (before > 0 and pace >= SNIPER_VOLUME_JUMP * before, "pas de saut de volume (x3) depuis l'observation précédente"),
+        (metrics["hourly_pace"] >= SNIPER_HOURLY_PACE, "rythme sur 5 min inférieur au double de la moyenne horaire"),
+        (point["buy_sell_count_ratio_m5"] >= SNIPER_BUY_SELL
+         and point["buy_sell_count_ratio_m5"] > previous["buy_sell_count_ratio_m5"], "pression acheteuse insuffisante"),
+        (SNIPER_PRICE_MOVE[0] <= move <= SNIPER_PRICE_MOVE[1], "variation de prix hors de +2 % à +25 %"),
+        (metrics["liquidity_kept"] >= SNIPER_LIQUIDITY_KEPT, "liquidité en retrait"),
+    )
+    for ok, reason in checks:
+        if not ok:
+            return {"signal": False, "reason": reason, **metrics}
+    return {"signal": True, "reason": "accélération vérifiée", **metrics}
+
 
 def evaluate(client, asset, point, whale):
     guard = assess_candidate(client, TokenId("solana", asset["symbol"]), point["liquidity_usd"])
     if not guard["allowed"]:
-        return [], guard
+        return [], guard  # the anti-rug veto comes first: no signal at all
     previous = asset.get("last")
     signals = []
-    if 0 <= point["pool_age_minutes"] <= 3:
-        signals.append("sniper")
+    if asset.get("dex_id"):  # an established pool admitted by M58: a verified acceleration between two observations
+        if sniper_check(asset, point)["signal"]:
+            signals.append("sniper")
+    elif _number(point.get("pool_age_minutes")) and 0 <= point["pool_age_minutes"] <= LEGACY_SNIPER_MAX_AGE_MINUTES:
+        signals.append("sniper")  # former fresh-pool rule (live radar display); the paper simulator never enters on it
     if previous:
         if (
             previous["volume_usd_per_min_m5"]
@@ -132,11 +210,70 @@ def impact_cap_usd(liquidity_usd) -> float:
 
 
 def confidence(signals, guard=None) -> float:
-    """0..1 from the agreement of independent signals; a guardian refusal means no confidence at all."""
+    """Legacy agreement score (0..1), kept verbatim for existing callers and for candidates that did not come
+    through M58; a guardian refusal means no confidence at all. M58 entries use ``entry_confidence``."""
     if guard is not None and not guard.get("allowed", False):
         return 0.0
     n = len(set(signals or ()))
     return 0.0 if n == 0 else min(1.0, 0.55 + 0.15 * (n - 1) + (0.15 if "whale_tail" in signals else 0.0))
+
+
+# -- continuous confidence of an admissible M58 candidate ---------------------------------------------------------
+CONFIDENCE_MODEL = "m58-continuous-v1"
+CONFIDENCE_FLOOR, CONFIDENCE_CEILING = 0.45, 0.95
+CONFIDENCE_WEIGHTS = {"liquidity": 0.30, "turnover": 0.20, "round_trip": 0.30, "agreement": 0.20}
+LIQUIDITY_FULL_USD = 1_000_000.0  # log scale from the M58 minimum (20,000 USD -> 0) to 1,000,000 USD (-> 1)
+TURNOVER_FULL = 1.0  # 1 h volume equal to the pool depth (one full turnover per hour) -> 1
+ROUND_TRIP_LIMIT = established_pools.MAX_ROUND_TRIP_LOSS  # measured Jupiter loss: 0 % -> 1, the M58 limit (10 %) -> 0
+
+
+def _unit(value):
+    return max(0.0, min(1.0, value))
+
+
+def confidence_breakdown(signals, *, liquidity_usd, volume_h1_usd, round_trip_loss, guard=None) -> dict:
+    """Continuous, bounded and explainable confidence of an admissible candidate, in [0.45, 0.95].
+
+    Four components in [0, 1], combined with fixed weights: pool depth (log scale), 1 h turnover (volume / depth),
+    measured Jupiter round-trip loss (lower is better) and the number of independent agreeing signals. A missing or
+    invalid input scores 0 on its component: it never raises the confidence. A guardian veto returns 0, whatever the
+    inputs, and no signal means no candidate (0)."""
+    agreeing = sorted(set(signals or ()) & set(NAMES))
+    if guard is not None and not guard.get("allowed", False):
+        return {"model": CONFIDENCE_MODEL, "score": 0.0, "vetoed": True, "components": None, "missing": [], "signals": agreeing}
+    if not agreeing:
+        return {"model": CONFIDENCE_MODEL, "score": 0.0, "vetoed": False, "components": None, "missing": [], "signals": []}
+    missing = []
+    liq = liquidity_usd if _number(liquidity_usd) and liquidity_usd > 0 else None
+    if liq is None:
+        missing.append("liquidity_usd")
+    vol = volume_h1_usd if _number(volume_h1_usd) and volume_h1_usd >= 0 else None
+    if vol is None:
+        missing.append("volume_h1_usd")
+    loss = round_trip_loss if _number(round_trip_loss) and round_trip_loss >= 0 else None
+    if loss is None:
+        missing.append("round_trip_loss")
+    low = math.log(M58_MIN_LIQUIDITY_USD)
+    components = {
+        "liquidity": 0.0 if liq is None else _unit((math.log(liq) - low) / (math.log(LIQUIDITY_FULL_USD) - low)),
+        "turnover": 0.0 if liq is None or vol is None else _unit(vol / liq / TURNOVER_FULL),
+        "round_trip": 0.0 if loss is None else _unit(1 - loss / ROUND_TRIP_LIMIT),
+        "agreement": (min(len(agreeing), 3) - 1) / 2,
+    }
+    blend = sum(CONFIDENCE_WEIGHTS[k] * v for k, v in components.items())
+    score = CONFIDENCE_FLOOR + (CONFIDENCE_CEILING - CONFIDENCE_FLOOR) * blend
+    return {"model": CONFIDENCE_MODEL, "score": score, "vetoed": False, "components": components, "missing": missing,
+            "signals": agreeing, "inputs": {"liquidity_usd": liq, "volume_h1_usd": vol, "round_trip_loss": loss}}
+
+
+def entry_confidence(signals, point, asset, guard=None) -> dict:
+    """Confidence recorded with a new fictitious entry. The model depends on the candidate's provenance, never on its
+    missing data: a pool admitted by M58 (``dex_id`` set by ``established_pools``) gets the continuous score; any
+    other candidate (legacy fresh-pool scanner, raw state) keeps the legacy agreement score."""
+    if not asset.get("dex_id"):
+        return {"model": "legacy-agreement", "score": confidence(signals, guard)}
+    return confidence_breakdown(signals, liquidity_usd=point.get("liquidity_usd"), volume_h1_usd=point.get("volume_h1_usd"),
+                                round_trip_loss=asset.get("round_trip_loss"), guard=guard)
 
 
 @dataclass
