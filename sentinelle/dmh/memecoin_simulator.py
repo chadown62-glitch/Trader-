@@ -45,6 +45,15 @@ MAX_HOLD_S = 24 * 3600  # time exit of a stagnant lot (no stop, no slice sold); 
 ORDER_TTL_S = 600  # a fictitious entry decided at T is cancelled without a valid later quote within 10 minutes
 MAX_QUOTE_AGE_S = 120  # an execution quote received more than 2 minutes before the tick is too old
 ORDER_LOG = 200  # resolved orders (executed, cancelled, expired) kept for audit
+# A held lot without a valid quote of its exact pool blocks new entries for as long as an entry order may wait for its
+# own quote (ORDER_TTL_S): a shorter outage is treated as transient. Beyond it the lot is durably unavailable: it stays
+# open and re-quoted every cycle, its value is unknown, and new entries resume, sized as if it were worth nothing.
+UNAVAILABLE_GRACE_S = 600
+# Assets watched besides the held lots and the assets carrying a pending order: the most recently admitted pools only.
+# Four of them are quoted per cycle in rotation; with a measured cycle of 35 to 75 s, 24 assets are each revisited every
+# six cycles (210 to 450 s), within the 600 s the sniper and momentum signals accept between two observations.
+WATCH_LIMIT = 24
+ROTATION = 4
 
 
 def opened_at(state, key, pos):
@@ -184,8 +193,8 @@ def quote(client, asset, now):
         raise ValueError("paire exacte indisponible")
     point = extract_features(pair, observed_ms=now * 1000, created_ms=asset["creation"]["block_time"] * 1000)
     price = float(pair["priceUsd"])
-    if not math.isfinite(price) or price <= 0 or not point["liquidity_usd"]:
-        raise ValueError("prix ou profondeur indisponible")
+    if not math.isfinite(price) or price <= 0 or point["liquidity_usd"] is None:
+        raise ValueError("prix ou profondeur indisponible")  # a pool reported with zero depth is still an observation
     h1 = (pair.get("volume") or {}).get("h1")
     finite = isinstance(h1, (int, float)) and not isinstance(h1, bool) and math.isfinite(h1) and h1 >= 0
     # Reception time of the response and fingerprint of the exact pool. DexScreener exposes no publication time for the
@@ -220,7 +229,8 @@ def network_fee(client):
 
 def value(qty, point, network):
     mid = qty * point["price"]
-    impact = max(0.01, mid / (mid + point["liquidity_usd"] / 2))
+    depth = mid + point["liquidity_usd"] / 2
+    impact = max(0.01, mid / depth) if depth > 0 else 1.0  # no depth at all: nothing is realizable
     gross = mid * (1 - impact)
     return max(0.0, gross * (1 - DEX_FEE) - network), mid * impact, gross * DEX_FEE
 
@@ -247,9 +257,24 @@ def equity(state):
     return state["cash"] + sum(pos["mark"] for pos in state["positions"].values())
 
 
+def sizing_equity(state):
+    """Equity for sizing and risk limits: cash plus the lots valued on a valid quote of this cycle. A lot without one
+    (``stale_marks``) counts for nothing here, so an unknown value never enlarges a new stake."""
+    stale = set(state.get("stale_marks", []))
+    return state["cash"] + sum(p["mark"] for p in state["positions"].values() if p["mint"] not in stale and _finite(p.get("mark")))
+
+
+def known_equity(state):
+    """Cash plus the last confirmed liquidation value of every lot, or ``None`` when a lot has no usable mark."""
+    marks = [p.get("mark") for p in state["positions"].values()]
+    return state["cash"] + sum(marks) if all(_finite(m) for m in marks) else None
+
+
 def _mark(pos, point, network):
-    """Liquidation value of an open lot on this observation (exit impact, DEX fee and network fee included)."""
+    """Liquidation value of an open lot on this observation (exit impact, DEX fee and network fee included), confirmed
+    at the observation time ``marked_at``."""
     pos["mark"] = value(pos["qty"], point, network)[0]
+    pos["marked_at"] = point.get("ts")
     return pos["mark"]
 
 
@@ -282,6 +307,7 @@ def _sell(state, mint, strategy, key, pos, point, network, detail, fraction, ext
     pos["basis"] -= basis
     pos["stage"] += 1
     pos["mark"] = value(pos["qty"], point, network)[0]
+    pos["marked_at"] = point.get("ts")
     if fraction >= 1:
         state["completed"].append({"strategy": strategy, "mint": mint, "return": pos["pnl"] / pos["initial"],
                                    **{k: pos[k] for k in ("entry", "sizing", "opened_at") if k in pos},
@@ -293,8 +319,11 @@ def _sell(state, mint, strategy, key, pos, point, network, detail, fraction, ext
 
 def _buy(state, mint, strategy, key, point, network, signals, learner, adaptive, asset, entry=None, extra=None):
     """Fictitious entry at this observation: Kelly target x bounded multiplier, never under the exploration floor, within
-    the token cap, the strategy budget and the 25 % cash reserve; fees and slippage are paid from the stake."""
-    eq = equity(state)
+    the token cap, the strategy budget and the 25 % cash reserve; fees and slippage are paid from the stake. Targets and
+    caps use ``sizing_equity`` (an unquoted lot counts for nothing); the reserve uses the larger equity (stricter)."""
+    eq = sizing_equity(state)
+    if not point.get("liquidity_usd") or point["liquidity_usd"] <= 0:
+        return None  # no depth: no entry
     used = sum(p["basis"] for p in state["positions"].values() if p["mint"] == mint)
     strategy_used = sum(p["basis"] for p in state["positions"].values() if p["strategy"] == strategy)
     target = eq * learner.fractions[strategy] * learner.weights[strategy]
@@ -307,7 +336,7 @@ def _buy(state, mint, strategy, key, point, network, signals, learner, adaptive,
         "exploration_floor" if floor > desired else "kelly_target": max(desired, floor),
         "token_cap": 0.10 * eq - used,
         "strategy_budget": eq * learner.weights[strategy] - strategy_used,
-        "cash_reserve": state["cash"] - 0.25 * eq,
+        "cash_reserve": state["cash"] - 0.25 * max(eq, known_equity(state) or eq),
     }
     size = min(limits.values())
     if size <= network * 2 or size < 0.05:
@@ -324,6 +353,7 @@ def _buy(state, mint, strategy, key, point, network, signals, learner, adaptive,
         "basis": size,
         "initial": size,
         "mark": value(qty, point, network)[0],
+        "marked_at": point.get("ts"),
         "high": 1.0,
         "stage": 0,
         "pnl": 0.0,
@@ -467,10 +497,12 @@ FLEET_LOG = 50  # dernières décisions de la flotte gardées dans la session
 
 
 def _candidate(state, mint, asset, point, signals, guard, network):
-    """Ce que la flotte juge pour une entrée sur cette observation : plafond, impact, aller-retour, lots ouverts, équité."""
-    eq = equity(state)
+    """Ce que la flotte juge pour une entrée sur cette observation : plafond, impact, aller-retour, lots ouverts, équité.
+    L'équité retenue ne compte un lot sans cotation valide pour rien (``sizing_equity``), comme le dimensionnement."""
+    eq = sizing_equity(state)
     used = sum(p["basis"] for p in state["positions"].values() if p["mint"] == mint)
-    notional = max(0.0, min(0.10 * eq - used, state["cash"] - 0.25 * eq))  # plafond de process() pour ce token
+    reserve = 0.25 * max(eq, known_equity(state) or eq)
+    notional = max(0.0, min(0.10 * eq - used, state["cash"] - reserve))  # plafond de process() pour ce token
     liquidity = point.get("liquidity_usd") or 0.0
     impact = notional / (notional + liquidity / 2) if notional > 0 and liquidity > 0 else None
     data = {"asset_domain": DOMAIN, "observed_ms": int(point["ts"] * 1000), "price": point["price"], "signals": list(signals),
@@ -527,11 +559,45 @@ def _hours(seconds):
     return f"{seconds / 3600:.1f}".replace(".", ",") + " h"
 
 
+def _bound(curve, end, key):
+    """Same one-day window as ``return_24h`` on the curve field ``key`` (prudent bounds), or ``None``."""
+    target = end["ts"] - DAY_S
+    if not _finite(end.get(key)) or curve[0]["ts"] > target:
+        return None
+    start = next((p for p in reversed(curve) if target - DAY_TOLERANCE_S <= p["ts"] <= target and _finite(p.get(key)) and p[key] > 0), None)
+    if start is None:
+        return None
+    return {"pct": 100 * (end[key] / start[key] - 1), "from_ts": start["ts"], "window_s": end["ts"] - start["ts"]}
+
+
+def _estimated(result, curve, end):
+    floor = _bound(curve, end, "floor")
+    if floor is None:
+        return result
+    return {**result, "status": "estimated", "estimate": {"floor": floor, "last_known": _bound(curve, end, "last_known")}}
+
+
+def estimate(state):
+    """Prudent estimate, shown apart and never as a validated value. ``None`` when every lot is valued on this cycle's
+    quotes. Otherwise ``floor_usd`` counts the lots without a valid quote for nothing and ``last_known_usd`` at their last
+    confirmed liquidation value, each listed with the time of that value: neither is a current price."""
+    stale = set(state.get("stale_marks", []))
+    if not stale:
+        return None
+    lots = [{"key": k, "mint": p["mint"], "last_confirmed_usd": p.get("mark") if _finite(p.get("mark")) else None,
+             "marked_at": p.get("marked_at"), "unavailable_since": p.get("unavailable_since")}
+            for k, p in sorted(state["positions"].items()) if p["mint"] in stale]
+    return {"status": "estimate", "floor_usd": sizing_equity(state), "last_known_usd": known_equity(state), "unavailable_lots": lots}
+
+
 def return_24h(state):
     """One-day equity return between two VALIDATED curve points: the latest one and the latest validated one taken 24 h to
     24 h 15 min earlier. ``window_s`` states the period actually measured. Otherwise ``status`` is ``not_evaluable`` and
     ``reason`` says why: unvalidated end bound, history under 24 h, a gap in the curve (a longer period is never presented
-    as one day) or only unvalidated points 24 h earlier. ``unvalidated_points`` counts the stale points in between."""
+    as one day) or only unvalidated points 24 h earlier. ``unvalidated_points`` counts the stale points in between.
+    When the day is not measurable only because some lot had no valid quote, ``status`` is ``estimated``: ``pct`` stays
+    ``None`` and ``estimate`` gives the same window on prudent bounds (unquoted lots counted for nothing, or at their last
+    confirmed value). An estimate is never presented as a measured return."""
     curve = [p for p in state.get("curve", []) if _finite(p.get("ts"))]
     out = {"status": "not_evaluable", "reason": None, "pct": None, "from_ts": None, "to_ts": None, "window_s": None,
            "target_s": DAY_S, "tolerance_s": DAY_TOLERANCE_S, "unvalidated_points": None}
@@ -540,7 +606,7 @@ def return_24h(state):
     end = curve[-1]
     out["to_ts"] = end["ts"]
     if state.get("stale_marks") or not _finite(end.get("equity")):
-        return {**out, "reason": "valorisation de fin non validée"}
+        return _estimated({**out, "reason": "valorisation de fin non validée"}, curve, end)
     target = end["ts"] - DAY_S
     if curve[0]["ts"] > target:
         return {**out, "reason": f"historique de {_hours(end['ts'] - curve[0]['ts'])}, moins de 24 h"}
@@ -548,7 +614,7 @@ def return_24h(state):
     start = next((p for p in reversed(window) if _finite(p.get("equity")) and p["equity"] > 0), None)
     if start is None:
         if window:
-            return {**out, "reason": "aucune valorisation validée 24 h plus tôt (points non validés)"}
+            return _estimated({**out, "reason": "aucune valorisation validée 24 h plus tôt (points non validés)"}, curve, end)
         before = next(p for p in reversed(curve) if p["ts"] < target - DAY_TOLERANCE_S)
         return {**out, "reason": f"trou dans la courbe : le point précédent date de {_hours(end['ts'] - before['ts'])}, "
                                  "pas d'une journée mesurée"}
@@ -590,6 +656,8 @@ def report(state, wallets):
         "equity": last if status == "validated" else None,
         "last_marked_equity": last,
         "equity_status": status,
+        "estimate": estimate(state),
+        "entry_gate": state.get("entry_gate"),
         "return_24h": return_24h(state),
         "stale_marks": state.get("stale_marks", []),
         "pending_orders": [{"id": oid, "kind": o["kind"], "key": o["key"], "decided_at": o["decided_at"],
@@ -604,6 +672,26 @@ def report(state, wallets):
         "token_ranking": sorted(tokens.items(), key=lambda t: -t[1]),
         "fleet": state.get("fleet", [])[-20:],
     }
+
+
+def watch_rotation(assets, priority):
+    """Assets quoted in rotation this cycle besides ``priority`` (held lots, pending orders): among the ``WATCH_LIMIT``
+    most recently admitted pools, the ``ROTATION`` least recently checked. Older candidates stay recorded, unquoted."""
+    candidates = sorted(set(assets) - priority, key=lambda m: (-assets[m].get("admitted_ms", 0), m))[:WATCH_LIMIT]
+    return sorted(candidates, key=lambda m: (assets[m].get("checked", 0), m))[:ROTATION]
+
+
+def entry_gate(state, now, network):
+    """Written entry rule: entries need the network fee of this cycle, and no held lot whose valid quote has been missing
+    for less than ``UNAVAILABLE_GRACE_S`` (a transient outage). A lot unavailable for longer no longer blocks entries:
+    it stays open and re-quoted, and ``sizing_equity`` counts it for nothing."""
+    if network is None:
+        return {"open": False, "reason": "frais réseau indisponibles", "blocking": []}
+    blocking = sorted({p["mint"] for p in state["positions"].values()
+                       if p["mint"] in set(state.get("stale_marks", [])) and now - p.get("unavailable_since", now) < UNAVAILABLE_GRACE_S})
+    if blocking:
+        return {"open": False, "reason": "valorisation momentanément indisponible", "blocking": blocking}
+    return {"open": True, "reason": None, "blocking": []}
 
 
 def tick(hub, db, bus):
@@ -625,8 +713,11 @@ def tick(hub, db, bus):
         event = json.loads(row["data"])
         if event.get("asset_domain") == DOMAIN:
             asset = assets.setdefault(event["symbol"], {k: event[k] for k in ("symbol", "pool", "creation", "quote_mint", "dex_id") if k in event})
-            if event["symbol"] not in refreshed and isinstance(event.get("round_trip"), dict):
-                asset["round_trip_loss"] = event["round_trip"].get("loss")  # aller-retour Jupiter le plus récent
+            if event["symbol"] not in refreshed:
+                if isinstance(event.get("round_trip"), dict):
+                    asset["round_trip_loss"] = event["round_trip"].get("loss")  # aller-retour Jupiter le plus récent
+                if isinstance(event.get("observed_ms"), int):
+                    asset["admitted_ms"] = max(asset.get("admitted_ms", 0), event["observed_ms"])  # admission la plus récente
             refreshed.add(event["symbol"])
     try:
         network = network_fee(client) if assets else None
@@ -635,17 +726,17 @@ def tick(hub, db, bus):
         network = None
     winners = {m for m, a in assets.items() if a.get("winner") and not a.get("blocked")}
     held = {p["mint"] for p in state["positions"].values()}
-    pending = sorted(set(assets) - held, key=lambda m: assets[m].get("checked", 0))
+    orders = state.setdefault("orders", {})
+    ordered = {o["mint"] for o in orders.values() if o["mint"] in assets} - held
     points = {}
     fleet = fleet_coordinator.Coordinator(clock=client.clock)  # cycle fini : une flotte par passage, sans pouvoir d'ordre
-    for mint in sorted(held) + pending[:4]:
+    for mint in sorted(held) + sorted(ordered) + watch_rotation(assets, held | ordered):
         try:
             points[mint] = quote(client, assets[mint], now)
         except SOURCE_ERRORS as exc:
             state["errors"].append({"mint": mint, "reason": str(exc)})
         assets[mint]["checked"] = now
     state["stale_marks"] = sorted(held - points.keys() if network is not None else held)
-    orders = state.setdefault("orders", {})
     executed = {f["order_id"] for f in state["fills"] if f.get("order_id")}
     marked = set()
     # Phase 1: value the open lots on the fresh quotes, then fill the exits decided earlier (protective, no guardian call).
@@ -654,12 +745,17 @@ def tick(hub, db, bus):
             try:
                 for pos in [p for p in state["positions"].values() if p["mint"] == mint]:
                     _mark(pos, point, network)
+                    pos.pop("unavailable_since", None)
                 marked.add(mint)
                 for oid in sorted(o for o, order in orders.items() if order["kind"] == "sell" and order["mint"] == mint):
                     _execute_sell(state, oid, orders[oid], point, network, now, executed, assets[mint])
             except SOURCE_ERRORS as exc:
                 state["errors"].append({"mint": mint, "reason": str(exc), "stage": "valorisation"})
     state["stale_marks"] = sorted({p["mint"] for p in state["positions"].values()} - marked)
+    for pos in state["positions"].values():
+        if pos["mint"] not in marked:
+            pos.setdefault("unavailable_since", now)
+    gate = entry_gate(state, now, network)  # written rule: no entry while a lot's value is only transiently unknown
     # Phase 2: safety re-check, pending entries, then new decisions (filled on a later observation, never on this one).
     for mint, point in points.items():
         asset = assets[mint]
@@ -684,7 +780,7 @@ def tick(hub, db, bus):
                 opened_now = set()
                 for oid in sorted(o for o, order in orders.items() if order["kind"] == "buy" and order["mint"] == mint):
                     key = orders[oid]["key"]
-                    _execute_buy(state, oid, orders[oid], point, network, now, executed, asset, guard, not state["stale_marks"], fleet)
+                    _execute_buy(state, oid, orders[oid], point, network, now, executed, asset, guard, gate["open"], fleet)
                     if key in state["positions"] and state["positions"][key].get("opened_at") == now:
                         opened_now.add(key)
                         marked.add(mint)
@@ -695,7 +791,7 @@ def tick(hub, db, bus):
                         decision = _exit(state, key, pos, point)
                         if decision is not None:
                             _decide(state, "sell", key, mint, pos["strategy"], point, now, detail=decision[0], fraction=decision[1])
-                if signals and not state["stale_marks"]:  # no new entry while the valuation is not reliable
+                if signals and gate["open"]:  # no new entry while a lot's value is only transiently unknown
                     signals = consult_fleet(fleet, state, mint, asset, point, signals, guard, network, now)
                     entry = _entry(point, asset, signals) if signals else None  # conditions seen at the decision
                     for strategy in [n for n in NAMES if n in signals]:
@@ -709,8 +805,10 @@ def tick(hub, db, bus):
         _resolve(state, oid, "expired", "aucune cotation postérieure valide dans les 10 minutes", now)
     # Valuation after processing: a lot not re-marked on a fresh quote this tick is stale.
     state["stale_marks"] = sorted({p["mint"] for p in state["positions"].values()} - marked)
+    state["entry_gate"] = entry_gate(state, now, network)
     state["revision"] += 1
-    state["curve"].append({"ts": now, "equity": None if state["stale_marks"] else equity(state)})
+    state["curve"].append({"ts": now, "equity": None if state["stale_marks"] else equity(state),
+                           "floor": sizing_equity(state), "last_known": known_equity(state)})
     with db.transaction():
         prior = json.loads(db.get_meta(KEY, "{}"))
         if prior.get("revision", 0) != base:
