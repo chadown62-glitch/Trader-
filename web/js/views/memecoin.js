@@ -113,6 +113,19 @@ export default {
     });
     onBeforeUnmount(() => { live = false; clearInterval(radarTimer); document.removeEventListener('visibilitychange', refreshRadar); off.forEach(unsub => unsub()); clearTimeout(timer); });
     const tab = ref('Live');
+    const learning = computed(() => {
+      const data = analytics.value?.learning;
+      return data?.asset_domain === 'memecoin' && data.paper_only === true ? data : null;
+    });
+    const learningRows = computed(() => Object.entries(strategies).map(([key, name]) => {
+      const row = learning.value?.strategies?.[key];
+      return { key, name, multiplier: row?.multiplier ?? 1, score: row?.score, closed: row?.closed_trades,
+        window: row?.window_trades, unlocked: row?.upside_unlocked, reason: row?.reason };
+    }));
+    const suggestions = computed(() => (learning.value?.recommendations || []).filter(r =>
+      r.status === 'suggested' && r.samples >= 20 && Number.isFinite(r.suggested_threshold)));
+    const decimal = new Intl.NumberFormat('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
     const lots = computed(() => analytics.value?.recent_closed_positions || []);
     const holdings = computed(() => analytics.value?.open_positions ?? Object.values(session.value?.positions || {}).map(p => ({
       mint: p.mint, strategy: p.strategy, quantity: p.qty, cost_basis_usd: p.basis, value_usd: p.mark,
@@ -139,7 +152,7 @@ export default {
     const chart = computed(() => session.value && equityChart(session.value));
     const activity = computed(() => (session.value?.activity || []).slice().reverse());
     const maximum = computed(() => Math.max(0.001, ...(session.value?.token_ranking || []).map(row => Math.abs(row[1]))));
-    return { tab, lots, holdings, price, meanProfit, factor, ladder, analytics, analyticsError, radar, radarError, funnel, funnelError, stages, decisions, session, worker, interval, amount, currency, busy, error, flash, act, chart, activity, maximum,
+    return { tab, learning, learningRows, suggestions, decimal, lots, holdings, price, meanProfit, factor, ladder, analytics, analyticsError, radar, radarError, funnel, funnelError, stages, decisions, session, worker, interval, amount, currency, busy, error, flash, act, chart, activity, maximum,
       strategies, reasons, store, dt, cls, money, signed, pct, plainPct };
   },
   template: `
@@ -216,6 +229,32 @@ export default {
           <div v-for="(p,i) in lots" :key="i" class="mc-closed"><time>{{ p.closed_at ? dt(p.closed_at) : '—' }}</time>
             <span>{{ strategies[p.strategy] }} · {{ p.mint }}</span><b :class="cls(p.pnl_usd)">{{ signed(p.pnl_usd,'$') }} · {{ pct(p.profit_pct,2,true) }}</b></div>
         </template>
+      </section>
+      <section v-if="tab==='Stratégies' && analytics" class="card mc-learning" aria-labelledby="mc-learning-heading">
+        <h2 id="mc-learning-heading">Apprentissage &amp; Calibration</h2>
+        <div class="mc-learning-grid">
+          <article v-for="row in learningRows" :key="row.key" :data-strategy="row.key">
+            <div class="mc-axis"><h3>{{ row.name }}</h3>
+              <strong class="num" :class="{up: row.multiplier > 1, warn: row.multiplier < 1}" aria-label="Multiplicateur d’allocation">
+                {{ decimal.format(row.multiplier) }}x</strong></div>
+            <p>Score d’efficacité · <b>{{ row.score == null ? '—' : decimal.format(row.score) }}</b>
+              <small v-if="row.window > 0" class="muted"> sur {{ row.window }} clôtures récentes</small></p>
+            <template v-if="row.closed != null">
+              <small>{{ row.closed }} clôtures · {{ row.unlocked ? 'hausse autorisée' : 'hausse à partir de ' + learning.min_trades + ' clôtures' }}</small>
+              <progress :value="Math.min(row.closed, learning.min_trades)" :max="learning.min_trades" :aria-label="'Progression des clôtures · '+row.name"></progress>
+            </template>
+            <p class="muted">{{ row.reason || 'Données d’apprentissage indisponibles. Allocation neutre affichée.' }}</p>
+          </article>
+        </div>
+        <h3>Recommandations de seuils d’entrée</h3>
+        <small>Simulation uniquement — non appliqué automatiquement</small>
+        <ul v-if="suggestions.length">
+          <li v-for="r in suggestions" :key="r.feature"><b>{{ r.label }}</b> · {{ r.current_threshold.toLocaleString('fr-FR') }} → {{ r.suggested_threshold.toLocaleString('fr-FR') }}
+            <p class="muted">{{ r.explanation }}</p></li>
+        </ul>
+        <p v-else-if="!learning" class="muted">Aucune donnée de calibration disponible.</p>
+        <p v-else-if="learning.closed_trades < 20" class="muted">En attente de 20 clôtures avec conditions d’entrée enregistrées.</p>
+        <p v-else class="muted">Aucun ajustement proposé sur les observations exploitables.</p>
       </section>
       <section v-if="tab==='Radar'" class="card mc-funnel"><div class="card-head"><h2>Pools établis &amp; flotte d'agents</h2><span class="spacer"></span><small>24 h</small></div>
         <p v-if="funnelError" class="note warn">{{ funnelError }}</p>

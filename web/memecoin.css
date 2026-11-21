@@ -51,3 +51,10 @@
   .mc-controls,.mc-head > div { min-width:0; }
   .mc-controls input,.mc-controls select { font-size:16px; }
 }
+
+.mc-learning-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,19rem),1fr)); gap:1rem; margin:1rem 0; }
+.mc-learning-grid article { min-width:0; padding:.85rem; border:1px solid var(--glass-border); border-radius:var(--radius-sm); }
+.mc-learning h3 { margin:0; }
+.mc-learning strong { font-size:1.3rem; }
+.mc-learning progress { display:block; width:100%; height:.45rem; margin:.4rem 0; accent-color:var(--accent-cyan); }
+.mc-learning p { margin:.45rem 0; overflow-wrap:anywhere; }
