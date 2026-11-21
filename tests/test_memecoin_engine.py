@@ -96,7 +96,8 @@ def test_strategies_guard_friction_and_exits(db):
     feed.pair["priceUsd"] = "1"
     a = asset()
     p = sim.quote(feed.client, a, NOW)
-    a.update(peak=1.4, peak_liquidity=p["liquidity_usd"], last={**p, "volume_usd_per_min_m5": 30, "buy_sell_count_ratio_m5": 1.3})
+    a.update(peak=1.4, peak_liquidity=p["liquidity_usd"],
+             last={**p, "ts": NOW - 60, "volume_usd_per_min_m5": 30, "buy_sell_count_ratio_m5": 1.3})  # an earlier observation
     signals, guard = evaluate(feed.client, a, p, True)
     assert guard["allowed"] and set(signals) == set(NAMES)  # a fresh-pool candidate keeps the former age rule (display)
     assert set(sim.tradable_signals(a, signals)) == {"momentum", "dip_hunter", "whale_tail"}  # but never a sniper entry (D5)
@@ -522,7 +523,8 @@ def test_sniper_refuses_missing_stale_inconsistent_or_flat_data(asset_changes, p
     assert not check["signal"] and reason in check["reason"]
 
 
-@pytest.mark.parametrize("gap,expected", [(60, {"momentum", "sniper"}), (ms.SNIPER_MAX_GAP_S + 100, {"momentum"})])
+# Beyond 600 s neither the sniper nor momentum (MOMENTUM_MAX_GAP_S) compare the two observations: no entry at all.
+@pytest.mark.parametrize("gap,expected", [(60, {"momentum", "sniper"}), (ms.SNIPER_MAX_GAP_S + 100, set())])
 def test_sniper_enters_through_the_paper_tick_only_on_a_recent_verified_acceleration(db, gap, expected):
     feed = EstablishedFeed()  # established PumpSwap pool, three hours old, 50,000 USD deep
     feed.pair.update(volume={"m5": 500, "h1": 12_000}, txns={"m5": {"buys": 6, "sells": 3}})
@@ -537,6 +539,9 @@ def test_sniper_enters_through_the_paper_tick_only_on_a_recent_verified_accelera
     state = sim.tick(hub, db, EventBus(db))
     assert {f["strategy"] for f in state["activity"]} == expected
     held = sim.load(db)[0]["positions"]
+    if not expected:
+        assert held == {}
+        return
     entry = next(iter(held.values()))["entry"]
     assert entry["confidence_model"] == "m58-continuous-v1" and entry["signals"] == sorted(expected)
     assert 0.45 <= entry["confidence"] <= 0.95 and entry["round_trip_loss"] == pytest.approx(0.02, abs=1e-3)
