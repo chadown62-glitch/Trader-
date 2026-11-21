@@ -12,7 +12,8 @@ The four strategies run on these pools: ``sniper`` on a verified acceleration be
 only when the pool's creator and deployer can be attributed from public data (otherwise it abstains, which is not a
 source failure); each M58 entry records a continuous confidence (0.45-0.95) with its components.
 Before any fictitious entry the agent fleet (``sentinelle.fleet``) is consulted: a veto, a risk refusal, an alert or an
-objection (impact, cost, unconfirmed resale) means no entry; exits are never blocked.
+objection (impact, cost, unconfirmed resale) means no entry; exits are never blocked. In the session, an entry decided on
+one observation is filled on a later one, after the Guardian and the fleet's risk limits are judged again on it.
 A new stake is the Kelly target scaled by the bounded multiplier of ``memecoin_learner`` (0.5x-1.5x, learned from the
 closed lots and the mature or partially sold open lots), never under its exploration floor, within the unchanged hard
 limits; each position records its opening time, its entry conditions and why it was so sized. A lot that has neither
@@ -20,6 +21,7 @@ hit its stop nor sold a slice after ``MAX_HOLD_S`` (24 h by default, ``state["ma
 time exit, which frees its budget.
 Paper only: no order, no key; every fill is tagged ``asset_domain="memecoin"`` and ``simulated``."""
 
+import hashlib
 import json
 import math
 
@@ -150,6 +152,16 @@ def scan_once(client, db, bus, *, registry=None):
     return established_pools.scan(client, db, bus, registry=registry)
 
 
+POOL_MARKET_FIELDS = ("pairAddress", "priceUsd", "priceNative", "liquidity", "volume", "txns", "priceChange", "fdv", "marketCap")
+
+
+def pool_fingerprint(pair):
+    """SHA-256 of the market state of the exact pool (price, depth, volumes, trade counts, caps). The other pairs of the
+    same DexScreener response and the pair's descriptive metadata (images, links, boosts) never change it."""
+    market = {k: pair.get(k) for k in POOL_MARKET_FIELDS}
+    return hashlib.sha256(json.dumps(market, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
 def quote(client, asset, now):
     mint = asset["symbol"]
     fetched = client.get("api.dexscreener.com", f"/token-pairs/v1/solana/{mint}")
@@ -176,12 +188,13 @@ def quote(client, asset, now):
         raise ValueError("prix ou profondeur indisponible")
     h1 = (pair.get("volume") or {}).get("h1")
     finite = isinstance(h1, (int, float)) and not isinstance(h1, bool) and math.isfinite(h1) and h1 >= 0
-    # Reception time and fingerprint of the response. DexScreener exposes no publication time for the price: none is
-    # invented; the decision and execution chronology relies on these two fields only.
+    # Reception time of the response and fingerprint of the exact pool. DexScreener exposes no publication time for the
+    # price: none is invented. The response fingerprint is kept for provenance only: it also covers the token's other
+    # pairs, so a change elsewhere in the response would make an unchanged quote of this pool look new.
     received, fingerprint = getattr(fetched, "received_ms", None), getattr(fetched, "sha256", None)
     point.update(price=price, ts=now, volume_h1_usd=float(h1) if finite else None,
-                 received_ms=received if isinstance(received, int) else None,
-                 source_sha256=fingerprint if isinstance(fingerprint, str) else None)  # missing: never fills an order
+                 received_ms=received if isinstance(received, int) else None,  # missing: never fills an order
+                 source_sha256=fingerprint if isinstance(fingerprint, str) else None, pool_sha256=pool_fingerprint(pair))
     return point
 
 
@@ -357,32 +370,36 @@ def process(state, mint, point, signals, network):
 
 # -- causal execution of the paper session -----------------------------------------------------------------------------
 def observation(point):
-    """Provenance of an observation: tick time, reception time and fingerprint of the response, price."""
-    return {"ts": point["ts"], "received_ms": point.get("received_ms"), "sha256": point.get("source_sha256"), "price": point["price"]}
+    """Provenance of an observation: tick time, reception time, fingerprints of the exact pool and of the response, price."""
+    return {"ts": point["ts"], "received_ms": point.get("received_ms"), "pool_sha256": point.get("pool_sha256"),
+            "response_sha256": point.get("source_sha256"), "price": point["price"]}
 
 
 def execution_check(order, point, asset, now):
     """``None`` when ``point`` may fill ``order``; otherwise why not. The fill needs a quote received strictly after the
-    decision, at a later tick, with another fingerprint than the decision snapshot and the previous snapshot, and fresh."""
-    received, fingerprint = point.get("received_ms"), point.get("source_sha256")
+    decision, at a later tick, in which the exact pool differs from the decision snapshot and the previous snapshot, and
+    fresh. Only the pool's own market state counts: a change in another pair of the response proves nothing."""
+    received, fingerprint = point.get("received_ms"), point.get("pool_sha256")
     decided = order["decision"]
     if not isinstance(received, int) or not isinstance(fingerprint, str):
-        return "cotation sans heure de réception ni empreinte"
+        return "cotation sans heure de réception ni empreinte du pool"
     if not isinstance(decided.get("received_ms"), int) or received <= decided["received_ms"] or point["ts"] <= order["decided_at"]:
         return "cotation non postérieure à la décision (chronologie ambiguë)"
-    if fingerprint == decided.get("sha256"):
-        return "cotation identique au snapshot de la décision"
-    if fingerprint == (asset.get("last") or {}).get("source_sha256"):
-        return "cotation identique au snapshot précédent"
+    if fingerprint == decided.get("pool_sha256"):
+        return "cotation du pool identique au snapshot de la décision"
+    if fingerprint == (asset.get("last") or {}).get("pool_sha256"):
+        return "cotation du pool identique au snapshot précédent"
     if now * 1000 - received > MAX_QUOTE_AGE_S * 1000:
         return "cotation trop ancienne"
     return None
 
 
 def _causal(oid, order, point):
-    return {"order_id": oid, "decided_at": order["decided_at"], "decision_received_ms": order["decision"]["received_ms"],
-            "decision_sha256": order["decision"]["sha256"], "execution_received_ms": point["received_ms"],
-            "execution_sha256": point["source_sha256"]}
+    decided = order["decision"]
+    return {"order_id": oid, "decided_at": order["decided_at"], "decision_received_ms": decided["received_ms"],
+            "decision_pool_sha256": decided.get("pool_sha256"), "decision_response_sha256": decided.get("response_sha256"),
+            "execution_received_ms": point["received_ms"], "execution_pool_sha256": point["pool_sha256"],
+            "execution_response_sha256": point.get("source_sha256")}
 
 
 def _resolve(state, oid, status, reason, now):
@@ -418,7 +435,7 @@ def _execute_sell(state, oid, order, point, network, now, executed, asset):
     return _resolve(state, oid, "executed", None, now)
 
 
-def _execute_buy(state, oid, order, point, network, now, executed, asset, guard, reliable):
+def _execute_buy(state, oid, order, point, network, now, executed, asset, guard, reliable, fleet):
     if oid in executed:
         return _resolve(state, oid, "duplicate", "déjà exécuté avant la reprise", now)
     if now - order["decided_at"] > ORDER_TTL_S:
@@ -434,10 +451,14 @@ def _execute_buy(state, oid, order, point, network, now, executed, asset, guard,
     if problem:
         order["last_refusal"] = problem
         return None
+    # The fleet's risk limits again, on the execution observation (depth, round trip, open lots, session loss).
+    judged = recheck_fleet(fleet, state, order, asset, point, guard, network, now)
+    if judged["decision"] != fleet_coordinator.PROPOSAL:
+        return _resolve(state, oid, "cancelled", f"refus de la flotte à l'exécution : {judged['decision']} ({'; '.join(judged['why'])})", now)
     learner = MemecoinIsolatedLearner(state["completed"])
     adaptive = memecoin_learner.multipliers_for_state(state)
     fill = _buy(state, order["mint"], order["strategy"], order["key"], point, network, order["signals"], learner, adaptive, asset,
-                entry=order["entry"], extra=_causal(oid, order, point))
+                entry=order["entry"], extra={**_causal(oid, order, point), "fleet_execution": judged})
     return _resolve(state, oid, "executed" if fill else "cancelled",
                     None if fill else "mise sous le minimum ou plafonds d'exposition atteints", now)
 
@@ -445,8 +466,8 @@ def _execute_buy(state, oid, order, point, network, now, executed, asset, guard,
 FLEET_LOG = 50  # dernières décisions de la flotte gardées dans la session
 
 
-def consult_fleet(coordinator, state, mint, asset, point, signals, guard, network, now):
-    """Avis de la flotte sur une entrée fictive ; renvoie les signaux conservés (tous, ou aucun)."""
+def _candidate(state, mint, asset, point, signals, guard, network):
+    """Ce que la flotte juge pour une entrée sur cette observation : plafond, impact, aller-retour, lots ouverts, équité."""
     eq = equity(state)
     used = sum(p["basis"] for p in state["positions"].values() if p["mint"] == mint)
     notional = max(0.0, min(0.10 * eq - used, state["cash"] - 0.25 * eq))  # plafond de process() pour ce token
@@ -457,6 +478,12 @@ def consult_fleet(coordinator, state, mint, asset, point, signals, guard, networ
             "round_trip_loss": asset.get("round_trip_loss"), "liquidity_usd": liquidity, "notional_usd": notional,
             "impact": impact, "round_trip_cost": 2 * (DEX_FEE + impact) + 2 * network / notional if impact is not None else None,
             "open_positions": len(state["positions"]), "equity_usd": eq, "initial_usd": state.get("initial", INITIAL)}
+    return data
+
+
+def consult_fleet(coordinator, state, mint, asset, point, signals, guard, network, now):
+    """Avis de la flotte sur une entrée fictive ; renvoie les signaux conservés (tous, ou aucun)."""
+    data = _candidate(state, mint, asset, point, signals, guard, network)
     record = coordinator.decide(fleet_agents.Event("memecoin_candidate", mint, int(now * 1000), data), {})
     accepted = record["decision"] == fleet_coordinator.PROPOSAL
     state.setdefault("fleet", []).append({
@@ -465,6 +492,16 @@ def consult_fleet(coordinator, state, mint, asset, point, signals, guard, networ
         "findings": [{"agent": f["agent"], "stance": f["stance"], "summary": f["summary"]} for f in record["findings"]]})
     del state["fleet"][:-FLEET_LOG]
     return list(signals) if accepted else []
+
+
+def recheck_fleet(coordinator, state, order, asset, point, guard, network, now):
+    """Avis de la flotte sur l'exécution différée d'une entrée décidée : mêmes agents et mêmes limites, sur l'observation
+    d'exécution (Guardian revérifié, profondeur, aller-retour Jupiter le plus récent, frais réseau, lots ouverts et équité
+    après les exécutions déjà faites). Les signaux restent ceux de la décision : seul le risque est rejugé. Ce second avis
+    n'entre pas dans le journal des décisions de la flotte ; il est conservé dans le fill ou dans le journal des ordres."""
+    data = _candidate(state, order["mint"], asset, point, order["signals"], guard, network)
+    record = coordinator.decide(fleet_agents.Event("memecoin_candidate", order["mint"], int(now * 1000), data), {})
+    return {"decision": record["decision"], "why": record["why"][:4]}
 
 
 DAY_S = 86400
@@ -483,17 +520,41 @@ def valuation(state):
     return ("stale" if state.get("stale_marks") else "validated"), equity(state)
 
 
+DAY_TOLERANCE_S = 900  # a one-day return is measured over 24 h to 24 h 15 min, never over a longer period
+
+
+def _hours(seconds):
+    return f"{seconds / 3600:.1f}".replace(".", ",") + " h"
+
+
 def return_24h(state):
-    """Equity return over the last 24 h between two VALIDATED curve points: the latest one and the latest one at least
-    24 h older. ``None`` when either bound is not evaluable (stale or unavailable valuation, history too short)."""
-    curve = state.get("curve", [])
-    if not curve or state.get("stale_marks") or not _finite(curve[-1].get("equity")) or not _finite(curve[-1].get("ts")):
-        return None
+    """One-day equity return between two VALIDATED curve points: the latest one and the latest validated one taken 24 h to
+    24 h 15 min earlier. ``window_s`` states the period actually measured. Otherwise ``status`` is ``not_evaluable`` and
+    ``reason`` says why: unvalidated end bound, history under 24 h, a gap in the curve (a longer period is never presented
+    as one day) or only unvalidated points 24 h earlier. ``unvalidated_points`` counts the stale points in between."""
+    curve = [p for p in state.get("curve", []) if _finite(p.get("ts"))]
+    out = {"status": "not_evaluable", "reason": None, "pct": None, "from_ts": None, "to_ts": None, "window_s": None,
+           "target_s": DAY_S, "tolerance_s": DAY_TOLERANCE_S, "unvalidated_points": None}
+    if not curve:
+        return {**out, "reason": "aucune valorisation enregistrée"}
     end = curve[-1]
-    start = next((p for p in reversed(curve) if _finite(p.get("ts")) and p["ts"] <= end["ts"] - DAY_S), None)
-    if start is None or not _finite(start.get("equity")) or start["equity"] <= 0:
-        return None
-    return {"pct": 100 * (end["equity"] / start["equity"] - 1), "from_ts": start["ts"], "to_ts": end["ts"]}
+    out["to_ts"] = end["ts"]
+    if state.get("stale_marks") or not _finite(end.get("equity")):
+        return {**out, "reason": "valorisation de fin non validée"}
+    target = end["ts"] - DAY_S
+    if curve[0]["ts"] > target:
+        return {**out, "reason": f"historique de {_hours(end['ts'] - curve[0]['ts'])}, moins de 24 h"}
+    window = [p for p in curve if target - DAY_TOLERANCE_S <= p["ts"] <= target]
+    start = next((p for p in reversed(window) if _finite(p.get("equity")) and p["equity"] > 0), None)
+    if start is None:
+        if window:
+            return {**out, "reason": "aucune valorisation validée 24 h plus tôt (points non validés)"}
+        before = next(p for p in reversed(curve) if p["ts"] < target - DAY_TOLERANCE_S)
+        return {**out, "reason": f"trou dans la courbe : le point précédent date de {_hours(end['ts'] - before['ts'])}, "
+                                 "pas d'une journée mesurée"}
+    return {**out, "status": "measured", "pct": 100 * (end["equity"] / start["equity"] - 1), "from_ts": start["ts"],
+            "window_s": end["ts"] - start["ts"],
+            "unvalidated_points": sum(1 for p in curve if start["ts"] < p["ts"] < end["ts"] and not _finite(p.get("equity")))}
 
 
 def report(state, wallets):
@@ -623,7 +684,7 @@ def tick(hub, db, bus):
                 opened_now = set()
                 for oid in sorted(o for o, order in orders.items() if order["kind"] == "buy" and order["mint"] == mint):
                     key = orders[oid]["key"]
-                    _execute_buy(state, oid, orders[oid], point, network, now, executed, asset, guard, not state["stale_marks"])
+                    _execute_buy(state, oid, orders[oid], point, network, now, executed, asset, guard, not state["stale_marks"], fleet)
                     if key in state["positions"] and state["positions"][key].get("opened_at") == now:
                         opened_now.add(key)
                         marked.add(mint)
