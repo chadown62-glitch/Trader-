@@ -48,6 +48,10 @@ LEGACY_SNIPER_MAX_AGE_MINUTES = 3  # former fresh-pool rule, only for candidates
 # strictly older (a replayed snapshot is no evidence).
 MOMENTUM_MIN_GAP_S = 1
 MOMENTUM_MAX_GAP_S = 600
+# Dip hunter measures a pullback against the high seen over the last day: the horizon over which the session holds a lot
+# (MAX_HOLD_S, 24 h). An older high describes another market; the simulator then restarts the high from the current
+# observation. Fixed before any result (SPEC.md, campaign parameters).
+DIP_PEAK_MAX_AGE_S = 24 * 3600
 _SNIPER_FIELDS = ("price", "liquidity_usd", "volume_usd_per_min_m5", "buy_sell_count_ratio_m5", "ts")
 
 
@@ -127,8 +131,10 @@ def evaluate(client, asset, point, whale):
             and (point["buy_sell_count_ratio_m5"] or 0) > max(1, previous["buy_sell_count_ratio_m5"])
         ):
             signals.append("momentum")
+        peak_age = point["ts"] - asset["peak_ts"] if _number(asset.get("peak_ts")) and _number(point.get("ts")) else None
         if (
-            0.65 <= point["price"] / asset["peak"] <= 0.80
+            (peak_age is None or 0 <= peak_age <= DIP_PEAK_MAX_AGE_S)
+            and 0.65 <= point["price"] / asset["peak"] <= 0.80
             and point["liquidity_usd"] >= 0.95 * asset["peak_liquidity"]
             and (point["volume_usd_per_min_m5"] or 0) > 0
         ):
