@@ -30,8 +30,8 @@ from ..config import paper_capital
 from ..fleet import agents as fleet_agents, coordinator as fleet_coordinator
 from . import established_pools, memecoin_learner, smart_wallets
 from .dex import _rpc
-from .memecoin_strategies import (CALIBRATED, DEFAULT_PROFILE, PROFILES, PROFILES_VERSION, MemecoinIsolatedLearner, NAMES,
-                                  entry_confidence, evaluate, exit_decision)
+from .memecoin_strategies import (CALIBRATED, DEFAULT_PROFILE, DIP_PEAK_MAX_AGE_S, PROFILES, PROFILES_VERSION,
+                                  MemecoinIsolatedLearner, NAMES, entry_confidence, evaluate, exit_decision)
 from .net import SourceUnavailable
 
 KEY = "memecoin:paper-session:v1"
@@ -223,6 +223,26 @@ def quote(client, asset, now):
                  received_ms=received if isinstance(received, int) else None,  # missing: never fills an order
                  source_sha256=fingerprint if isinstance(fingerprint, str) else None, pool_sha256=pool_fingerprint(pair))
     return point
+
+
+# Market regime: memecoins move with SOL. When SOL loses 5 % or more over the last hour (a rare, market-wide shock for an
+# asset whose hourly moves are usually around 1 %), no new entry is decided or filled; exits are never blocked. Fixed
+# before any result (SPEC.md, campaign parameters). An unknown regime (missing data) blocks nothing and is recorded.
+REGIME_DROP_H1 = 0.05
+
+
+def market_regime(client):
+    """SOL regime from the deepest public WSOL/USDC pool: ``normal``, ``risk_off`` (1 h change at or below -5 %) or
+    ``unknown`` with the reason; the 1 h change is DexScreener's own, recorded as such."""
+    pairs = client.get("api.dexscreener.com", f"/token-pairs/v1/solana/{smart_wallets.WSOL}").json()
+    pools = [p for p in pairs if p["chainId"] == "solana" and p["baseToken"]["address"] == smart_wallets.WSOL
+             and p["quoteToken"]["address"] == "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"]
+    if not pools:
+        return {"status": "unknown", "reason": "cours SOL/USD indisponible"}
+    change = (max(pools, key=lambda p: float(p["liquidity"]["usd"])).get("priceChange") or {}).get("h1")
+    if not _finite(change):
+        return {"status": "unknown", "reason": "variation SOL sur 1 h non publiée"}
+    return {"status": "risk_off" if change <= -100 * REGIME_DROP_H1 else "normal", "sol_change_h1_pct": float(change)}
 
 
 def network_fee(client):
@@ -447,9 +467,17 @@ def _buy(state, mint, strategy, key, point, network, signals, learner, adaptive,
 
 
 def _observe(asset, point):
+    """Keep this observation as the asset's latest, and its high of the last ``DIP_PEAK_MAX_AGE_S`` (with its time): a
+    higher price, a first observation or a high older than that window restarts the high from this observation."""
     asset["last"] = point
-    asset["peak"] = max(asset.get("peak", 0), point["price"])
-    asset["peak_liquidity"] = max(asset.get("peak_liquidity", 0), point["liquidity_usd"])
+    ts = point.get("ts")
+    stale = _finite(ts) and _finite(asset.get("peak_ts")) and ts - asset["peak_ts"] > DIP_PEAK_MAX_AGE_S
+    if stale or "peak" not in asset or point["price"] >= asset["peak"]:
+        asset["peak"], asset["peak_ts"] = point["price"], ts
+        asset["peak_liquidity"] = point["liquidity_usd"] if stale else max(asset.get("peak_liquidity", 0), point["liquidity_usd"])
+    else:
+        asset["peak_liquidity"] = max(asset.get("peak_liquidity", 0), point["liquidity_usd"])
+        asset.setdefault("peak_ts", ts)  # a high recorded before its time was kept: its window starts now
 
 
 def process(state, mint, point, signals, network):
@@ -795,12 +823,15 @@ def watch_rotation(assets, priority):
     return sorted(candidates, key=lambda m: (assets[m].get("checked", 0), m))[:ROTATION]
 
 
-def entry_gate(state, now, network):
+def entry_gate(state, now, network, regime=None):
     """Written entry rule: entries need the network fee of this cycle, and no held lot whose valid quote has been missing
     for less than ``UNAVAILABLE_GRACE_S`` (a transient outage). A lot unavailable for longer no longer blocks entries:
     it stays open and re-quoted, and ``sizing_equity`` counts it for nothing."""
     if network is None:
         return {"open": False, "reason": "frais réseau indisponibles", "blocking": []}
+    if regime and regime.get("status") == "risk_off":
+        return {"open": False, "reason": f"régime de marché : SOL {regime['sol_change_h1_pct']:+.1f} % sur 1 h "
+                                         f"(seuil −{100 * REGIME_DROP_H1:.0f} %)", "blocking": []}
     blocking = sorted({p["mint"] for p in state["positions"].values()
                        if p["mint"] in set(state.get("stale_marks", [])) and now - p.get("unavailable_since", now) < UNAVAILABLE_GRACE_S})
     if blocking:
@@ -838,6 +869,11 @@ def tick(hub, db, bus):
     except SOURCE_ERRORS as exc:
         state["errors"].append(str(exc))
         network = None
+    try:
+        regime = market_regime(client) if assets else None
+    except SOURCE_ERRORS as exc:
+        regime = {"status": "unknown", "reason": str(exc)[:200]}
+    state["market_regime"] = regime
     winners = {m for m, a in assets.items() if a.get("winner") and not a.get("blocked")}
     held = {p["mint"] for p in state["positions"].values()}
     orders = state.setdefault("orders", {})
@@ -873,7 +909,7 @@ def tick(hub, db, bus):
     for pos in state["positions"].values():
         if pos["mint"] not in marked:
             pos.setdefault("unavailable_since", now)
-    gate = entry_gate(state, now, network)  # written rule: no entry while a lot's value is only transiently unknown
+    gate = entry_gate(state, now, network, regime)  # written rules: transient valuation outage, market regime
     # Phase 2: safety re-check, pending entries, then new decisions (filled on a later observation, never on this one).
     for mint, point in points.items():
         asset = assets[mint]
@@ -904,6 +940,8 @@ def tick(hub, db, bus):
                 for oid in sorted(o for o, order in orders.items() if order["kind"] == "buy" and order["mint"] == mint):
                     key = orders[oid]["key"]
                     _execute_buy(state, oid, orders[oid], point, network, now, executed, asset, guard, gate["open"], fleet)
+                    if not gate["open"] and oid in orders:
+                        orders[oid]["last_refusal"] = f"entrée suspendue : {gate['reason']}"  # the written rule that applied
                     if key in state["positions"] and state["positions"][key].get("opened_at") == now:
                         opened_now.add(key)
                         marked.add(mint)
@@ -931,12 +969,12 @@ def tick(hub, db, bus):
         _resolve(state, oid, "expired", "aucune cotation postérieure valide dans les 10 minutes", now)
     # Valuation after processing: a lot not re-marked on a fresh quote this tick is stale.
     state["stale_marks"] = sorted({p["mint"] for p in state["positions"].values()} - marked)
-    state["entry_gate"] = entry_gate(state, now, network)
+    state["entry_gate"] = entry_gate(state, now, network, regime)
     state["revision"] += 1
     state["curve"].append({"ts": now, "equity": None if state["stale_marks"] else equity(state),
                            "floor": sizing_equity(state), "last_known": known_equity(state)})
     status, _ = valuation(state)
-    trace.update(revision=state["revision"], ts=now, asset_domain=DOMAIN, network_fee_usd=network,
+    trace.update(revision=state["revision"], ts=now, asset_domain=DOMAIN, network_fee_usd=network, market_regime=regime,
                  decided=sorted(o for o, order in orders.items() if order["decided_at"] == now),
                  **state.pop("_cycle"),  # resolved orders and fleet decisions of this cycle, never capped
                  fills=state["fills"][start:], errors=state["errors"], curve_point=state["curve"][-1],
