@@ -31,7 +31,8 @@ from ..fleet import agents as fleet_agents, coordinator as fleet_coordinator
 from . import established_pools, memecoin_learner, smart_wallets
 from .dex import _rpc
 from .memecoin_strategies import (CALIBRATED, DEFAULT_PROFILE, DIP_PEAK_MAX_AGE_S, PROFILES, PROFILES_VERSION,
-                                  MemecoinIsolatedLearner, NAMES, entry_confidence, evaluate, exit_decision)
+                                  MemecoinIsolatedLearner, NAMES, entry_confidence, entry_signals, evaluate,
+                                  exit_decision)
 from .net import SourceUnavailable
 
 KEY = "memecoin:paper-session:v1"
@@ -812,8 +813,50 @@ def replay(rows):
     return out
 
 
+# What the journal keeps of a quote: its provenance and every input of the entry rules (memecoin_strategies.entry_signals).
+QUOTE_TRACE = ("received_ms", "pool_sha256", "source_sha256", "ts", "price", "liquidity_usd", "volume_h1_usd",
+               "volume_usd_per_min_m5", "buy_sell_count_ratio_m5", "pool_age_minutes")
+PREVIOUS_TRACE = ("ts", "price", "liquidity_usd", "volume_usd_per_min_m5", "buy_sell_count_ratio_m5")
+
+
 def _quote_trace(point):
-    return {k: point.get(k) for k in ("received_ms", "pool_sha256", "source_sha256", "price", "liquidity_usd", "volume_h1_usd")}
+    return {k: point.get(k) for k in QUOTE_TRACE}
+
+
+def _signal_inputs(asset):
+    """Everything ``entry_signals`` reads besides the quote itself, as seen when the signals were evaluated: the M58
+    admission, the recent high and the previous observation. Each journal row is then auditable on its own."""
+    last = asset.get("last")
+    return {"m58": bool(asset.get("dex_id")), "peak": asset.get("peak"), "peak_ts": asset.get("peak_ts"),
+            "peak_liquidity": asset.get("peak_liquidity"),
+            "previous": {k: last.get(k) for k in PREVIOUS_TRACE} if isinstance(last, dict) else None}
+
+
+def audit_signals(rows):
+    """Re-derive every entry signal of the journal from the journal alone (``entry_signals`` on the journaled quote and
+    inputs, then ``tradable_signals``), for the evaluations the Guardian allowed. ``whale_tail`` follows the tracked
+    wallets, which the journal does not hold: it is left out of the comparison. Rows recorded before the inputs were
+    journaled are counted as unverifiable, never as matches."""
+    out = {"checked": 0, "matched": 0, "mismatches": [], "unverifiable": 0}
+    for row in rows:
+        for mint, ev in row.get("evaluations", {}).items():
+            if not ev.get("allowed"):
+                continue
+            quote, inputs = row.get("quotes", {}).get(mint) or {}, ev.get("inputs")
+            if inputs is None or "volume_usd_per_min_m5" not in quote:
+                out["unverifiable"] += 1
+                continue
+            asset = {"dex_id": "m58" if inputs["m58"] else None, "last": inputs["previous"], "peak": inputs["peak"],
+                     "peak_ts": inputs["peak_ts"], "peak_liquidity": inputs["peak_liquidity"]}
+            derived = set(tradable_signals(asset, entry_signals(asset, dict(quote))))
+            journaled = set(ev.get("signals", [])) - {"whale_tail"}
+            out["checked"] += 1
+            if derived == journaled:
+                out["matched"] += 1
+            else:
+                out["mismatches"].append({"revision": row.get("revision"), "mint": mint, "journaled": sorted(journaled),
+                                          "derived": sorted(derived)})
+    return out
 
 
 def watch_rotation(assets, priority):
@@ -915,11 +958,13 @@ def tick(hub, db, bus):
         asset = assets[mint]
         try:
             previous = asset.get("last") or {}
+            inputs = _signal_inputs(asset)  # before the signals are evaluated and before this observation is kept
             signals, guard = evaluate(client, asset, point, False)
             signals = tradable_signals(asset, signals)
             trace["evaluations"][mint] = {"signals": sorted(signals), "allowed": bool(guard.get("allowed")),
                                           "vetoes": [v.get("code") for v in guard.get("vetoes", [])],
-                                          "gap_s": point["ts"] - previous["ts"] if _finite(previous.get("ts")) else None}
+                                          "gap_s": point["ts"] - previous["ts"] if _finite(previous.get("ts")) else None,
+                                          "inputs": inputs}
             asset["blocked"] = not guard["allowed"]
             if not guard["allowed"]:
                 winners.discard(mint)

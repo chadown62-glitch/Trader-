@@ -113,6 +113,13 @@ def evaluate(client, asset, point, whale):
     guard = assess_candidate(client, TokenId("solana", asset["symbol"]), point["liquidity_usd"], **depth)
     if not guard["allowed"]:
         return [], guard  # the anti-rug veto comes first: no signal at all
+    return entry_signals(asset, point, whale), guard
+
+
+def entry_signals(asset, point, whale=False):
+    """The entry signals of an observation the Guardian allowed, from the observation, the previous one kept in
+    ``asset["last"]``, the recent high (``peak``, ``peak_ts``, ``peak_liquidity``) and whether the pool was admitted by
+    M58 (``dex_id``). Pure and deterministic: an audit re-derives the same signals from the journal alone."""
     previous = asset.get("last")
     signals = []
     if asset.get("dex_id"):  # an established pool admitted by M58: a verified acceleration between two observations
@@ -141,7 +148,7 @@ def evaluate(client, asset, point, whale):
             signals.append("dip_hunter")
     if whale:
         signals.append("whale_tail")
-    return signals, guard
+    return signals
 
 
 # -- asymmetric exits -----------------------------------------------------------------------------------------------
