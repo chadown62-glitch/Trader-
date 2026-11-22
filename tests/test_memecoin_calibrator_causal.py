@@ -6,9 +6,10 @@ fictitious fill on the observation of step T+1, as in the paper session since #9
 - a missing or illiquid next quote sells nothing: no fictitious proceeds, the order waits;
 - the vectorised replay and the scalar reference agree on every path, gaps included, and no decision reads a later
   observation;
-- calibration-v1 (immediate contract) is kept as it was; the causal calibration selects other parameters and is
-  recorded as calibration-v2-causal, without promotion; the negative scenarios are kept and their degradation stays
-  visible. Synthetic regimes, offline, deterministic, paper only."""
+- calibration-v1 (immediate contract) is kept as it was; the causal calibration without the entry drift guard selects
+  other parameters and is recorded as calibration-v2-causal, without promotion; the negative scenarios are kept and
+  their degradation stays visible. calibration-v2-causal is reproduced with ``entry_drift=None`` (the session's drift
+  guard came later, see tests/test_memecoin_calibrator_drift.py). Synthetic regimes, offline, deterministic, paper only."""
 
 import math
 
@@ -164,7 +165,7 @@ def test_an_unknown_contract_is_refused():
 # -- 5. new version, no promotion, negative scenarios kept --------------------------------------------------------------
 @pytest.fixture(scope="module")
 def causal():
-    cal = C.MemecoinCalibrator()
+    cal = C.MemecoinCalibrator(entry_drift=None)  # calibration-v2-causal, reproduced as it was made
     return cal.calibrate(), cal.compare(ms.CALIBRATED, ms.KELLY_MULTIPLIER)
 
 
@@ -198,7 +199,7 @@ def test_negative_scenarios_are_kept_and_their_degradation_stays_visible(causal)
     all_rugs = {n: {"masked_rug": 1.0} for n in ms.NAMES}
     for seed in (101, 102):
         p = C.generate(seed, mixes=all_rugs)
-        run = C.portfolio(p, C.replay(p, ms.CALIBRATED)[0], multiplier=ms.KELLY_MULTIPLIER)
+        run = C.portfolio(p, C.replay(p, ms.CALIBRATED, entry_drift=None)[0], multiplier=ms.KELLY_MULTIPLIER)
         assert run["worst_equity_ratio"] >= 0.6 and run["compound_return"] > -0.4
     stress = cmp["rug_stress"]["after"]
     assert stress["worst_equity_ratio"]["min"] >= 0.5
