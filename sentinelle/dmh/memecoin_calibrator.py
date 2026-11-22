@@ -611,14 +611,18 @@ MATURITY_STEPS = memecoin_learner.MATURITY_S // 60  # one step = one minute
 SESSION_LOSS_STOP = RiskCommander.MEMECOIN_MAX_SESSION_LOSS
 
 
-def session_stake(*, equity, known, cash, strategy_used, exposed, fraction, weight, multiplier, network, profile=None) -> float:
+EXPLORATIONS = ("session", "bounded")  # bounded: report-only variant of iteration 7, never applied to the session
+
+
+def session_stake(*, equity, known, cash, strategy_used, exposed, fraction, weight, multiplier, network, profile=None,
+                  explore: bool = True) -> float:
     """Stake of a new fictitious lot exactly as ``memecoin_simulator._buy`` computes it (0 when none is opened): Kelly
     target x budget weight x adaptive multiplier x the profile's stake scale, never under the exploration floor, within
     the token cap, the strategy budget, the cash reserve and (when the reserve does not imply it) the exposure cap.
     ``equity`` is the sizing equity (unquoted lots count for nothing), ``known`` the known equity or ``None``."""
     profile = profile or ms.PROFILES[ms.DEFAULT_PROFILE]
     desired = equity * fraction * weight * multiplier * profile.stake_scale
-    floor = memecoin_learner.exploration_floor(equity, multiplier)
+    floor = memecoin_learner.exploration_floor(equity, multiplier) if explore else 0.0  # explore=False: variant only
     limits = [max(desired, floor), profile.token_cap * equity, equity * weight - strategy_used,
               cash - profile.cash_reserve * max(equity, known or equity)]
     if profile.max_exposure + profile.cash_reserve < 1 - 1e-9:
@@ -627,7 +631,7 @@ def session_stake(*, equity, known, cash, strategy_used, exposed, fraction, weig
     return 0.0 if size <= network * 2 or size < 0.05 else size
 
 
-def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, lots: LotPaths) -> dict:
+def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, lots: LotPaths, exploration: str = "session") -> dict:
     """Overlapping portfolio sized like the paper session (see ``session_stake``): open lots are valued at their
     liquidation value, partial proceeds are cash when sold, the adaptive multiplier learns from closed lots and from open
     lots that are mature or partially sold, no entry beyond the fleet's session-loss stop or with 12 open lots."""
@@ -680,8 +684,11 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
         evaluated = [{"strategy": open_[j][2], "return": lots.realized[j, e] + lots.remaining[j, e] * lots.ratio[j, e] - 1,
                       "open": True, "opened_at": open_[j][0], "asset_domain": ASSET_DOMAIN}
                      for j, (e, mark, _) in held.items() if math.isfinite(mark) and (e >= MATURITY_STEPS or lots.stage[j, e] >= 1)]
-        adaptive = memecoin_learner.multipliers(completed, evaluated)[name]["multiplier"]
-        size = session_stake(equity=eq, known=known, cash=cash, exposed=sum(m for _, m, _ in held.values() if math.isfinite(m)),
+        learned = memecoin_learner.multipliers(completed, evaluated)[name]
+        adaptive = learned["multiplier"]
+        # "bounded" (iteration 7, report only): the floor explores only until the minimal sample exists
+        explore = exploration == "session" or learned["evaluated_lots"] < memecoin_learner.MIN_TRADES
+        size = session_stake(explore=explore, equity=eq, known=known, cash=cash, exposed=sum(m for _, m, _ in held.values() if math.isfinite(m)),
                              strategy_used=sum(b for j, (_, _, b) in held.items() if open_[j][2] == name),
                              fraction=learner.fractions[name], weight=learner.weights[name], multiplier=adaptive,
                              network=float(paths.network[i, 1]))
@@ -730,6 +737,7 @@ class MemecoinCalibrator:
     arrival_gap: float | None = ARRIVAL_GAP_MIN  # None: sequential portfolio of calibration-v1 to v3
     costs: Costs = NOMINAL  # every recorded version uses the nominal costs
     sizing: str = "session"  # overlapping portfolio only: "session" (memecoin_simulator._buy) or "learner" (v4)
+    exploration: str = "session"  # session sizing only: "session" (exact rule) or "bounded" (iteration 7, report only)
 
     def __post_init__(self):
         self.grid = self.grid or GRID
@@ -738,6 +746,8 @@ class MemecoinCalibrator:
             raise ValueError("le portefeuille à positions simultanées exige le contrat causal")
         if self.sizing not in SIZINGS:
             raise ValueError(f"dimensionnement inconnu : {self.sizing}")
+        if self.exploration not in EXPLORATIONS:
+            raise ValueError(f"règle d'exploration inconnue : {self.exploration}")
 
     @property
     def _session_sizing(self):
@@ -755,7 +765,8 @@ class MemecoinCalibrator:
     def _portfolio(self, paths, replayed, multiplier, legacy=False):
         r, steps, lots = replayed
         if self._session_sizing and not legacy:  # the legacy baseline keeps its own sizing
-            return _portfolio_session(paths, r, multiplier=multiplier, close_steps=steps, arrival_gap=self.arrival_gap, lots=lots)
+            return _portfolio_session(paths, r, multiplier=multiplier, close_steps=steps, arrival_gap=self.arrival_gap, lots=lots,
+                                      exploration=self.exploration)
         return portfolio(paths, r, multiplier=multiplier, legacy=legacy, close_steps=steps, arrival_gap=self.arrival_gap)
 
     def _paths(self, seeds, mixes=MIXES):
@@ -789,7 +800,9 @@ class MemecoinCalibrator:
         return {"asset_domain": ASSET_DOMAIN, "execution": self.execution, "entry_drift": self.entry_drift,
                 "arrival_gap": self.arrival_gap, "costs": asdict(self.costs),
                 "sizing": self.sizing if self.arrival_gap is not None else "learner",
-                "version": calibration_version(self.execution, self.entry_drift, self.arrival_gap, self.sizing)
+                "exploration": self.exploration if self._session_sizing else None,
+                "version": ("variant-bounded-exploration" if self._session_sizing and self.exploration != "session"
+                            else calibration_version(self.execution, self.entry_drift, self.arrival_gap, self.sizing))
                 if self.costs == NOMINAL else "unrecorded-costs",
                 "selected": {k: v for k, v in best.items() if k != "_policy"},
                 "candidates": [{k: v for k, v in c.items() if k != "_policy"} for c in candidates],
@@ -803,6 +816,7 @@ class MemecoinCalibrator:
         for label, costs in (scenarios or COST_SCENARIOS).items():
             cal = MemecoinCalibrator(execution=self.execution, entry_drift=self.entry_drift, arrival_gap=self.arrival_gap,
                                      paths_per_strategy=self.paths_per_strategy, costs=costs, sizing=self.sizing,
+                                     exploration=self.exploration,
                                      calibration_seeds=tuple(seeds or self.calibration_seeds))
             sets, stress = cal._paths(cal.calibration_seeds), cal._paths(cal.calibration_seeds, RUG_STRESS)
             replayed, stressed = [cal._replayed(p, policy) for p in sets], [cal._replayed(p, policy) for p in stress]
@@ -827,9 +841,12 @@ class MemecoinCalibrator:
                 run = self._portfolio(p, replayed, m)
                 rows.setdefault(m, []).append({"seed": seed, "worst_equity_ratio": run["worst_equity_ratio"],
                                                "max_drawdown": run["max_drawdown"]})
-        return {m: {"seeds": r, "failures": sum(x["worst_equity_ratio"] < MIN_STRESS_EQUITY for x in r),
-                    "failure_rate": sum(x["worst_equity_ratio"] < MIN_STRESS_EQUITY for x in r) / len(r),
-                    "worst": min(x["worst_equity_ratio"] for x in r)} for m, r in rows.items()}
+        out = {}
+        for m, r in rows.items():
+            failures = int(sum(bool(x["worst_equity_ratio"] < MIN_STRESS_EQUITY) for x in r))
+            out[m] = {"seeds": r, "failures": failures, "failure_rate": failures / len(r),
+                      "worst": float(min(x["worst_equity_ratio"] for x in r))}
+        return out
 
     def compare(self, policy, multiplier: float) -> dict:
         """Legacy session (thresholds AND learner) vs the given setting, on HELD-OUT seeds: normal mix, intense rug-pull
@@ -908,6 +925,15 @@ RECORDED_SELECTIONS = {
         "policy": _policy_dict(ms.ExitPolicy(0.20, 1.25, 0.20, (3.0, 6.0, 10.0), 0.25, 0.35, 0.15)),
         "development": {"compound_return_median": 232.8922, "max_drawdown_max": 0.3291, "stress_worst_equity_min": 0.6595},
     },
+    # Iteration 9 (report only): what the calibration would select if a human adopted the bounded-exploration variant.
+    # A variant label, never a version of the session; nothing is promoted.
+    "variant-bounded-exploration": {
+        "execution": "causal", "entry_drift": SESSION_ENTRY_DRIFT, "arrival_gap": ARRIVAL_GAP_MIN, "sizing": "session",
+        "exploration": "bounded", "in_session": False, "kelly_multiplier": 0.25,
+        "policy": _policy_dict(ms.ExitPolicy(0.20, 1.25, 0.20, (3.0, 6.0, 10.0), 0.25, 0.30, 0.15)),
+        "development": {"compound_return_median": 27.2102, "max_drawdown_max": 0.3627, "stress_worst_equity_min": 0.7416},
+        "robustness": {"failures": 0, "worst_equity_ratio": 0.6266},
+    },
 }
 
 # Survival of CALIBRATED in the rug-pull stress mix over ROBUSTNESS_SEEDS (report only, brain v2 iteration 4): seeds whose
@@ -921,4 +947,12 @@ RECORDED_SURVIVAL = {
     # it triggers keep moving); without the exploration floor there is none (report-only decomposition).
     "calibration-v5-session-sizing": {0.10: (), 0.25: (14, 15, 16, 19, 21, 24, 27, 28, 31),
                                       0.50: (14, 15, 16, 17, 19, 20, 21, 24, 25, 26, 27, 28, 31, 32)},
+    # iteration 7, report-only variant "bounded" (the floor explores only below memecoin_learner.MIN_TRADES evaluated
+    # lots): no failure. A candidate for human review, never applied to the session.
+    "variant-bounded-exploration": {0.10: (), 0.25: (), 0.50: ()},
 }
+# Iteration 8 (report only): survival under the session's stakes at other signal cadences (minutes between signals), 20
+# robustness seeds, failures at quarter / half Kelly. The iteration-6 finding holds from 20 to 120 min; at 5 min the
+# 12-lot fleet limit caps the exposure. Pre-registered criterion (>= 5 failures at half Kelly for 20, 60 and 120 min): met.
+RECORDED_CADENCE = {"session": {5.0: (1, 2), 20.0: (9, 14), 60.0: (10, 12), 120.0: (9, 13)},
+                    "bounded": {5.0: (0, 1), 20.0: (0, 0), 60.0: (0, 0), 120.0: (0, 0)}}
