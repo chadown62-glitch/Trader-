@@ -34,7 +34,7 @@ from . import established_pools, memecoin_learner, smart_wallets
 from .dex import _rpc
 from .memecoin_strategies import (CALIBRATED, DEFAULT_PROFILE, DIP_PEAK_MAX_AGE_S, MOMENTUM_MAX_GAP_S, PROFILES,
                                   PROFILES_VERSION, SNIPER_MAX_GAP_S, MemecoinIsolatedLearner, NAMES, entry_confidence,
-                                  entry_signals, evaluate, exit_decision, route)
+                                  entry_signals, evaluate, exit_decision, reception_gap, route)
 from .net import SourceUnavailable
 
 KEY = "memecoin:paper-session:v1"
@@ -616,6 +616,9 @@ def _execute_buy(state, oid, order, point, network, now, executed, asset, guard,
         return _resolve(state, oid, "duplicate", "déjà exécuté avant la reprise", now)
     if now - order["decided_at"] > ORDER_TTL_S:
         return _resolve(state, oid, "expired", "aucune cotation postérieure valide dans les 10 minutes", now)
+    late = reception_gap(point, order["decision"])
+    if late is not None and late > ORDER_TTL_S:  # the 10 minutes hold on reception times too (an entry only)
+        return _resolve(state, oid, "expired", f"cotation reçue {late:.0f} s après celle de la décision (plus de 10 minutes)", now)
     if order["key"] in state["positions"]:
         return _resolve(state, oid, "cancelled", "lot déjà ouvert", now)
     if not guard.get("allowed"):
@@ -857,7 +860,7 @@ def replay(rows):
 # What the journal keeps of a quote: its provenance and every input of the entry rules (memecoin_strategies.entry_signals).
 QUOTE_TRACE = ("received_ms", "pool_sha256", "source_sha256", "ts", "price", "liquidity_usd", "volume_h1_usd",
                "volume_usd_per_min_m5", "buy_sell_count_ratio_m5", "pool_age_minutes")
-PREVIOUS_TRACE = ("ts", "price", "liquidity_usd", "volume_usd_per_min_m5", "buy_sell_count_ratio_m5")
+PREVIOUS_TRACE = ("ts", "received_ms", "price", "liquidity_usd", "volume_usd_per_min_m5", "buy_sell_count_ratio_m5")
 
 
 def _quote_trace(point):
@@ -1132,6 +1135,7 @@ def tick(hub, db, bus):
             trace["evaluations"][mint] = {"signals": sorted(signals), "allowed": bool(guard.get("allowed")),
                                           "vetoes": [v.get("code") for v in guard.get("vetoes", [])],
                                           "gap_s": point["ts"] - previous["ts"] if _finite(previous.get("ts")) else None,
+                                          "reception_gap_s": reception_gap(point, previous),
                                           "inputs": inputs}
             asset["blocked"] = not guard["allowed"]
             if not guard["allowed"]:
