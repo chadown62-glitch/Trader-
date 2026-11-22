@@ -82,7 +82,7 @@ def test_vectorised_and_scalar_replays_agree_with_the_guard(seed, mixes):
 # -- calibration under the session's own contract ----------------------------------------------------------------------
 @pytest.fixture(scope="module")
 def v3():
-    cal = C.MemecoinCalibrator()
+    cal = C.MemecoinCalibrator(arrival_gap=None)  # calibration-v3-causal-drift, sequential portfolio as it was made
     return cal, cal.calibrate(), cal.compare(ms.CALIBRATED, ms.KELLY_MULTIPLIER)
 
 

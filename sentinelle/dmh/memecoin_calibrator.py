@@ -32,12 +32,14 @@ These are synthetic regimes built from assumptions: a calibrated setting is a pr
 """
 from __future__ import annotations
 
+import heapq
 import itertools
 import math
 from dataclasses import asdict, dataclass
 
 import numpy as np
 
+from ..fleet.agents import RiskCommander
 from . import memecoin_strategies as ms
 from .memecoin_simulator import MAX_ENTRY_DRIFT as SESSION_ENTRY_DRIFT  # the session's own guard, not a new parameter
 
@@ -83,15 +85,21 @@ MAX_DRAWDOWN = 0.40  # survival constraints of the selection
 MIN_STRESS_EQUITY = 0.50  # the worst equity in the rug-pull stress set must stay above 50 % of the initial capital
 EXECUTIONS = ("causal", "immediate")  # see the module docstring; "causal" is the contract of the paper session (#91)
 NO_ENTRY = 5  # reason code of a path whose entry could not be filled (no finite observation after the signal)
-# Results are versioned, never rewritten: (execution contract, entry drift guard) -> version of the calibration results.
-CALIBRATION_VERSIONS = {("immediate", None): "calibration-v1", ("causal", None): "calibration-v2-causal",
-                        ("causal", SESSION_ENTRY_DRIFT): "calibration-v3-causal-drift"}
+# Overlapping portfolio (see ``portfolio``): the paper session holds at most MAX_OPEN_LOTS lots at once (fleet limit) and
+# its learner only sees closed trades. One signal every ARRIVAL_GAP_MIN minutes, fixed before any result: the cadence at
+# which the 12-lot limit is exactly reached when every trade lasts the whole horizon.
+MAX_OPEN_LOTS = RiskCommander.MEMECOIN_MAX_OPEN
+ARRIVAL_GAP_MIN = STEPS / MAX_OPEN_LOTS
+# Results are versioned, never rewritten: (execution contract, entry drift guard, arrival gap) -> calibration results.
+CALIBRATION_VERSIONS = {("immediate", None, None): "calibration-v1", ("causal", None, None): "calibration-v2-causal",
+                        ("causal", SESSION_ENTRY_DRIFT, None): "calibration-v3-causal-drift",
+                        ("causal", SESSION_ENTRY_DRIFT, ARRIVAL_GAP_MIN): "calibration-v4-overlap"}
 
 
-def calibration_version(execution: str, entry_drift: float | None) -> str:
+def calibration_version(execution: str, entry_drift: float | None, arrival_gap: float | None = None) -> str:
     _check_execution(execution)
-    key = (execution, None if execution == "immediate" else entry_drift)
-    return CALIBRATION_VERSIONS.get(key, f"unrecorded-{execution}-drift-{entry_drift}")
+    key = (execution, None if execution == "immediate" else entry_drift, arrival_gap)
+    return CALIBRATION_VERSIONS.get(key, f"unrecorded-{execution}-drift-{entry_drift}-gap-{arrival_gap}")
 
 
 # -- market paths ---------------------------------------------------------------------------------------------------
@@ -239,6 +247,7 @@ def _replay_causal(R, policy, stop, legacy):
     entered = np.isfinite(R[:, 1]) if steps > 1 else np.zeros(n, bool)
     remaining, realized, high = np.ones(n), np.zeros(n), np.ones(n)
     stage, reason = np.zeros(n, int), np.zeros(n, int)
+    closed_at = np.full(n, steps - 1)  # step of the fill that closed the lot; the last observation otherwise
     open_ = entered.copy()
     pending, p_full, p_tier, p_share, p_reason = (np.zeros(n, bool), np.zeros(n, bool), np.zeros(n, bool), np.zeros(n),
                                                   np.zeros(n, int))
@@ -253,6 +262,7 @@ def _replay_causal(R, policy, stop, legacy):
         reason = np.where(fill & p_full, p_reason, reason)
         closed = fill & (p_full | (remaining <= 1e-9))
         reason = np.where(closed & ~p_full, 4, reason)
+        closed_at = np.where(closed, t, closed_at)
         open_ &= ~closed
         pending &= ~fill
         judge = open_ & ~pending & seen  # a lot with a pending sale is not judged again
@@ -267,19 +277,23 @@ def _replay_causal(R, policy, stop, legacy):
     final = np.nan_to_num(R[:, -1], nan=0.0) if steps > 2 else np.zeros(n)
     realized += remaining * np.where(open_, np.maximum(final, 0.0), 0.0)  # sold at the last observation, 0 if missing
     out = realized - 1.0
-    return np.where(entered, out, np.nan), np.where(entered, reason, NO_ENTRY)
+    return np.where(entered, out, np.nan), np.where(entered, reason, NO_ENTRY), closed_at
 
 
 def replay(paths: Paths, policy, size=REFERENCE_SIZE, *, legacy: bool = False, stop_override: float | None = None, matrix=None,
-           execution: str = "causal", entry_drift: float | None = SESSION_ENTRY_DRIFT):
+           execution: str = "causal", entry_drift: float | None = SESSION_ENTRY_DRIFT, with_steps: bool = False):
     """Vectorised replay of an exit policy on all paths. Returns per-trade return and exit reasons (codes): 0 end of
-    path, 1 stop, 2 trailing, 3 break-even, 4 tiers exhausted, 5 entry never filled (return NaN, not a trade)."""
+    path, 1 stop, 2 trailing, 3 break-even, 4 tiers exhausted, 5 entry never filled (return NaN, not a trade).
+    ``with_steps`` (causal contract only) also returns the step at which each lot is closed."""
     _check_execution(execution)
     n = len(paths.strategy)
     R = ratios(paths, size, execution, entry_drift) if matrix is None else matrix
     stop = (stop_override if stop_override is not None else (ms.LEGACY["stop_loss"] if legacy else policy.stop_loss))
     if execution == "causal":
-        return _replay_causal(R, policy, stop, legacy)
+        out, reason, closed_at = _replay_causal(R, policy, stop, legacy)
+        return (out, reason, closed_at) if with_steps else (out, reason)
+    if with_steps:
+        raise ValueError("les pas de clôture ne sont fournis que pour le contrat causal")
     remaining = np.ones(n)  # share of the position still held
     realized = np.zeros(n)  # proceeds as a multiple of the basis
     high = np.ones(n)
@@ -388,6 +402,17 @@ def trade_return(price, liquidity, network, size, policy=ms.CALIBRATED, executio
     return realized - 1.0, events
 
 
+def close_step(events: list, horizon: int) -> int:
+    """Step at which a causal trade replayed by ``trade_return`` is closed: the fill that leaves nothing, otherwise the
+    last observation of a horizon of ``horizon`` observations (mirrors the steps returned by ``replay(with_steps=True)``)."""
+    remaining = 1.0
+    for e in events:
+        remaining -= remaining * e[2]
+        if e[2] >= 1.0 or remaining <= 1e-9:
+            return e[0]
+    return horizon - 1
+
+
 def policies(grid: dict = GRID):
     keys = list(grid)
     for values in itertools.product(*(grid[k] for k in keys)):
@@ -419,12 +444,22 @@ def legacy_fractions(completed: list) -> tuple[dict, dict]:
     return fractions, {name: score / sum(scores.values()) for name, score in scores.items()}
 
 
-def portfolio(paths: Paths, returns: np.ndarray, *, multiplier: float, legacy: bool = False, dynamic: bool = True) -> dict:
-    """Sequential compounding portfolio of 30 USD: one trade per path, sized with the learner of memecoin_strategies.
+def portfolio(paths: Paths, returns: np.ndarray, *, multiplier: float, legacy: bool = False, dynamic: bool = True,
+              close_steps=None, arrival_gap: float | None = None) -> dict:
+    """Compounding portfolio of 30 USD: one trade per path, sized with the learner of memecoin_strategies.
 
     ``returns`` are the per-trade net returns of the exit policy (``replay`` at the reference size: for these order sizes
     the 1 % minimum impact dominates, so the return barely depends on the size). ``legacy`` sizes like the paper session
-    (Kelly fraction x weight); otherwise ``learner.size`` adds confidence, liquidity and the impact cap."""
+    (Kelly fraction x weight); otherwise ``learner.size`` adds confidence, liquidity and the impact cap.
+
+    Sequential (``arrival_gap`` None, calibration-v1 to v3): each trade is closed before the next one is sized.
+    Overlapping (``arrival_gap`` and ``close_steps`` given): signal i arrives at ``i * arrival_gap`` minutes and its trade
+    closes ``close_steps[i]`` minutes later; at each arrival only the trades closed by then are realized and seen by the
+    learner, open lots count at their cost, the stake is bounded by the free cash and the 25 % reserve, and a signal met
+    with MAX_OPEN_LOTS open lots is not taken (fleet limit). Drawdown is measured on the realized equity."""
+    if arrival_gap is not None:
+        return _portfolio_overlapping(paths, returns, multiplier=multiplier, legacy=legacy, dynamic=dynamic,
+                                      close_steps=close_steps, arrival_gap=arrival_gap)
     equity, peak, worst, max_dd = INITIAL, INITIAL, INITIAL, 0.0
     completed, pnl, curve = [], [], [INITIAL]
     for i in range(len(paths.strategy)):
@@ -460,6 +495,59 @@ def portfolio(paths: Paths, returns: np.ndarray, *, multiplier: float, legacy: b
             "trades": len(pnl), "by_strategy": by}
 
 
+def _stake(paths, i, name, equity, completed, multiplier, legacy, dynamic):
+    if legacy:
+        fractions, weights = legacy_fractions(completed if dynamic else [])
+        return equity * fractions[name] * weights[name]
+    learner = ms.MemecoinIsolatedLearner(completed if dynamic else [], multiplier=multiplier)
+    return learner.size(name, equity, confidence_score=float(paths.confidence[i]), liquidity_usd=float(paths.liquidity[i, 0]))
+
+
+def _portfolio_overlapping(paths, returns, *, multiplier, legacy, dynamic, close_steps, arrival_gap) -> dict:
+    if close_steps is None:
+        raise ValueError("un portefeuille à positions simultanées exige les pas de clôture du rejeu causal")
+    equity, peak, worst, max_dd = INITIAL, INITIAL, INITIAL, 0.0
+    completed, pnl, open_lots, refused = [], [], [], 0  # open_lots: heap of (close time, path index, stake, return, name)
+
+    def realize(until):
+        nonlocal equity, peak, worst, max_dd
+        while open_lots and open_lots[0][0] <= until:
+            _, _, stake, r, name = heapq.heappop(open_lots)
+            equity += stake * r
+            pnl.append(stake * r)
+            completed.append({"strategy": name, "return": r, "asset_domain": ASSET_DOMAIN})
+            peak, worst = max(peak, equity), min(worst, equity)
+            max_dd = max(max_dd, 1 - equity / peak)
+
+    for i in range(len(paths.strategy)):
+        r = float(returns[i])
+        if not math.isfinite(r):  # the entry was never filled: no trade, nothing spent
+            continue
+        now = i * arrival_gap
+        realize(now)  # only what is closed by now is known
+        if len(open_lots) >= MAX_OPEN_LOTS:
+            refused += 1
+            continue
+        name = ms.NAMES[int(paths.strategy[i])]
+        cash = equity - sum(lot[2] for lot in open_lots)
+        size = _stake(paths, i, name, equity, completed, multiplier, legacy, dynamic)
+        size = min(size, 0.10 * equity, cash - 0.25 * INITIAL if cash > 0.25 * INITIAL else 0.0)
+        if size < 0.05 or size <= 2 * paths.network[i, 0]:
+            continue
+        heapq.heappush(open_lots, (now + float(close_steps[i]), i, size, r, name))
+    realize(math.inf)
+    pnl = np.array(pnl)
+    wins, losses = pnl[pnl > 0].sum(), -pnl[pnl < 0].sum()
+    by = {}
+    for name in ms.NAMES:
+        rows = [c["return"] for c in completed if c["strategy"] == name]
+        by[name] = {"trades": len(rows), "mean_return": float(np.mean(rows)) if rows else None,
+                    "win_rate": float(np.mean([x > 0 for x in rows])) if rows else None}
+    return {"compound_return": equity / INITIAL - 1, "final_equity": equity, "profit_factor": float(wins / losses) if losses > 0 else None,
+            "win_rate": float(np.mean(pnl > 0)) if len(pnl) else None, "max_drawdown": max_dd, "worst_equity_ratio": worst / INITIAL,
+            "trades": len(pnl), "by_strategy": by, "refused_open_lots": refused}
+
+
 def _summary(results: list[dict]) -> dict:
     keys = ("compound_return", "profit_factor", "win_rate", "max_drawdown", "worst_equity_ratio")
     out = {}
@@ -483,10 +571,23 @@ class MemecoinCalibrator:
     asset_domain: str = ASSET_DOMAIN
     execution: str = "causal"  # "immediate" reproduces calibration-v1 (see the module docstring)
     entry_drift: float | None = SESSION_ENTRY_DRIFT  # None reproduces calibration-v2-causal
+    arrival_gap: float | None = ARRIVAL_GAP_MIN  # None: sequential portfolio of calibration-v1 to v3
 
     def __post_init__(self):
         self.grid = self.grid or GRID
         _check_execution(self.execution)
+        if self.arrival_gap is not None and self.execution != "causal":
+            raise ValueError("le portefeuille à positions simultanées exige le contrat causal")
+
+    def _replayed(self, paths, policy, legacy=False):
+        """(returns, closing steps or None) of one batch under this calibrator's contract."""
+        out = replay(paths, policy, legacy=legacy, execution=self.execution, entry_drift=self.entry_drift,
+                     with_steps=self.arrival_gap is not None)
+        return out[0], (out[2] if self.arrival_gap is not None else None)
+
+    def _portfolio(self, paths, replayed, multiplier, legacy=False):
+        r, steps = replayed
+        return portfolio(paths, r, multiplier=multiplier, legacy=legacy, close_steps=steps, arrival_gap=self.arrival_gap)
 
     def _paths(self, seeds, mixes=MIXES):
         return [generate(s, mixes=mixes, paths_per_strategy=self.paths_per_strategy) for s in seeds]
@@ -504,11 +605,11 @@ class MemecoinCalibrator:
         ranked.sort(key=lambda x: (-x[0], str(x[1])))
         candidates = []
         for g, _, pol in ranked[: self.top_exits]:
-            cal_r = [replay(p, pol, execution=self.execution, entry_drift=self.entry_drift)[0] for p in cal]
-            stress_r = [replay(p, pol, execution=self.execution, entry_drift=self.entry_drift)[0] for p in stress]
+            cal_r = [self._replayed(p, pol) for p in cal]
+            stress_r = [self._replayed(p, pol) for p in stress]
             for m in self.kelly_grid:
-                runs = [portfolio(p, r, multiplier=m) for p, r in zip(cal, cal_r)]
-                worst = [portfolio(p, r, multiplier=m) for p, r in zip(stress, stress_r)]
+                runs = [self._portfolio(p, r, m) for p, r in zip(cal, cal_r)]
+                worst = [self._portfolio(p, r, m) for p, r in zip(stress, stress_r)]
                 s, st = _summary(runs), _summary(worst)
                 ok = s["max_drawdown"]["max"] <= MAX_DRAWDOWN and st["worst_equity_ratio"]["min"] >= MIN_STRESS_EQUITY
                 candidates.append({"policy": _policy_dict(pol), "kelly_multiplier": m, "exit_log_growth": g, "calibration": s,
@@ -517,7 +618,7 @@ class MemecoinCalibrator:
         best = max(viable, key=lambda c: (c["calibration"]["compound_return"]["median"], -c["calibration"]["max_drawdown"]["max"],
                                           str(c["policy"]), -c["kelly_multiplier"]))
         return {"asset_domain": ASSET_DOMAIN, "execution": self.execution, "entry_drift": self.entry_drift,
-                "version": calibration_version(self.execution, self.entry_drift),
+                "arrival_gap": self.arrival_gap, "version": calibration_version(self.execution, self.entry_drift, self.arrival_gap),
                 "selected": {k: v for k, v in best.items() if k != "_policy"},
                 "candidates": [{k: v for k, v in c.items() if k != "_policy"} for c in candidates],
                 "grid_size": len(ranked), "_policy": best["_policy"]}
@@ -528,13 +629,14 @@ class MemecoinCalibrator:
         out = {}
         for label, mixes in (("holdout", MIXES), ("rug_stress", RUG_STRESS), ("no_explosive", NO_EXPLOSIVE)):
             sets = self._paths(self.holdout_seeds, mixes)
-            old_r = [replay(p, None, legacy=True, execution=self.execution, entry_drift=self.entry_drift)[0] for p in sets]
-            new_r = [replay(p, policy, execution=self.execution, entry_drift=self.entry_drift)[0] for p in sets]
+            old = [self._replayed(p, None, legacy=True) for p in sets]
+            new = [self._replayed(p, policy) for p in sets]
+            old_r, new_r = [x[0] for x in old], [x[0] for x in new]
             runs = {
-                "before": [portfolio(p, r, multiplier=0.25, legacy=True) for p, r in zip(sets, old_r)],
-                "exits_only": [portfolio(p, r, multiplier=0.25, legacy=True) for p, r in zip(sets, new_r)],
-                "sizing_only": [portfolio(p, r, multiplier=multiplier) for p, r in zip(sets, old_r)],
-                "after": [portfolio(p, r, multiplier=multiplier) for p, r in zip(sets, new_r)],
+                "before": [self._portfolio(p, r, 0.25, legacy=True) for p, r in zip(sets, old)],
+                "exits_only": [self._portfolio(p, r, 0.25, legacy=True) for p, r in zip(sets, new)],
+                "sizing_only": [self._portfolio(p, r, multiplier) for p, r in zip(sets, old)],
+                "after": [self._portfolio(p, r, multiplier) for p, r in zip(sets, new)],
             }
             out[label] = {k: _summary(v) for k, v in runs.items()}
             out[label]["by_strategy_before"] = _by_strategy(runs["before"])
@@ -567,6 +669,8 @@ def _policy_dict(pol) -> dict:
 # (ms.CALIBRATED, ms.KELLY_MULTIPLIER). calibration-v2-causal is recorded, not used: the session keeps calibration-v1
 # until a human validates a promotion, and its gap with v1 over three development seeds is small. calibration-v3-causal-drift
 # replays the session's own contract (T+1 fills and the 10 % entry drift guard of #97): it selects the v1 policy again.
+# calibration-v4-overlap adds overlapping lots and a learner that only sees closed trades: same exits, quarter Kelly,
+# because half Kelly breaks the rug-stress survival constraint on one development seed. Recorded for human review only.
 RECORDED_SELECTIONS = {
     "calibration-v1": {
         "execution": "immediate", "in_session": True, "kelly_multiplier": 0.5,
@@ -582,5 +686,10 @@ RECORDED_SELECTIONS = {
         "execution": "causal", "entry_drift": SESSION_ENTRY_DRIFT, "in_session": False, "same_policy_as": "calibration-v1",
         "kelly_multiplier": 0.5, "policy": _policy_dict(ms.ExitPolicy(0.20, 1.25, 0.20, (3.0, 6.0, 10.0), 0.25, 0.25, 0.15)),
         "development": {"compound_return_median": 91.9133, "max_drawdown_max": 0.3321, "stress_worst_equity_min": 0.6373},
+    },
+    "calibration-v4-overlap": {
+        "execution": "causal", "entry_drift": SESSION_ENTRY_DRIFT, "arrival_gap": ARRIVAL_GAP_MIN, "in_session": False,
+        "kelly_multiplier": 0.25, "policy": _policy_dict(ms.ExitPolicy(0.20, 1.25, 0.20, (3.0, 6.0, 10.0), 0.25, 0.25, 0.15)),
+        "development": {"compound_return_median": 70.7185, "max_drawdown_max": 0.3008, "stress_worst_equity_min": 0.5079},
     },
 }
