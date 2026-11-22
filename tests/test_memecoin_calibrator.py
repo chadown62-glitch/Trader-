@@ -1,5 +1,9 @@
 """Deterministic calibration of the four paper memecoin strategies, survival under rug pulls, asymmetric exits,
-anti-dump smart-wallet filter, asset-domain isolation and integrity of the frozen PRs #54 and #55. Offline only."""
+anti-dump smart-wallet filter, asset-domain isolation and integrity of the frozen PRs #54 and #55. Offline only.
+
+The assertions on the shipped policy reproduce calibration-v1, made under the former ``"immediate"`` execution contract:
+they are kept unchanged and pinned to it (results are versioned, never rewritten). The causal contract of the paper
+session and calibration-v2-causal are tested in tests/test_memecoin_calibrator_causal.py."""
 
 import json
 from dataclasses import asdict
@@ -22,7 +26,7 @@ def one(price, liquidity=50_000.0, network=0.002, strategy=0):
 
 @pytest.fixture(scope="module")
 def calibration():
-    cal = C.MemecoinCalibrator()
+    cal = C.MemecoinCalibrator(execution="immediate")  # calibration-v1, reproduced as it was made
     result = cal.calibrate()
     return cal, result, cal.compare(ms.CALIBRATED, ms.KELLY_MULTIPLIER)
 
@@ -55,6 +59,17 @@ def test_the_default_calibration_selects_the_policy_shipped_in_the_strategies(ca
     assert sel["rug_stress"]["worst_equity_ratio"]["min"] >= C.MIN_STRESS_EQUITY
 
 
+def test_calibration_v1_is_reproduced_as_recorded(calibration):
+    _, result, _ = calibration
+    v1, sel = C.RECORDED_SELECTIONS["calibration-v1"], result["selected"]
+    assert (result["execution"], result["version"]) == (v1["execution"], "calibration-v1") == ("immediate", "calibration-v1")
+    assert sel["policy"] == v1["policy"] and sel["kelly_multiplier"] == v1["kelly_multiplier"]
+    dev = v1["development"]
+    assert sel["calibration"]["compound_return"]["median"] == pytest.approx(dev["compound_return_median"], rel=1e-4)
+    assert sel["calibration"]["max_drawdown"]["max"] == pytest.approx(dev["max_drawdown_max"], abs=1e-4)
+    assert sel["rug_stress"]["worst_equity_ratio"]["min"] == pytest.approx(dev["stress_worst_equity_min"], abs=1e-4)
+
+
 def test_calibrated_beats_legacy_on_held_out_seeds_with_and_without_explosive_runs(calibration):
     _, _, cmp = calibration
     for label in ("holdout", "no_explosive"):
@@ -71,14 +86,14 @@ def test_the_portfolio_survives_intense_rug_pull_stress(calibration):
     all_rugs = {n: {"masked_rug": 1.0} for n in ms.NAMES}
     for seed in (101, 102):
         p = C.generate(seed, mixes=all_rugs)
-        run = C.portfolio(p, C.replay(p, ms.CALIBRATED)[0], multiplier=ms.KELLY_MULTIPLIER)
+        run = C.portfolio(p, C.replay(p, ms.CALIBRATED, execution="immediate")[0], multiplier=ms.KELLY_MULTIPLIER)
         assert run["worst_equity_ratio"] >= 0.6 and run["compound_return"] > -0.4  # every trade is a rug: Kelly stops the bleed
 
 
 # -- asymmetric exits ------------------------------------------------------------------------------------------------
 def test_tiered_take_profit_then_adaptive_trailing_stop():
     price = np.r_[np.linspace(1.0, 4.0, 101), np.linspace(4.0, 1.5, 101)[1:]]
-    r, events = C.trade_return(price, np.full(len(price), 50_000.0) * np.sqrt(price), np.full(len(price), 0.002), 1.5)
+    r, events = C.trade_return(price, np.full(len(price), 50_000.0) * np.sqrt(price), np.full(len(price), 0.002), 1.5, execution="immediate")
     reasons = [e[1] for e in events]
     assert reasons[:2] == ["take_profit", "take_profit"] and reasons[-1] == "trailing_stop"
     assert events[0][2] == ms.CALIBRATED.cover_fraction and 1.25 <= events[0][3] < 1.3  # first slice once costs are covered
@@ -88,27 +103,28 @@ def test_tiered_take_profit_then_adaptive_trailing_stop():
 
 def test_explosive_runs_are_allowed_to_run_and_a_covered_winner_never_turns_into_a_loss():
     price = np.r_[1.0, np.linspace(1.0, 12.0, 200)]
-    r, events = C.trade_return(price, np.full(len(price), 50_000.0) * np.sqrt(price), np.full(len(price), 0.002), 1.5)
+    r, events = C.trade_return(price, np.full(len(price), 50_000.0) * np.sqrt(price), np.full(len(price), 0.002), 1.5, execution="immediate")
     assert r > 5.0 and [e[3] >= t for e, t in zip(events[1:4], (3.0, 6.0, 10.0))] == [True, True, True]
     fade = np.r_[np.linspace(1.0, 1.35, 30), np.linspace(1.35, 0.9, 30)[1:]]  # cover sold, then back below the entry
-    r2, ev2 = C.trade_return(fade, np.full(len(fade), 50_000.0) * np.sqrt(fade), np.full(len(fade), 0.002), 1.5)
+    r2, ev2 = C.trade_return(fade, np.full(len(fade), 50_000.0) * np.sqrt(fade), np.full(len(fade), 0.002), 1.5, execution="immediate")
     assert [e[1] for e in ev2] == ["take_profit", "break_even_stop"] and r2 > 0
 
 
 def test_the_stop_cuts_losses_at_20_percent_but_a_rug_gaps_through_it():
     bleed = np.linspace(1.0, 0.5, 120)
-    r, ev = C.trade_return(bleed, np.full(120, 50_000.0) * np.sqrt(bleed), np.full(120, 0.002), 1.5)
+    r, ev = C.trade_return(bleed, np.full(120, 50_000.0) * np.sqrt(bleed), np.full(120, 0.002), 1.5, execution="immediate")
     assert ev[0][1] == "stop_loss" and -0.22 < r < -0.19
     rug = np.r_[np.linspace(1.0, 1.1, 20), np.full(20, 0.02)]
-    r2, ev2 = C.trade_return(rug, np.r_[np.full(20, 50_000.0), np.full(20, 300.0)], np.full(40, 0.002), 1.5)
+    r2, ev2 = C.trade_return(rug, np.r_[np.full(20, 50_000.0), np.full(20, 300.0)], np.full(40, 0.002), 1.5, execution="immediate")
     assert ev2[0][1] == "stop_loss" and r2 < -0.9  # a stop is a trigger, not a guarantee: the size limit protects the capital
 
 
-def test_vectorised_and_scalar_replays_agree():
+@pytest.mark.parametrize("execution", C.EXECUTIONS)
+def test_vectorised_and_scalar_replays_agree(execution):
     p = C.generate(9, paths_per_strategy=10)
-    r, _ = C.replay(p, ms.CALIBRATED)
+    r, _ = C.replay(p, ms.CALIBRATED, execution=execution)
     for i in range(len(r)):
-        ri, _ = C.trade_return(p.price[i], p.liquidity[i], p.network[i], C.REFERENCE_SIZE)
+        ri, _ = C.trade_return(p.price[i], p.liquidity[i], p.network[i], C.REFERENCE_SIZE, execution=execution)
         assert r[i] == pytest.approx(ri, abs=1e-9), i
 
 
