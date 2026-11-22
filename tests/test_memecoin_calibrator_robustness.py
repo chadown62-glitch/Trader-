@@ -22,7 +22,7 @@ def test_robustness_seeds_are_disjoint_from_selection_and_held_out_seeds():
 
 
 def test_the_profile_is_the_portfolio_seed_by_seed():
-    cal = C.MemecoinCalibrator()
+    cal = C.MemecoinCalibrator(sizing="learner")  # v4, sized as it was made
     profile = cal.survival_profile(ms.CALIBRATED, multipliers=(0.25, 0.5), seeds=(11, 12, 13))
     for m in (0.25, 0.5):
         for row in profile[m]["seeds"]:
@@ -35,12 +35,12 @@ def test_the_profile_is_the_portfolio_seed_by_seed():
 
 @pytest.mark.parametrize("version,gap", [("calibration-v3-causal-drift", None), ("calibration-v4-overlap", C.ARRIVAL_GAP_MIN)])
 def test_recorded_survival_is_reproduced(version, gap):
-    profile = C.MemecoinCalibrator(arrival_gap=gap).survival_profile(ms.CALIBRATED)
+    profile = C.MemecoinCalibrator(arrival_gap=gap, sizing="learner").survival_profile(ms.CALIBRATED)
     assert failing(profile) == C.RECORDED_SURVIVAL[version]
 
 
 def test_the_quarter_kelly_recommendation_is_not_demonstrated_and_nothing_is_promoted():
-    profile = C.MemecoinCalibrator().survival_profile(ms.CALIBRATED)
+    profile = C.MemecoinCalibrator(sizing="learner").survival_profile(ms.CALIBRATED)
     half, quarter = profile[0.5]["failure_rate"], profile[0.25]["failure_rate"]
     assert (half, quarter) == (0.15, 0.0)
     assert not (half >= 0.20 and quarter < 0.05)  # the pre-registered criterion is not met

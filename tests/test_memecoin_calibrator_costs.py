@@ -70,7 +70,7 @@ RECORDED = {"nominal": ((70.718, 0.508), (81.344, 0.293)), "dex_fee_x2": ((15.87
 
 @pytest.fixture(scope="module")
 def profile():
-    return C.MemecoinCalibrator().cost_profile(ms.CALIBRATED)
+    return C.MemecoinCalibrator(sizing="learner").cost_profile(ms.CALIBRATED)  # contract v4, as measured
 
 
 def test_the_cost_profile_is_reproduced(profile):

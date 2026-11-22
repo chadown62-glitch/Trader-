@@ -99,7 +99,7 @@ def test_the_former_settings_stay_reproducible():
 
 @pytest.fixture(scope="module")
 def v4():
-    cal = C.MemecoinCalibrator()
+    cal = C.MemecoinCalibrator(sizing="learner")  # calibration-v4-overlap, sized as it was made
     return cal.calibrate()
 
 
