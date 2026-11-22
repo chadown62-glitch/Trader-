@@ -1728,6 +1728,8 @@ def verify_kelly(rows, populations=BENCH_POPULATIONS):
 
 
 QUICK_CHECKS = (verify_survival, verify_waves, verify_admission, verify_breaker)
+# Checks of the full mode only, by name (looked up at call time, so a test can replace each of them).
+FULL_CHECKS = ("verify_calibrations", "verify_bench", "verify_drawdown", "verify_wave_breaker", "verify_kelly")
 
 
 def verify(quick: bool = False) -> list:
@@ -1735,7 +1737,7 @@ def verify(quick: bool = False) -> list:
     ``(label, ok, recomputed, recorded)`` rows; ``quick`` skips the five full calibrations and the representative benches
     of iterations 20 to 23. No file, network or key."""
     rows = []
-    for check in QUICK_CHECKS + (() if quick else (verify_calibrations, verify_bench, verify_drawdown, verify_wave_breaker, verify_kelly)):
+    for check in QUICK_CHECKS + (() if quick else tuple(globals()[name] for name in FULL_CHECKS)):
         check(rows)
     return rows
 

@@ -35,14 +35,16 @@ def test_the_exit_code_follows_the_rows(monkeypatch, capsys):
 
 def test_the_quick_mode_skips_only_the_full_calibrations(monkeypatch):
     calls = []
-    for name in ("verify_survival", "verify_waves", "verify_admission", "verify_breaker", "verify_calibrations"):
+    quick = ("verify_survival", "verify_waves", "verify_admission", "verify_breaker")
+    for name in quick + C.FULL_CHECKS:  # every check replaced: nothing slow runs here
         monkeypatch.setattr(C, name, lambda rows, name=name: calls.append(name))
-    monkeypatch.setattr(C, "QUICK_CHECKS", tuple(getattr(C, n) for n in ("verify_survival", "verify_waves", "verify_admission", "verify_breaker")))
+    monkeypatch.setattr(C, "QUICK_CHECKS", tuple(getattr(C, n) for n in quick))
     C.verify(quick=True)
-    assert "verify_calibrations" not in calls and len(calls) == 4
+    assert calls == list(quick)
     calls.clear()
     C.verify(quick=False)
-    assert calls[-1] == "verify_calibrations" and len(calls) == 5
+    assert calls == list(quick + C.FULL_CHECKS) and C.FULL_CHECKS[0] == "verify_calibrations"
+    assert {"verify_bench", "verify_drawdown", "verify_wave_breaker", "verify_kelly"} <= set(C.FULL_CHECKS)
 
 
 @pytest.mark.parametrize(("base", "head", "expected"), frozen.FROZEN)
