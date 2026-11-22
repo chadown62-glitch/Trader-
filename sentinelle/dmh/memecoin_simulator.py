@@ -22,8 +22,10 @@ time exit, which frees its budget.
 Paper only: no order, no key; every fill is tagged ``asset_domain="memecoin"`` and ``simulated``."""
 
 import hashlib
+import hmac
 import json
 import math
+import secrets
 
 from ..ai.features_memecoin import extract_features
 from ..config import paper_capital
@@ -859,6 +861,77 @@ def audit_signals(rows):
     return out
 
 
+def _pseudonym(state, address):
+    """Keyed pseudonym of a wallet address: equal addresses stay equal within the session, and the journal never holds
+    the address itself. The key lives in the session state only, never in the journal."""
+    if not isinstance(address, str):
+        return None
+    key = state.setdefault("journal_key", secrets.token_hex(32))
+    return hmac.new(bytes.fromhex(key), address.encode("utf-8"), hashlib.sha256).hexdigest()[:16]
+
+
+def _whale_trace(state, asset, wallets, observed, signal, failure):
+    """What ``whale_tail`` saw at the decision, pseudonymized: the attribution status of the pool, the swaps of tracked
+    wallets read on this cycle (side, block time, SHA-256 of the signature) and the state the confluence rule reads (for
+    each wallet holding a recent buy of this mint: qualification, dumper flag, funding origin, last buy, exclusions)."""
+    mint, excluded = asset["symbol"], set(asset.get("excluded") or ())
+    identity = asset.get("identity") or {}
+    snapshot = []
+    for address, w in sorted(wallets.items()):
+        last = (w.get("last_buy") or {}).get(mint)
+        if last is None:
+            continue
+        origin = w.get("origin")
+        snapshot.append({"wallet": _pseudonym(state, address), "origin": _pseudonym(state, origin), "last_buy": last,
+                         "qualified": bool(w.get("qualified")), "dumper": bool(w.get("dumper")),
+                         "memecoin": w.get("asset_domain") == DOMAIN, "excluded": address in excluded,
+                         "origin_excluded": origin in excluded})
+    return {"identity": identity.get("status"), "reason": identity.get("reason"), "attributed": bool(excluded),
+            "qualified_wallets": sum(bool(w.get("qualified")) for w in wallets.values()),
+            "swaps": [{"wallet": _pseudonym(state, t["wallet"]), "side": "buy" if t["qty"] > 0 else "sell", "ts": t["ts"],
+                       "tx_sha256": hashlib.sha256(t["signature"].encode("utf-8")).hexdigest()} for t in observed],
+            "wallets": snapshot, "window_s": smart_wallets.CONFLUENCE_WINDOW_S, "signal": bool(signal), "error": failure}
+
+
+def _whale_confluence(trace, now):
+    """The confluence rule re-implemented on the journaled snapshot alone (independently of ``smart_wallets``): nothing
+    without an attribution of the pool's insiders; then at least two distinct funding origins among the qualified,
+    non-dumper, non-excluded wallets that bought within the window, an origin that is itself one of them not counting."""
+    if not trace["attributed"]:
+        return False
+    candidates = {w["wallet"]: w["origin"] for w in trace["wallets"]
+                  if w["qualified"] and not w["dumper"] and w["memecoin"] and w["origin"] and not w["excluded"]
+                  and not w["origin_excluded"] and 0 <= now - w["last_buy"] <= trace["window_s"]}
+    return len({o for o in candidates.values() if o not in candidates}) >= 2
+
+
+def audit_whale(rows):
+    """Re-derive every ``whale_tail`` decision of the journal from its whale trace alone, and flag any evidence dated
+    after its row (information from the future). Allowed evaluations without a trace (recorded before it existed, or
+    with an attribution failure) are unverifiable, never matches."""
+    out = {"checked": 0, "matched": 0, "mismatches": [], "unverifiable": 0, "future": []}
+    for row in rows:
+        now = row.get("ts")
+        for mint, ev in row.get("evaluations", {}).items():
+            if not ev.get("allowed"):
+                continue
+            trace = ev.get("whale")
+            if not isinstance(trace, dict) or trace.get("error"):
+                out["unverifiable"] += 1
+                continue
+            late = [t for t in [s["ts"] for s in trace["swaps"]] + [w["last_buy"] for w in trace["wallets"]] if t > now]
+            if late:
+                out["future"].append({"revision": row.get("revision"), "mint": mint, "after_s": max(late) - now})
+            journaled, derived = "whale_tail" in ev.get("signals", []), _whale_confluence(trace, now)
+            out["checked"] += 1
+            if journaled == derived == trace["signal"]:
+                out["matched"] += 1
+            else:
+                out["mismatches"].append({"revision": row.get("revision"), "mint": mint, "journaled": journaled,
+                                          "derived": derived})
+    return out
+
+
 def watch_rotation(assets, priority):
     """Assets quoted in rotation this cycle besides ``priority`` (held lots, pending orders): among the ``WATCH_LIMIT``
     most recently admitted pools, the ``ROTATION`` least recently checked. Older candidates stay recorded, unquoted."""
@@ -974,12 +1047,16 @@ def tick(hub, db, bus):
                 asset["winner"] = not asset.get("guardian_failed") and (
                     asset.get("winner", False) or point["price"] >= 3 * asset["first_price"]
                 )
+                observed, whale, failure = [], False, None
                 try:
-                    if smart_wallets.follow(client, asset, wallets, winners, now):
+                    whale = smart_wallets.follow(client, asset, wallets, winners, now, observed)
+                    if whale:
                         signals.append("whale_tail")
                         trace["evaluations"][mint]["signals"] = sorted(signals)
                 except SOURCE_ERRORS as exc:
                     state["errors"].append({"mint": mint, "wallets": str(exc)})
+                    failure = str(exc)[:200]
+                trace["evaluations"][mint]["whale"] = _whale_trace(state, asset, wallets, observed, whale, failure)
             if network is not None:
                 opened_now = set()
                 for oid in sorted(o for o, order in orders.items() if order["kind"] == "buy" and order["mint"] == mint):
