@@ -39,6 +39,15 @@ v5 overlapping lots sized like the session. Report-only settings, never a versio
 ``m58_admission`` (the M58 pool filters applied to the synthetic signals, recommended for the next version), each with
 its recorded measurement (``RECORDED_*``) and its test file ``tests/test_memecoin_calibrator_*.py``.
 
+Representative bench (``bench``, iteration 20, report only): the current engine and each variant against CASH on the
+same causal paths, on confirmation seeds never used before, with the signals the real M58 session could receive
+(``m58_signals``) and, separately, every synthetic signal as an extreme stress; the pre-registered rule
+(``bench_decision``) decides, ``RECORDED_BENCH`` keeps the result. Iteration 21 runs the same bench on new validation
+seeds for stakes reduced in drawdown (``drawdown_scaling``) and replays the breaker (``RECORDED_DRAWDOWN``);
+iteration 22 for the statistical wave breaker (``wave_breaker``, ``RECORDED_WAVE_BREAKER``); iteration 23 for quarter
+Kelly against the session's half Kelly (``RECORDED_KELLY``), the session's Kelly being unchanged. ``python -m sentinelle.dmh.memecoin_calibrator verify``
+recomputes every recorded result.
+
 These are synthetic regimes built from assumptions: a calibrated setting is a prudent default, not evidence of profit.
 """
 from __future__ import annotations
@@ -107,6 +116,15 @@ CLUSTER_BLOCK = MAX_OPEN_LOTS  # report-only waves of iteration 11: as many same
 # closed lots, no entry for PAUSE_MIN minutes (one hour, memecoin_learner.MATURITY_S).
 LOSS_STREAK = 3
 PAUSE_MIN = 60.0
+# Report-only statistical wave breaker of iteration 22, fixed before any result: the streak that pauses entries is the
+# shortest one that would be improbable (at most WAVE_SIGNIFICANCE) if lot outcomes were independent at the observed
+# loss rate, never under LOSS_STREAK; the pause is PAUSE_MIN as for the breaker of iteration 18.
+WAVE_SIGNIFICANCE = 0.05
+
+
+def wave_threshold(loss_rate: float) -> int:
+    """Shortest losing streak improbable (<= WAVE_SIGNIFICANCE) under independent outcomes at ``loss_rate`` (0 < rate < 1)."""
+    return max(LOSS_STREAK, math.ceil(math.log(WAVE_SIGNIFICANCE) / math.log(loss_rate) - 1e-12))
 # Results are versioned, never rewritten: (execution contract, entry drift guard, arrival gap, sizing) -> results. The
 # sequential portfolio (no arrival gap) always sizes with the learner.
 CALIBRATION_VERSIONS = {("immediate", None, None, "learner"): "calibration-v1", ("causal", None, None, "learner"): "calibration-v2-causal",
@@ -661,7 +679,7 @@ def session_stake(*, equity, known, cash, strategy_used, exposed, fraction, weig
 
 def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, lots: LotPaths, exploration: str = "session",
                        stop_liquidation: bool = False, profile: str = ms.DEFAULT_PROFILE, m58_admission: bool = False,
-                       breaker: bool = False) -> dict:
+                       breaker: bool = False, drawdown_scaling: bool = False, wave_breaker: bool = False) -> dict:
     """Overlapping portfolio sized like the paper session (see ``session_stake``): open lots are valued at their
     liquidation value, partial proceeds are cash when sold, the adaptive multiplier learns from closed lots and from open
     lots that are mature or partially sold, no entry beyond the fleet's session-loss stop or with 12 open lots."""
@@ -674,6 +692,10 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
     limits = ms.PROFILES[profile]  # MODERATE: the fleet's 12 lots and 50 % stop, the M58 pool filters (iteration 15)
     streak, paused_until = 0, -math.inf  # loss-streak circuit breaker (iteration 18, report only)
     loss_stop = (1 - limits.session_loss_stop) * INITIAL
+    # bench measurements (iteration 20, no effect on any decision): skipped stakes, losing runs, opened lots, regimes
+    skipped, run, longest, opened = 0, 0, 0, []
+    closed_losses = 0  # statistical wave breaker (iteration 22): losing closed lots, for the Laplace loss rate
+    by_regime = {name: {"trades": 0, "pnl_usd": 0.0} for name in REGIMES}
 
     def state(now):
         proceeds, marks, unknown, held = 0.0, 0.0, False, {}
@@ -711,7 +733,7 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
             heapq.heappush(heap, (t0 + e, j))
 
     def realize(until):
-        nonlocal cash_base, streak, paused_until
+        nonlocal cash_base, streak, paused_until, run, longest, closed_losses
         while heap and heap[0][0] <= until:
             closed_at, j = heapq.heappop(heap)
             if j not in open_ or closed_at != close_at[j]:
@@ -721,10 +743,17 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
             cash_base += stake * (1 + r)
             pnl.append(stake * r)
             pnl_by[name] += stake * r
+            regime = by_regime[REGIMES[int(paths.regime[j])]]
+            regime["trades"], regime["pnl_usd"] = regime["trades"] + 1, regime["pnl_usd"] + stake * r
+            run = run + 1 if r < 0 else 0
+            longest = max(longest, run)
             completed.append({"strategy": name, "return": r, "asset_domain": ASSET_DOMAIN, "opened_at": t0})
             track(closed_at)
             streak = streak + 1 if r < 0 else 0
             if breaker and streak >= LOSS_STREAK:
+                paused_until, streak = closed_at + PAUSE_MIN, 0
+            closed_losses += r < 0
+            if wave_breaker and streak >= wave_threshold((closed_losses + 1) / (len(completed) + 2)):
                 paused_until, streak = closed_at + PAUSE_MIN, 0
             if stop_liquidation and not stopped and state(closed_at)[1] <= loss_stop:
                 liquidate(closed_at)
@@ -766,10 +795,16 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
                              strategy_used=sum(b for j, (_, _, b) in held.items() if open_[j][2] == name),
                              fraction=learner.fractions[name], weight=learner.weights[name], multiplier=adaptive,
                              network=float(paths.network[i, 1]))
+        if drawdown_scaling and size > 0:  # iteration 21 (report only): stake x equity / peak, the session's minimums kept
+            size *= eq / peak
+            if size <= float(paths.network[i, 1]) * 2 or size < 0.05:
+                size = 0.0
         if size <= 0:
+            skipped += 1
             continue
         cash_base -= size
         open_[i] = (now, size, name)
+        opened.append(i)
         close_at[i] = now + float(close_steps[i])
         heapq.heappush(heap, (close_at[i], i))
     realize(math.inf)
@@ -783,7 +818,8 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
     return {"compound_return": cash_base / INITIAL - 1, "final_equity": cash_base,
             "profit_factor": float(wins / losses) if losses > 0 else None, "win_rate": float(np.mean(pnl > 0)) if len(pnl) else None,
             "max_drawdown": max_dd, "worst_equity_ratio": worst / INITIAL, "trades": len(pnl), "by_strategy": by,
-            "refused_open_lots": refused}
+            "refused_open_lots": refused, "skipped_stakes": skipped, "abstentions": refused + skipped,
+            "max_loss_streak": longest, "opened": tuple(opened), "by_regime": by_regime}
 
 
 def admitted(paths: Paths, lots: LotPaths, i: int) -> bool:
@@ -1103,6 +1139,468 @@ RECORDED_BREAKER = {"independent": {"off": ((0, 0), 100.19), "on": ((0, 0), 54.7
                     "waves": {"off": ((6, 11), 14.867), "on": ((2, 3), 21.256)}}
 
 
+# -- representative bench (iteration 20, report only) ---------------------------------------------------------------
+# Pre-registered before any trial: the current engine and each report-only variant on the same causal paths, capital,
+# costs, liquidity, profile, exit policy, Kelly and cadence, against CASH. The representative population keeps only the
+# signals the real M58 session could receive (``admitted``) before the cadence is applied; every synthetic signal is a
+# separate, extreme stress outside the M58 universe. Confirmation seeds never used before iteration 20.
+BENCH_SEEDS = tuple(range(301, 341))
+BENCH_MIXES = {"normal": MIXES, "no_explosive": NO_EXPLOSIVE, "rug_stress": RUG_STRESS}
+BENCH_ORDERS = ("independent", "waves")
+BENCH_POPULATIONS = ("m58", "extreme")
+BENCH_CANDIDATES = {"engine": {}, "bounded": {"exploration": "bounded"}, "breaker": {"breaker": True},
+                    "liquidation": {"stop_liquidation": True}}
+SCORE_DRAWDOWN_FLOOR = 0.01  # return/risk score: ln(final / initial) / max(maximum drawdown, 1 %)
+IMPROVED_P, DEGRADED_P = 0.01, 0.05  # one-sided exact sign test; prudent asymmetry (a harm is flagged sooner)
+# Iteration 21 (pre-registered after reading iteration 20, before any trial on its seeds): stakes scaled by equity / peak
+# (``drawdown_scaling``), with the breaker replayed as an independent replication, on new validation seeds.
+DRAWDOWN_SEEDS = tuple(range(401, 441))
+DRAWDOWN_CANDIDATES = {"engine": {}, "drawdown": {"drawdown_scaling": True}, "breaker": {"breaker": True}}
+# Iteration 22 (pre-registered after reading iterations 20 and 21, before any trial on its seeds): the statistical wave
+# breaker (``wave_breaker``), with the breaker of iteration 18 replayed, on new validation seeds.
+WAVE_SEEDS = tuple(range(501, 541))
+WAVE_CANDIDATES = {"engine": {}, "wave_breaker": {"wave_breaker": True}, "breaker": {"breaker": True}}
+# Iteration 23 (pre-registered before any trial on its seeds): quarter Kelly against the session's half Kelly.
+KELLY_SEEDS = tuple(range(601, 641))
+KELLY_CANDIDATES = {"engine": {}, "quarter_kelly": {"multiplier": 0.25}}
+_FIELDS = ("strategy", "regime", "price", "liquidity", "network", "confidence")
+
+
+def m58_signals(paths: Paths) -> Paths:
+    """The signals the real M58 session could receive, in their order: ``admitted`` (depth at the signal and at the
+    fill at least ``MIN_LIQUIDITY_USD``, round trip at most ``MAX_ROUND_TRIP_LOSS``), vectorised."""
+    R = ratios(paths)
+    depth = np.minimum(paths.liquidity[:, 0], paths.liquidity[:, 1])
+    with np.errstate(invalid="ignore"):
+        keep = (depth >= established_pools.MIN_LIQUIDITY_USD) & (1 - R[:, 1] <= established_pools.MAX_ROUND_TRIP_LOSS)
+    return Paths(*(getattr(paths, f)[keep] for f in _FIELDS))
+
+
+def bench_paths(seed: int, mix: str, order: str, population: str, paths_per_strategy: int = PATHS_PER_STRATEGY) -> Paths:
+    p = generate(seed, mixes=BENCH_MIXES[mix], paths_per_strategy=paths_per_strategy)
+    if population == "m58":
+        p = m58_signals(p)
+    elif population != "extreme":
+        raise ValueError(f"population inconnue : {population}")
+    return in_waves(p, CLUSTER_BLOCK, seed) if order == "waves" else p
+
+
+def score(run: dict) -> float:
+    return math.log(max(run["final_equity"], 1e-9) / INITIAL) / max(run["max_drawdown"], SCORE_DRAWDOWN_FLOOR)
+
+
+def sign_test(wins: int, losses: int) -> float:
+    """One-sided exact binomial p-value of at least ``wins`` successes in ``wins + losses`` fair trials (ties excluded)."""
+    n = wins + losses
+    return 1.0 if n == 0 else sum(math.comb(n, k) for k in range(wins, n + 1)) / 2 ** n
+
+
+def bench_run(paths: Paths, multiplier: float = ms.KELLY_MULTIPLIER, policy=ms.CALIBRATED, candidates=None) -> dict:
+    """Every candidate and CASH on one batch: the same replayed lots, the same arrivals. For each variant, the trades it
+    avoided and added with respect to the engine, valued at their reference-size net return."""
+    r, _, steps, lots = lot_paths(paths, policy)
+    signals = int(np.isfinite(r).sum())
+    out = {"cash": {"compound_return": 0.0, "final_equity": INITIAL, "max_drawdown": 0.0, "worst_equity_ratio": 1.0,
+                    "profit_factor": None, "trades": 0, "abstentions": signals, "max_loss_streak": 0, "opened": (),
+                    "by_regime": {k: {"trades": 0, "pnl_usd": 0.0} for k in REGIMES}}}
+    for name, kwargs in (candidates or BENCH_CANDIDATES).items():
+        settings = {k: v for k, v in kwargs.items() if k != "multiplier"}  # a candidate may set its own Kelly (iteration 23)
+        out[name] = _portfolio_session(paths, r, multiplier=kwargs.get("multiplier", multiplier), close_steps=steps,
+                                       arrival_gap=ARRIVAL_GAP_MIN, lots=lots, **settings)
+    ref = set(out["engine"]["opened"])
+    for name, run in out.items():
+        run["score"], run["signals"] = score(run), signals
+        mine = set(run["opened"])
+        run["avoided"] = [float(r[i]) for i in sorted(ref - mine)]
+        run["added"] = [float(r[i]) for i in sorted(mine - ref)]
+    return out
+
+
+def _bench_summary(runs: list[dict], candidates=None) -> dict:
+    out = {}
+    for name in ("engine", *(k for k in (candidates or BENCH_CANDIDATES) if k != "engine"), "cash"):
+        rows = [x[name] for x in runs]
+        net = [x["compound_return"] for x in rows]
+        pf = [x["profit_factor"] for x in rows if x["profit_factor"] is not None]
+        avoided = [v for x in rows for v in x["avoided"]]
+        added = [v for x in rows for v in x["added"]]
+        s = {"seeds": len(rows), "net_return_median": float(np.median(net)), "net_return_p10": float(np.percentile(net, 10)),
+             "max_drawdown_median": float(np.median([x["max_drawdown"] for x in rows])),
+             "max_drawdown_max": float(max(x["max_drawdown"] for x in rows)),
+             "worst_equity_min": float(min(x["worst_equity_ratio"] for x in rows)),
+             "failures": int(sum(x["worst_equity_ratio"] < MIN_STRESS_EQUITY for x in rows)),
+             "profit_factor_median": float(np.median(pf)) if pf else None,
+             "trades": int(sum(x["trades"] for x in rows)), "abstentions": int(sum(x["abstentions"] for x in rows)),
+             "signals": int(sum(x["signals"] for x in rows)),
+             "max_loss_streak_median": float(np.median([x["max_loss_streak"] for x in rows])),
+             "max_loss_streak_max": int(max(x["max_loss_streak"] for x in rows)),
+             "score_median": float(np.median([x["score"] for x in rows])),
+             "by_regime": {k: {"trades": int(sum(x["by_regime"][k]["trades"] for x in rows)),
+                               "pnl_usd": float(sum(x["by_regime"][k]["pnl_usd"] for x in rows))} for k in REGIMES},
+             "avoided": {"trades": len(avoided), "mean_return": float(np.mean(avoided)) if avoided else None},
+             "added": {"trades": len(added), "mean_return": float(np.mean(added)) if added else None}}
+        if name != "engine":
+            wins = sum(x["score"] > e["score"] + 1e-12 for x, e in zip(rows, (y["engine"] for y in runs)))
+            losses = sum(x["score"] < e["score"] - 1e-12 for x, e in zip(rows, (y["engine"] for y in runs)))
+            s["paired"] = {"wins": int(wins), "losses": int(losses), "ties": len(rows) - int(wins) - int(losses),
+                           "p_improved": sign_test(int(wins), int(losses)), "p_degraded": sign_test(int(losses), int(wins))}
+        out[name] = s
+    return out
+
+
+def bench(seeds=BENCH_SEEDS, populations=BENCH_POPULATIONS, mixes=tuple(BENCH_MIXES), orders=BENCH_ORDERS,
+          multiplier: float = ms.KELLY_MULTIPLIER, paths_per_strategy: int = PATHS_PER_STRATEGY, candidates=None) -> dict:
+    """Report only (iteration 20): ``{(population, mix, order): {candidate: summary}}``; ``candidates`` maps a name to
+    the report-only settings of ``_portfolio_session`` ("engine" must be one, with none). Selects nothing, changes nothing."""
+    if candidates is not None and candidates.get("engine") != {}:
+        raise ValueError("le banc compare toujours au moteur actuel, sans réglage")
+    return {(pop, mix, order): _bench_summary([bench_run(bench_paths(seed, mix, order, pop, paths_per_strategy), multiplier,
+                                                         candidates=candidates) for seed in seeds], candidates)
+            for pop in populations for mix in mixes for order in orders}
+
+
+def bench_decision(table: dict, variant: str, population: str = "m58") -> dict:
+    """The pre-registered decision of iteration 20 for ``variant`` against the engine, on the representative population."""
+    cell = lambda mix, order: table[(population, mix, order)]
+    paired = lambda mix, order: cell(mix, order)[variant]["paired"]
+    adverse = ("rug_stress", "no_explosive")
+    cells = [(mix, order) for mix in BENCH_MIXES for order in BENCH_ORDERS]
+    checks = {
+        "A1_waves_improved": all(paired(mix, "waves")["p_improved"] <= IMPROVED_P for mix in adverse),
+        "A2_normal_not_degraded": all(paired("normal", order)["p_degraded"] > DEGRADED_P for order in BENCH_ORDERS),
+        "A3_independent_not_degraded": all(paired(mix, "independent")["p_degraded"] > DEGRADED_P for mix in adverse),
+        "A4_survival": all(cell(*c)[variant]["failures"] <= cell(*c)["engine"]["failures"] for c in cells),
+        "A5_activity": all(cell("normal", order)[variant]["trades"] >= 0.5 * cell("normal", order)["engine"]["trades"]
+                           and cell("normal", order)[variant]["net_return_median"] > 0 for order in BENCH_ORDERS),
+    }
+    rejected = (any(paired(mix, "waves")["p_degraded"] <= DEGRADED_P for mix in adverse)
+                or sum(cell(*c)[variant]["failures"] for c in cells) > sum(cell(*c)["engine"]["failures"] for c in cells))
+    decision = "ACCEPTÉE TECHNIQUEMENT" if all(checks.values()) else "REJETÉE" if rejected else "NON DÉMONTRÉE"
+    return {"variant": variant, "checks": checks, "rejected": rejected, "decision": decision}
+
+
+# Iteration 20 (report only, pre-registered): representative bench on the confirmation seeds BENCH_SEEDS at half Kelly.
+# (population, mix, order) -> candidate -> (median net return, maximum drawdown, survival failures, trades, seeds
+# where the candidate's return/risk score beats the engine's, seeds where it is worse). Decisions: bench_decision.
+RECORDED_BENCH = {
+    ("m58", "normal", "independent"): {
+        "engine": (357.302, 0.2851, 0, 13582, None, None),
+        "bounded": (144.8817, 0.298, 0, 9091, 8, 32),
+        "breaker": (154.3375, 0.2689, 0, 11291, 7, 33),
+        "liquidation": (357.302, 0.2851, 0, 13582, 0, 0),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("m58", "normal", "waves"): {
+        "engine": (38.9217, 0.6605, 0, 13550, None, None),
+        "bounded": (2.0455, 0.5135, 0, 4714, 10, 30),
+        "breaker": (38.8796, 0.5241, 0, 11008, 32, 8),
+        "liquidation": (38.9217, 0.6605, 0, 13550, 0, 0),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("m58", "no_explosive", "independent"): {
+        "engine": (0.2872, 0.3749, 0, 13650, None, None),
+        "bounded": (-0.0311, 0.248, 0, 2643, 10, 30),
+        "breaker": (0.2103, 0.392, 0, 10399, 22, 18),
+        "liquidation": (0.2872, 0.3749, 0, 13650, 0, 0),
+        "cash": (0.0, 0.0, 0, 0, 11, 29),
+    },
+    ("m58", "no_explosive", "waves"): {
+        "engine": (0.0756, 0.5826, 1, 13633, None, None),
+        "bounded": (-0.0536, 0.4003, 0, 2228, 16, 24),
+        "breaker": (0.2149, 0.5065, 0, 10224, 29, 11),
+        "liquidation": (0.0756, 0.5826, 1, 13633, 1, 0),
+        "cash": (0.0, 0.0, 0, 0, 19, 21),
+    },
+    ("m58", "rug_stress", "independent"): {
+        "engine": (-0.2442, 0.5996, 0, 14183, None, None),
+        "bounded": (-0.065, 0.3482, 0, 1662, 26, 14),
+        "breaker": (-0.1526, 0.5247, 0, 9643, 27, 13),
+        "liquidation": (-0.2442, 0.5996, 0, 14183, 0, 0),
+        "cash": (0.0, 0.0, 0, 0, 29, 11),
+    },
+    ("m58", "rug_stress", "waves"): {
+        "engine": (-0.5065, 0.8081, 25, 11558, None, None),
+        "bounded": (-0.0881, 0.6135, 0, 1712, 30, 10),
+        "breaker": (-0.2134, 0.7353, 7, 9487, 30, 10),
+        "liquidation": (-0.5006, 0.8058, 25, 11546, 25, 0),
+        "cash": (0.0, 0.0, 0, 0, 32, 8),
+    },
+    ("extreme", "normal", "independent"): {
+        "engine": (1207.7175, 0.3041, 0, 18354, None, None),
+        "bounded": (335.9503, 0.3768, 0, 10163, 9, 31),
+        "breaker": (331.75, 0.3212, 0, 14896, 5, 35),
+        "liquidation": (1207.7175, 0.3041, 0, 18354, 0, 0),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("extreme", "normal", "waves"): {
+        "engine": (78.5147, 0.7948, 0, 18333, None, None),
+        "bounded": (7.095, 0.6812, 0, 7012, 17, 23),
+        "breaker": (80.624, 0.6818, 0, 14507, 27, 13),
+        "liquidation": (78.5147, 0.7948, 0, 18333, 0, 0),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("extreme", "no_explosive", "independent"): {
+        "engine": (0.1347, 0.5139, 0, 18410, None, None),
+        "bounded": (-0.071, 0.3512, 0, 3362, 15, 25),
+        "breaker": (0.0, 0.4332, 0, 13761, 12, 28),
+        "liquidation": (0.1347, 0.5139, 0, 18410, 0, 0),
+        "cash": (0.0, 0.0, 0, 0, 16, 24),
+    },
+    ("extreme", "no_explosive", "waves"): {
+        "engine": (-0.2136, 0.731, 9, 17207, None, None),
+        "bounded": (-0.1041, 0.4802, 0, 3357, 22, 18),
+        "breaker": (0.031, 0.624, 1, 13431, 34, 6),
+        "liquidation": (-0.2136, 0.7288, 9, 17207, 9, 0),
+        "cash": (0.0, 0.0, 0, 0, 25, 15),
+    },
+    ("extreme", "rug_stress", "independent"): {
+        "engine": (-0.51, 0.8294, 25, 13875, None, None),
+        "bounded": (-0.139, 0.5824, 0, 3024, 30, 10),
+        "breaker": (-0.4861, 0.7733, 20, 10682, 21, 19),
+        "liquidation": (-0.5013, 0.8294, 25, 13816, 20, 5),
+        "cash": (0.0, 0.0, 0, 0, 32, 8),
+    },
+    ("extreme", "rug_stress", "waves"): {
+        "engine": (-0.5429, 0.8907, 35, 10309, None, None),
+        "bounded": (-0.1543, 0.7356, 2, 2264, 34, 6),
+        "breaker": (-0.5086, 0.8641, 27, 9746, 31, 9),
+        "liquidation": (-0.5042, 0.8661, 35, 10262, 34, 1),
+        "cash": (0.0, 0.0, 0, 0, 39, 1),
+    },
+}
+RECORDED_BENCH_DECISIONS = {
+    "m58": {"bounded": "NON DÉMONTRÉE", "breaker": "NON DÉMONTRÉE", "liquidation": "NON DÉMONTRÉE"},
+    "extreme": {"bounded": "NON DÉMONTRÉE", "breaker": "NON DÉMONTRÉE", "liquidation": "ACCEPTÉE TECHNIQUEMENT"},
+}
+
+# Iteration 21 (report only, pre-registered): the same bench on the validation seeds DRAWDOWN_SEEDS with
+# DRAWDOWN_CANDIDATES; same row format as RECORDED_BENCH. The breaker is an independent replication only: its
+# decision stays the one of iteration 20 (RECORDED_BENCH_DECISIONS); its criteria on these seeds are recorded apart.
+RECORDED_DRAWDOWN = {
+    ("m58", "normal", "independent"): {
+        "engine": (246.5564, 0.3098, 0, 13640, None, None),
+        "drawdown": (216.701, 0.3036, 0, 13644, 25, 15),
+        "breaker": (102.683, 0.3156, 0, 11368, 16, 24),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("m58", "normal", "waves"): {
+        "engine": (18.7442, 0.6583, 0, 13619, None, None),
+        "drawdown": (11.946, 0.5548, 0, 12756, 24, 16),
+        "breaker": (21.9773, 0.6517, 0, 11000, 31, 9),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("m58", "no_explosive", "independent"): {
+        "engine": (0.3044, 0.4334, 0, 13690, None, None),
+        "drawdown": (0.2552, 0.3243, 0, 13187, 15, 25),
+        "breaker": (0.2431, 0.3395, 0, 10411, 17, 23),
+        "cash": (0.0, 0.0, 0, 0, 11, 29),
+    },
+    ("m58", "no_explosive", "waves"): {
+        "engine": (-0.1122, 0.8312, 5, 13337, None, None),
+        "drawdown": (-0.1759, 0.5807, 0, 9388, 25, 15),
+        "breaker": (0.0044, 0.7453, 0, 10278, 34, 6),
+        "cash": (0.0, 0.0, 0, 0, 24, 16),
+    },
+    ("m58", "rug_stress", "independent"): {
+        "engine": (-0.0595, 0.4745, 0, 14216, None, None),
+        "drawdown": (-0.1089, 0.4048, 0, 11673, 18, 22),
+        "breaker": (-0.0683, 0.5208, 0, 9709, 22, 18),
+        "cash": (0.0, 0.0, 0, 0, 22, 18),
+    },
+    ("m58", "rug_stress", "waves"): {
+        "engine": (-0.5074, 0.7989, 24, 12177, None, None),
+        "drawdown": (-0.2627, 0.5879, 0, 6412, 36, 4),
+        "breaker": (-0.2941, 0.7025, 5, 9343, 36, 4),
+        "cash": (0.0, 0.0, 0, 0, 37, 3),
+    },
+    ("extreme", "normal", "independent"): {
+        "engine": (784.0798, 0.443, 0, 18395, None, None),
+        "drawdown": (677.1577, 0.382, 0, 18396, 34, 6),
+        "breaker": (179.315, 0.4105, 0, 14882, 8, 32),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("extreme", "normal", "waves"): {
+        "engine": (107.4053, 0.7442, 2, 18223, None, None),
+        "drawdown": (48.8252, 0.6077, 0, 16578, 27, 13),
+        "breaker": (118.9793, 0.5771, 2, 14265, 33, 7),
+        "cash": (0.0, 0.0, 0, 0, 1, 39),
+    },
+    ("extreme", "no_explosive", "independent"): {
+        "engine": (0.1675, 0.5223, 2, 18448, None, None),
+        "drawdown": (0.1224, 0.3507, 0, 16734, 14, 26),
+        "breaker": (0.06, 0.3857, 0, 13756, 18, 22),
+        "cash": (0.0, 0.0, 0, 0, 16, 24),
+    },
+    ("extreme", "no_explosive", "waves"): {
+        "engine": (-0.1098, 0.7167, 9, 17591, None, None),
+        "drawdown": (-0.1658, 0.5296, 0, 10476, 23, 17),
+        "breaker": (0.1277, 0.6017, 1, 13273, 31, 9),
+        "cash": (0.0, 0.0, 0, 0, 25, 15),
+    },
+    ("extreme", "rug_stress", "independent"): {
+        "engine": (-0.5098, 0.7492, 27, 14133, None, None),
+        "drawdown": (-0.2356, 0.5477, 0, 9192, 32, 8),
+        "breaker": (-0.3407, 0.666, 18, 11042, 22, 18),
+        "cash": (0.0, 0.0, 0, 0, 31, 9),
+    },
+    ("extreme", "rug_stress", "waves"): {
+        "engine": (-0.5094, 0.8738, 25, 11889, None, None),
+        "drawdown": (-0.2087, 0.682, 2, 6159, 30, 10),
+        "breaker": (-0.4693, 0.861, 19, 10098, 30, 10),
+        "cash": (0.0, 0.0, 0, 0, 33, 7),
+    },
+}
+RECORDED_DRAWDOWN_DECISIONS = {"m58": "NON DÉMONTRÉE", "extreme": "NON DÉMONTRÉE"}
+RECORDED_BREAKER_REPLICATION = {"A1_waves_improved": True, "A2_normal_not_degraded": True, "A3_independent_not_degraded": True,
+                                "A4_survival": True, "A5_activity": True}
+
+# Iteration 22 (report only, pre-registered): the same bench on the validation seeds WAVE_SEEDS with WAVE_CANDIDATES;
+# same row format as RECORDED_BENCH. The breaker of iteration 18 is replayed in report only (third sample).
+RECORDED_WAVE_BREAKER = {
+    ("m58", "normal", "independent"): {
+        "engine": (268.8717, 0.308, 0, 13612, None, None),
+        "wave_breaker": (251.5863, 0.2821, 0, 13215, 13, 24),
+        "breaker": (102.5572, 0.3014, 0, 11376, 7, 33),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("m58", "normal", "waves"): {
+        "engine": (42.8852, 0.7715, 0, 13595, None, None),
+        "wave_breaker": (36.3856, 0.5682, 0, 12422, 23, 17),
+        "breaker": (27.7346, 0.5319, 0, 11035, 24, 16),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("m58", "no_explosive", "independent"): {
+        "engine": (0.29, 0.38, 0, 13699, None, None),
+        "wave_breaker": (0.226, 0.353, 0, 13284, 21, 18),
+        "breaker": (0.1511, 0.3536, 0, 10345, 16, 24),
+        "cash": (0.0, 0.0, 0, 0, 12, 28),
+    },
+    ("m58", "no_explosive", "waves"): {
+        "engine": (-0.0274, 0.7691, 6, 13196, None, None),
+        "wave_breaker": (-0.0034, 0.7711, 3, 12338, 22, 18),
+        "breaker": (0.1618, 0.5898, 0, 10217, 30, 10),
+        "cash": (0.0, 0.0, 0, 0, 21, 19),
+    },
+    ("m58", "rug_stress", "independent"): {
+        "engine": (-0.1616, 0.66, 2, 14098, None, None),
+        "wave_breaker": (-0.1741, 0.6345, 2, 13763, 18, 16),
+        "breaker": (-0.13, 0.5741, 0, 9595, 25, 15),
+        "cash": (0.0, 0.0, 0, 0, 27, 13),
+    },
+    ("m58", "rug_stress", "waves"): {
+        "engine": (-0.3755, 0.8229, 19, 12491, None, None),
+        "wave_breaker": (-0.3401, 0.7608, 14, 11554, 27, 13),
+        "breaker": (-0.1982, 0.6844, 5, 9221, 33, 7),
+        "cash": (0.0, 0.0, 0, 0, 32, 8),
+    },
+    ("extreme", "normal", "independent"): {
+        "engine": (834.1139, 0.3994, 0, 18374, None, None),
+        "wave_breaker": (563.3247, 0.3963, 0, 17812, 9, 30),
+        "breaker": (173.5072, 0.4476, 0, 14903, 7, 33),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("extreme", "normal", "waves"): {
+        "engine": (66.3266, 0.7422, 2, 17848, None, None),
+        "wave_breaker": (70.2475, 0.6907, 2, 16103, 23, 17),
+        "breaker": (90.5585, 0.6589, 0, 14470, 33, 7),
+        "cash": (0.0, 0.0, 0, 0, 2, 38),
+    },
+    ("extreme", "no_explosive", "independent"): {
+        "engine": (0.1729, 0.5516, 0, 18474, None, None),
+        "wave_breaker": (0.1216, 0.5367, 0, 17941, 20, 20),
+        "breaker": (0.2164, 0.4287, 0, 13653, 20, 20),
+        "cash": (0.0, 0.0, 0, 0, 14, 26),
+    },
+    ("extreme", "no_explosive", "waves"): {
+        "engine": (-0.1693, 0.7107, 13, 16915, None, None),
+        "wave_breaker": (-0.1197, 0.7092, 8, 16056, 27, 13),
+        "breaker": (0.14, 0.6547, 1, 13474, 34, 6),
+        "cash": (0.0, 0.0, 0, 0, 23, 17),
+    },
+    ("extreme", "rug_stress", "independent"): {
+        "engine": (-0.5023, 0.8251, 22, 14675, None, None),
+        "wave_breaker": (-0.5016, 0.8359, 21, 14286, 18, 19),
+        "breaker": (-0.4799, 0.6645, 20, 11095, 18, 22),
+        "cash": (0.0, 0.0, 0, 0, 32, 8),
+    },
+    ("extreme", "rug_stress", "waves"): {
+        "engine": (-0.5365, 0.8947, 35, 10360, None, None),
+        "wave_breaker": (-0.5126, 0.8946, 32, 10444, 29, 11),
+        "breaker": (-0.5063, 0.8755, 25, 9382, 26, 14),
+        "cash": (0.0, 0.0, 0, 0, 37, 3),
+    },
+}
+RECORDED_WAVE_BREAKER_DECISIONS = {"m58": "NON DÉMONTRÉE", "extreme": "NON DÉMONTRÉE"}
+RECORDED_BREAKER_THIRD_SAMPLE = {"A1_waves_improved": True, "A2_normal_not_degraded": False, "A3_independent_not_degraded": True,
+                                 "A4_survival": True, "A5_activity": True}
+
+# Iteration 23 (report only, pre-registered): the same bench on the validation seeds KELLY_SEEDS with KELLY_CANDIDATES;
+# same row format as RECORDED_BENCH. The session's Kelly is never changed by this record.
+RECORDED_KELLY = {
+    ("m58", "normal", "independent"): {
+        "engine": (253.4481, 0.3655, 0, 13601, None, None),
+        "quarter_kelly": (164.8895, 0.3647, 0, 13612, 7, 33),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("m58", "normal", "waves"): {
+        "engine": (33.0787, 0.6762, 0, 13577, None, None),
+        "quarter_kelly": (27.1989, 0.6666, 0, 13579, 10, 30),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("m58", "no_explosive", "independent"): {
+        "engine": (0.2365, 0.3708, 0, 13656, None, None),
+        "quarter_kelly": (0.1603, 0.3188, 0, 13666, 12, 28),
+        "cash": (0.0, 0.0, 0, 0, 13, 27),
+    },
+    ("m58", "no_explosive", "waves"): {
+        "engine": (0.0591, 0.6459, 2, 13444, None, None),
+        "quarter_kelly": (0.0308, 0.5772, 2, 13483, 21, 19),
+        "cash": (0.0, 0.0, 0, 0, 16, 24),
+    },
+    ("m58", "rug_stress", "independent"): {
+        "engine": (-0.1682, 0.6524, 1, 14159, None, None),
+        "quarter_kelly": (-0.1323, 0.5372, 0, 14181, 28, 12),
+        "cash": (0.0, 0.0, 0, 0, 30, 10),
+    },
+    ("m58", "rug_stress", "waves"): {
+        "engine": (-0.4792, 0.851, 18, 12116, None, None),
+        "quarter_kelly": (-0.4517, 0.8234, 17, 12785, 22, 18),
+        "cash": (0.0, 0.0, 0, 0, 31, 9),
+    },
+    ("extreme", "normal", "independent"): {
+        "engine": (912.6289, 0.4242, 0, 18357, None, None),
+        "quarter_kelly": (533.0795, 0.4223, 0, 18361, 8, 32),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("extreme", "normal", "waves"): {
+        "engine": (86.1972, 0.714, 2, 17604, None, None),
+        "quarter_kelly": (68.2399, 0.6617, 2, 17988, 20, 20),
+        "cash": (0.0, 0.0, 0, 0, 2, 38),
+    },
+    ("extreme", "no_explosive", "independent"): {
+        "engine": (0.1008, 0.5375, 2, 18257, None, None),
+        "quarter_kelly": (0.0359, 0.4467, 0, 18421, 15, 25),
+        "cash": (0.0, 0.0, 0, 0, 16, 24),
+    },
+    ("extreme", "no_explosive", "waves"): {
+        "engine": (-0.4247, 0.6625, 18, 15771, None, None),
+        "quarter_kelly": (-0.345, 0.6326, 9, 17483, 24, 16),
+        "cash": (0.0, 0.0, 0, 0, 31, 9),
+    },
+    ("extreme", "rug_stress", "independent"): {
+        "engine": (-0.5078, 0.8299, 29, 12997, None, None),
+        "quarter_kelly": (-0.4619, 0.7333, 18, 16799, 22, 18),
+        "cash": (0.0, 0.0, 0, 0, 34, 6),
+    },
+    ("extreme", "rug_stress", "waves"): {
+        "engine": (-0.5146, 0.9502, 32, 10500, None, None),
+        "quarter_kelly": (-0.5094, 0.9338, 29, 12771, 22, 18),
+        "cash": (0.0, 0.0, 0, 0, 35, 5),
+    },
+}
+RECORDED_KELLY_DECISIONS = {"m58": "NON DÉMONTRÉE", "extreme": "NON DÉMONTRÉE"}
+
+
 # -- verification command (iteration 19) ------------------------------------------------------------------------------
 def _row(rows, label, recomputed, recorded, tol=None):
     ok = recomputed == recorded if tol is None else abs(recomputed - recorded) <= tol
@@ -1170,14 +1668,74 @@ def verify_calibrations(rows):
              dev["stress_worst_equity_min"], 1e-4)
 
 
+def bench_row(summary: dict) -> tuple:
+    paired = summary.get("paired")
+    return (round(summary["net_return_median"], 4), round(summary["max_drawdown_max"], 4), summary["failures"], summary["trades"],
+            paired["wins"] if paired else None, paired["losses"] if paired else None)
+
+
+def same_bench_row(got: tuple, recorded: tuple) -> bool:
+    return all(a == b if not isinstance(b, float) else abs(a - b) <= 1e-4 * max(1.0, abs(b)) for a, b in zip(got, recorded))
+
+
+def _verify_table(rows, label, table, recorded_table, populations):
+    for key, cell in recorded_table.items():
+        if key[0] not in populations:
+            continue
+        for name, recorded in cell.items():
+            got = bench_row(table[key][name])
+            rows.append((f"{label} {'/'.join(key)}, {name} : (rendement médian, drawdown max, échecs, transactions, V, D)",
+                         same_bench_row(got, recorded), got, recorded))
+
+
+def verify_bench(rows, populations=BENCH_POPULATIONS):
+    table = bench(populations=populations)
+    _verify_table(rows, "banc", table, RECORDED_BENCH, populations)
+    for population in populations:
+        for variant, recorded in RECORDED_BENCH_DECISIONS[population].items():
+            _row(rows, f"banc {population} : décision préenregistrée, {variant}", bench_decision(table, variant, population)["decision"],
+                 recorded)
+
+
+def verify_drawdown(rows, populations=BENCH_POPULATIONS):
+    table = bench(seeds=DRAWDOWN_SEEDS, populations=populations, candidates=DRAWDOWN_CANDIDATES)
+    _verify_table(rows, "mises en drawdown", table, RECORDED_DRAWDOWN, populations)
+    for population in populations:
+        _row(rows, f"mises en drawdown {population} : décision préenregistrée", bench_decision(table, "drawdown", population)["decision"],
+             RECORDED_DRAWDOWN_DECISIONS[population])
+    if "m58" in populations:
+        _row(rows, "disjoncteur rejoué (réplication, sans décision) : critères A1-A5", bench_decision(table, "breaker")["checks"],
+             RECORDED_BREAKER_REPLICATION)
+
+
+def verify_wave_breaker(rows, populations=BENCH_POPULATIONS):
+    table = bench(seeds=WAVE_SEEDS, populations=populations, candidates=WAVE_CANDIDATES)
+    _verify_table(rows, "disjoncteur statistique", table, RECORDED_WAVE_BREAKER, populations)
+    for population in populations:
+        _row(rows, f"disjoncteur statistique {population} : décision préenregistrée",
+             bench_decision(table, "wave_breaker", population)["decision"], RECORDED_WAVE_BREAKER_DECISIONS[population])
+    if "m58" in populations:
+        _row(rows, "disjoncteur rejoué (troisième échantillon, sans décision) : critères A1-A5",
+             bench_decision(table, "breaker")["checks"], RECORDED_BREAKER_THIRD_SAMPLE)
+
+
+def verify_kelly(rows, populations=BENCH_POPULATIONS):
+    table = bench(seeds=KELLY_SEEDS, populations=populations, candidates=KELLY_CANDIDATES)
+    _verify_table(rows, "quart de Kelly", table, RECORDED_KELLY, populations)
+    for population in populations:
+        _row(rows, f"quart de Kelly {population} : décision préenregistrée", bench_decision(table, "quarter_kelly", population)["decision"],
+             RECORDED_KELLY_DECISIONS[population])
+
+
 QUICK_CHECKS = (verify_survival, verify_waves, verify_admission, verify_breaker)
 
 
 def verify(quick: bool = False) -> list:
     """Recompute the recorded results and compare them with the recorded values (the tolerances of the tests). Returns
-    ``(label, ok, recomputed, recorded)`` rows; ``quick`` skips the five full calibrations. No file, network or key."""
+    ``(label, ok, recomputed, recorded)`` rows; ``quick`` skips the five full calibrations and the representative benches
+    of iterations 20 to 23. No file, network or key."""
     rows = []
-    for check in QUICK_CHECKS + (() if quick else (verify_calibrations,)):
+    for check in QUICK_CHECKS + (() if quick else (verify_calibrations, verify_bench, verify_drawdown, verify_wave_breaker, verify_kelly)):
         check(rows)
     return rows
 
@@ -1189,7 +1747,7 @@ def main(argv=None) -> int:
                                      description="Calibrateur memecoin (simulation, données synthétiques uniquement).")
     sub = parser.add_subparsers(dest="command", required=True)
     v = sub.add_parser("verify", help="recalcule les résultats enregistrés et les compare aux valeurs consignées")
-    v.add_argument("--quick", action="store_true", help="sans les calibrations complètes (moins d'une minute)")
+    v.add_argument("--quick", action="store_true", help="sans les calibrations complètes ni le banc (moins d'une minute)")
     args = parser.parse_args(argv)
     rows = verify(quick=args.quick)
     for label, ok, got, recorded in rows:
