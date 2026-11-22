@@ -59,6 +59,22 @@ def _number(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
+def reception_gap(point, previous):
+    """Seconds between the receptions of two observations when both carry one (``received_ms``), else ``None``. An
+    observation is stamped with its cycle's start (``ts``) but received later in the cycle, by a delay that changes with its
+    place in the cycle and the network; the price's publication time is unknown and never invented."""
+    a, b = point.get("received_ms"), (previous or {}).get("received_ms")
+    if isinstance(a, int) and not isinstance(a, bool) and isinstance(b, int) and not isinstance(b, bool):
+        return (a - b) / 1000
+    return None
+
+
+def _within(gap, point, previous, bound):
+    """The upper bound of the sniper and momentum applies to both the cycle-time gap and the reception gap."""
+    received = reception_gap(point, previous)
+    return max(gap, received if received is not None else gap) <= bound
+
+
 def sniper_check(asset, point):
     """``{"signal": bool, "reason": str, ...}`` for a sudden acceleration on an admissible established pool.
 
@@ -82,8 +98,9 @@ def sniper_check(asset, point):
     gap = point["ts"] - previous["ts"]
     if gap < SNIPER_MIN_GAP_S:
         return {"signal": False, "reason": "même observation ou observation antérieure"}
-    if gap > SNIPER_MAX_GAP_S:
-        return {"signal": False, "reason": f"observation précédente périmée ({gap:.0f} s > {SNIPER_MAX_GAP_S} s)"}
+    if not _within(gap, point, previous, SNIPER_MAX_GAP_S):
+        late = max(gap, reception_gap(point, previous) or gap)
+        return {"signal": False, "reason": f"observation précédente périmée ({late:.0f} s > {SNIPER_MAX_GAP_S} s)"}
     if all(point[k] == previous[k] for k in _SNIPER_FIELDS[:4]):
         return {"signal": False, "reason": "observation inchangée"}
     pace, before = point["volume_usd_per_min_m5"], previous["volume_usd_per_min_m5"]
@@ -131,7 +148,8 @@ def entry_signals(asset, point, whale=False):
         gap = point["ts"] - previous["ts"] if _number(point.get("ts")) and _number(previous.get("ts")) else None
         if (
             gap is not None
-            and MOMENTUM_MIN_GAP_S <= gap <= MOMENTUM_MAX_GAP_S
+            and MOMENTUM_MIN_GAP_S <= gap
+            and _within(gap, point, previous, MOMENTUM_MAX_GAP_S)
             and previous["volume_usd_per_min_m5"]
             and previous["buy_sell_count_ratio_m5"]
             and (point["volume_usd_per_min_m5"] or 0) > 1.5 * previous["volume_usd_per_min_m5"]
