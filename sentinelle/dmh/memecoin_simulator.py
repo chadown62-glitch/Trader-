@@ -32,9 +32,9 @@ from ..config import paper_capital
 from ..fleet import agents as fleet_agents, coordinator as fleet_coordinator
 from . import established_pools, memecoin_learner, smart_wallets
 from .dex import _rpc
-from .memecoin_strategies import (CALIBRATED, DEFAULT_PROFILE, DIP_PEAK_MAX_AGE_S, PROFILES, PROFILES_VERSION,
-                                  MemecoinIsolatedLearner, NAMES, entry_confidence, entry_signals, evaluate,
-                                  exit_decision, route)
+from .memecoin_strategies import (CALIBRATED, DEFAULT_PROFILE, DIP_PEAK_MAX_AGE_S, MOMENTUM_MAX_GAP_S, PROFILES,
+                                  PROFILES_VERSION, SNIPER_MAX_GAP_S, MemecoinIsolatedLearner, NAMES, entry_confidence,
+                                  entry_signals, evaluate, exit_decision, route)
 from .net import SourceUnavailable
 
 KEY = "memecoin:paper-session:v1"
@@ -67,6 +67,20 @@ UNAVAILABLE_GRACE_S = 600
 # six cycles (210 to 450 s), within the 600 s the sniper and momentum signals accept between two observations.
 WATCH_LIMIT = 24
 ROTATION = 4
+# Nothing guaranteed those figures: once a cycle lasts more than 100 s (a longer interval, many held lots, network latency,
+# whale reads), every rotated pool was revisited after more than 600 s and the sniper and momentum could fire on none of
+# them. The rotation now keeps as many pools as it can revisit within their own bound (``watch_size``), never quoting more.
+REVISIT_MAX_S = min(SNIPER_MAX_GAP_S, MOMENTUM_MAX_GAP_S)  # the strategies' own bounds, unchanged
+
+
+def watch_size(period_s):
+    """Pools watched in rotation for a measured cycle period: as many as ``ROTATION`` quotes per cycle revisit within
+    ``REVISIT_MAX_S`` (the most recently admitted first), at most ``WATCH_LIMIT``. An unknown period, or one longer than
+    ``REVISIT_MAX_S`` (no set can be revisited in time), keeps ``WATCH_LIMIT`` as before. Never more quotes per cycle."""
+    if not _finite(period_s) or period_s <= 0:
+        return WATCH_LIMIT
+    cycles = int(REVISIT_MAX_S // period_s)
+    return WATCH_LIMIT if cycles == 0 else min(WATCH_LIMIT, ROTATION * cycles)
 
 
 def opened_at(state, key, pos):
@@ -804,6 +818,7 @@ def report(state, wallets):
         "profile": {"id": profile_for(state).id, "label": profile_for(state).label,
                     "version": state.get("profiles_version", PROFILES_VERSION)},
         "entry_gate": state.get("entry_gate"),
+        "cadence": state.get("cadence"),
         "return_24h": return_24h(state),
         "stale_marks": state.get("stale_marks", []),
         "pending_orders": [{"id": oid, "kind": o["kind"], "key": o["key"], "decided_at": o["decided_at"],
@@ -1001,10 +1016,11 @@ def audit_routing(rows):
                                           "lots": {o.split(":buy:", 1)[1].split("/", 1)[0]: realised[o] for o in sorted(ids)}})
     return out
 
-def watch_rotation(assets, priority):
-    """Assets quoted in rotation this cycle besides ``priority`` (held lots, pending orders): among the ``WATCH_LIMIT``
-    most recently admitted pools, the ``ROTATION`` least recently checked. Older candidates stay recorded, unquoted."""
-    candidates = sorted(set(assets) - priority, key=lambda m: (-assets[m].get("admitted_ms", 0), m))[:WATCH_LIMIT]
+def watch_rotation(assets, priority, watch=WATCH_LIMIT):
+    """Assets quoted in rotation this cycle besides ``priority`` (held lots, pending orders): among the ``watch`` (at most
+    ``WATCH_LIMIT``) most recently admitted pools, the ``ROTATION`` least recently checked. Older candidates stay
+    recorded, unquoted."""
+    candidates = sorted(set(assets) - priority, key=lambda m: (-assets[m].get("admitted_ms", 0), m))[:min(watch, WATCH_LIMIT)]
     return sorted(candidates, key=lambda m: (assets[m].get("checked", 0), m))[:ROTATION]
 
 
@@ -1069,7 +1085,15 @@ def tick(hub, db, bus):
     fleet = fleet_coordinator.Coordinator(clock=client.clock)  # cycle fini : une flotte par passage, sans pouvoir d'ordre
     trace = {"quotes": {}, "evaluations": {}}
     state["_cycle"] = {"resolved": [], "fleet": []}  # transient: what this cycle resolved and asked the fleet
-    for mint in sorted(held) + sorted(ordered) + watch_rotation(assets, held | ordered):
+    last_tick = state["curve"][-1]["ts"] if state["curve"] else None
+    period = now - last_tick if _finite(last_tick) else None  # measured period: previous cycle and the wait after it
+    watch = watch_size(period)
+    watched = min(watch, len(set(assets) - held - ordered))
+    revisit = math.ceil(watched / ROTATION) * period if period is not None and watched else None
+    state["cadence"] = trace["cadence"] = {
+        "period_s": period, "watch": watch, "watched": watched, "rotation": ROTATION, "revisit_s": revisit,
+        "flow_possible": None if revisit is None else revisit <= REVISIT_MAX_S}  # sniper and momentum can compare in time
+    for mint in sorted(held) + sorted(ordered) + watch_rotation(assets, held | ordered, watch):
         try:
             points[mint] = quote(client, assets[mint], now)
             trace["quotes"][mint] = _quote_trace(points[mint])
