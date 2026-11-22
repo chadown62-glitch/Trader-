@@ -28,6 +28,17 @@ observation is missing or worthless (prudent floor, as ``floor_usd`` in the pape
 credited at its decision price. ``"immediate"`` is the former contract (decision and fill on the same observation,
 optimistic), kept only to reproduce ``calibration-v1``.
 
+Portfolio (``arrival_gap``, ``sizing``): by default lots overlap (one signal every ``ARRIVAL_GAP_MIN`` minutes, at most
+``MAX_OPEN_LOTS``, the learner only sees closed trades) and are sized exactly like ``memecoin_simulator._buy``
+(``sizing="session"``: adaptive multiplier, exploration floor, strategy budget, reserve, the fleet's 50 % loss stop).
+
+Versioned results (``CALIBRATION_VERSIONS``, ``RECORDED_SELECTIONS``; never rewritten, none promoted automatically):
+v1 immediate; v2 causal without the entry drift guard; v3 causal with it; v4 overlapping lots sized by the learner;
+v5 overlapping lots sized like the session. Report-only settings, never a version of the session: ``costs``,
+``exploration="bounded"``, ``cluster_block`` (adverse regimes in waves), ``stop_liquidation``, ``profile`` and
+``m58_admission`` (the M58 pool filters applied to the synthetic signals, recommended for the next version), each with
+its recorded measurement (``RECORDED_*``) and its test file ``tests/test_memecoin_calibrator_*.py``.
+
 These are synthetic regimes built from assumptions: a calibrated setting is a prudent default, not evidence of profit.
 """
 from __future__ import annotations
@@ -40,7 +51,7 @@ from dataclasses import asdict, dataclass
 import numpy as np
 
 from ..fleet.agents import RiskCommander
-from . import memecoin_learner, memecoin_strategies as ms
+from . import established_pools, memecoin_learner, memecoin_strategies as ms
 from .memecoin_simulator import MAX_ENTRY_DRIFT as SESSION_ENTRY_DRIFT  # the session's own guard, not a new parameter
 
 ASSET_DOMAIN = "memecoin"
@@ -92,6 +103,10 @@ NO_ENTRY = 5  # reason code of a path whose entry could not be filled (no finite
 MAX_OPEN_LOTS = RiskCommander.MEMECOIN_MAX_OPEN
 ARRIVAL_GAP_MIN = STEPS / MAX_OPEN_LOTS
 CLUSTER_BLOCK = MAX_OPEN_LOTS  # report-only waves of iteration 11: as many same-regime signals as the fleet holds lots
+# Report-only loss-streak circuit breaker of iteration 18, fixed before any result: after LOSS_STREAK consecutive losing
+# closed lots, no entry for PAUSE_MIN minutes (one hour, memecoin_learner.MATURITY_S).
+LOSS_STREAK = 3
+PAUSE_MIN = 60.0
 # Results are versioned, never rewritten: (execution contract, entry drift guard, arrival gap, sizing) -> results. The
 # sequential portfolio (no arrival gap) always sizes with the learner.
 CALIBRATION_VERSIONS = {("immediate", None, None, "learner"): "calibration-v1", ("causal", None, None, "learner"): "calibration-v2-causal",
@@ -645,7 +660,8 @@ def session_stake(*, equity, known, cash, strategy_used, exposed, fraction, weig
 
 
 def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, lots: LotPaths, exploration: str = "session",
-                       stop_liquidation: bool = False) -> dict:
+                       stop_liquidation: bool = False, profile: str = ms.DEFAULT_PROFILE, m58_admission: bool = False,
+                       breaker: bool = False) -> dict:
     """Overlapping portfolio sized like the paper session (see ``session_stake``): open lots are valued at their
     liquidation value, partial proceeds are cash when sold, the adaptive multiplier learns from closed lots and from open
     lots that are mature or partially sold, no entry beyond the fleet's session-loss stop or with 12 open lots."""
@@ -655,6 +671,9 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
     close_at = {}  # path index -> closing time of the lot in the heap
     stopped = False
     pnl_by = {name: 0.0 for name in ms.NAMES}  # realized fictitious USD per strategy (iteration 14)
+    limits = ms.PROFILES[profile]  # MODERATE: the fleet's 12 lots and 50 % stop, the M58 pool filters (iteration 15)
+    streak, paused_until = 0, -math.inf  # loss-streak circuit breaker (iteration 18, report only)
+    loss_stop = (1 - limits.session_loss_stop) * INITIAL
 
     def state(now):
         proceeds, marks, unknown, held = 0.0, 0.0, False, {}
@@ -692,7 +711,7 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
             heapq.heappush(heap, (t0 + e, j))
 
     def realize(until):
-        nonlocal cash_base
+        nonlocal cash_base, streak, paused_until
         while heap and heap[0][0] <= until:
             closed_at, j = heapq.heappop(heap)
             if j not in open_ or closed_at != close_at[j]:
@@ -704,7 +723,10 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
             pnl_by[name] += stake * r
             completed.append({"strategy": name, "return": r, "asset_domain": ASSET_DOMAIN, "opened_at": t0})
             track(closed_at)
-            if stop_liquidation and not stopped and state(closed_at)[1] <= (1 - SESSION_LOSS_STOP) * INITIAL:
+            streak = streak + 1 if r < 0 else 0
+            if breaker and streak >= LOSS_STREAK:
+                paused_until, streak = closed_at + PAUSE_MIN, 0
+            if stop_liquidation and not stopped and state(closed_at)[1] <= loss_stop:
                 liquidate(closed_at)
 
     for i in range(len(paths.strategy)):
@@ -714,9 +736,21 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
         realize(now)
         track(now)  # measured before the decision: a lot just ordered is not filled (nor quoted) yet
         cash, eq, known, held = state(now)
-        if stop_liquidation and not stopped and eq <= (1 - SESSION_LOSS_STOP) * INITIAL:
+        if stop_liquidation and not stopped and eq <= loss_stop:
             liquidate(now)
-        if len(open_) >= MAX_OPEN_LOTS or eq <= (1 - SESSION_LOSS_STOP) * INITIAL or stopped:
+        if len(open_) >= min(MAX_OPEN_LOTS, limits.max_open) or eq <= loss_stop or stopped or now < paused_until:
+            refused += 1
+            continue
+        # Like memecoin_simulator.profile_refusal, only the profile limits stricter than the hard caps (M58 pool filters,
+        # assumed met by every synthetic signal unless m58_admission) are checked; the round trip is approximated by the
+        # entry's net ratio. m58_admission (iteration 16, report only) also applies the M58 filters themselves.
+        if m58_admission and not admitted(paths, lots, i):
+            refused += 1
+            continue
+        if ((limits.min_liquidity_usd > established_pools.MIN_LIQUIDITY_USD
+             and min(paths.liquidity[i, 0], paths.liquidity[i, 1]) < limits.min_liquidity_usd)
+                or (limits.max_round_trip_loss < established_pools.MAX_ROUND_TRIP_LOSS
+                    and 1 - lots.ratio[i, 1] > limits.max_round_trip_loss)):
             refused += 1
             continue
         name = ms.NAMES[int(paths.strategy[i])]
@@ -728,7 +762,7 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
         adaptive = learned["multiplier"]
         # "bounded" (iteration 7, report only): the floor explores only until the minimal sample exists
         explore = exploration == "session" or learned["evaluated_lots"] < memecoin_learner.MIN_TRADES
-        size = session_stake(explore=explore, equity=eq, known=known, cash=cash, exposed=sum(m for _, m, _ in held.values() if math.isfinite(m)),
+        size = session_stake(explore=explore, profile=limits, equity=eq, known=known, cash=cash, exposed=sum(m for _, m, _ in held.values() if math.isfinite(m)),
                              strategy_used=sum(b for j, (_, _, b) in held.items() if open_[j][2] == name),
                              fraction=learner.fractions[name], weight=learner.weights[name], multiplier=adaptive,
                              network=float(paths.network[i, 1]))
@@ -750,6 +784,13 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
             "profit_factor": float(wins / losses) if losses > 0 else None, "win_rate": float(np.mean(pnl > 0)) if len(pnl) else None,
             "max_drawdown": max_dd, "worst_equity_ratio": worst / INITIAL, "trades": len(pnl), "by_strategy": by,
             "refused_open_lots": refused}
+
+
+def admitted(paths: Paths, lots: LotPaths, i: int) -> bool:
+    """M58 admission of signal ``i`` (iteration 16, report only): pool depth at the signal and at the fill at least
+    ``established_pools.MIN_LIQUIDITY_USD``, round trip (1 - net ratio right after the entry) at most ``MAX_ROUND_TRIP_LOSS``."""
+    depth = min(paths.liquidity[i, 0], paths.liquidity[i, 1])
+    return bool(depth >= established_pools.MIN_LIQUIDITY_USD and 1 - lots.ratio[i, 1] <= established_pools.MAX_ROUND_TRIP_LOSS)
 
 
 def _summary(results: list[dict]) -> dict:
@@ -781,6 +822,9 @@ class MemecoinCalibrator:
     exploration: str = "session"  # session sizing only: "session" (exact rule) or "bounded" (iteration 7, report only)
     cluster_block: int | None = None  # None: independent signals (every recorded version); else waves (iteration 11)
     stop_liquidation: bool = False  # session sizing only: True sells every open lot at the loss stop (iteration 13, report)
+    profile: str = ms.DEFAULT_PROFILE  # session sizing only: the experimental risk profile (iteration 15, report)
+    m58_admission: bool = False  # session sizing only: apply the M58 pool filters to synthetic signals (iteration 16, report)
+    breaker: bool = False  # session sizing only: loss-streak circuit breaker (iteration 18, report)
 
     def __post_init__(self):
         self.grid = self.grid or GRID
@@ -791,6 +835,8 @@ class MemecoinCalibrator:
             raise ValueError(f"dimensionnement inconnu : {self.sizing}")
         if self.exploration not in EXPLORATIONS:
             raise ValueError(f"règle d'exploration inconnue : {self.exploration}")
+        if self.profile not in ms.PROFILES:
+            raise ValueError(f"profil inconnu : {self.profile}")
 
     @property
     def _session_sizing(self):
@@ -809,7 +855,8 @@ class MemecoinCalibrator:
         r, steps, lots = replayed
         if self._session_sizing and not legacy:  # the legacy baseline keeps its own sizing
             return _portfolio_session(paths, r, multiplier=multiplier, close_steps=steps, arrival_gap=self.arrival_gap, lots=lots,
-                                      exploration=self.exploration, stop_liquidation=self.stop_liquidation)
+                                      exploration=self.exploration, stop_liquidation=self.stop_liquidation, profile=self.profile,
+                                      m58_admission=self.m58_admission, breaker=self.breaker)
         return portfolio(paths, r, multiplier=multiplier, legacy=legacy, close_steps=steps, arrival_gap=self.arrival_gap)
 
     def _generate(self, seed, mixes=MIXES):
@@ -850,6 +897,9 @@ class MemecoinCalibrator:
                 "exploration": self.exploration if self._session_sizing else None,
                 "version": ("unrecorded-waves" if self.cluster_block else "unrecorded-costs" if self.costs != NOMINAL
                             else "variant-stop-liquidation" if self._session_sizing and self.stop_liquidation
+                            else f"unrecorded-profile-{self.profile}" if self._session_sizing and self.profile != ms.DEFAULT_PROFILE
+                            else "variant-breaker" if self._session_sizing and self.breaker
+                            else "unrecorded-m58-admission" if self._session_sizing and self.m58_admission
                             else "variant-bounded-exploration" if self._session_sizing and self.exploration != "session"
                             else calibration_version(self.execution, self.entry_drift, self.arrival_gap, self.sizing)),
                 "selected": {k: v for k, v in best.items() if k != "_policy"},
@@ -865,7 +915,8 @@ class MemecoinCalibrator:
             cal = MemecoinCalibrator(execution=self.execution, entry_drift=self.entry_drift, arrival_gap=self.arrival_gap,
                                      paths_per_strategy=self.paths_per_strategy, costs=costs, sizing=self.sizing,
                                      exploration=self.exploration, cluster_block=self.cluster_block,
-                                     stop_liquidation=self.stop_liquidation,
+                                     stop_liquidation=self.stop_liquidation, profile=self.profile, m58_admission=self.m58_admission,
+                                     breaker=self.breaker,
                                      calibration_seeds=tuple(seeds or self.calibration_seeds))
             sets, stress = cal._paths(cal.calibration_seeds), cal._paths(cal.calibration_seeds, RUG_STRESS)
             replayed, stressed = [cal._replayed(p, policy) for p in sets], [cal._replayed(p, policy) for p in stress]
@@ -983,6 +1034,16 @@ RECORDED_SELECTIONS = {
         "development": {"compound_return_median": 27.2102, "max_drawdown_max": 0.3627, "stress_worst_equity_min": 0.7416},
         "robustness": {"failures": 0, "worst_equity_ratio": 0.6266},
     },
+    # Iteration 17 (report only): what the calibration selects once the M58 admission is applied to the synthetic signals
+    # (recommended for the next version, iteration 16): half Kelly, no failure over the 20 robustness seeds with
+    # independent signals, 11 in waves. A candidate for human review, never a version of the session.
+    "candidate-m58-admission": {
+        "execution": "causal", "entry_drift": SESSION_ENTRY_DRIFT, "arrival_gap": ARRIVAL_GAP_MIN, "sizing": "session",
+        "m58_admission": True, "in_session": False, "kelly_multiplier": 0.5,
+        "policy": _policy_dict(ms.ExitPolicy(0.20, 1.25, 0.20, (3.0, 6.0, 10.0), 0.25, 0.35, 0.15)),
+        "development": {"compound_return_median": 124.98, "max_drawdown_max": 0.3136, "stress_worst_equity_min": 0.7867},
+        "robustness": {"independent": (0, 0.5542), "waves": (11, 0.4669)},
+    },
 }
 
 # Survival of CALIBRATED in the rug-pull stress mix over ROBUSTNESS_SEEDS (report only, brain v2 iteration 4): seeds whose
@@ -1021,3 +1082,122 @@ RECORDED_STOP = {"independent": {"session": (0.3875, 0.4011), "liquidation": (0.
 # bounded variant cuts it by half or more (-7.89 -> -1.15: met; momentum is almost as bad, -7.29).
 RECORDED_STRATEGY_PNL = {"session": {"sniper": -7.887, "momentum": -7.290, "dip_hunter": 17.900, "whale_tail": 17.963},
                          "bounded": {"sniper": -1.146, "momentum": -1.001, "dip_hunter": 5.379, "whale_tail": 15.056}}
+# Iteration 15 (report only): the five experimental profiles under the session's stakes, rug-pull stress, half Kelly, 20
+# robustness seeds: (worst equity ratio, median of the per-seed worst, seeds below the profile's own loss stop).
+# Pre-registered criterion: both worst figures never rise from SAFE to MAX (tolerance 0.005): met.
+RECORDED_PROFILES = {"SAFE": (0.8901, 0.8994, 12), "MODERATE": (0.4011, 0.4861, 14), "RISK": (0.3763, 0.4715, 16),
+                     "ULTRA_RISK": (0.3537, 0.4743, 18), "MAX": (0.2678, 0.4552, 20)}
+# Iteration 16 (report only): the synthetic sniper pools (LIQUIDITY0, about 8,000 USD) predate the M58 pivot; the session
+# only admits established pools (20,000 USD, 10 % round trip). Applying that admission refuses every synthetic sniper
+# signal (348 of 348 on the calibration seeds). Survival failures over the 20 robustness seeds, quarter / half Kelly,
+# session stakes: the exploration-floor finding of iterations 6 to 8 holds in the admitted universe only when adverse
+# regimes come in waves. Pre-registered criterion for a material contract gap: met.
+RECORDED_ADMISSION = {"refused": {"sniper": (348, 348), "momentum": (3, 350), "dip_hunter": (0, 359), "whale_tail": (1, 333)},
+                      "independent": {"session": (0, 0), "bounded": (0, 0)},
+                      "waves": {"session": (6, 11), "bounded": (0, 0)}}
+# Iteration 18 (report only): the loss-streak circuit breaker (LOSS_STREAK, PAUSE_MIN) under the M58 admission, session
+# stakes, 20 robustness seeds: survival failures at quarter / half Kelly, and the compound median of the normal mix on
+# the calibration seeds at half Kelly. Pre-registered criterion (waves 11 -> 6 or fewer, none with independent signals,
+# compound at least half): met (3 failures, 0, 54.7 vs 100.2).
+RECORDED_BREAKER = {"independent": {"off": ((0, 0), 100.19), "on": ((0, 0), 54.71)},
+                    "waves": {"off": ((6, 11), 14.867), "on": ((2, 3), 21.256)}}
+
+
+# -- verification command (iteration 19) ------------------------------------------------------------------------------
+def _row(rows, label, recomputed, recorded, tol=None):
+    ok = recomputed == recorded if tol is None else abs(recomputed - recorded) <= tol
+    rows.append((label, bool(ok), recomputed, recorded))
+
+
+def _failing(cal, multipliers):
+    profile = cal.survival_profile(ms.CALIBRATED, multipliers=multipliers)
+    return {m: tuple(r["seed"] for r in v["seeds"] if r["worst_equity_ratio"] < MIN_STRESS_EQUITY) for m, v in profile.items()}
+
+
+def verify_survival(rows):
+    for version, cal in (("calibration-v4-overlap", MemecoinCalibrator(sizing="learner")),
+                         ("calibration-v5-session-sizing", MemecoinCalibrator())):
+        got = _failing(cal, KELLY_GRID)
+        for m, seeds in RECORDED_SURVIVAL[version].items():
+            _row(rows, f"survie {version}, Kelly {m} : graines en échec", got[m], seeds)
+
+
+def verify_waves(rows):
+    for mode in EXPLORATIONS:
+        got = _failing(MemecoinCalibrator(cluster_block=CLUSTER_BLOCK, exploration=mode), (0.25, 0.5))
+        for m, seeds in RECORDED_WAVES[mode].items():
+            _row(rows, f"vagues, exploration {mode}, Kelly {m} : graines en échec", got[m], seeds)
+
+
+def verify_admission(rows):
+    counts = {name: [0, 0] for name in ms.NAMES}
+    cal = MemecoinCalibrator()
+    for p in cal._paths(cal.calibration_seeds):
+        r, _, _, lots = lot_paths(p, ms.CALIBRATED)
+        for i in np.flatnonzero(np.isfinite(r)):
+            name = ms.NAMES[int(p.strategy[i])]
+            counts[name][1] += 1
+            counts[name][0] += not admitted(p, lots, i)
+    for name, value in RECORDED_ADMISSION["refused"].items():
+        _row(rows, f"admission M58, signaux {name} refusés", tuple(counts[name]), value)
+
+
+def verify_breaker(rows):
+    for order, block in (("independent", None), ("waves", CLUSTER_BLOCK)):
+        for state, on in (("off", False), ("on", True)):
+            profile = MemecoinCalibrator(m58_admission=True, cluster_block=block, breaker=on).survival_profile(
+                ms.CALIBRATED, multipliers=(0.25, 0.5))
+            _row(rows, f"disjoncteur {state}, {order} : échecs (quart, demi-Kelly)",
+                 (profile[0.25]["failures"], profile[0.5]["failures"]), RECORDED_BREAKER[order][state][0])
+
+
+def verify_calibrations(rows):
+    for version, kwargs in (("calibration-v1", dict(execution="immediate", entry_drift=None, arrival_gap=None)),
+                            ("calibration-v2-causal", dict(entry_drift=None, arrival_gap=None)),
+                            ("calibration-v3-causal-drift", dict(arrival_gap=None)),
+                            ("calibration-v4-overlap", dict(sizing="learner")),
+                            ("calibration-v5-session-sizing", {})):
+        result, rec = MemecoinCalibrator(**kwargs).calibrate(), RECORDED_SELECTIONS[version]
+        sel, dev = result["selected"], rec["development"]
+        _row(rows, f"{version} : version", result["version"], version)
+        compact = lambda pol, k: (pol["stop_loss"], pol["cover_ratio"], pol["cover_fraction"], tuple(pol["tiers"]), pol["tier_fraction"],
+                                  pol["trail_base"], pol["trail_slope"], pol["trail_max"], pol["floor"], k)
+        _row(rows, f"{version} : (stop, couverture, part, paliers, part des paliers, suiveur, pente, maximum, plancher, Kelly)",
+             compact(sel["policy"], sel["kelly_multiplier"]), compact(rec["policy"], rec["kelly_multiplier"]))
+        _row(rows, f"{version} : rendement composé médian", round(sel["calibration"]["compound_return"]["median"], 4),
+             dev["compound_return_median"], 1e-4 * max(1.0, abs(dev["compound_return_median"])))
+        _row(rows, f"{version} : pire équité sous stress", round(sel["rug_stress"]["worst_equity_ratio"]["min"], 4),
+             dev["stress_worst_equity_min"], 1e-4)
+
+
+QUICK_CHECKS = (verify_survival, verify_waves, verify_admission, verify_breaker)
+
+
+def verify(quick: bool = False) -> list:
+    """Recompute the recorded results and compare them with the recorded values (the tolerances of the tests). Returns
+    ``(label, ok, recomputed, recorded)`` rows; ``quick`` skips the five full calibrations. No file, network or key."""
+    rows = []
+    for check in QUICK_CHECKS + (() if quick else (verify_calibrations,)):
+        check(rows)
+    return rows
+
+
+def main(argv=None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="python -m sentinelle.dmh.memecoin_calibrator",
+                                     description="Calibrateur memecoin (simulation, données synthétiques uniquement).")
+    sub = parser.add_subparsers(dest="command", required=True)
+    v = sub.add_parser("verify", help="recalcule les résultats enregistrés et les compare aux valeurs consignées")
+    v.add_argument("--quick", action="store_true", help="sans les calibrations complètes (moins d'une minute)")
+    args = parser.parse_args(argv)
+    rows = verify(quick=args.quick)
+    for label, ok, got, recorded in rows:
+        print(f"{'OK   ' if ok else 'ÉCART'} {label} : recalculé {got} ; enregistré {recorded}")
+    bad = sum(not ok for _, ok, _, _ in rows)
+    print(f"{len(rows) - bad} / {len(rows)} résultats concordants" + ("" if not bad else f", {bad} écart(s)"))
+    return 0 if not bad else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
