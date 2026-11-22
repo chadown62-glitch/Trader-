@@ -151,6 +151,28 @@ def entry_signals(asset, point, whale=False):
     return signals
 
 
+
+# -- multi-strategy router (experimental, INACTIVE) ------------------------------------------------------------------
+# Pre-registered before any real flow signal existed (Sprint 5): one decision per market event (a token at a decision
+# time). A burst that triggers the sniper also triggers momentum (the sniper's rules imply momentum's, unless the previous
+# buy/sell ratio was zero): two strategies, one opportunity. The session never calls this router: it is replayed on the
+# journal (``memecoin_simulator.audit_routing``) to measure the double counting until an independent evaluation exists.
+FAMILIES = {"sniper": "flow", "momentum": "flow", "dip_hunter": "price", "whale_tail": "wallets"}
+
+
+def route(signals, refusal=None):
+    """One decision for one event: ``abstain`` without a tradable signal or on the engine's own refusal (never lifted:
+    profile, entry gate, fleet); otherwise ``enter`` a single lot labelled by the first signal in ``NAMES``, the number of
+    distinct families kept as confirmations. It defines no size, no threshold and no Kelly or profile parameter."""
+    present = [n for n in NAMES if n in set(signals)]
+    families = sorted({FAMILIES[n] for n in present})
+    decision = {"decision": "abstain", "strategy": None, "families": families, "confirmations": len(families), "reason": None}
+    if not present:
+        return {**decision, "reason": "aucun signal"}
+    if refusal:
+        return {**decision, "reason": refusal}
+    return {**decision, "decision": "enter", "strategy": present[0]}
+
 # -- asymmetric exits -----------------------------------------------------------------------------------------------
 @dataclass(frozen=True)
 class ExitPolicy:

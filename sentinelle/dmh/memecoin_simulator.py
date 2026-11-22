@@ -34,7 +34,7 @@ from . import established_pools, memecoin_learner, smart_wallets
 from .dex import _rpc
 from .memecoin_strategies import (CALIBRATED, DEFAULT_PROFILE, DIP_PEAK_MAX_AGE_S, PROFILES, PROFILES_VERSION,
                                   MemecoinIsolatedLearner, NAMES, entry_confidence, entry_signals, evaluate,
-                                  exit_decision)
+                                  exit_decision, route)
 from .net import SourceUnavailable
 
 KEY = "memecoin:paper-session:v1"
@@ -931,6 +931,51 @@ def audit_whale(rows):
                                           "derived": derived})
     return out
 
+
+
+def audit_routing(rows):
+    """Replay the inactive router (``memecoin_strategies.route``) on the journal and compare it with the engine, event by
+    event (a token with tradable signals in an evaluation the Guardian allowed): the engine's lots decided on the event,
+    the router's single decision, the lots beyond one per event, the strategy pairs, the abstentions and their reason
+    (entry gate, then profile, then fleet: the engine's order), and the P&L realised to date by the lots of a same
+    event. Report only: the router decides nothing."""
+    out = {"events": 0, "engine_lots": 0, "router_lots": 0, "extra_lots": 0, "router_without_engine_lot": 0,
+           "multi_strategy_events": 0, "pairs": {}, "abstentions": {}, "same_event_pnl": []}
+    lots, current, realised = {}, {}, {}  # event -> buy order ids; lot key -> its current buy; buy order id -> P&L
+    for row in rows:
+        decided = [o for o in row.get("decided", []) if ":buy:" in o]
+        fleet = {f["mint"]: f["decision"] for f in row.get("fleet", [])}
+        gate = (row.get("valuation") or {}).get("entry_gate") or {}
+        for mint, ev in sorted(row.get("evaluations", {}).items()):
+            if not ev.get("allowed") or not ev.get("signals"):
+                continue
+            engine = sorted(o.split(":buy:", 1)[1].split("/", 1)[0] for o in decided if o.endswith("/" + mint))
+            refusal = (gate.get("reason") if gate.get("open") is False else None) or ev.get("profile_refusal") or (
+                f"flotte : {fleet[mint]}" if fleet.get(mint, fleet_coordinator.PROPOSAL) != fleet_coordinator.PROPOSAL else None)
+            routed = route(ev["signals"], refusal)
+            out["events"] += 1
+            out["engine_lots"] += len(engine)
+            out["extra_lots"] += max(0, len(engine) - 1)
+            if routed["decision"] == "enter":
+                out["router_lots" if engine else "router_without_engine_lot"] += 1
+            else:
+                out["abstentions"][routed["reason"]] = out["abstentions"].get(routed["reason"], 0) + 1
+            if len(engine) > 1:
+                out["multi_strategy_events"] += 1
+                pair = "+".join(engine)
+                out["pairs"][pair] = out["pairs"].get(pair, 0) + 1
+        for f in row.get("fills", []):
+            key = f"{f['strategy']}/{f['mint']}"
+            if f["side"] == "buy":
+                lots.setdefault((f["mint"], f["decided_at"]), []).append(f["order_id"])
+                current[key], realised[f["order_id"]] = f["order_id"], 0.0
+            elif key in current:
+                realised[current[key]] += f.get("pnl") or 0.0
+    for (mint, decided_at), ids in sorted(lots.items()):
+        if len(ids) > 1:
+            out["same_event_pnl"].append({"mint": mint, "decided_at": decided_at,
+                                          "lots": {o.split(":buy:", 1)[1].split("/", 1)[0]: realised[o] for o in sorted(ids)}})
+    return out
 
 def watch_rotation(assets, priority):
     """Assets quoted in rotation this cycle besides ``priority`` (held lots, pending orders): among the ``WATCH_LIMIT``
