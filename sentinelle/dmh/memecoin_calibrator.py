@@ -91,6 +91,7 @@ NO_ENTRY = 5  # reason code of a path whose entry could not be filled (no finite
 # which the 12-lot limit is exactly reached when every trade lasts the whole horizon.
 MAX_OPEN_LOTS = RiskCommander.MEMECOIN_MAX_OPEN
 ARRIVAL_GAP_MIN = STEPS / MAX_OPEN_LOTS
+CLUSTER_BLOCK = MAX_OPEN_LOTS  # report-only waves of iteration 11: as many same-regime signals as the fleet holds lots
 # Results are versioned, never rewritten: (execution contract, entry drift guard, arrival gap, sizing) -> results. The
 # sequential portfolio (no arrival gap) always sizes with the learner.
 CALIBRATION_VERSIONS = {("immediate", None, None, "learner"): "calibration-v1", ("causal", None, None, "learner"): "calibration-v2-causal",
@@ -173,6 +174,18 @@ def generate(seed: int, *, mixes: dict = MIXES, paths_per_strategy: int = PATHS_
     rows = [rows[i] for i in order]
     return Paths(np.array([x[0] for x in rows]), np.array([x[1] for x in rows]), np.stack([x[2] for x in rows]),
                  np.stack([x[3] for x in rows]), np.stack([x[4] for x in rows]), np.array([x[5] for x in rows]))
+
+
+def in_waves(paths: Paths, block: int, seed: int) -> Paths:
+    """The same signals reordered in waves (report only, iteration 11): runs of ``block`` consecutive signals of one
+    regime, the order of the waves drawn from ``seed``. Regime proportions are unchanged; only the timing changes."""
+    rng = np.random.default_rng([seed, 11])
+    chunks = []
+    for k in range(len(REGIMES)):
+        idx = np.flatnonzero(paths.regime == k)
+        chunks += [idx[j:j + block] for j in range(0, len(idx), block)]
+    order = np.concatenate([chunks[i] for i in rng.permutation(len(chunks))]) if chunks else np.arange(0)
+    return Paths(*(getattr(paths, f)[order] for f in ("strategy", "regime", "price", "liquidity", "network", "confidence")))
 
 
 # -- execution ------------------------------------------------------------------------------------------------------
@@ -631,12 +644,17 @@ def session_stake(*, equity, known, cash, strategy_used, exposed, fraction, weig
     return 0.0 if size <= network * 2 or size < 0.05 else size
 
 
-def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, lots: LotPaths, exploration: str = "session") -> dict:
+def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, lots: LotPaths, exploration: str = "session",
+                       stop_liquidation: bool = False) -> dict:
     """Overlapping portfolio sized like the paper session (see ``session_stake``): open lots are valued at their
     liquidation value, partial proceeds are cash when sold, the adaptive multiplier learns from closed lots and from open
     lots that are mature or partially sold, no entry beyond the fleet's session-loss stop or with 12 open lots."""
     cash_base, peak, worst, max_dd, refused = INITIAL, INITIAL, INITIAL, 0.0, 0
     completed, pnl, heap, open_ = [], [], [], {}  # open_: path index -> (arrival, stake, strategy)
+    returns = np.array(returns, float)  # a liquidated lot gets a new return (variant of iteration 13, report only)
+    close_at = {}  # path index -> closing time of the lot in the heap
+    stopped = False
+    pnl_by = {name: 0.0 for name in ms.NAMES}  # realized fictitious USD per strategy (iteration 14)
 
     def state(now):
         proceeds, marks, unknown, held = 0.0, 0.0, False, {}
@@ -658,16 +676,36 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
         peak, worst = max(peak, eq), min(worst, eq)
         max_dd = max(max_dd, 1 - eq / peak)
 
+    def liquidate(now):
+        """Variant: sell every open lot whole on the next observation (decision at T, fill at T+1)."""
+        nonlocal stopped
+        stopped = True
+        for j, (t0, stake, name) in list(open_.items()):
+            e = int(round(now - t0)) + 1
+            last = lots.ratio.shape[1] - 1
+            while e <= last and not (math.isfinite(lots.ratio[j, e]) and lots.ratio[j, e] > 0):
+                e += 1  # nothing realizable: the sale waits for the next valid observation
+            if e > last or t0 + e >= close_at[j]:
+                continue  # its own exit comes first: nothing to change
+            returns[j] = lots.realized[j, e] + lots.remaining[j, e] * lots.ratio[j, e] - 1
+            close_at[j] = t0 + e
+            heapq.heappush(heap, (t0 + e, j))
+
     def realize(until):
         nonlocal cash_base
         while heap and heap[0][0] <= until:
             closed_at, j = heapq.heappop(heap)
+            if j not in open_ or closed_at != close_at[j]:
+                continue  # superseded by a liquidation
             t0, stake, name = open_.pop(j)
             r = float(returns[j])
             cash_base += stake * (1 + r)
             pnl.append(stake * r)
+            pnl_by[name] += stake * r
             completed.append({"strategy": name, "return": r, "asset_domain": ASSET_DOMAIN, "opened_at": t0})
             track(closed_at)
+            if stop_liquidation and not stopped and state(closed_at)[1] <= (1 - SESSION_LOSS_STOP) * INITIAL:
+                liquidate(closed_at)
 
     for i in range(len(paths.strategy)):
         if not math.isfinite(float(returns[i])):
@@ -676,7 +714,9 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
         realize(now)
         track(now)  # measured before the decision: a lot just ordered is not filled (nor quoted) yet
         cash, eq, known, held = state(now)
-        if len(open_) >= MAX_OPEN_LOTS or eq <= (1 - SESSION_LOSS_STOP) * INITIAL:
+        if stop_liquidation and not stopped and eq <= (1 - SESSION_LOSS_STOP) * INITIAL:
+            liquidate(now)
+        if len(open_) >= MAX_OPEN_LOTS or eq <= (1 - SESSION_LOSS_STOP) * INITIAL or stopped:
             refused += 1
             continue
         name = ms.NAMES[int(paths.strategy[i])]
@@ -696,7 +736,8 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
             continue
         cash_base -= size
         open_[i] = (now, size, name)
-        heapq.heappush(heap, (now + float(close_steps[i]), i))
+        close_at[i] = now + float(close_steps[i])
+        heapq.heappush(heap, (close_at[i], i))
     realize(math.inf)
     pnl = np.array(pnl)
     wins, losses = pnl[pnl > 0].sum(), -pnl[pnl < 0].sum()
@@ -704,7 +745,7 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
     for name in ms.NAMES:
         rows = [c["return"] for c in completed if c["strategy"] == name]
         by[name] = {"trades": len(rows), "mean_return": float(np.mean(rows)) if rows else None,
-                    "win_rate": float(np.mean([x > 0 for x in rows])) if rows else None}
+                    "win_rate": float(np.mean([x > 0 for x in rows])) if rows else None, "pnl_usd": pnl_by[name]}
     return {"compound_return": cash_base / INITIAL - 1, "final_equity": cash_base,
             "profit_factor": float(wins / losses) if losses > 0 else None, "win_rate": float(np.mean(pnl > 0)) if len(pnl) else None,
             "max_drawdown": max_dd, "worst_equity_ratio": worst / INITIAL, "trades": len(pnl), "by_strategy": by,
@@ -738,6 +779,8 @@ class MemecoinCalibrator:
     costs: Costs = NOMINAL  # every recorded version uses the nominal costs
     sizing: str = "session"  # overlapping portfolio only: "session" (memecoin_simulator._buy) or "learner" (v4)
     exploration: str = "session"  # session sizing only: "session" (exact rule) or "bounded" (iteration 7, report only)
+    cluster_block: int | None = None  # None: independent signals (every recorded version); else waves (iteration 11)
+    stop_liquidation: bool = False  # session sizing only: True sells every open lot at the loss stop (iteration 13, report)
 
     def __post_init__(self):
         self.grid = self.grid or GRID
@@ -766,11 +809,15 @@ class MemecoinCalibrator:
         r, steps, lots = replayed
         if self._session_sizing and not legacy:  # the legacy baseline keeps its own sizing
             return _portfolio_session(paths, r, multiplier=multiplier, close_steps=steps, arrival_gap=self.arrival_gap, lots=lots,
-                                      exploration=self.exploration)
+                                      exploration=self.exploration, stop_liquidation=self.stop_liquidation)
         return portfolio(paths, r, multiplier=multiplier, legacy=legacy, close_steps=steps, arrival_gap=self.arrival_gap)
 
+    def _generate(self, seed, mixes=MIXES):
+        p = with_costs(generate(seed, mixes=mixes, paths_per_strategy=self.paths_per_strategy), self.costs)
+        return in_waves(p, self.cluster_block, seed) if self.cluster_block else p
+
     def _paths(self, seeds, mixes=MIXES):
-        return [with_costs(generate(s, mixes=mixes, paths_per_strategy=self.paths_per_strategy), self.costs) for s in seeds]
+        return [self._generate(s, mixes) for s in seeds]
 
     def calibrate(self) -> dict:
         cal = self._paths(self.calibration_seeds)
@@ -801,9 +848,10 @@ class MemecoinCalibrator:
                 "arrival_gap": self.arrival_gap, "costs": asdict(self.costs),
                 "sizing": self.sizing if self.arrival_gap is not None else "learner",
                 "exploration": self.exploration if self._session_sizing else None,
-                "version": ("variant-bounded-exploration" if self._session_sizing and self.exploration != "session"
-                            else calibration_version(self.execution, self.entry_drift, self.arrival_gap, self.sizing))
-                if self.costs == NOMINAL else "unrecorded-costs",
+                "version": ("unrecorded-waves" if self.cluster_block else "unrecorded-costs" if self.costs != NOMINAL
+                            else "variant-stop-liquidation" if self._session_sizing and self.stop_liquidation
+                            else "variant-bounded-exploration" if self._session_sizing and self.exploration != "session"
+                            else calibration_version(self.execution, self.entry_drift, self.arrival_gap, self.sizing)),
                 "selected": {k: v for k, v in best.items() if k != "_policy"},
                 "candidates": [{k: v for k, v in c.items() if k != "_policy"} for c in candidates],
                 "grid_size": len(ranked), "_policy": best["_policy"]}
@@ -816,7 +864,8 @@ class MemecoinCalibrator:
         for label, costs in (scenarios or COST_SCENARIOS).items():
             cal = MemecoinCalibrator(execution=self.execution, entry_drift=self.entry_drift, arrival_gap=self.arrival_gap,
                                      paths_per_strategy=self.paths_per_strategy, costs=costs, sizing=self.sizing,
-                                     exploration=self.exploration,
+                                     exploration=self.exploration, cluster_block=self.cluster_block,
+                                     stop_liquidation=self.stop_liquidation,
                                      calibration_seeds=tuple(seeds or self.calibration_seeds))
             sets, stress = cal._paths(cal.calibration_seeds), cal._paths(cal.calibration_seeds, RUG_STRESS)
             replayed, stressed = [cal._replayed(p, policy) for p in sets], [cal._replayed(p, policy) for p in stress]
@@ -835,7 +884,7 @@ class MemecoinCalibrator:
         seed and per Kelly multiplier, under this calibrator's contract. Selects nothing and changes no parameter."""
         rows = {}
         for seed in seeds:
-            p = with_costs(generate(seed, mixes=RUG_STRESS, paths_per_strategy=self.paths_per_strategy), self.costs)
+            p = self._generate(seed, RUG_STRESS)
             replayed = self._replayed(p, policy)
             for m in multipliers:
                 run = self._portfolio(p, replayed, m)
@@ -956,3 +1005,19 @@ RECORDED_SURVIVAL = {
 # 12-lot fleet limit caps the exposure. Pre-registered criterion (>= 5 failures at half Kelly for 20, 60 and 120 min): met.
 RECORDED_CADENCE = {"session": {5.0: (1, 2), 20.0: (9, 14), 60.0: (10, 12), 120.0: (9, 13)},
                     "bounded": {5.0: (0, 1), 20.0: (0, 0), 60.0: (0, 0), 120.0: (0, 0)}}
+# Iteration 11 (report only): survival when adverse regimes come in waves of CLUSTER_BLOCK signals (same proportions,
+# other timing), 20 robustness seeds, seeds failing at quarter / half Kelly. Pre-registered: waves "aggravate" if the
+# session rule gains >= 3 failures at half Kelly (14 -> 19: met); the bounded variant stays "robust" with <= 1 (1: met).
+RECORDED_WAVES = {"session": {0.25: (14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 33),
+                              0.50: (14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33)},
+                  "bounded": {0.25: (), 0.50: (28,)}}
+# Iteration 13 (report only): worst equity ratio over the 20 robustness seeds when the session-loss stop also sells every
+# open lot on the next observation (variant) or not (the fleet's rule), at quarter / half Kelly. Pre-registered
+# criterion (half Kelly, +0.05 with independent signals and in waves): +0.042 / +0.130, not met: NOT DEMONSTRATED.
+RECORDED_STOP = {"independent": {"session": (0.3875, 0.4011), "liquidation": (0.4826, 0.4432)},
+                 "waves": {"session": (0.4200, 0.3356), "liquidation": (0.4667, 0.4662)}}
+# Iteration 14 (report only): realized fictitious USD per strategy, summed over the held-out seeds of the mix without
+# explosive runs, half Kelly, session stakes. Pre-registered: confirmed if the sniper carries the largest loss and the
+# bounded variant cuts it by half or more (-7.89 -> -1.15: met; momentum is almost as bad, -7.29).
+RECORDED_STRATEGY_PNL = {"session": {"sniper": -7.887, "momentum": -7.290, "dip_hunter": 17.900, "whale_tail": 17.963},
+                         "bounded": {"sniper": -1.146, "momentum": -1.001, "dip_hunter": 5.379, "whale_tail": 15.056}}
