@@ -16,6 +16,17 @@ How it calibrates:
    (maximum drawdown and worst equity in the intense rug-pull stress set);
 4. it is then reported on HELD-OUT seeds (synthetic out-of-sample) against the legacy thresholds of the paper session.
 
+Execution contract (``execution``): ``"causal"`` (default, the contract of the paper session since #91) decides on the
+observation of step T and fills on the observation of step T+1: the entry signalled at step 0 is filled at step 1, a lot
+is not judged on the observation that filled it, an exit decided on the net ratio of step T is sold at the net ratio of
+step T+1, a take-profit tier advances when its slice is sold, and no new exit is decided while one is pending. The
+entry is filled only on a finite quote of a pool with some depth; otherwise there is no trade (NaN). A missing
+(NaN) or worthless (ratio <= 0) next observation sells nothing: the order stays pending and no fictitious proceeds are
+invented; what is still held at the end of the horizon is sold at the last observation, and counts for 0 when that
+observation is missing or worthless (prudent floor, as ``floor_usd`` in the paper session): a pending sale is never
+credited at its decision price. ``"immediate"`` is the former contract (decision and fill on the same observation,
+optimistic), kept only to reproduce ``calibration-v1``.
+
 These are synthetic regimes built from assumptions: a calibrated setting is a prudent default, not evidence of profit.
 """
 from __future__ import annotations
@@ -68,6 +79,9 @@ PATHS_PER_STRATEGY = 120
 TOP_EXITS = 4
 MAX_DRAWDOWN = 0.40  # survival constraints of the selection
 MIN_STRESS_EQUITY = 0.50  # the worst equity in the rug-pull stress set must stay above 50 % of the initial capital
+EXECUTIONS = ("causal", "immediate")  # see the module docstring; "causal" is the contract of the paper session (#91)
+NO_ENTRY = 5  # reason code of a path whose entry could not be filled (no finite observation after the signal)
+CALIBRATION_VERSIONS = {"immediate": "calibration-v1", "causal": "calibration-v2-causal"}  # results are versioned, never rewritten
 
 
 # -- market paths ---------------------------------------------------------------------------------------------------
@@ -154,25 +168,107 @@ def net_ratio(mid_value, liquidity, network, size):
     return np.maximum(0.0, mid_value * (1 - impact) * (1 - DEX_FEE) - network) / size
 
 
-def ratios(paths: Paths, size=REFERENCE_SIZE) -> np.ndarray:
-    """Net liquidation ratio of every path at every step (independent of the exit policy): computed once per batch."""
+def _check_execution(execution):
+    if execution not in EXECUTIONS:
+        raise ValueError(f"contrat d'exécution inconnu : {execution}")
+
+
+def ratios(paths: Paths, size=REFERENCE_SIZE, execution: str = "causal") -> np.ndarray:
+    """Net liquidation ratio of every path at every step (independent of the exit policy): computed once per batch.
+    Causal: the entry is filled at step 1 (price, depth and network fee of step 1); the ratio is NaN before the fill and
+    wherever an observation is missing. Immediate: filled at step 0 (former contract)."""
+    _check_execution(execution)
     n = len(paths.strategy)
     size = np.broadcast_to(np.asarray(size, float), (n,)).copy()
-    mid0 = entry(size, paths.liquidity[:, 0], paths.network[:, 0])
-    return net_ratio(mid0[:, None] * paths.price, paths.liquidity, paths.network, size[:, None])
+    k = 1 if execution == "causal" else 0
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mid = entry(size, paths.liquidity[:, k], paths.network[:, k])
+        out = net_ratio(mid[:, None] * paths.price / paths.price[:, k:k + 1], paths.liquidity, paths.network, size[:, None])
+    out = np.where(np.isfinite(paths.price) & np.isfinite(paths.liquidity) & np.isfinite(paths.network), out, np.nan)
+    out[:, :k] = np.nan
+    if k:  # an entry is filled only on a finite quote of a pool with some depth: otherwise no trade at all
+        out[~_fillable(paths.price[:, 1], paths.liquidity[:, 1], paths.network[:, 1])] = np.nan
+    return out
 
 
-def replay(paths: Paths, policy, size=REFERENCE_SIZE, *, legacy: bool = False, stop_override: float | None = None, matrix=None):
-    """Vectorised replay of an exit policy on all paths. Returns per-trade return and exit reasons (codes)."""
+def _fillable(price, liquidity, network):
+    return np.isfinite(price) & (price > 0) & (liquidity > 0) & np.isfinite(network)
+
+
+def _decide(ratio, high, stage, open_, policy, stop, legacy):
+    """Vectorised ``exit_decision`` on the lots in ``open_``: (full exit, tier slice share, stop, trailing, floor)."""
+    n = len(ratio)
+    stop_hit = open_ & (ratio <= 1 - stop)
+    if legacy:  # same order as memecoin_simulator.process: stop, then trailing, then take-profit
+        levels = np.array([lvl for lvl, _ in ms.LEGACY["tiers"]] + [np.inf])
+        trail_hit = open_ & ~stop_hit & (stage > 0) & (ratio <= high * (1 - ms.LEGACY["trailing"]))
+        tier_hit = open_ & ~stop_hit & ~trail_hit & (ratio >= levels[np.minimum(stage, len(levels) - 1)])
+        floor_hit = np.zeros(n, bool)
+        tier_share = np.where(tier_hit, 0.5, 0.0)
+    else:
+        trail = np.minimum(policy.trail_max, policy.trail_base + policy.trail_slope * np.log(np.maximum(1.0, high)))
+        levels = np.array([policy.cover_ratio, *policy.tiers, np.inf])
+        idx = np.minimum(stage, len(levels) - 1)
+        floor_hit = open_ & ~stop_hit & (stage > 0) & (ratio <= policy.floor)
+        trail_hit = open_ & ~stop_hit & ~floor_hit & (stage > 0) & (ratio <= high * (1 - trail))
+        tier_hit = open_ & ~stop_hit & ~floor_hit & ~trail_hit & (ratio >= levels[idx])
+        tier_share = np.where(tier_hit, np.where(stage == 0, policy.cover_fraction, policy.tier_fraction), 0.0)
+    return stop_hit | trail_hit | floor_hit, tier_hit, tier_share, stop_hit, trail_hit, floor_hit
+
+
+def _replay_causal(R, policy, stop, legacy):
+    """Decision on the ratio of step T, fill at the ratio of step T+1 (see the module docstring)."""
+    n, steps = R.shape
+    entered = np.isfinite(R[:, 1]) if steps > 1 else np.zeros(n, bool)
+    remaining, realized, high = np.ones(n), np.zeros(n), np.ones(n)
+    stage, reason = np.zeros(n, int), np.zeros(n, int)
+    open_ = entered.copy()
+    pending, p_full, p_tier, p_share, p_reason = (np.zeros(n, bool), np.zeros(n, bool), np.zeros(n, bool), np.zeros(n),
+                                                  np.zeros(n, int))
+    for t in range(2, steps):
+        ratio = R[:, t]
+        seen = np.isfinite(ratio)
+        fill = open_ & pending & seen & (ratio > 0)  # nothing realizable, or nothing observed: the order waits
+        sold = np.where(fill, np.where(p_full, remaining, remaining * p_share), 0.0)
+        realized += np.where(fill, sold * ratio, 0.0)
+        remaining -= sold
+        stage += (fill & p_tier).astype(int)
+        reason = np.where(fill & p_full, p_reason, reason)
+        closed = fill & (p_full | (remaining <= 1e-9))
+        reason = np.where(closed & ~p_full, 4, reason)
+        open_ &= ~closed
+        pending &= ~fill
+        judge = open_ & ~pending & seen  # a lot with a pending sale is not judged again
+        high = np.where(judge, np.maximum(high, ratio), high)
+        full, tier, share, stop_hit, trail_hit, floor_hit = _decide(np.where(judge, ratio, 1.0), high, stage, judge, policy, stop, legacy)
+        new = full | tier
+        pending |= new
+        p_full = np.where(new, full, p_full)
+        p_tier = np.where(new, tier & ~full, p_tier)
+        p_share = np.where(new, share, p_share)
+        p_reason = np.where(new, np.where(stop_hit, 1, np.where(trail_hit, 2, np.where(floor_hit, 3, 0))), p_reason)
+    final = np.nan_to_num(R[:, -1], nan=0.0) if steps > 2 else np.zeros(n)
+    realized += remaining * np.where(open_, np.maximum(final, 0.0), 0.0)  # sold at the last observation, 0 if missing
+    out = realized - 1.0
+    return np.where(entered, out, np.nan), np.where(entered, reason, NO_ENTRY)
+
+
+def replay(paths: Paths, policy, size=REFERENCE_SIZE, *, legacy: bool = False, stop_override: float | None = None, matrix=None,
+           execution: str = "causal"):
+    """Vectorised replay of an exit policy on all paths. Returns per-trade return and exit reasons (codes): 0 end of
+    path, 1 stop, 2 trailing, 3 break-even, 4 tiers exhausted, 5 entry never filled (return NaN, not a trade)."""
+    _check_execution(execution)
     n = len(paths.strategy)
-    R = ratios(paths, size) if matrix is None else matrix
+    R = ratios(paths, size, execution) if matrix is None else matrix
+    stop = (stop_override if stop_override is not None else (ms.LEGACY["stop_loss"] if legacy else policy.stop_loss))
+    if execution == "causal":
+        return _replay_causal(R, policy, stop, legacy)
     remaining = np.ones(n)  # share of the position still held
     realized = np.zeros(n)  # proceeds as a multiple of the basis
     high = np.ones(n)
     stage = np.zeros(n, int)
     open_ = np.ones(n, bool)
     reason = np.zeros(n, int)  # 0 end, 1 stop, 2 trailing, 3 break-even, 4 tiers exhausted
-    stop = (stop_override if stop_override is not None else (ms.LEGACY["stop_loss"] if legacy else policy.stop_loss))
     for t in range(1, R.shape[1]):
         ratio = R[:, t]
         high = np.where(open_, np.maximum(high, ratio), high)
@@ -207,8 +303,50 @@ def replay(paths: Paths, policy, size=REFERENCE_SIZE, *, legacy: bool = False, s
     return realized - 1.0, reason
 
 
-def trade_return(price, liquidity, network, size, policy=ms.CALIBRATED) -> tuple[float, list]:
-    """Scalar replay of one trade with ``memecoin_strategies.exit_decision`` (reference for the vectorised replay)."""
+def _trade_return_causal(price, liquidity, network, size, policy):
+    price, liquidity, network = (np.asarray(x, float) for x in (price, liquidity, network))
+
+    def ratio_at(t):
+        if not (np.isfinite(price[t]) and np.isfinite(liquidity[t]) and np.isfinite(network[t])):
+            return math.nan
+        return float(net_ratio(np.array([mid1 * price[t] / price[1]]), np.array([liquidity[t]]), np.array([network[t]]),
+                               np.array([size]))[0])
+
+    if len(price) < 2 or not _fillable(price[1], liquidity[1], network[1]):
+        return math.nan, []  # the entry was never filled: no trade
+    mid1 = float(entry(np.array([size]), np.array([liquidity[1]]), np.array([network[1]]))[0])
+    pos, remaining, realized, events, pending = {"high": 1.0, "stage": 0}, 1.0, 0.0, [], None
+    for t in range(2, len(price)):
+        r = ratio_at(t)
+        if pending is not None and math.isfinite(r) and r > 0:  # the decision of an earlier step is filled here
+            why, share, decided_t, decided_r = pending
+            sold = remaining * share
+            realized += sold * r
+            remaining -= sold
+            events.append((t, why, round(share, 4), round(r, 4), decided_t, round(decided_r, 4)))
+            pending = None
+            if why == "take_profit":
+                pos["stage"] += 1
+            if share >= 1.0 or remaining <= 1e-9:
+                remaining = 0.0
+                break
+        if pending is None and math.isfinite(r):
+            d = ms.exit_decision(pos, r, policy)
+            if d is not None:
+                pending = (d[0], d[1], t, r)
+    final = ratio_at(len(price) - 1) if len(price) > 2 else math.nan
+    if remaining > 0 and math.isfinite(final):  # sold at the last observation of the horizon, 0 when it is missing
+        realized += remaining * max(final, 0.0)
+    return realized - 1.0, events
+
+
+def trade_return(price, liquidity, network, size, policy=ms.CALIBRATED, execution: str = "causal") -> tuple[float, list]:
+    """Scalar replay of one trade with ``memecoin_strategies.exit_decision`` (reference for the vectorised replay).
+    Causal events are ``(fill step, reason, share, fill ratio, decision step, decision ratio)``; immediate events are
+    ``(step, reason, share, ratio)``. A causal entry that could not be filled returns ``(nan, [])``."""
+    _check_execution(execution)
+    if execution == "causal":
+        return _trade_return_causal(price, liquidity, network, size, policy)
     mid0 = float(entry(np.array([size]), np.array([liquidity[0]]), np.array([network[0]]))[0])
     pos, remaining, realized, events = {"high": 1.0, "stage": 0}, 1.0, 0.0, []
     for t in range(1, len(price)):
@@ -242,7 +380,9 @@ def policies(grid: dict = GRID):
 
 
 def log_growth(returns, fraction=REFERENCE_SIZE / INITIAL) -> float:
-    return float(np.mean(np.log(np.maximum(1e-9, 1 + fraction * returns))))
+    returns = np.asarray(returns, float)
+    returns = returns[np.isfinite(returns)]  # a causal entry that was never filled is not a trade
+    return float(np.mean(np.log(np.maximum(1e-9, 1 + fraction * returns)))) if len(returns) else -math.inf
 
 
 # -- portfolio ------------------------------------------------------------------------------------------------------
@@ -270,6 +410,9 @@ def portfolio(paths: Paths, returns: np.ndarray, *, multiplier: float, legacy: b
     equity, peak, worst, max_dd = INITIAL, INITIAL, INITIAL, 0.0
     completed, pnl, curve = [], [], [INITIAL]
     for i in range(len(paths.strategy)):
+        r = float(returns[i])
+        if not math.isfinite(r):  # the entry was never filled: no trade, nothing spent
+            continue
         name = ms.NAMES[int(paths.strategy[i])]
         if legacy:
             fractions, weights = legacy_fractions(completed if dynamic else [])
@@ -280,7 +423,6 @@ def portfolio(paths: Paths, returns: np.ndarray, *, multiplier: float, legacy: b
         size = min(size, 0.10 * equity, equity - 0.25 * INITIAL if equity > 0.25 * INITIAL else 0.0)
         if size < 0.05 or size <= 2 * paths.network[i, 0]:
             continue
-        r = float(returns[i])
         equity += size * r
         pnl.append(size * r)
         completed.append({"strategy": name, "return": r, "asset_domain": ASSET_DOMAIN})
@@ -321,9 +463,11 @@ class MemecoinCalibrator:
     paths_per_strategy: int = PATHS_PER_STRATEGY
     top_exits: int = TOP_EXITS
     asset_domain: str = ASSET_DOMAIN
+    execution: str = "causal"  # "immediate" reproduces calibration-v1 (see the module docstring)
 
     def __post_init__(self):
         self.grid = self.grid or GRID
+        _check_execution(self.execution)
 
     def _paths(self, seeds, mixes=MIXES):
         return [generate(s, mixes=mixes, paths_per_strategy=self.paths_per_strategy) for s in seeds]
@@ -334,15 +478,15 @@ class MemecoinCalibrator:
         everything = Paths(*(np.concatenate([getattr(p, f) for p in cal]) for f in ("strategy", "regime", "price", "liquidity",
                                                                                      "network", "confidence")))
         ranked = []
-        matrix = ratios(everything)
+        matrix = ratios(everything, execution=self.execution)
         for pol in policies(self.grid):
-            r, _ = replay(everything, pol, matrix=matrix)
+            r, _ = replay(everything, pol, matrix=matrix, execution=self.execution)
             ranked.append((log_growth(r), asdict(pol), pol))
         ranked.sort(key=lambda x: (-x[0], str(x[1])))
         candidates = []
         for g, _, pol in ranked[: self.top_exits]:
-            cal_r = [replay(p, pol)[0] for p in cal]
-            stress_r = [replay(p, pol)[0] for p in stress]
+            cal_r = [replay(p, pol, execution=self.execution)[0] for p in cal]
+            stress_r = [replay(p, pol, execution=self.execution)[0] for p in stress]
             for m in self.kelly_grid:
                 runs = [portfolio(p, r, multiplier=m) for p, r in zip(cal, cal_r)]
                 worst = [portfolio(p, r, multiplier=m) for p, r in zip(stress, stress_r)]
@@ -353,7 +497,8 @@ class MemecoinCalibrator:
         viable = [c for c in candidates if c["survives"]] or candidates
         best = max(viable, key=lambda c: (c["calibration"]["compound_return"]["median"], -c["calibration"]["max_drawdown"]["max"],
                                           str(c["policy"]), -c["kelly_multiplier"]))
-        return {"asset_domain": ASSET_DOMAIN, "selected": {k: v for k, v in best.items() if k != "_policy"},
+        return {"asset_domain": ASSET_DOMAIN, "execution": self.execution, "version": CALIBRATION_VERSIONS[self.execution],
+                "selected": {k: v for k, v in best.items() if k != "_policy"},
                 "candidates": [{k: v for k, v in c.items() if k != "_policy"} for c in candidates],
                 "grid_size": len(ranked), "_policy": best["_policy"]}
 
@@ -363,8 +508,8 @@ class MemecoinCalibrator:
         out = {}
         for label, mixes in (("holdout", MIXES), ("rug_stress", RUG_STRESS), ("no_explosive", NO_EXPLOSIVE)):
             sets = self._paths(self.holdout_seeds, mixes)
-            old_r = [replay(p, None, legacy=True)[0] for p in sets]
-            new_r = [replay(p, policy)[0] for p in sets]
+            old_r = [replay(p, None, legacy=True, execution=self.execution)[0] for p in sets]
+            new_r = [replay(p, policy, execution=self.execution)[0] for p in sets]
             runs = {
                 "before": [portfolio(p, r, multiplier=0.25, legacy=True) for p, r in zip(sets, old_r)],
                 "exits_only": [portfolio(p, r, multiplier=0.25, legacy=True) for p, r in zip(sets, new_r)],
@@ -374,10 +519,10 @@ class MemecoinCalibrator:
             out[label] = {k: _summary(v) for k, v in runs.items()}
             out[label]["by_strategy_before"] = _by_strategy(runs["before"])
             out[label]["by_strategy_after"] = _by_strategy(runs["after"])
-            out[label]["trade_returns"] = {"before_mean": float(np.mean(np.concatenate(old_r))),
-                                           "after_mean": float(np.mean(np.concatenate(new_r))),
-                                           "before_median": float(np.median(np.concatenate(old_r))),
-                                           "after_median": float(np.median(np.concatenate(new_r)))}
+            out[label]["trade_returns"] = {"before_mean": float(np.nanmean(np.concatenate(old_r))),
+                                           "after_mean": float(np.nanmean(np.concatenate(new_r))),
+                                           "before_median": float(np.nanmedian(np.concatenate(old_r))),
+                                           "after_median": float(np.nanmedian(np.concatenate(new_r)))}
         return out
 
 
@@ -395,3 +540,21 @@ def _policy_dict(pol) -> dict:
     d = asdict(pol)
     d["tiers"] = list(d["tiers"])
     return d
+
+
+# -- recorded selections: versioned results, never rewritten; none is promoted automatically -------------------------
+# Metrics on the development seeds (CALIBRATION_SEEDS) only. calibration-v1 is the policy of the paper session
+# (ms.CALIBRATED, ms.KELLY_MULTIPLIER). calibration-v2-causal is recorded, not used: the session keeps calibration-v1
+# until a human validates a promotion, and its gap with v1 over three development seeds is small.
+RECORDED_SELECTIONS = {
+    "calibration-v1": {
+        "execution": "immediate", "in_session": True, "kelly_multiplier": 0.5,
+        "policy": _policy_dict(ms.ExitPolicy(0.20, 1.25, 0.20, (3.0, 6.0, 10.0), 0.25, 0.25, 0.15)),
+        "development": {"compound_return_median": 38.4134, "max_drawdown_max": 0.3187, "stress_worst_equity_min": 0.6579},
+    },
+    "calibration-v2-causal": {
+        "execution": "causal", "in_session": False, "kelly_multiplier": 0.5,
+        "policy": _policy_dict(ms.ExitPolicy(0.20, 1.25, 0.20, (3.0, 6.0, 10.0), 0.25, 0.35, 0.15)),
+        "development": {"compound_return_median": 90.5451, "max_drawdown_max": 0.3333, "stress_worst_equity_min": 0.6290},
+    },
+}
