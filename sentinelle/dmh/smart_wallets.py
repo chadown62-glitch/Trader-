@@ -32,6 +32,7 @@ MAX_BUY_LOG = 16  # buys remembered per wallet and mint (to recognise followers)
 HISTORY_PAGE = 1000  # signatures per getSignaturesForAddress call (the RPC maximum)
 MAX_HISTORY_PAGES = 3  # at most 3,000 signatures read per address to reach its first transaction
 IDENTITY_RETRY_S = 900  # after an RPC failure (reported once), the attribution is retried 15 minutes later
+CONFLUENCE_WINDOW_S = 120  # independent qualified buys of the same mint within the last 2 minutes
 FIRST_TRANSACTION = "rpc:first-transaction"
 
 
@@ -326,12 +327,14 @@ def confluence(wallets, mint, now, excluded):
         and w.get("origin")
         and k not in excluded
         and w["origin"] not in excluded
-        and 0 <= now - w["last_buy"].get(mint, float("-inf")) <= 120
+        and 0 <= now - w["last_buy"].get(mint, float("-inf")) <= CONFLUENCE_WINDOW_S
     }
     return len({origin for origin in candidates.values() if origin not in candidates}) >= 2
 
 
-def follow(client, asset, wallets, winners, now):
+def follow(client, asset, wallets, winners, now, observed=None):
+    """Whether independent qualified wallets bought ``mint`` together; each tracked-wallet swap read on this call is also
+    appended to ``observed`` when given (the session journals them, pseudonymized). Nothing else changes."""
     mint = asset["symbol"]
     if not asset.get("excluded"):
         identity = asset.get("identity") or {}
@@ -363,6 +366,8 @@ def follow(client, asset, wallets, winners, now):
         if t:
             w = wallets.get(t["wallet"])
             record(wallets, mint, t, asset["creation"]["block_time"], bool(w and w.get("qualified")))
+            if observed is not None:
+                observed.append(t)
         seen.add(sig)
     asset["seen"] = sorted(seen)
     for owner, w in wallets.items():
