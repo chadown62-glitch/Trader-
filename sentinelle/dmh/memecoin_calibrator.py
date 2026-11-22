@@ -45,7 +45,10 @@ same causal paths, on confirmation seeds never used before, with the signals the
 (``bench_decision``) decides, ``RECORDED_BENCH`` keeps the result. Iteration 21 runs the same bench on new validation
 seeds for stakes reduced in drawdown (``drawdown_scaling``) and replays the breaker (``RECORDED_DRAWDOWN``);
 iteration 22 for the statistical wave breaker (``wave_breaker``, ``RECORDED_WAVE_BREAKER``); iteration 23 for quarter
-Kelly against the session's half Kelly (``RECORDED_KELLY``), the session's Kelly being unchanged. ``python -m sentinelle.dmh.memecoin_calibrator verify``
+Kelly against the session's half Kelly (``RECORDED_KELLY``), the session's Kelly being unchanged; iteration 24 for the
+exploration floor conditional on the recent record (``exploration="conditional"``, ``RECORDED_CONDITIONAL``).
+Iteration 25 measures how many closed positions a runs test needs to tell independent signals from adverse waves
+(``serial_dependence``, ``RECORDED_RUNS``): the tool to apply to real positions before any decision on the breaker. ``python -m sentinelle.dmh.memecoin_calibrator verify``
 recomputes every recorded result.
 
 These are synthetic regimes built from assumptions: a calibrated setting is a prudent default, not evidence of profit.
@@ -658,6 +661,7 @@ SESSION_LOSS_STOP = RiskCommander.MEMECOIN_MAX_SESSION_LOSS
 
 
 EXPLORATIONS = ("session", "bounded")  # bounded: report-only variant of iteration 7, never applied to the session
+# The bench of iteration 24 also passes exploration="conditional" to the session portfolio (report only, bench only).
 
 
 def session_stake(*, equity, known, cash, strategy_used, exposed, fraction, weight, multiplier, network, profile=None,
@@ -789,8 +793,10 @@ def _portfolio_session(paths, returns, *, multiplier, close_steps, arrival_gap, 
                      for j, (e, mark, _) in held.items() if math.isfinite(mark) and (e >= MATURITY_STEPS or lots.stage[j, e] >= 1)]
         learned = memecoin_learner.multipliers(completed, evaluated)[name]
         adaptive = learned["multiplier"]
-        # "bounded" (iteration 7, report only): the floor explores only until the minimal sample exists
-        explore = exploration == "session" or learned["evaluated_lots"] < memecoin_learner.MIN_TRADES
+        # "bounded" (iteration 7, report only): the floor explores only until the minimal sample exists; "conditional"
+        # (iteration 24, report only): also while the learner's recent mean profit of the strategy is not negative
+        explore = (exploration == "session" or learned["evaluated_lots"] < memecoin_learner.MIN_TRADES
+                   or (exploration == "conditional" and (learned["avg_profit_pct"] or 0.0) >= 0))
         size = session_stake(explore=explore, profile=limits, equity=eq, known=known, cash=cash, exposed=sum(m for _, m, _ in held.values() if math.isfinite(m)),
                              strategy_used=sum(b for j, (_, _, b) in held.items() if open_[j][2] == name),
                              fraction=learner.fractions[name], weight=learner.weights[name], multiplier=adaptive,
@@ -1163,6 +1169,10 @@ WAVE_CANDIDATES = {"engine": {}, "wave_breaker": {"wave_breaker": True}, "breake
 # Iteration 23 (pre-registered before any trial on its seeds): quarter Kelly against the session's half Kelly.
 KELLY_SEEDS = tuple(range(601, 641))
 KELLY_CANDIDATES = {"engine": {}, "quarter_kelly": {"multiplier": 0.25}}
+# Iteration 24 (pre-registered after reading iterations 20 to 23, before any trial on its seeds): exploration floor only
+# for strategies without a negative recent record, with bounded exploration replayed in report.
+CONDITIONAL_SEEDS = tuple(range(701, 741))
+CONDITIONAL_CANDIDATES = {"engine": {}, "conditional": {"exploration": "conditional"}, "bounded": {"exploration": "bounded"}}
 _FIELDS = ("strategy", "regime", "price", "liquidity", "network", "confidence")
 
 
@@ -1600,6 +1610,151 @@ RECORDED_KELLY = {
 }
 RECORDED_KELLY_DECISIONS = {"m58": "NON DÉMONTRÉE", "extreme": "NON DÉMONTRÉE"}
 
+# Iteration 24 (report only, pre-registered): the same bench on the validation seeds CONDITIONAL_SEEDS with
+# CONDITIONAL_CANDIDATES; same row format as RECORDED_BENCH. Bounded exploration is replayed in report only: its
+# decision stays the one of iteration 20.
+RECORDED_CONDITIONAL = {
+    ("m58", "normal", "independent"): {
+        "engine": (284.5707, 0.3065, 0, 13610, None, None),
+        "conditional": (161.5983, 0.2918, 0, 10481, 7, 31),
+        "bounded": (165.2103, 0.3467, 0, 9694, 5, 35),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("m58", "normal", "waves"): {
+        "engine": (58.7292, 0.6639, 0, 13597, None, None),
+        "conditional": (4.0153, 0.562, 0, 5532, 10, 30),
+        "bounded": (2.5696, 0.5616, 0, 4843, 10, 30),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("m58", "no_explosive", "independent"): {
+        "engine": (0.1548, 0.4467, 0, 13685, None, None),
+        "conditional": (-0.0399, 0.2753, 0, 2863, 8, 32),
+        "bounded": (-0.0383, 0.2177, 0, 2504, 10, 30),
+        "cash": (0.0, 0.0, 0, 0, 10, 30),
+    },
+    ("m58", "no_explosive", "waves"): {
+        "engine": (-0.1741, 0.6282, 4, 13277, None, None),
+        "conditional": (-0.081, 0.4353, 0, 2374, 13, 27),
+        "bounded": (-0.0914, 0.4001, 0, 1980, 11, 29),
+        "cash": (0.0, 0.0, 0, 0, 24, 16),
+    },
+    ("m58", "rug_stress", "independent"): {
+        "engine": (-0.1287, 0.5391, 0, 14206, None, None),
+        "conditional": (-0.0755, 0.3271, 0, 2040, 20, 20),
+        "bounded": (-0.0705, 0.3202, 0, 1841, 23, 17),
+        "cash": (0.0, 0.0, 0, 0, 31, 9),
+    },
+    ("m58", "rug_stress", "waves"): {
+        "engine": (-0.4451, 0.7831, 19, 12463, None, None),
+        "conditional": (-0.0867, 0.6221, 0, 1702, 25, 15),
+        "bounded": (-0.0867, 0.618, 0, 1509, 26, 14),
+        "cash": (0.0, 0.0, 0, 0, 30, 10),
+    },
+    ("extreme", "normal", "independent"): {
+        "engine": (1048.5913, 0.3295, 0, 18361, None, None),
+        "conditional": (555.0999, 0.3335, 0, 12260, 14, 26),
+        "bounded": (546.4052, 0.3056, 0, 10954, 14, 26),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("extreme", "normal", "waves"): {
+        "engine": (67.5839, 0.7073, 0, 18346, None, None),
+        "conditional": (18.7704, 0.6411, 0, 8383, 15, 25),
+        "bounded": (6.0528, 0.6263, 0, 6926, 11, 29),
+        "cash": (0.0, 0.0, 0, 0, 0, 40),
+    },
+    ("extreme", "no_explosive", "independent"): {
+        "engine": (0.1544, 0.4429, 0, 18457, None, None),
+        "conditional": (-0.0565, 0.3453, 0, 3808, 12, 28),
+        "bounded": (-0.0663, 0.315, 0, 3242, 12, 28),
+        "cash": (0.0, 0.0, 0, 0, 14, 26),
+    },
+    ("extreme", "no_explosive", "waves"): {
+        "engine": (-0.1355, 0.7404, 9, 17678, None, None),
+        "conditional": (-0.098, 0.5316, 0, 3454, 22, 18),
+        "bounded": (-0.103, 0.534, 0, 3045, 22, 18),
+        "cash": (0.0, 0.0, 0, 0, 31, 9),
+    },
+    ("extreme", "rug_stress", "independent"): {
+        "engine": (-0.5121, 0.8441, 31, 12675, None, None),
+        "conditional": (-0.1917, 0.5663, 1, 2979, 33, 7),
+        "bounded": (-0.1999, 0.5581, 2, 2594, 31, 9),
+        "cash": (0.0, 0.0, 0, 0, 35, 5),
+    },
+    ("extreme", "rug_stress", "waves"): {
+        "engine": (-0.5103, 0.9017, 31, 11502, None, None),
+        "conditional": (-0.1471, 0.7299, 1, 2572, 30, 10),
+        "bounded": (-0.1467, 0.7155, 0, 2396, 31, 9),
+        "cash": (0.0, 0.0, 0, 0, 38, 2),
+    },
+}
+RECORDED_CONDITIONAL_DECISIONS = {"m58": "REJETÉE", "extreme": "NON DÉMONTRÉE"}
+
+
+# -- serial dependence of lot outcomes (iteration 25, report only) ---------------------------------------------------
+# Pre-registered: does a runs test on the outcomes of the lots tell independent signals from adverse waves, and from how
+# many positions? The tool the human decision on the breaker needs, to apply to real closed positions once they exist.
+RUNS_SEEDS = tuple(range(801, 841))
+RUNS_SIZES = (30, 60, 120, 240)
+RUNS_ALPHA = 0.05
+RUNS_MAX_FALSE_POSITIVES, RUNS_MIN_DETECTION = 0.15, 0.80
+
+
+def runs_test(losses) -> tuple:
+    """Wald-Wolfowitz runs test on a sequence of outcomes (True for a loss), one-sided toward clustering: ``(z, p)`` with
+    ``p`` the normal-approximation probability of so few runs under independence; ``(nan, 1.0)`` without both outcomes."""
+    x = [bool(v) for v in losses]
+    n1 = sum(x)
+    n2, n = len(x) - n1, len(x)
+    if n1 == 0 or n2 == 0:
+        return math.nan, 1.0
+    runs = 1 + sum(a != b for a, b in zip(x, x[1:]))
+    mean = 1 + 2 * n1 * n2 / n
+    var = 2 * n1 * n2 * (2 * n1 * n2 - n) / (n * n * (n - 1))
+    if var <= 0:
+        return math.nan, 1.0
+    z = (runs - mean) / math.sqrt(var)
+    return z, 0.5 * (1 + math.erf(z / math.sqrt(2)))
+
+
+def serial_dependence(seeds=RUNS_SEEDS, sizes=RUNS_SIZES, mixes=tuple(BENCH_MIXES), orders=BENCH_ORDERS,
+                      policy=ms.CALIBRATED) -> dict:
+    """Report only: ``{(mix, order): {N: share of seeds where the runs test rejects independence at RUNS_ALPHA}}`` on the
+    outcomes (reference-size net return < 0) of the first N fillable M58 signals, in their order of arrival."""
+    out = {}
+    for mix in mixes:
+        for order in orders:
+            hits = dict.fromkeys(sizes, 0)
+            for seed in seeds:
+                returns = lot_paths(bench_paths(seed, mix, order, "m58"), policy)[0]
+                losses = [bool(v < 0) for v in returns if math.isfinite(v)]
+                for n in sizes:
+                    hits[n] += runs_test(losses[:n])[1] <= RUNS_ALPHA
+            out[(mix, order)] = {n: hits[n] / len(seeds) for n in sizes}
+    return out
+
+
+def runs_verdict(table: dict, sizes=RUNS_SIZES) -> dict:
+    """The pre-registered reading: the tool is valid if, at the largest N, false positives stay at most
+    RUNS_MAX_FALSE_POSITIVES with independent signals and detection reaches RUNS_MIN_DETECTION in waves, in every mix;
+    the minimal sample is the smallest N where both hold, else None (beyond the grid)."""
+    mixes = sorted({mix for mix, _ in table})
+    ok = lambda n: all(table[(m, "independent")][n] <= RUNS_MAX_FALSE_POSITIVES and table[(m, "waves")][n] >= RUNS_MIN_DETECTION
+                       for m in mixes)
+    return {"valid": ok(max(sizes)), "minimal_positions": next((n for n in sorted(sizes) if ok(n)), None)}
+
+# Iteration 25 (report only, pre-registered): share of the RUNS_SEEDS where the runs test rejects independence at
+# RUNS_ALPHA on the first N fillable M58 signals, per (mix, order): independent signals give the false positives,
+# waves the detection. Verdict (runs_verdict): valid, 120 positions at least.
+RECORDED_RUNS = {
+    ("normal", "independent"): {30: 0.05, 60: 0.0, 120: 0.0, 240: 0.025},
+    ("normal", "waves"): {30: 0.425, 60: 0.675, 120: 1.0, 240: 1.0},
+    ("no_explosive", "independent"): {30: 0.05, 60: 0.025, 120: 0.0, 240: 0.1},
+    ("no_explosive", "waves"): {30: 0.4, 60: 0.775, 120: 1.0, 240: 1.0},
+    ("rug_stress", "independent"): {30: 0.05, 60: 0.075, 120: 0.075, 240: 0.05},
+    ("rug_stress", "waves"): {30: 0.5, 60: 0.9, 120: 1.0, 240: 1.0},
+}
+RECORDED_RUNS_VERDICT = {"valid": True, "minimal_positions": 120}
+
 
 # -- verification command (iteration 19) ------------------------------------------------------------------------------
 def _row(rows, label, recomputed, recorded, tol=None):
@@ -1668,6 +1823,14 @@ def verify_calibrations(rows):
              dev["stress_worst_equity_min"], 1e-4)
 
 
+def verify_runs(rows):
+    table = serial_dependence()
+    for key, recorded in RECORDED_RUNS.items():
+        _row(rows, f"test des séries {'/'.join(key)} : part des graines rejetant l'indépendance (N = 30, 60, 120, 240)",
+             tuple(round(table[key][n], 4) for n in RUNS_SIZES), tuple(recorded[n] for n in RUNS_SIZES))
+    _row(rows, "test des séries : verdict préenregistré", runs_verdict(table), RECORDED_RUNS_VERDICT)
+
+
 def bench_row(summary: dict) -> tuple:
     paired = summary.get("paired")
     return (round(summary["net_return_median"], 4), round(summary["max_drawdown_max"], 4), summary["failures"], summary["trades"],
@@ -1727,15 +1890,24 @@ def verify_kelly(rows, populations=BENCH_POPULATIONS):
              RECORDED_KELLY_DECISIONS[population])
 
 
+def verify_conditional(rows, populations=BENCH_POPULATIONS):
+    table = bench(seeds=CONDITIONAL_SEEDS, populations=populations, candidates=CONDITIONAL_CANDIDATES)
+    _verify_table(rows, "exploration conditionnelle", table, RECORDED_CONDITIONAL, populations)
+    for population in populations:
+        _row(rows, f"exploration conditionnelle {population} : décision préenregistrée",
+             bench_decision(table, "conditional", population)["decision"], RECORDED_CONDITIONAL_DECISIONS[population])
+
+
 QUICK_CHECKS = (verify_survival, verify_waves, verify_admission, verify_breaker)
 # Checks of the full mode only, by name (looked up at call time, so a test can replace each of them).
-FULL_CHECKS = ("verify_calibrations", "verify_bench", "verify_drawdown", "verify_wave_breaker", "verify_kelly")
+FULL_CHECKS = ("verify_calibrations", "verify_bench", "verify_drawdown", "verify_wave_breaker", "verify_kelly", "verify_conditional",
+               "verify_runs")
 
 
 def verify(quick: bool = False) -> list:
     """Recompute the recorded results and compare them with the recorded values (the tolerances of the tests). Returns
     ``(label, ok, recomputed, recorded)`` rows; ``quick`` skips the five full calibrations and the representative benches
-    of iterations 20 to 23. No file, network or key."""
+    of iterations 20 to 24 and the runs test of iteration 25. No file, network or key."""
     rows = []
     for check in QUICK_CHECKS + (() if quick else tuple(globals()[name] for name in FULL_CHECKS)):
         check(rows)
