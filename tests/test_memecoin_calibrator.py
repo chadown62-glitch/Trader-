@@ -125,7 +125,7 @@ def test_vectorised_and_scalar_replays_agree(execution):
     r, _ = C.replay(p, ms.CALIBRATED, execution=execution)
     for i in range(len(r)):
         ri, _ = C.trade_return(p.price[i], p.liquidity[i], p.network[i], C.REFERENCE_SIZE, execution=execution)
-        assert r[i] == pytest.approx(ri, abs=1e-9), i
+        assert (np.isnan(r[i]) and np.isnan(ri)) or r[i] == pytest.approx(ri, abs=1e-9), i  # NaN: entry cancelled in both
 
 
 def test_the_stop_is_bounded_and_tiers_must_increase():
