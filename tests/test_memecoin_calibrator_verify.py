@@ -44,7 +44,7 @@ def test_the_quick_mode_skips_only_the_full_calibrations(monkeypatch):
     calls.clear()
     C.verify(quick=False)
     assert calls == list(quick + C.FULL_CHECKS) and C.FULL_CHECKS[0] == "verify_calibrations"
-    assert {"verify_bench", "verify_drawdown", "verify_wave_breaker", "verify_kelly"} <= set(C.FULL_CHECKS)
+    assert {"verify_bench", "verify_drawdown", "verify_wave_breaker", "verify_kelly", "verify_conditional"} <= set(C.FULL_CHECKS)
 
 
 @pytest.mark.parametrize(("base", "head", "expected"), frozen.FROZEN)
