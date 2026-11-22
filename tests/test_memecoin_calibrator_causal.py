@@ -165,7 +165,7 @@ def test_an_unknown_contract_is_refused():
 # -- 5. new version, no promotion, negative scenarios kept --------------------------------------------------------------
 @pytest.fixture(scope="module")
 def causal():
-    cal = C.MemecoinCalibrator(entry_drift=None)  # calibration-v2-causal, reproduced as it was made
+    cal = C.MemecoinCalibrator(entry_drift=None, arrival_gap=None)  # calibration-v2-causal, reproduced as it was made
     return cal.calibrate(), cal.compare(ms.CALIBRATED, ms.KELLY_MULTIPLIER)
 
 

@@ -26,7 +26,7 @@ def one(price, liquidity=50_000.0, network=0.002, strategy=0):
 
 @pytest.fixture(scope="module")
 def calibration():
-    cal = C.MemecoinCalibrator(execution="immediate")  # calibration-v1, reproduced as it was made
+    cal = C.MemecoinCalibrator(execution="immediate", arrival_gap=None)  # calibration-v1, reproduced as it was made
     result = cal.calibrate()
     return cal, result, cal.compare(ms.CALIBRATED, ms.KELLY_MULTIPLIER)
 
