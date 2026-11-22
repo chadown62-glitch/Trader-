@@ -47,6 +47,10 @@ EXIT_POLICIES = {CALIBRATED_EXITS: CALIBRATED}  # stop -20 %, 20 % at 1.25x, bre
 DISPLAY_REASON = {"break_even_stop": "trailing_stop"}
 MAX_HOLD_S = 24 * 3600  # time exit of a stagnant lot (no stop, no slice sold); per session: state["max_hold_s"]
 ORDER_TTL_S = 600  # a fictitious entry decided at T is cancelled without a valid later quote within 10 minutes
+# Resale checked again before a new entry: the scanner measures a pool's Jupiter round trip at admission and revisits it only
+# after 6 hours; a measurement older than the life of an order (600 s) says nothing of the route at the entry. Fixed before
+# any result (Sprint 5, D3).
+ROUND_TRIP_MAX_AGE_S = 600
 # An entry whose price moved by more than 10 % (either way) between the decision and the fill is cancelled: the decision's
 # snapshot no longer describes the market the order would enter. Fixed before any result (SPEC.md, campaign parameters):
 # half the calibrated stop distance (20 %), so that a fill never starts already half-way to its stop or chasing a move
@@ -370,6 +374,26 @@ def profile_for(state):
             or profile.max_round_trip_loss > established_pools.MAX_ROUND_TRIP_LOSS):
         raise ValueError(f"le profil {profile.id} dépasse une limite de la flotte ou du filtre M58")
     return profile
+
+
+def refresh_round_trip(client, asset, now):
+    """The Jupiter round trip judged for a new entry, measured again when the last measurement is older than
+    ``ROUND_TRIP_MAX_AGE_S`` (or of unknown date). A resale without route, or a source failure, leaves the loss unknown:
+    the Rug Pull Guardian already treats it as an unconfirmed resale (no entry) and the SAFE profile as a refusal. A pool
+    never measured (not admitted by M58) is left as it is: nothing new becomes possible. Returns what was judged."""
+    if "round_trip_loss" not in asset:
+        return None
+    measured = asset.get("round_trip_ms")
+    if _finite(measured) and 0 <= now * 1000 - measured <= ROUND_TRIP_MAX_AGE_S * 1000:
+        return {"loss": asset["round_trip_loss"], "measured_ms": measured, "refreshed": False, "error": None}
+    try:
+        trip = established_pools.round_trip(client, asset["symbol"])
+        loss, error = trip.get("loss"), trip.get("sell_error")
+    except SOURCE_ERRORS as exc:
+        loss, error = None, str(exc)[:160]
+    loss = loss if _finite(loss) else None
+    asset["round_trip_loss"], asset["round_trip_ms"] = loss, now * 1000
+    return {"loss": loss, "measured_ms": now * 1000, "refreshed": True, "error": error}
 
 
 def profile_refusal(state, asset, point):
@@ -1020,8 +1044,10 @@ def tick(hub, db, bus):
         if event.get("asset_domain") == DOMAIN:
             asset = assets.setdefault(event["symbol"], {k: event[k] for k in ("symbol", "pool", "creation", "quote_mint", "dex_id") if k in event})
             if event["symbol"] not in refreshed:
-                if isinstance(event.get("round_trip"), dict):
+                measured = event["observed_ms"] if isinstance(event.get("observed_ms"), int) else 0
+                if isinstance(event.get("round_trip"), dict) and measured >= asset.get("round_trip_ms", 0):
                     asset["round_trip_loss"] = event["round_trip"].get("loss")  # aller-retour Jupiter le plus récent
+                    asset["round_trip_ms"] = measured  # never replaces a later re-measurement (refresh_round_trip)
                 if isinstance(event.get("observed_ms"), int):
                     asset["admitted_ms"] = max(asset.get("admitted_ms", 0), event["observed_ms"])  # admission la plus récente
             refreshed.add(event["symbol"])
@@ -1119,6 +1145,8 @@ def tick(hub, db, bus):
                         decision = _exit(state, key, pos, point)
                         if decision is not None:
                             _decide(state, "sell", key, mint, pos["strategy"], point, now, detail=decision[0], fraction=decision[1])
+                if signals and gate["open"]:  # resale confirmed again before the profile and the fleet judge it
+                    trace["evaluations"][mint]["round_trip"] = refresh_round_trip(client, asset, now)
                 if signals and gate["open"] and profile_refusal(state, asset, point):
                     trace["evaluations"].setdefault(mint, {})["profile_refusal"] = profile_refusal(state, asset, point)
                     signals = []  # the session's profile refuses this entry before the fleet is asked
