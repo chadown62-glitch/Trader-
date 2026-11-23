@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 BASE_URL = "https://data.binance.vision/data/spot/monthly/klines"
+DAILY_URL = "https://data.binance.vision/data/spot/daily/klines"
 RESERVED_FROM = "2026-09-01T00:00:00Z"
 RESERVED_TO = "2026-11-22T23:59:59Z"
 MINUTE_MS = 60_000
@@ -64,21 +65,16 @@ def guard(start_ms: int, end_ms: int, *, evaluation: bool = False) -> None:
             f"Période réservée à l'évaluation unique ({RESERVED_FROM} → {RESERVED_TO}) : chargement refusé")
 
 
-def download_month(symbol: str, month: str, cache_dir, *, client: httpx.Client | None = None,
-                   evaluation: bool = False) -> Path:
-    """Télécharge une archive mensuelle et vérifie sa somme de contrôle publiée avant de la conserver."""
-    guard(*month_bounds(month), evaluation=evaluation)
-    name = f"{symbol}-1m-{month}.zip"
-    path = Path(cache_dir) / symbol / name
-    sidecar = path.with_name(name + ".CHECKSUM")
+def _fetch_verified(url: str, path: Path, client: httpx.Client | None) -> Path:
+    """Télécharge une archive et vérifie sa somme de contrôle publiée ; le cache est revérifié à chaque lecture."""
+    sidecar = path.with_name(path.name + ".CHECKSUM")
     if path.exists() and sidecar.exists():
         if hashlib.sha256(path.read_bytes()).hexdigest() != sidecar.read_text(encoding="utf-8").split()[0]:
-            raise DataIntegrityError(f"{name} : archive du cache modifiée depuis sa vérification")
+            raise DataIntegrityError(f"{path.name} : archive du cache modifiée depuis sa vérification")
         return path
     own = client is None
     client = client or httpx.Client(timeout=60, follow_redirects=True)
     try:
-        url = f"{BASE_URL}/{symbol}/1m/{name}"
         published = client.get(url + ".CHECKSUM")
         published.raise_for_status()
         expected = published.text.split()[0].strip().lower()
@@ -89,15 +85,32 @@ def download_month(symbol: str, month: str, cache_dir, *, client: httpx.Client |
             client.close()
     body = archive.content
     if len(body) > MAX_BYTES:
-        raise DataIntegrityError(f"{name} : archive trop volumineuse")
+        raise DataIntegrityError(f"{path.name} : archive trop volumineuse")
     if hashlib.sha256(body).hexdigest() != expected:
-        raise DataIntegrityError(f"{name} : empreinte différente de la somme de contrôle publiée")
+        raise DataIntegrityError(f"{path.name} : empreinte différente de la somme de contrôle publiée")
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".part")
     tmp.write_bytes(body)
     tmp.replace(path)
     sidecar.write_text(published.text, encoding="utf-8")
     return path
+
+
+def download_month(symbol: str, month: str, cache_dir, *, client: httpx.Client | None = None,
+                   evaluation: bool = False) -> Path:
+    """Télécharge une archive mensuelle et vérifie sa somme de contrôle publiée avant de la conserver."""
+    guard(*month_bounds(month), evaluation=evaluation)
+    name = f"{symbol}-1m-{month}.zip"
+    return _fetch_verified(f"{BASE_URL}/{symbol}/1m/{name}", Path(cache_dir) / symbol / name, client)
+
+
+def download_day(symbol: str, day: str, cache_dir, *, client: httpx.Client | None = None,
+                 evaluation: bool = False) -> Path:
+    """Archive journalière (« AAAA-MM-JJ »), pour un mois dont l'archive mensuelle n'est pas encore publiée."""
+    start = int(datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp() * 1000)
+    guard(start, start + 86_400_000 - 1, evaluation=evaluation)
+    name = f"{symbol}-1m-{day}.zip"
+    return _fetch_verified(f"{DAILY_URL}/{symbol}/1m/{name}", Path(cache_dir) / symbol / "daily" / name, client)
 
 
 def read_month(path) -> pd.DataFrame:
@@ -123,11 +136,22 @@ def complete_grid(d: pd.DataFrame) -> tuple[pd.DataFrame, int]:
 
 
 def load_bars(symbol: str, first: str, last: str, cache_dir, *, client: httpx.Client | None = None,
-              evaluation: bool = False) -> tuple[pd.DataFrame, dict]:
-    """Bougies de « first » à « last » (mois inclus) sur une grille complète, avec leur rapport d'intégrité."""
+              evaluation: bool = False, last_day: str | None = None) -> tuple[pd.DataFrame, dict]:
+    """Bougies de « first » à « last » (mois inclus) sur une grille complète, avec leur rapport d'intégrité.
+
+    « last_day » (AAAA-MM-JJ, dans le mois « last ») : ce dernier mois est lu jour par jour, jusqu'à ce jour inclus,
+    dans les archives journalières (mois en cours, pas encore archivé en entier)."""
     files, parts = [], []
-    for month in months(first, last):
-        path = download_month(symbol, month, cache_dir, client=client, evaluation=evaluation)
+    paths = [download_month(symbol, m, cache_dir, client=client, evaluation=evaluation)
+             for m in months(first, last) if not (last_day and m == last)]
+    if last_day:
+        first_day = datetime.strptime(last + "-01", "%Y-%m-%d")
+        stop = datetime.strptime(last_day, "%Y-%m-%d")
+        if stop.strftime("%Y-%m") != last:
+            raise ValueError("last_day doit appartenir au mois « last »")
+        paths += [download_day(symbol, (first_day + pd.Timedelta(days=i)).strftime("%Y-%m-%d"), cache_dir,
+                               client=client, evaluation=evaluation) for i in range((stop - first_day).days + 1)]
+    for path in paths:
         files.append({"file": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
         parts.append(read_month(path))
     raw = pd.concat(parts, ignore_index=True)

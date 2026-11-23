@@ -1,0 +1,35 @@
+{
+  "schema": "scalp-frozen-system-v1",
+  "frozen_utc": "2026-11-23",
+  "authority": "demande du propriétaire du 23 novembre 2026 : « Lance le test réservé »",
+  "system": "position de fond 70 % + moteur rapide 30 %",
+  "core": {
+    "share": 0.7,
+    "universe": ["BTCUSDC", "ETHUSDC", "SOLUSDC", "BNBUSDC", "XRPUSDC", "DOGEUSDC", "ADAUSDC", "LINKUSDC"],
+    "data_from": "2023-09",
+    "rules": {"lookback_days": 14, "top": 3, "ema_days": 20, "fee_per_side": 0.00075, "slippage_per_side": 0.0001,
+              "market_filter": "BTCUSDC", "trailing_stop": 0.1, "cooldown_days": 3, "keep_rank": 5, "trend_days": 50,
+              "vol_target": 0.3, "vol_days": 20}
+  },
+  "fast": {
+    "share": 0.3,
+    "universe": ["BTCUSDC", "ETHUSDC", "SOLUSDC", "BNBUSDC", "XRPUSDC", "ADAUSDC", "LINKUSDC", "AVAXUSDC", "LTCUSDC",
+                 "DOTUSDC", "SUIUSDC", "TRXUSDC", "NEARUSDC", "APTUSDC", "DOGEUSDC", "PEPEUSDC", "WIFUSDC", "BONKUSDC",
+                 "SHIBUSDC", "FLOKIUSDC"],
+    "data_from": "2024-01",
+    "rules": {"round_trip": 0.0017, "min_risk": 0.0085, "max_risk": 0.06, "max_minutes": 4320, "leaders": 5,
+              "exit": "suiveur", "setups": ["cassure"]},
+    "desk": {"risk_per_trade": 0.005, "max_open": 3, "max_position": 0.3, "daily_loss_limit": 0.015,
+             "cooldown_losses": 3, "cooldown_hours": 12}
+  },
+  "evaluation": {
+    "period": {"from_utc": "2026-09-01T00:00:00Z", "to_utc": "2026-11-22T23:59:59Z"},
+    "data": "archives mensuelles de septembre et octobre 2026, journalières du 1er au 22 novembre 2026, sommes de contrôle vérifiées",
+    "capital": 1000.0,
+    "reported": ["rendement", "pire baisse", "semaines positives, négatives et sans position", "moyenne et pire semaine",
+                 "rendement par mois", "position de fond seule", "moteur rapide seul", "achat-conservation des 8 et des 20 marchés", "BTC", "CASH"],
+    "verdict": "confirmé si le rendement du système est au moins celui de CASH (≥ 0 %) et la pire baisse d'au plus 20 % ; non confirmé sinon",
+    "known_limit": "un trade rapide dont la sortie dépasserait le 22 novembre 2026 23:59 n'a pas d'issue connue et n'est pas compté ; une position de fond encore ouverte est valorisée à la dernière clôture",
+    "single_use": "la période réservée ne sert qu'une fois ; aucun réglage n'est modifié après ce test"
+  }
+}
