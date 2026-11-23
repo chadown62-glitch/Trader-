@@ -7,6 +7,9 @@ Mis à jour le 13 novembre 2026 (intégration #32/#33, mission #34).
 > Le premier passage sur votre PC est la première vraie validation Windows. Tant qu'un rapport
 > produit sur un vrai Windows 11 n'existe pas, la page « Préparation » du panel affiche
 > « Installation validée sur Windows 11 : NON TESTÉ » et l'observation reste **BLOQUÉE**.
+>
+> Cet état concerne le diagnostic et le pré-vol de l'observation. L'application de bureau, elle, est validée sur
+> Windows 11 depuis le 23 novembre 2026 (section 7).
 
 Pour ouvrir Sentinelle dans sa propre fenêtre (application de bureau), voir la section 7.
 
@@ -180,9 +183,10 @@ locaux ; aucune clé financière n'est requise ni chargée.
 
 ## 7. Application de bureau (fenêtre Sentinelle)
 
-> **État : NON TESTÉ sur Windows 11.** Les tests automatiques (Linux, et `windows-latest` en CI) vérifient le serveur
-> local, son arrêt, l'ordre des fenêtres et un démarrage complet avec une fenêtre de contrôle. Ils n'affichent pas la
-> vraie fenêtre. Ne considérez pas l'application comme opérationnelle avant les vérifications ci-dessous.
+> **État : VALIDÉE sur Windows 11 le 23 novembre 2026** par le propriétaire. Les quatre vérifications ci-dessous ont
+> réussi en démonstration (`.\bureau.bat --demo --data data-demo`). La consignation, avec ce qu'elle ne couvre pas, est
+> dans [docs/interface/validation-windows11.md](interface/validation-windows11.md). Les tests automatiques (Linux, et
+> `windows-latest` en CI) vérifient en plus le serveur local, son arrêt, l'ordre des fenêtres et un démarrage complet.
 
 **Lancer.**
 1. Double-cliquez sur `bureau.bat` dans le dossier de TRADER AI. Au premier lancement, il prépare l'environnement Python
@@ -215,7 +219,7 @@ locaux ; aucune clé financière n'est requise ni chargée.
 - Tests : `.\.venv\Scripts\python.exe -m pytest tests\test_desktop.py -v`.
 - Installation complète : `diagnostic.bat` (section 1).
 
-**Vérifications à faire sur votre PC.**
+**Vérifications sur votre PC** (réussies le 23 novembre 2026 ; à refaire après une mise à jour importante).
 1. Double clic sur `bureau.bat` : la fenêtre « Sentinelle » s'ouvre sur l'écran de connexion, et le raccourci apparaît
    sur le Bureau.
 2. Fermer la fenêtre ferme la console, et `http://127.0.0.1:8765` ne répond plus.
