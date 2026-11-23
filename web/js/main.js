@@ -36,6 +36,14 @@ const NAV = [
   { id: 'settings', label: 'Réglages', ico: '⚙' },
   { id: 'logs', label: 'Journal', ico: '≡' },
 ];
+// Menu latéral regroupé par usage ; la barre du bas (téléphone) garde les 4 premières pages de NAV et « Plus » les autres.
+const GROUPS = [
+  { label: 'Pilotage', ids: ['dashboard', 'performance', 'history', 'logs'] },
+  { label: 'Trading fictif', ids: ['trade', 'memecoin', 'dmh'] },
+  { label: 'Modèles IA', ids: ['ai', 'apprentissage', 'preparation'] },
+  { label: 'Informations', ids: ['knowledge', 'macro', 'news', 'signals'] },
+  { label: 'Configuration', ids: ['settings'] },
+].map(g => ({ ...g, items: g.ids.map(id => NAV.find(n => n.id === id)) }));
 const VIEWS = { memecoin: Memecoin, dashboard: Dashboard, trade: Trade, ai: AI, history: History, news: News, signals: Signals, settings: Settings, logs: Logs, knowledge: Knowledge, performance: Performance, macro: Macro, apprentissage: Apprentissage, preparation: Preparation, dmh: Dmh };
 const LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#1597c7" d="M32 4 8 14v16c0 15 10 26 24 30 14-4 24-15 24-30V14z"/><path fill="#fff" d="m20 36 8-10 7 7 9-12 4 3-13 16-7-7-5 6z"/></svg>`;
 
@@ -211,8 +219,18 @@ const App = {
     onMounted(() => { window.addEventListener('hashchange', onHash); checkAuth(); });
     onBeforeUnmount(() => window.removeEventListener('hashchange', onHash));
 
-    const theme = ref((() => { try { return localStorage.getItem('stn-theme') || 'dark'; } catch { return 'dark'; } })());
-    const applyTheme = () => { document.documentElement.dataset.theme = theme.value; };
+    // Thème : la préférence enregistrée, sinon celle du système. Les contrôles natifs (listes, barres de défilement) et la
+    // barre du navigateur mobile suivent le thème actif.
+    const preferred = () => {
+      try { const saved = localStorage.getItem('stn-theme'); if (saved === 'dark' || saved === 'light') return saved; } catch { /* ignoré */ }
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    };
+    const theme = ref(preferred());
+    const applyTheme = () => {
+      document.documentElement.dataset.theme = theme.value;
+      document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', theme.value);
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.value === 'light' ? '#F4F6FB' : '#05070D');
+    };
     applyTheme();
     const toggleTheme = () => { theme.value = theme.value === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('stn-theme', theme.value); } catch { /* ignoré */ } applyTheme(); };
     const logout = async () => { await safe(api.post('/api/auth/logout')); store.auth.authenticated = false; };
@@ -232,7 +250,7 @@ const App = {
       return delta.value / usd.rate;
     });
     const more = ref(false);
-    return { store, route, view, NAV, logout, LOGO, marketOk, theme, toggleTheme, more, account, delta, dollarChange, money, signed, pct, cls };
+    return { store, route, view, NAV, GROUPS, logout, LOGO, marketOk, theme, toggleTheme, more, account, delta, dollarChange, money, signed, pct, cls };
   },
   template: `
   <div v-if="!store.auth.checked" class="boot">Connexion…</div>
@@ -253,7 +271,10 @@ const App = {
       <button class="ghost small" @click="logout" title="Se déconnecter">⎋</button>
     </header>
     <nav class="nav" aria-label="Navigation principale">
-      <a v-for="n in NAV" :key="n.id" :href="'#/' + n.id" :aria-current="route===n.id ? 'page' : null" :class="{active: route===n.id}"><span class="ico">{{ n.ico }}</span>{{ n.label }}</a>
+      <template v-for="g in GROUPS" :key="g.label">
+        <div class="nav-group">{{ g.label }}</div>
+        <a v-for="n in g.items" :key="n.id" :href="'#/' + n.id" :aria-current="route===n.id ? 'page' : null" :class="{active: route===n.id}"><span class="ico">{{ n.ico }}</span>{{ n.label }}</a>
+      </template>
       <div class="foot">Sentinelle {{ store.overview?.version }}</div>
     </nav>
     <main class="main"><component :is="view" :key="route" /></main>
