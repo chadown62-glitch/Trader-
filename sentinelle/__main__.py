@@ -6,6 +6,7 @@ Options :
   --remote        accepte les connexions depuis le réseau (téléphone via Tailscale, etc.)
   --data DOSSIER  dossier des données
   --no-browser    ne pas ouvrir le navigateur automatiquement
+  --desktop       application de bureau : fenêtre dédiée, serveur sur 127.0.0.1 arrêté à sa fermeture
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from __future__ import annotations
 import argparse
 import logging
 import logging.handlers
+import os
 import sys
 import threading
 import time
@@ -45,7 +47,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--remote", action="store_true", help="accepter les connexions depuis le réseau")
     parser.add_argument("--demo", action="store_true", help="marché simulé (hors-ligne)")
     parser.add_argument("--no-browser", action="store_true")
+    parser.add_argument("--desktop", action="store_true", help="application de bureau : fenêtre dédiée, serveur local arrêté avec elle")
     args = parser.parse_args(argv)
+    if args.desktop and args.remote:
+        parser.error("--desktop n'expose jamais l'API sur le réseau : retirez --remote")
 
     data_dir = (args.data or default_data_dir()).resolve()
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -71,6 +76,18 @@ def main(argv: list[str] | None = None) -> int:
     for ext in app.extensions:
         ext.start()
     api = create_api(app, remote_access=args.remote)
+    if args.desktop:
+        from .desktop import open_window, pick_port, serve_desktop, smoke_window
+
+        port = pick_port(args.port)
+        opener = smoke_window if os.environ.get("SENTINELLE_DESKTOP_SMOKE") == "1" else open_window
+        log.info("Application de bureau sur http://127.0.0.1:%s/", port)
+        try:
+            used = serve_desktop(api, port, data_dir / "fenetre", opener=opener)
+            log.info("Fenêtre fermée (%s) : serveur local arrêté", used)
+        finally:
+            app.close()
+        return 0
     host = "0.0.0.0" if args.remote else "127.0.0.1"
     url = f"http://127.0.0.1:{args.port}/"
     if not args.no_browser:
