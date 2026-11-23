@@ -1,0 +1,201 @@
+{
+ "schema": "scalp-actualites-v1",
+ "measured_utc": "2026-11-23T21:08:51Z → 2026-11-23T21:28:56Z (veille bornée de 20 minutes)",
+ "method": "première lecture de chaque source = état initial (sans délai mesurable) ; délai = réception − publication, pour les seules dépêches apparues pendant la veille",
+ "sources": {
+  "binance_cotations": {
+   "status": "304",
+   "items": 20
+  },
+  "binance_retraits": {
+   "status": "304",
+   "items": 20
+  },
+  "cointelegraph": {
+   "status": "304",
+   "items": 31
+  },
+  "decrypt": {
+   "status": "200",
+   "items": 38
+  },
+  "fed": {
+   "status": "304",
+   "items": 20
+  },
+  "marketwatch": {
+   "status": "304",
+   "items": 12
+  },
+  "sec_8k": {
+   "status": "200",
+   "items": 80
+  },
+  "theblock": {
+   "status": "304",
+   "items": 20
+  }
+ },
+ "latency_s": {
+  "sec_8k": {
+   "n": 40,
+   "median_s": 115.334,
+   "max_s": 189.748
+  },
+  "cointelegraph": {
+   "n": 1,
+   "median_s": 417.035,
+   "max_s": 417.035
+  },
+  "marketwatch": {
+   "n": 2,
+   "median_s": 263.744,
+   "max_s": 263.744
+  },
+  "decrypt": {
+   "n": 1,
+   "median_s": 135.096,
+   "max_s": 135.096
+  }
+ },
+ "new_items_by_class": [
+  {
+   "event": "dirigeant",
+   "severity": "importante",
+   "count": 14
+  },
+  {
+   "event": "fusion",
+   "severity": "importante",
+   "count": 10
+  },
+  {
+   "event": "autre",
+   "severity": "normale",
+   "count": 9
+  },
+  {
+   "event": "résultats",
+   "severity": "normale",
+   "count": 9
+  },
+  {
+   "event": "piratage",
+   "severity": "grave",
+   "count": 1
+  },
+  {
+   "event": "retrait",
+   "severity": "grave",
+   "count": 1
+  }
+ ],
+ "all_items_by_class": [
+  {
+   "event": "autre",
+   "severity": "normale",
+   "count": 149
+  },
+  {
+   "event": "dirigeant",
+   "severity": "importante",
+   "count": 18
+  },
+  {
+   "event": "fusion",
+   "severity": "importante",
+   "count": 17
+  },
+  {
+   "event": "retrait",
+   "severity": "grave",
+   "count": 17
+  },
+  {
+   "event": "résultats",
+   "severity": "normale",
+   "count": 14
+  },
+  {
+   "event": "piratage",
+   "severity": "grave",
+   "count": 12
+  },
+  {
+   "event": "cotation",
+   "severity": "importante",
+   "count": 7
+  },
+  {
+   "event": "macro",
+   "severity": "importante",
+   "count": 5
+  },
+  {
+   "event": "justice",
+   "severity": "importante",
+   "count": 2
+  }
+ ],
+ "vetoes_at_end": {
+  "assets": {
+   "BTC": [
+    "North Korea Moves $247 Million of Binance Hack Loot Through Bitcoin Mixers",
+    "US seeks to recover $1.1B in crypto stolen in North Korea-linked Binance hack"
+   ]
+  },
+  "market": [
+   "DOJ seeks $1.17 billion in USDC tied to Binance hack; Circle could issue replacement tokens",
+   "North Korea Moves $247 Million of Binance Hack Loot Through Bitcoin Mixers",
+   "US seeks to recover $1.1B in crypto stolen in North Korea-linked Binance hack"
+  ]
+ },
+ "live_snapshot": {
+  "jour_utc": "2026-11-23",
+  "fond_crypto": {
+   "meneuses_voulues": [],
+   "entrees_bloquees_par_actualite": []
+  },
+  "rapide": {
+   "marches_ouverts": [],
+   "bloques_par_actualite": []
+  },
+  "fonds": {
+   "G1": {
+    "SPY": 0.125,
+    "EFA": 0.125,
+    "DBC": 0.125,
+    "VNQ": 0.125
+   },
+   "G2": {
+    "SPY": 0.3333,
+    "EFA": 0.3333,
+    "DBC": 0.3333
+   }
+  },
+  "fonds_decision_du": "2026-10-31",
+  "fonds_apercu_si_le_mois_finissait_aujourd_hui": {
+   "G1": {
+    "VNQ": 0.125
+   },
+   "G2": {
+    "VNQ": 0.3333
+   }
+  },
+  "actualites": {
+   "vetos_par_actif": {
+    "BTC": 1
+   },
+   "veto_marche_crypto": [
+    "DOJ seeks $1.17 billion in USDC tied to Binance hack; Circle could issue replacement tokens",
+    "North Korea Moves $247 Million of Binance Hack Loot Through Bitcoin Mixers"
+   ]
+  }
+ },
+ "known_limits": [
+  "sources gratuites : délai de 1 à 7 minutes, trop lent pour devancer le marché ; utile pour éviter un mauvais moment",
+  "classement par mots-clés : une dépêche récente sur un ancien piratage (Binance 2019) déclenche un veto de marché de 6 heures ; à confirmer par l'IA locale d'actualités avant usage en direct",
+  "les annonces Binance n'ont publié aucune nouvelle dépêche pendant les 20 minutes : leur délai n'est pas encore mesuré",
+  "les formulaires 8-K ne sont pas encore reliés aux fonds indiciels (pas d'action individuelle tradée)"
+ ]
+}
