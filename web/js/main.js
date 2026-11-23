@@ -64,6 +64,7 @@ const Login = {
         if (needCode.value) body.code = code.value;
         await api.post(store.auth.setupRequired ? '/api/auth/setup' : '/api/auth/login', body);
         store.auth.authenticated = true;
+        store.auth.expired = false;
         store.auth.setupRequired = false;
       } catch (e) {
         if (e.data && e.data.need_code) {
@@ -88,6 +89,7 @@ const Login = {
         <div class="field"><label for="confirm-password">Confirmer le mot de passe</label><input id="confirm-password" type="password" v-model="password2" autocomplete="new-password"></div>
       </template>
       <template v-else>
+        <div v-if="store.auth.expired" class="note warn" role="status" style="margin-top:12px">Votre session a expiré ou a été fermée. Reconnectez-vous : vous reviendrez sur la même page.</div>
         <div class="field" style="margin-top:14px"><label for="password">Mot de passe</label><input id="password" type="password" v-model="password" autocomplete="current-password" autofocus></div>
         <div v-if="needCode" class="field"><label for="otp">Code de l'application d'authentification (6 chiffres)</label>
           <input id="otp" v-model="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></div>
@@ -233,7 +235,8 @@ const App = {
     };
     applyTheme();
     const toggleTheme = () => { theme.value = theme.value === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('stn-theme', theme.value); } catch { /* ignoré */ } applyTheme(); };
-    const logout = async () => { await safe(api.post('/api/auth/logout')); store.auth.authenticated = false; };
+    // Déconnexion volontaire : l'écran de connexion d'abord (aucune requête en cours n'est prise pour une session expirée).
+    const logout = async () => { store.auth.authenticated = false; store.auth.expired = false; await safe(api.post('/api/auth/logout')); };
     const marketOk = computed(() => store.overview?.market?.status?.ok);
     const account = computed(() => store.overview?.accounts?.find(a =>
       a.id === store.selectedAccount && a.kind === 'paper' && a.connected && !a.archived_paper));
@@ -277,7 +280,10 @@ const App = {
       </template>
       <div class="foot">Sentinelle {{ store.overview?.version }}</div>
     </nav>
-    <main class="main"><component :is="view" :key="route" /></main>
+    <main class="main">
+      <div v-if="store.offline" class="note danger" role="alert" style="margin-bottom:12px">Serveur injoignable : les informations affichées peuvent être incomplètes ou anciennes. Nouvelle tentative automatique ; la page se recharge dès le retour de la connexion.</div>
+      <component :is="view" :key="route + ':' + store.reconnects" />
+    </main>
     <nav class="bottom-nav" aria-label="Navigation mobile">
       <a v-for="n in NAV.slice(0,4)" :key="n.id" :href="'#/' + n.id" :aria-current="route===n.id ? 'page' : null" :class="{active: route===n.id}" @click="more=false"><span class="ico">{{ n.ico }}</span>{{ n.short || n.label.split(' ')[0] }}</a>
       <a href="#" role="button" :aria-expanded="more" :class="{active: more || NAV.slice(4).some(n => n.id === route)}" @click.prevent="more = !more"><span class="ico">⋯</span>Plus</a>

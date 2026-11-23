@@ -2,8 +2,10 @@
 const { reactive } = Vue;
 
 export const store = reactive({
-  auth: { checked: false, authenticated: false, setupRequired: false, setupAllowed: false },
+  auth: { checked: false, authenticated: false, setupRequired: false, setupAllowed: false, expired: false },
   ws: false,
+  offline: false,     // dernière requête sans réponse du serveur : un bandeau le signale
+  reconnects: 0,      // retours de la connexion : la page affichée est rechargée
   overview: null,
   settings: null,
   markets: { watchlist: [], prices: {}, available: [], info: {} },
@@ -24,10 +26,14 @@ Vue.watch(() => store.overview?.accounts, accounts => {
 }, { immediate: true, flush: 'sync' });
 
 let toastId = 0;
+const timers = new Map();
+const dropToast = (id) => { timers.delete(id); const i = store.toasts.findIndex(t => t.id === id); if (i >= 0) store.toasts.splice(i, 1); };
+// Un message identique déjà affiché (double clic, plusieurs requêtes en échec) est prolongé, pas répété.
 export function toast(message, kind = 'info', ms = 5000) {
-  const id = ++toastId;
-  store.toasts.push({ id, message, kind });
-  setTimeout(() => { const i = store.toasts.findIndex(t => t.id === id); if (i >= 0) store.toasts.splice(i, 1); }, ms);
+  const same = store.toasts.find(t => t.message === message && t.kind === kind);
+  const id = same ? same.id : ++toastId;
+  if (same) clearTimeout(timers.get(id)); else store.toasts.push({ id, message, kind });
+  timers.set(id, setTimeout(() => dropToast(id), ms));
 }
 
 // Fenêtre de confirmation (optionnellement avec une phrase à taper)
