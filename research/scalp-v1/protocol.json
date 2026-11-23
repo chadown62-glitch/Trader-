@@ -1,0 +1,56 @@
+{
+  "schema": "scalp-protocol-v1",
+  "registered_utc": "2026-11-23",
+  "authority": "Autorisation du propriétaire du 23 novembre 2026 (SPEC.md, chantier Moteur court terme)",
+  "mode": "paper_only",
+  "can_trade_real": false,
+  "periods": {
+    "development": {"from_utc": "2017-01-01T00:00:00Z", "to_utc": "2026-08-31T23:59:59Z",
+                     "use": "exploration, réglages, sélection, validation chronologique purgée"},
+    "reserved": {"from_utc": "2026-09-01T00:00:00Z", "to_utc": "2026-11-22T23:59:59Z",
+                  "use": "évaluation historique unique, après gel de la configuration ; jamais pour régler",
+                  "known_prior_exposure": "bougies 1 min d'octobre-novembre 2026 déjà vues pour les seuils du bouclier (RESULTATS §8) et le rejet de l'EMA 9/21 (§9)"},
+    "prospective": {"from": "date de gel de la configuration", "start": "ordre explicite du propriétaire uniquement"}
+  },
+  "data": {
+    "source": "https://data.binance.vision/data/spot/monthly/klines/<SYMBOL>/1m/",
+    "checks": ["somme de contrôle SHA-256 publiée par fichier", "horodatages en millisecondes ou microsecondes normalisés", "trous comptés et publiés", "doublons retirés"],
+    "universe_rule": "marchés au comptant cotés à la date considérée ; aucun choix fondé sur les survivants actuels"
+  },
+  "execution_rules": {
+    "decision": "clôture de la bougie i",
+    "entry": "ouverture de la bougie i+1",
+    "same_bar_stop_and_target": "stop retenu",
+    "time_exit": "clôture de la dernière bougie de la durée maximale",
+    "long_only": true
+  },
+  "costs": {
+    "fee_per_side": 0.001,
+    "fee_per_side_bnb": 0.00075,
+    "slippage_per_side": 0.0001,
+    "fee_source": "sentinelle/costs/venues.py binance_spot_vip0 (HYPOTHETICAL tant que la grille n'est pas archivée avec empreinte)"
+  },
+  "baseline_grid": [
+    {"target_pct": 0.3, "stop_pct": 0.3, "max_minutes": 60},
+    {"target_pct": 0.5, "stop_pct": 0.5, "max_minutes": 120},
+    {"target_pct": 1.0, "stop_pct": 0.5, "max_minutes": 240},
+    {"target_pct": 1.0, "stop_pct": 1.0, "max_minutes": 240},
+    {"target_pct": 2.0, "stop_pct": 1.0, "max_minutes": 1440},
+    {"target_pct": 2.0, "stop_pct": 2.0, "max_minutes": 1440},
+    {"target_pct": 0.5, "stop_pct": 1.5, "max_minutes": 240},
+    {"target_pct": 1.0, "stop_pct": 3.0, "max_minutes": 1440}
+  ],
+  "trial_registry": "research/scalp-v1/trials.jsonl, en ajout seul, essais négatifs compris",
+  "real_money_criteria": {
+    "owner_only": true,
+    "automatic": false,
+    "prospective_min_weeks": 8,
+    "prospective_min_closed_trades": 150,
+    "net_expectancy_per_trade": "> 0 avec 95 % de confiance, bootstrap circulaire par blocs d'une semaine",
+    "max_drawdown": 0.10,
+    "min_positive_weeks_share": 0.60,
+    "benchmarks": ["CASH", "achat-conservation, même capital et mêmes coûts"],
+    "consistency": "même signe que l'évaluation historique unique"
+  },
+  "frozen_archives_untouched": {"pr54": "5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18", "pr55": "18b31bb901f656d6126b370f47c510775f135c57"}
+}

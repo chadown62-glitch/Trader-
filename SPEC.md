@@ -216,3 +216,110 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
   - L'API n'est jamais exposée publiquement.
   - Le Guardian, les limites du Risk Commander et la causalité des transactions fictives sont préservés.
   - Aucune campagne prospective n'est lancée ; la campagne de 72 heures a son propre démarrage autorisé.
+
+## Extension du Sprint 5 — chantier Moteur court terme : veilleurs, IA principale et actualité
+
+- **Autorisation du propriétaire du 23 novembre 2026.** Le propriétaire demande directement à Claude Code de se concentrer sur le moteur : l'IA, les agents, les bots. Il veut des trades courts gagnants et réguliers, très peu de pertes, un apprentissage sans données biaisées, l'actualité en temps réel, des tests et des résultats démontrés. Ce chantier s'inscrit dans le Sprint 5, seul sprint en cours. Il ne modifie ni la campagne moteur memecoin et ses budgets, ni le chantier Interface. Aucun développement n'a lieu avant la fusion de ce cadrage sur main.
+- **Architecture voulue par le propriétaire.**
+  - **Veilleurs.** Des agents légers et nombreux surveillent en même temps tous les marchés suivis : tendances, lignes de tendance, cassures, flux acheteur/vendeur, volume, actualité. Leurs calculs sont déterministes et peu coûteux. Ils ne décident rien : ils émettent une alerte datée avec ses raisons.
+  - **IA principale.** Le modèle le plus lourd reste au repos tant qu'aucune alerte n'arrive. Sur alerte, il analyse plus profondément et décide si le trade est pris. Il s'abstient par défaut.
+  - **Risk Commander et gestionnaire de risque.** Ils gardent le dernier mot, inchangés, et ne sont jamais assouplis.
+  - **Profils de risque.** Le profil prudent est le seul actif au départ, pour beaucoup de petites victoires. Un profil plus risqué n'est activé que par le propriétaire, jamais automatiquement.
+
+### Constat de départ (mesuré)
+
+- **Résultats existants (`docs/RESULTATS.md`).**
+  - §3 et §9 : en dessous de 4 heures, les stratégies perdent une fois les frais payés ; l'EMA 9/21 en 1 minute a été rejetée.
+  - §10 : le modèle fait à peine mieux que le hasard sur les périodes récentes. Ses stratégies perdent sur 25 autres cryptos liquides.
+- **Mesure exploratoire du 23 novembre 2026.**
+  - Données : 12 mois de bougies d'une minute Binance, BTC, ETH et SOL contre USDC, de septembre 2025 à août 2026.
+  - Méthode : entrées au hasard, frais de 0,1 % et glissement de 0,01 % par côté, soit 0,22 % par aller-retour. Elle sera refaite de façon reproductible dans la PR 2.
+  - Un objectif de +0,3 % (stop −0,3 %) exige environ 87 % de trades gagnants pour être rentable.
+  - Un objectif de +2 % (stop −1 %) exige environ 41 %. Le hasard en obtient 22 à 29 %.
+  - Les réglages à fort taux de réussite gagnent 56 à 68 % des trades et perdent quand même de l'argent (objectif +1 %, stop −3 %).
+  - Une hausse de +2 % dans l'heure n'arrive que dans 0,7 % (BTC) à 2,5 % (SOL) des heures.
+- **Conséquence.** Le chantier vise le **trading court sélectif** :
+  - des objectifs d'environ 1 à 3 % ;
+  - une détention de quelques minutes à un jour ;
+  - des trades rares, très choisis, mais pris sur un grand nombre de marchés surveillés.
+
+  Le micro-scalping de quelques dixièmes de pour cent est exclu aux frais actuels. Il ne serait réexaminé que sur une grille de frais datée nettement plus basse.
+
+### Objectif mesurable
+
+- **Mesures.**
+  - Critère principal : espérance nette positive par trade après frais et glissement, avec intervalle de confiance.
+  - Drawdown borné.
+  - Régularité : part des semaines positives.
+  - Comparaison à CASH et à l'achat-conservation, avec le même capital et les mêmes coûts.
+- **Taux de réussite.** Il est suivi, mais n'est jamais l'objectif seul.
+- **Cibles de rendement.** Aucune n'est codée comme résultat attendu, ni 4 % par jour ni une autre. Aucune ne déclenche une opération, une hausse de risque ou une promotion.
+
+### Périmètre (Claude Code)
+
+1. **Coûts d'abord.**
+   - Grille de frais datée : niveau, remise BNB, maker/taker.
+   - Écart et glissement mesurés.
+   - Seuil de rentabilité affiché pour chaque réglage.
+2. **Données sans biais.**
+   - Bougies d'une minute publiques de Binance (`data.binance.vision`), avec vérification des sommes de contrôle publiées, des trous et des horodatages.
+   - Univers défini à la date, et non sur les seuls survivants.
+   - Étiquetage par triple barrière identique aux règles de sortie fictives : entrée à l'ouverture suivante, et stop retenu si le stop et l'objectif sont touchés dans la même bougie.
+   - Validation chronologique purgée avec embargo.
+   - Registre de tous les essais, y compris négatifs, et correction pour essais multiples.
+3. **Veilleurs.**
+   - Un veilleur par marché suivi, au comptant et en position acheteuse seulement.
+   - L'ensemble est borné par le budget réseau et les limites de débit des sources.
+   - Les alertes et leurs raisons sont conservées en ajout seul.
+   - L'élargissement du nombre de marchés est mesuré, jamais supposé utile : les cryptos restent très corrélées au BTC.
+4. **IA principale plus intelligente, pas plus grosse.**
+   - Caractéristiques porteuses d'information à court terme : flux acheteur/vendeur, surprise de volume, régime de volatilité, avance du BTC sur les autres cryptos, heure de séance, contexte d'actualité.
+   - Modèles simples et calibrés.
+   - **Abstention** : un trade n'est pris que si l'espérance calibrée dépasse le coût avec une marge fixée à l'avance.
+5. **Actualité en temps réel.**
+   - Archive horodatée en ajout seul : heure de publication et de réception, source, empreinte.
+   - Annotation par l'IA locale existante, avec un seul modèle lourd chargé à la fois.
+   - Études d'événements mesurées à l'heure de réception.
+   - L'actualité sert d'abord de veto et d'alerte. Elle ne devient une caractéristique du modèle qu'une fois assez d'événements archivés.
+   - Aucun article rétrodaté ni aucun jugement après coup n'est utilisé pour apprendre.
+6. **Preuve.** Une évaluation historique unique sur la période réservée, puis une observation prospective fictive à configuration figée.
+
+- **Hors périmètre initial.**
+  - Les actions boursières : pas de source publique gratuite en temps réel intégrée, et des horaires de bourse. Elles pourront être ajoutées plus tard, en veille seule, sur décision du propriétaire.
+  - Le levier, la vente à découvert et les dérivés comme instruments de trading.
+
+### Période réservée et critères préenregistrés
+
+- **Évaluation historique unique.** Elle porte sur la période du 1er septembre 2026 00:00 UTC au 22 novembre 2026 23:59 UTC. Le développement et tous les réglages n'utilisent que des données antérieures au 1er septembre 2026. Le chargement de la période réservée est refusé par le code hors évaluation.
+- **Limite de cette période.** Les bougies d'une minute d'octobre et novembre 2026 ont déjà servi à fixer les seuils du bouclier (§8) et à rejeter l'EMA 9/21 (§9). La période n'est donc pas totalement inédite pour le projet : la preuve prospective reste obligatoire.
+- **Constat négatif.** Si aucune configuration ne montre d'avantage net sur le développement, la période réservée n'est pas consommée et le constat est publié.
+- **Critères avant toute décision d'argent réel.** Ils sont proposés par Claude et modifiables par le seul propriétaire avant le début de l'observation :
+  - au moins 8 semaines d'observation prospective fictive et au moins 150 trades clôturés, à configuration figée ;
+  - espérance nette par trade positive avec 95 % de confiance (rééchantillonnage par blocs) ;
+  - drawdown maximal d'au plus 10 % et au moins 60 % de semaines positives ;
+  - résultat meilleur que CASH, et de même signe que l'évaluation historique unique.
+- **Argent réel.** Sentinelle reste en simulation exclusive. La décision d'engager de l'argent réel appartient au seul propriétaire, hors de Sentinelle. Ces critères ne l'automatisent pas.
+- **Indépendance.** GPT Work est indisponible ; Claude développe et évalue. Le préenregistrement, l'usage unique de la période réservée, le registre complet des essais et la preuve prospective compensent cette absence d'auditeur indépendant.
+
+### Fichiers, séquence et contraintes
+
+- **Fichiers.**
+  - Nouveaux modules dans `sentinelle/scalp/`, tests dans `tests/test_scalp_*.py`.
+  - Protocole et rapports dans `research/scalp-v1/`, documentation dans `docs/scalp/`.
+  - Raccordement minimal à l'agent fictif, aux actualités et au gestionnaire de risque existants, décrit dans chaque PR.
+- **Composants protégés.** Le Guardian, le Risk Commander, le bouclier et la causalité ne sont jamais assouplis. Les fichiers de GPT Work ne sont pas modifiés. Les archives #54 (`5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18`) et #55 (`18b31bb901f656d6126b370f47c510775f135c57`) restent intégralement gelées.
+- **Séquence de PR.** PR ciblées d'au plus six fichiers, qui énumèrent leurs chemins exacts :
+  1. cadrage (cette section) et protocole préenregistré ;
+  2. laboratoire court terme : données d'une minute, coûts, triple barrière, mesure de référence reproductible ;
+  3. veilleurs et caractéristiques : alertes datées sur les marchés suivis ;
+  4. IA principale : modèle avec abstention, validation purgée, registre des essais ;
+  5. actualité : archive horodatée, annotation, études d'événements ;
+  6. raccordement à l'agent fictif, désactivé par défaut, avec le profil prudent ;
+  7. évaluation unique sur la période réservée et rapport, y compris négatif ;
+  8. préparation de l'observation prospective : configuration figée et tableau de bord.
+
+  La séquence s'adapte aux résultats ; aucune PR n'est multipliée sans nécessité. Chaque PR est fusionnée selon la directive de fusion du 21 novembre 2026, après réussite des contrôles requis.
+- **Temps.** Il est consigné dans `docs/scalp/active-time.jsonl`, avec le même schéma, hors budget des 24 h actives moteur.
+- **Sécurité.**
+  - Simulation exclusive : aucun ordre réel, aucune clé privée, aucun levier, aucun short, aucune promotion automatique.
+  - Aucun service permanent. L'observation prospective ne démarre que sur ordre explicite du propriétaire, et la campagne de 72 heures garde son propre démarrage autorisé.
