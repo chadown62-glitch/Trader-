@@ -188,6 +188,13 @@ class CcxtSource:
             ob = self._ex.fetch_order_book(symbol, limit=limit)
         return {"bids": ob.get("bids") or [], "asks": ob.get("asks") or [], "timestamp": ob.get("timestamp")}
 
+    def fetch_ticker(self, symbol: str) -> dict:
+        """Meilleurs prix publics d'achat et de vente, datés par la plateforme (millisecondes ; None si l'heure manque)."""
+        with self._lock:
+            t = self._ex.fetch_ticker(symbol)
+        return {"bid": t.get("bid"), "bid_qty": t.get("bidVolume"), "ask": t.get("ask"), "ask_qty": t.get("askVolume"),
+                "timestamp": t.get("timestamp")}
+
     def fetch_trade_flow(self, symbol: str, minutes: int = 15) -> dict:
         """Volumes achetés et vendus « au marché » (acheteurs et vendeurs agressifs) sur les dernières minutes.
 
