@@ -24,6 +24,7 @@ MIN_TRAIN = 300
 
 def matrix(cands: pd.DataFrame, extra: tuple = ()) -> pd.DataFrame:
     X = cands.reindex(columns=FEATURES + list(extra) + ["cost_r", "risk_pct"]).astype(float)
+    X = X.replace([np.inf, -np.inf], np.nan)  # une valeur infinie est traitée comme absente
     for s in SETUPS:
         X[f"is_{s}"] = (cands["setup"] == s).astype(float).to_numpy()
     return X
@@ -42,11 +43,12 @@ class PrincipalAI:
             return self
         X, y = matrix(train, self.extra), (train["r"].to_numpy() > 0).astype(int)
         cut = int(len(train) * 0.8)
-        self.median = X.iloc[:cut].median()
+        self.empty = [c for c in X.columns if X[c].iloc[:cut].isna().all()]  # colonnes sans aucune valeur
+        self.median = X.iloc[:cut].median().fillna(0.0)  # colonne entièrement absente : valeur neutre
         Xf = X.fillna(self.median)
         self.mu, self.sd = Xf.iloc[:cut].mean(), Xf.iloc[:cut].std().replace(0, 1)
         self.trees = HistGradientBoostingClassifier(max_depth=3, max_iter=150, learning_rate=0.05, l2_regularization=1.0,
-                                                    min_samples_leaf=40, random_state=self.seed).fit(X.iloc[:cut], y[:cut])
+                                                    min_samples_leaf=40, random_state=self.seed).fit(self._trees_input(X.iloc[:cut]), y[:cut])
         self.linear = LogisticRegression(C=0.5, max_iter=2000).fit(((Xf - self.mu) / self.sd).iloc[:cut], y[:cut])
         self.iso = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0).fit(self._raw(X.iloc[cut:]), y[cut:])
         r = train["r"]
@@ -59,9 +61,13 @@ class PrincipalAI:
         self.ready = True
         return self
 
+    def _trees_input(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Les arbres gèrent les valeurs absentes, sauf une colonne vide : elle reçoit une valeur neutre."""
+        return X.assign(**{c: 0.0 for c in self.empty}) if self.empty else X
+
     def _raw(self, X: pd.DataFrame) -> np.ndarray:
         Xf = X.fillna(self.median)
-        return 0.5 * self.trees.predict_proba(X)[:, 1] + 0.5 * self.linear.predict_proba((Xf - self.mu) / self.sd)[:, 1]
+        return 0.5 * self.trees.predict_proba(self._trees_input(X))[:, 1] + 0.5 * self.linear.predict_proba((Xf - self.mu) / self.sd)[:, 1]
 
     def judge(self, cands: pd.DataFrame) -> pd.DataFrame:
         out = pd.DataFrame(index=cands.index)
