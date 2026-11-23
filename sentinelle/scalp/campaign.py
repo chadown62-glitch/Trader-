@@ -40,6 +40,7 @@ class Variant:
     daily_trend: bool = False
     extra: tuple = ()
     core_share: float = 0.0  # part du capital confiée à la position de fond (core.py), le reste au trading court
+    core_rules: core.CoreRules = core.CoreRules()
     note: str = ""
 
 
@@ -52,6 +53,12 @@ VARIANTS = {
                   note="position de fond seule : double élan journalier (20 jours, 3 meneuses sur 14 jours), frais BNB"),
     "v6": Variant("v6", round_trip=2 * (0.00075 + 0.0001), daily_trend=True, extra=tuple(DAILY), core_share=0.7,
                   note="70 % position de fond (v5) + 30 % trading court (v4)"),
+    "v7": Variant("v7", round_trip=2 * (0.00075 + 0.0001), daily_trend=True, extra=tuple(DAILY), core_share=1.0,
+                  core_rules=core.CoreRules(market_filter="BTCUSDC", trailing_stop=0.10),
+                  note="v5 + filtre de marché BTC + stop suiveur de 10 % (3 jours sans rachat)"),
+    "v8": Variant("v8", round_trip=2 * (0.00075 + 0.0001), daily_trend=True, extra=tuple(DAILY), core_share=0.7,
+                  core_rules=core.CoreRules(market_filter="BTCUSDC", trailing_stop=0.10),
+                  note="70 % position de fond (v7) + 30 % trading court (v4)"),
 }
 
 
@@ -97,8 +104,9 @@ def month_test(cands: pd.DataFrame, closes: dict, month: str, *, margin_r: float
     capital = 1000.0
     short_capital = capital * (1 - variant.core_share)
     tactical = desk.run(test, test["take"].to_numpy(), start, end, profile, capital=short_capital) if short_capital > 0 else None
-    fund = core.run(*closes["_daily"], start, end, capital * variant.core_share) if variant.core_share > 0 else None
+    fund = _fund(closes, start, end, capital * variant.core_share, variant) if variant.core_share > 0 else None
     system = _combine(fund, tactical, capital, start, end)
+    system.pop("daily")
     return {"month": month, "train_alerts": int(len(train)), "month_alerts": int(len(test)),
             "ai_taken": int(test["take"].sum()), "ai_ready": ai.ready, "core_share": variant.core_share,
             "system": system,
@@ -108,6 +116,58 @@ def month_test(cands: pd.DataFrame, closes: dict, month: str, *, margin_r: float
             "buy_and_hold_pct": float(100 * np.mean(bh)) if bh else None, "cash_pct": 0.0,
             "examples": [t["reasoning"] for t in with_ai["trades"][:5]],
             "trades": [{k: t[k] for k in ("symbol", "setup", "decided_at", "exit_ms", "outcome", "r", "pnl")} for t in with_ai["trades"]]}
+
+
+def _fund(closes, start, end, capital, variant):
+    opens, day_closes, lows = closes["_daily"]
+    return core.run(opens, day_closes, start, end, capital, variant.core_rules, lows=lows)
+
+
+def year_test(cands: pd.DataFrame, closes: dict, last: str, *, margin_r: float = 0.10, profile=desk.Profile(),
+              variant: Variant = VARIANTS["v1"]) -> dict:
+    """Stabilisation sur douze mois : position de fond continue ; trading court réappris chaque mois sur son seul passé,
+    son capital passant d'un mois au suivant. Comparaison mois par mois au marché (achat-conservation)."""
+    tested = months("2000-01", last)[-12:]
+    start, end = month_bounds(tested[0])[0], month_bounds(tested[-1])[1] + 1
+    capital = 1000.0
+    fund = _fund(closes, start, end, capital * variant.core_share, variant) if variant.core_share > 0 else None
+    short_capital, monthly, tactical_curve, tactical_trades = capital * (1 - variant.core_share), [], [], []
+    for m in tested:
+        ms, me = month_bounds(m)
+        if short_capital > 0:
+            train = cands[cands["exit_ms"] < ms - EMBARGO_MS]
+            test = cands[(cands["decided_at"] >= ms) & (cands["decided_at"] < me + 1)]
+            ai = PrincipalAI(margin_r=margin_r, extra=variant.extra).fit(train)
+            test = test.join(ai.judge(test))
+            run = desk.run(test, test["take"].to_numpy(), ms, me + 1, profile, capital=short_capital)
+            tactical_curve += run["curve"]
+            tactical_trades += run["trades"]
+            short_capital = run["final_equity"]
+        monthly.append({"month": m, "buy_and_hold_pct": _bh(closes, m)})
+    tactical = ({"capital": capital * (1 - variant.core_share), "final_equity": short_capital, "trades": tactical_trades,
+                 "curve": tactical_curve} if variant.core_share < 1 else None)
+    system = _combine(fund, tactical, capital, start, end)
+    # rendement mensuel du système à partir de l'équité marquée chaque jour
+    eq = system.pop("daily")
+    for row in monthly:
+        a, b = month_bounds(row["month"])
+        before = [v for t, v in eq if t <= a] or [capital]
+        inside = [v for t, v in eq if t <= b + 1]
+        row["system_pct"] = float(100 * (inside[-1] / before[-1] - 1))
+        row["beats_market"] = bool(row["system_pct"] > row["buy_and_hold_pct"])
+    first, prev = tested[0], months("2000-01", tested[0])[-2]
+    coins = [s for s in closes if not s.startswith("_")]
+    bh_year = 100 * float(np.mean([closes[s][last] / closes[s][prev] - 1 for s in coins]))
+    return {"months": tested, "variant": variant.name, "system": system, "monthly": monthly,
+            "buy_and_hold_pct": bh_year, "months_beating_market": int(sum(r["beats_market"] for r in monthly)),
+            "positive_months": int(sum(r["system_pct"] > 0 for r in monthly)),
+            "core": fund["metrics"] if fund else None, "from": first, "to": last}
+
+
+def _bh(closes, month):
+    prev = months("2000-01", month)[-2]
+    coins = [s for s in closes if not s.startswith("_") and prev in closes[s]]
+    return float(100 * np.mean([closes[s][month] / closes[s][prev] - 1 for s in coins])) if coins else None
 
 
 def _combine(fund, tactical, capital, start, end) -> dict:
@@ -126,8 +186,10 @@ def _combine(fund, tactical, capital, start, end) -> dict:
         eq[-1] = fund["final_equity"] + (tactical["final_equity"] if tactical else 0.0)
     elif tactical:
         eq[-1] = tactical["final_equity"]
+    stamps = [start] + [d * core.DAY_MS for d in days]
+    daily = list(zip(stamps, eq))
     eq = np.array(eq)
-    return {"return_pct": float(100 * (eq[-1] / capital - 1)),
+    return {"daily": daily, "return_pct": float(100 * (eq[-1] / capital - 1)),
             "max_drawdown_pct": float(100 * np.max(1 - eq / np.maximum.accumulate(eq))),
             "tactical_trades": len(tactical["trades"]) if tactical else 0,
             "core_orders": len(fund["trades"]) if fund else 0}
@@ -143,7 +205,7 @@ def _commit() -> str:
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Essai du moteur court terme (simulation exclusive)")
     ap.add_argument("--month", default="2026-08")
-    ap.add_argument("--year", action="store_true", help="stabilisation : les 12 mois qui finissent à --month")
+    ap.add_argument("--year", action="store_true", help="stabilisation : les 12 mois qui finissent à --month (inclus)")
     ap.add_argument("--first", default="2024-09")
     ap.add_argument("--cache", default="data/scalp-cache")
     ap.add_argument("--margin", type=float, default=0.10)
@@ -159,7 +221,29 @@ def main(argv=None):
         cands, closes = build(SYMBOLS, args.first, args.month, args.cache, variant=variant)
         store.parent.mkdir(parents=True, exist_ok=True)
         store.write_bytes(pickle.dumps((cands, closes)))
-    tested = months("2000-01", args.month)[-12:] if args.year else [args.month]
+    if args.year:
+        year = year_test(cands, closes, args.month, margin_r=args.margin, variant=variant)
+        y = year["system"]
+        for r in year["monthly"]:
+            print(f"  {r['month']} : système {r['system_pct']:+6.2f} % | marché {r['buy_and_hold_pct']:+6.2f} %"
+                  f"{'  ✓ mieux que le marché' if r['beats_market'] else ''}")
+        print(f"{variant.name} {year['from']} → {year['to']} : système {y['return_pct']:+.2f} % (baisse max {y['max_drawdown_pct']:.2f} %, "
+              f"{y['core_orders']} ordres de fond, {y['tactical_trades']} trades courts) | marché {year['buy_and_hold_pct']:+.2f} % | "
+              f"mois meilleurs que le marché {year['months_beating_market']}/12, mois positifs {year['positive_months']}/12")
+        report = {"schema": "scalp-year-v1", "commit": _commit(), "margin_r": args.margin, "symbols": SYMBOLS,
+                  "data_from": args.first, **year, "variant": asdict(variant)}
+        if args.out:
+            Path(args.out).write_text(json.dumps(report, ensure_ascii=False, indent=1, default=str) + "\n", encoding="utf-8")
+        if args.trials:
+            with open(args.trials, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "commit": report["commit"],
+                                     "variant": variant.name, "note": variant.note, "test": "stabilisation sur douze mois",
+                                     "from": year["from"], "to": year["to"], "system_pct": y["return_pct"],
+                                     "system_drawdown_pct": y["max_drawdown_pct"], "buy_and_hold_pct": year["buy_and_hold_pct"],
+                                     "months_beating_market": year["months_beating_market"], "positive_months": year["positive_months"],
+                                     "monthly": year["monthly"]}, ensure_ascii=False) + "\n")
+        return report
+    tested = [args.month]
     results = [month_test(cands, closes, m, margin_r=args.margin, variant=variant) for m in tested]
     report = {"schema": "scalp-trial-v1", "commit": _commit(), "variant": asdict(variant), "margin_r": args.margin, "symbols": SYMBOLS,
               "data_from": args.first, "months": results}
