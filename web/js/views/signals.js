@@ -76,7 +76,7 @@ export default {
           <div class="field"><label>api_hash <span v-if="secrets?.telegram_api_hash?.set" class="badge ok">défini</span></label><input type="password" v-model="form.telegram_api_hash"></div>
         </div>
         <div class="field"><label>Numéro de téléphone <span v-if="secrets?.telegram_phone?.set" class="badge ok">défini</span></label><input v-model="form.telegram_phone" placeholder="+33612345678"></div>
-        <div class="btn-row"><button class="primary" @click="saveCreds">Enregistrer</button><button @click="login" :disabled="!data?.status?.creds">Recevoir le code</button></div>
+        <div class="btn-row"><button class="primary" @click="saveCreds" :disabled="!Object.values(form).some(v => v && v.trim())" title="Saisissez au moins un identifiant à enregistrer">Enregistrer</button><button @click="login" :disabled="!data?.status?.creds">Recevoir le code</button></div>
         <div v-if="codeSent || needPassword" class="card tight" style="margin-top:12px;background:var(--bg-2)">
           <div class="field"><label>Code reçu dans Telegram</label><input v-model="code" inputmode="numeric"></div>
           <div v-if="needPassword" class="field"><label>Mot de passe de validation en deux étapes</label><input type="password" v-model="pwd"></div>
@@ -91,7 +91,7 @@ export default {
       </div>
       <div class="card">
         <h2>Canaux suivis</h2>
-        <div class="row" style="margin-bottom:10px"><input v-model="newChannel" placeholder="@nom_du_canal ou lien t.me/..."><button @click="addChannel">Ajouter</button></div>
+        <div class="row" style="margin-bottom:10px"><input v-model="newChannel" placeholder="@nom_du_canal ou lien t.me/..."><button @click="addChannel" :disabled="!newChannel.trim()" title="Saisissez un canal à suivre">Ajouter</button></div>
         <div class="table-wrap"><table>
           <thead><tr><th>Canal</th><th class="num">Messages</th><th class="num">Signaux</th><th class="num">Évalués</th><th class="num">Réussite</th><th class="num">Moyenne</th><th></th></tr></thead>
           <tbody><tr v-for="c in (data?.channels || [])" :key="c.channel">
