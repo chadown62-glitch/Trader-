@@ -84,3 +84,12 @@ def test_month_test_trains_only_on_outcomes_known_before_the_month():
         PrincipalAI.fit = original
     from sentinelle.scalp.data import month_bounds
     assert seen["max_exit"] < month_bounds(month)[0] - campaign.EMBARGO_MS
+
+
+def test_principal_ai_learns_despite_infinite_or_empty_columns():
+    data = synthetic_alerts(1200)
+    data.loc[data.index[:50], "squeeze"] = np.inf
+    data["realized_vol"] = np.nan  # colonne entièrement absente
+    ai = PrincipalAI().fit(data.iloc[:900])
+    v = ai.judge(data.iloc[900:].drop(columns=["r", "net_return", "outcome", "exit_ms"]))
+    assert ai.ready and v["p"].notna().all()
