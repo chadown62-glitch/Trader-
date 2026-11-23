@@ -6,9 +6,9 @@ les archives gelées #54/#55 sont inchangés. La campagne prospective de 72 heur
 
 ## 1. État en une phrase
 
-L'interface web est livrée et vérifiée automatiquement. L'application Windows est **lançable** (`bureau.bat`), mais
-**non validée sur Windows 11** : aucun test n'a pu afficher la vraie fenêtre sous Windows. Elle ne doit pas être
-considérée comme opérationnelle avant la vérification de la section 4 sur votre PC.
+L'interface web est livrée et vérifiée automatiquement. L'application Windows est **validée sur Windows 11** par le
+propriétaire le 23 novembre 2026 : les quatre vérifications de la section 4 ont réussi, en démonstration. Elle est
+opérationnelle pour cet usage ; la consignation et ce qu'elle ne couvre pas sont dans `docs/interface/validation-windows11.md`.
 
 ## 2. Ce qui a été livré
 
@@ -24,6 +24,7 @@ considérée comme opérationnelle avant la vérification de la section 4 sur vo
 | #123 | Audit final, inventaire régénéré, présent document, section « Application de bureau » de `docs/WINDOWS.md` |
 | #124 | Fiabilisation : fenêtres maintenues au double clic, refus de réglage lisible, arrêt d'urgence d'une IA en préparation (D-UI8 à D-UI10) ; parcours des actions critiques |
 | #125 | Fiabilisation : parcours des actions secondaires, inventaire régénéré, mise à jour du présent document |
+| cette PR | Consignation de la validation de l'application de bureau sous Windows 11 par le propriétaire |
 
 L'interface reste en Vue 3, FastAPI et Lightweight Charts, sans étape de construction. Aucune règle métier n'a été
 ajoutée dans le navigateur : chaque page affiche ce que l'API locale calcule.
@@ -59,7 +60,7 @@ Mode d'emploi, fonctionnement et diagnostic : `docs/WINDOWS.md`, section 7. En b
 2. Le serveur n'écoute que sur 127.0.0.1 ; `--remote` est refusé. Fermer la fenêtre arrête Sentinelle.
 3. Journal : `data\logs\sentinelle.log`.
 
-**À vérifier sur votre PC avant de la déclarer opérationnelle :**
+**Vérifications sur votre PC, toutes réussies le 23 novembre 2026** (`docs/interface/validation-windows11.md`) :
 1. La fenêtre « Sentinelle » s'ouvre sur l'écran de connexion ; le raccourci apparaît sur le Bureau.
 2. Fermer la fenêtre ferme la console, et `http://127.0.0.1:8765` ne répond plus.
 3. Sans pywebview, la fenêtre Edge en mode application s'ouvre ; à sa fermeture, le serveur s'arrête et aucun processus
@@ -181,8 +182,8 @@ Le parcours de robustesse démarre sa propre instance jetable, l'arrête et la r
 
 ## 9. Limites restantes et tests à faire
 
-- **Windows 11 :** la vraie fenêtre (pywebview ou Edge) n'a jamais été affichée par un test ; vérification de la
-  section 4 à faire sur votre PC.
+- **Windows 11 :** application de bureau validée en démonstration par le propriétaire (section 4). Non rapportés : le
+  lancement par le raccourci sur les données réelles, le verdict de `diagnostic.bat`, le numéro de build de Windows.
 - **Pas d'installateur `.exe` :** le lancement passe par `bureau.bat` et le raccourci du Bureau.
 - **Navigateurs :** seul Chromium est testé (bureau en 1280 à 1440 px, téléphone émulé en 390 px). Ni Firefox, ni
   Safari, ni un vrai téléphone.
@@ -213,4 +214,4 @@ Les commandes navigateur exigent Node.js et Playwright (`npx playwright install 
 
 ## 11. Temps du chantier
 
-Consigné dans `docs/interface/active-time.jsonl`, hors budget des 24 heures actives du moteur : 8623 s (2 h 24 min) sur 8 entrées, attentes de CI et d'exécutions locales exclues.
+Consigné dans `docs/interface/active-time.jsonl`, hors budget des 24 heures actives du moteur : 8694 s (2 h 25 min) sur 9 entrées, attentes de CI et d'exécutions locales exclues.
