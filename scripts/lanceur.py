@@ -10,6 +10,7 @@ Usage : lancer.bat (Windows) ou ./lancer.sh (Mac/Linux), options :
   --diagnostic    vérifie l'installation sans démarrer
   --remote        accès depuis le téléphone (réseau privé type Tailscale)
   --port 8765
+  --bureau        application de bureau (bureau.bat) : fenêtre dédiée, raccourci « Sentinelle » sur le Bureau
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent
 VENV = ROOT / ".venv"
 REQ = ROOT / "requirements.txt"
 MIN_PY = (3, 11)
+WINDOW_LIB = "pywebview==5.4"  # fenêtre WebView2 légère ; à défaut, Edge en mode application (aucune dépendance)
 
 
 def say(msg: str) -> None:
@@ -62,6 +64,32 @@ def ensure_env() -> Path:
     return py
 
 
+def ensure_window(py: Path) -> None:
+    """Installe la bibliothèque de fenêtre dans l'environnement du projet si elle manque. Facultatif : en cas d'échec,
+    l'application utilise Edge en mode application."""
+    if subprocess.run([str(py), "-c", "import webview"], capture_output=True).returncode == 0:
+        return
+    say("Installation de la fenêtre de bureau (une seule fois)…")
+    if subprocess.run([str(py), "-m", "pip", "install", "--disable-pip-version-check", "-q", WINDOW_LIB]).returncode != 0:
+        say("Fenêtre de bureau non installée : Sentinelle s'ouvrira dans une fenêtre d'Edge.")
+
+
+def ensure_shortcut() -> None:
+    """Crée une fois le raccourci « Sentinelle » du Bureau Windows, qui lance bureau.bat avec sa console réduite."""
+    if os.name != "nt":
+        return
+    target = ROOT / "bureau.bat"
+    script = ("$d=[Environment]::GetFolderPath('Desktop');$p=Join-Path $d 'Sentinelle.lnk';if(-not(Test-Path $p)){"
+              "$s=(New-Object -ComObject WScript.Shell).CreateShortcut($p);"
+              f"$s.TargetPath='{target}';$s.WorkingDirectory='{ROOT}';$s.WindowStyle=7;"
+              "$s.IconLocation=\"$env:SystemRoot\\System32\\shell32.dll,47\";$s.Description='Sentinelle (simulation)';$s.Save();"
+              "Write-Output 'cree'}")
+    r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+                       capture_output=True, text=True)
+    if "cree" in (r.stdout or ""):
+        say("Raccourci « Sentinelle » créé sur le Bureau.")
+
+
 def main(argv: list[str]) -> int:
     py = ensure_env()
     os.chdir(ROOT)
@@ -73,6 +101,15 @@ def main(argv: list[str]) -> int:
         print()
         full = subprocess.run([str(py), "-m", "tools.diagnose_windows", "--reseau", "--rapport"]).returncode
         return quick or full
+    if "--bureau" in argv:
+        ensure_window(py)
+        ensure_shortcut()
+        say("Démarrage de l'application… la fenêtre Sentinelle va s'ouvrir. La fermer arrête Sentinelle.")
+        args = [a for a in argv if a != "--bureau"]
+        try:
+            return subprocess.run([str(py), "-m", "sentinelle", "--desktop", *args]).returncode
+        except KeyboardInterrupt:
+            return 0
     say("Démarrage… le panel va s'ouvrir dans votre navigateur (http://127.0.0.1:8765).")
     say("Pour arrêter Sentinelle : fermez cette fenêtre ou appuyez sur Ctrl+C.")
     try:
