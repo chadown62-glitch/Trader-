@@ -1,17 +1,28 @@
 """Match paper orders against dated L2 observations inside the wallet transaction."""
 from decimal import Decimal
 import json
+import math
 
 from .base import OPEN_STATUSES
 from .liquidity import BookSnapshot, LiquidityError, simulate_taker
 
 
+def _dated(stamp):
+    return not isinstance(stamp, bool) and isinstance(stamp, (int, float)) and math.isfinite(stamp) and stamp > 0
+
+
 def read_public_book(source, symbol):
     raw = source.fetch_order_book(symbol, limit=20)
-    stamp = raw.get("timestamp")
-    if isinstance(stamp, bool) or not isinstance(stamp, (int, float)) or stamp <= 0:
-        raise LiquidityError("Horodatage du carnet indisponible")
-    return BookSnapshot(raw["bids"], raw["asks"], stamp / 1000, source.name)
+    stamp, name = raw.get("timestamp"), source.name
+    if not _dated(stamp):
+        # Carnet sans heure (Binance spot) : meilleurs prix du ticker public, datés par la plateforme, sur un seul niveau
+        # (aucune liquidité plus profonde n'est supposée). L'heure de réception ne remplace jamais une heure absente.
+        top = source.fetch_ticker(symbol) if hasattr(source, "fetch_ticker") else None
+        if not top or not _dated(top.get("timestamp")):
+            raise LiquidityError("Horodatage du carnet indisponible")
+        raw = {"bids": [[top["bid"], top["bid_qty"]]], "asks": [[top["ask"], top["ask_qty"]]]}
+        stamp, name = top["timestamp"], f"{source.name} (ticker)"
+    return BookSnapshot(raw["bids"], raw["asks"], stamp / 1000, name)
 
 
 def match_snapshot(broker, symbol, book, now, max_age):

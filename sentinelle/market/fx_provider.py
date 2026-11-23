@@ -2,11 +2,18 @@
 
 A missing exchange timestamp is not replaced with receipt time. Only the first
 level of each side may be consumed; deeper liquidity is not inferred.
+
+Binance's public spot book carries no timestamp: the best bid and ask are then read from the
+public ticker, which the exchange dates itself. Without a dated ticker, the quote is refused.
 """
 from decimal import Decimal, InvalidOperation
 from math import isfinite
 
 from .fx_book import FXBook, FXError, FXQuote
+
+
+def _dated(timestamp):
+    return not isinstance(timestamp, bool) and isinstance(timestamp, (int, float)) and isfinite(timestamp) and timestamp > 0
 
 
 class PublicFXProvider:
@@ -29,9 +36,15 @@ class PublicFXProvider:
                 raise FXError(f'Marché public indisponible : {a}/{b}')
             try:
                 book = self.source.fetch_order_book(symbol, limit=5)
-                timestamp = book.get('timestamp')
-                if isinstance(timestamp, bool) or not isinstance(timestamp, (int, float)) or not isfinite(timestamp) or timestamp <= 0:
-                    raise FXError(f'Horodatage du marché manquant : {symbol}')
+                timestamp, origin = book.get('timestamp'), ''
+                if not _dated(timestamp):
+                    # Carnet sans heure (Binance spot) : meilleurs prix du ticker public, datés par la plateforme.
+                    # L'heure de réception ne remplace jamais une heure absente.
+                    top = self.source.fetch_ticker(symbol) if hasattr(self.source, 'fetch_ticker') else None
+                    if not top or not _dated(top.get('timestamp')):
+                        raise FXError(f'Horodatage du marché manquant : {symbol}')
+                    book = {'bids': [[top['bid'], top['bid_qty']]], 'asks': [[top['ask'], top['ask_qty']]]}
+                    timestamp, origin = top['timestamp'], ' (ticker)'
                 bid, bid_qty = (Decimal(str(x)) for x in book['bids'][0][:2])
                 ask, ask_qty = (Decimal(str(x)) for x in book['asks'][0][:2])
                 if not all(x.is_finite() and x > 0 for x in (bid, bid_qty, ask, ask_qty)) or ask < bid:
@@ -41,7 +54,7 @@ class PublicFXProvider:
                 name = getattr(self.source, 'name', None)
                 if not isinstance(name, str) or not name.strip():
                     raise FXError('Source de prix inconnue')
-                q = FXQuote(market.base, market.quote, bid, ask, timestamp / 1000, name, bid_qty, ask_qty)
+                q = FXQuote(market.base, market.quote, bid, ask, timestamp / 1000, name + origin, bid_qty, ask_qty)
                 # Check the source timestamp now and again when the ledger commits.
                 FXBook([q]).convert(1, a, b, now=self.clock(), max_age=self.max_age)
                 quotes.append(q)
