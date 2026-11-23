@@ -71,3 +71,29 @@ def _result(entry, exit_price, risk, outcome, exit_minute, round_trip):
     net = round(net, 12)  # un point mort ne devient jamais un gain par un résidu d'arrondi
     return {"outcome": outcome, "entry": entry, "exit": exit_price, "exit_minute": int(exit_minute),
             "net_return": net, "r": net / (risk / entry), "risk_pct": risk / entry}
+
+
+def trail(o, h, l, c, minute: int, stop: float, distance: float, max_minutes: int, *, round_trip: float = ROUND_TRIP) -> dict:
+    """Variante « laisser courir » : pas d'objectif ; le stop suit le plus haut atteint, à « distance » (en prix) en dessous,
+    sans jamais redescendre. Le stop d'une minute ne dépend que des minutes précédentes. Mêmes règles d'entrée, de stop
+    dans la minute, d'ouverture sous le stop, de durée maximale et de minute manquante que manage()."""
+    n = len(o)
+    if minute >= n or not np.isfinite(o[minute]):
+        return {"outcome": INVALID}
+    entry = float(o[minute])
+    risk = entry - stop
+    if risk <= 0:
+        return {"outcome": INVALID}
+    end = min(n, minute + max_minutes)
+    if end - minute < max_minutes:
+        return {"outcome": INVALID}
+    hh, ll, oo, cc = h[minute:end], l[minute:end], o[minute:end], c[minute:end]
+    if not (np.isfinite(hh) & np.isfinite(ll) & np.isfinite(oo) & np.isfinite(cc)).all():
+        return {"outcome": INVALID}
+    prior_high = np.maximum.accumulate(np.r_[entry, hh[:-1]])
+    stops = np.maximum(stop, prior_high - distance)
+    k = _first(ll <= stops)
+    if k >= 10**9:
+        return _result(entry, float(cc[-1]), risk, TIME, end - 1, round_trip)
+    return _result(entry, min(float(stops[k]), float(oo[k])), risk, STOP if stops[k] <= stop else "suiveur",
+                   minute + k, round_trip)
