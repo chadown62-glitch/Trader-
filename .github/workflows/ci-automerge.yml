@@ -64,6 +64,8 @@ jobs:
           "$RUNNER_TEMP/ui/node_modules/.bin/playwright" install --with-deps chromium
       - name: Check desktop and mobile cockpit
         run: NODE_PATH="$RUNNER_TEMP/ui/node_modules" python tests/e2e/run.py memecoin_check.js feedback_check.js design_check.js
+      - name: Check cockpit robustness (expired session, server stop and restart, double click)
+        run: NODE_PATH="$RUNNER_TEMP/ui/node_modules" node tests/e2e/robustness_check.js
 
   merge:
     name: Request squash merge

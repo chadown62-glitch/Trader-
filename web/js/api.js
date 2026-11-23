@@ -43,26 +43,47 @@ async function request(method, path, body) {
   try {
     res = await fetch(path, opts);
   } catch (e) {
+    store.offline = true;
     throw new ApiError('Serveur injoignable : Sentinelle est-il lancé ?', 0);
+  }
+  if (store.offline) {  // le serveur répond de nouveau : la page affichée est rechargée, le temps réel reconnecté
+    store.offline = false;
+    store.reconnects++;
+    if (store.auth.authenticated) connectWs();
   }
   let data = null;
   const text = await res.text();
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!res.ok) {
-    if (res.status === 401 && !path.startsWith('/api/auth/')) store.auth.authenticated = false;
     let msg = (data && data.detail) || `Erreur ${res.status}`;
     if (Array.isArray(msg)) msg = 'Saisie refusée : ' + msg.map(validationMessage).join(' ; ');
-    throw new ApiError(msg, res.status, data);
+    const err = new ApiError(msg, res.status, data);
+    if (res.status === 401 && !path.startsWith('/api/auth/')) {
+      // Session expirée ou fermée : l'écran de connexion l'explique (une seule fois, pas un message par requête).
+      if (store.auth.authenticated) store.auth.expired = true;
+      store.auth.authenticated = false;
+      err.sessionLost = true;
+    }
+    throw err;
   }
   return data;
 }
 
+// Une même commande renvoyée pendant que la première est en cours (double clic) n'est envoyée qu'une fois : les deux
+// appels reçoivent la même réponse. Une commande renvoyée après la réponse part normalement.
+const inflight = new Map();
+function command(method, path, body) {
+  const key = `${method} ${path} ${JSON.stringify(body ?? null)}`;
+  if (!inflight.has(key)) inflight.set(key, request(method, path, body).finally(() => inflight.delete(key)));
+  return inflight.get(key);
+}
+
 export const api = {
   get: (p) => request('GET', p),
-  post: (p, b = {}) => request('POST', p, b),
-  put: (p, b = {}) => request('PUT', p, b),
-  patch: (p, b = {}) => request('PATCH', p, b),
-  del: (p) => request('DELETE', p),
+  post: (p, b = {}) => command('POST', p, b),
+  put: (p, b = {}) => command('PUT', p, b),
+  patch: (p, b = {}) => command('PATCH', p, b),
+  del: (p) => command('DELETE', p),
 };
 
 // Appel avec message d'erreur automatique
@@ -72,7 +93,7 @@ export async function safe(promise, successMsg) {
     if (successMsg) toast(successMsg, 'success');
     return r;
   } catch (e) {
-    toast(e.message || String(e), 'error');
+    if (!e.sessionLost) toast(e.message || String(e), 'error');
     return null;
   }
 }
