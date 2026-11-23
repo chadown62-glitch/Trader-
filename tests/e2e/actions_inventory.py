@@ -13,6 +13,8 @@ root = Path(__file__).resolve().parents[2]
 crawl_path, out_path = Path(sys.argv[1]), Path(sys.argv[2])
 revision = sys.argv[3] if len(sys.argv) > 3 else "?"
 crawl = json.load(open(crawl_path, encoding="utf-8"))
+for c in crawl:  # relecture automatique de la vue d'ensemble toutes les 5 s : jamais l'effet d'un clic
+    c["calls"] = [x for x in c["calls"] if not x.startswith("GET /api/overview ")]
 
 
 def tag_end(src, i):
@@ -134,9 +136,44 @@ FIXES = [
      "`web/js/api.js`, `web/js/main.js`", "#122", "`robustness_check.js`"),
     ("D-UI7", "double clic : commande envoyée deux fois et message répété (le serveur ignorait déjà le doublon)",
      "`web/js/api.js`, `web/js/store.js`", "#122", "`robustness_check.js`"),
+    ("D-UI8", "double clic sur « Urgence », « Fermer » (position) ou « Réinitialiser » : la fenêtre qui venait de s'ouvrir se "
+              "refermait aussitôt, sans rien faire ni rien dire", "`web/js/main.js`", "#124", "`critical_check.js`"),
+    ("D-UI9", "réglage refusé par le serveur : clé interne et fractions brutes (« risk.risk_per_trade doit être compris entre "
+              "0.001 et 0.02 » pour un champ en %)", "`web/js/views/settings.js`", "#124", "`critical_check.js`"),
+    ("D-UI10", "« Arrêter les IA » pendant la préparation de l'IA d'entraînement : « 0 IA arrêtée », puis l'IA démarrait",
+     "`sentinelle/services/agents.py` (arrêt d'urgence seulement)", "#124", "`critical_check.js`, `test_cockpit_routes.py`"),
 ]
 DEFECTS = {("settings", "enableTotp"): "D-UI1", ("signals", "addChannel"): "D-UI2", ("signals", "saveCreds"): "D-UI3",
-           ("main", "toggleTheme"): "D-UI4"}  # actions de l'inventaire concernées
+           ("main", "toggleTheme"): "D-UI4", ("main", "dismiss"): "D-UI8", ("settings", "save"): "D-UI9",
+           ("main", "pause"): "D-UI10"}  # actions de l'inventaire concernées
+# Actions à libellé dynamique ou sans libellé, que la correspondance par libellé ne retrouve pas dans les tests : chaque
+# entrée correspond à une vérification de leur effet dans le parcours cité (page, extrait du gestionnaire, balise ou None).
+VERIFIED = [
+    ("main", "submit", None, "secondary_check.js"),           # première connexion, connexion avec code à usage unique
+    ("main", "dismiss", None, "critical_check.js"),           # fond des fenêtres : fermeture au clic simple, pas au double clic
+    ("main", "close(c.phrase", None, "critical_check.js"),    # bouton de confirmation : une seule exécution au double clic
+    ("main", "toggleTheme", None, "design_check.js"),
+    ("main", "more=false", None, "design_check.js"),          # liens de la barre du bas et du menu « Plus »
+    ("dashboard", "days=d", None, "secondary_check.js"),
+    ("performance", "period=p[0]", None, "secondary_check.js"),  # boutons et lignes du tableau des périodes
+    ("history", "open = open===t.id", None, "secondary_check.js"),  # détail d'une vente fictive
+    ("trade", "symbol=s", None, "secondary_check.js"),
+    ("trade", "tf=x", None, "secondary_check.js"),
+    ("trade", "t.mode=", None, "secondary_check.js"),
+    ("trade", "setPortion", None, "critical_check.js"),
+    ("trade", "setSl", None, "critical_check.js"),
+    ("trade", "setTp", None, "critical_check.js"),
+    ("ai", "tab='", None, "secondary_check.js"),
+    ("history", "origin='", None, "secondary_check.js"),
+    ("logs", "level=", None, "secondary_check.js"),
+    ("memecoin", "tab=name", None, "secondary_check.js"),
+    ("memecoin", "act('start')", None, "critical_check.js"),  # paramètres envoyés et refus du serveur affiché
+    ("memecoin", "amount = n", None, "secondary_check.js"),
+    ("dmh", "open(t[0])", None, "secondary_check.js"),
+    ("settings", "tab=t[0]", None, "secondary_check.js"),
+    ("settings", "removeSymbol", None, "robustness_check.js"),
+    ("settings", "setValue", None, "critical_check.js"),      # valeur hors bornes, champ vide, valeur conservée
+]
 FIXED_BY = {d: pr for d, _, _, pr, _ in FIXES}
 
 
@@ -227,6 +264,7 @@ NEEDS = {  # why an action is absent from a fresh demo instance
     "act": "la session memecoin, qui interroge des sources publiques : couverte par memecoin_check.js (routes simulées) et les tests Pytest du worker",
     "activateMain": "un portefeuille hérité à migrer", "setValue": "un onglet de réglages ouvert (champ saisi puis enregistré)",
     "emergencyOpen": "un clic hors de la fenêtre d'urgence",
+    "dismiss": "un clic sur le fond d'une fenêtre ouverte : vérifié par critical_check.js (clic simple et double clic)",
     "store": "la fenêtre d'urgence ouverte : la fermeture est exercée par le parcours après chaque étape, sans ligne propre", "preview": "un formulaire de prévisualisation rempli",
     "setPortion": "le ticket ouvert", "setSl": "le ticket ouvert", "setTp": "le ticket ouvert", "submit": "un ticket rempli",
 }
@@ -266,6 +304,9 @@ def test_ref(row):
     label = norm(row["label"])
     for name, src in tests_js.items():
         if label and len(label) > 3 and label[:20] in norm(src):
+            refs.append(f"e2e `{name}`")
+    for page, needle, tag, name in VERIFIED:
+        if row["page"] == page and needle in row["handler"] and tag in (None, row["tag"]):
             refs.append(f"e2e `{name}`")
     for route in row["routes"]:
         path = re.sub(r"\$\{[^}]*\}.*", "", route.split(" ", 1)[1].split("?")[0])
