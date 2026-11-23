@@ -2,7 +2,7 @@
  "schema": "scalp-month-v1",
  "month": "2026-08",
  "status": "essai sur un mois (développement), non validé",
- "warning": "un seul mois, de forte hausse (+27,8 % en achat-conservation) : trop peu de trades pour conclure",
+ "warning": "un seul mois, de forte hausse (+27,8 % en achat-conservation) après une année de baisse (−47 % de septembre 2025 à août 2026) : trop peu d'observations pour conclure ; la position de fond (v5, v6) a été ajoutée après avoir constaté que le trading court seul ne pouvait pas suivre une telle hausse",
  "variants": {
   "v1": {
    "schema": "scalp-trial-v1",
@@ -453,6 +453,472 @@
      "month_alerts": 781,
      "ai_taken": 19,
      "ai_ready": true,
+     "with_ai": {
+      "return_pct": 2.015636386608577,
+      "trades": 13,
+      "trades_per_week": 2.9354838709677415,
+      "win_rate": 0.38461538461538464,
+      "breakeven_trades": 4,
+      "avg_win_pct_equity": 0.7003461858566277,
+      "avg_loss_pct_equity": -0.3715236356686399,
+      "avg_trade_r": 0.34232487601789907,
+      "profit_factor": 2.356331194771088,
+      "max_drawdown_pct": 0.9494004864434635,
+      "positive_weeks": "2/5",
+      "by_setup": {
+       "breakout": {
+        "trades": 5,
+        "wins": 1,
+        "pnl": -2.7985677809073106
+       },
+       "pullback": {
+        "trades": 8,
+        "wins": 4,
+        "pnl": 22.9549316469931
+       }
+      },
+      "refusals": {
+       "abstention de l'IA principale": 762,
+       "nombre maximal de positions": 1,
+       "position déjà ouverte sur cette crypto": 1,
+       "pause après 3 pertes d'affilée": 4
+      }
+     },
+     "all_alerts": {
+      "return_pct": 4.284420717900206,
+      "trades": 149,
+      "trades_per_week": 33.64516129032258,
+      "win_rate": 0.3221476510067114,
+      "breakeven_trades": 38,
+      "avg_win_pct_equity": 0.5377415087033985,
+      "avg_loss_pct_equity": -0.3417011380930623,
+      "avg_trade_r": 0.05639197269002217,
+      "profit_factor": 1.1990238558801243,
+      "max_drawdown_pct": 5.834353466028763,
+      "positive_weeks": "3/5",
+      "by_setup": {
+       "pullback": {
+        "trades": 118,
+        "wins": 36,
+        "pnl": 3.3387902048029128
+       },
+       "breakout": {
+        "trades": 31,
+        "wins": 12,
+        "pnl": 39.505416974199164
+       }
+      }
+     },
+     "buy_and_hold_pct": 27.796378347595724,
+     "cash_pct": 0.0,
+     "examples": [
+      "Cassure de range avec volume : tendance d'une heure haussière (+5.36%), volume +2.5 écarts, 64% d'achats au marché, BTC stable. Invalidation sous 0.0728922, objectif 2 R. IA principale : 50% de chances de gain (moyenne apprise 25%), espérance +0.27 R après frais : trade pris.",
+      "Cassure de range avec volume : tendance d'une heure haussière (+2.94%), volume +3.3 écarts, 61% d'achats au marché, BTC stable. Invalidation sous 616.076, objectif 2 R. IA principale : 50% de chances de gain (moyenne apprise 25%), espérance +0.27 R après frais : trade pris.",
+      "Cassure de range avec volume : tendance d'une heure haussière (+11.03%), volume +2.5 écarts, 61% d'achats au marché, BTC stable. Invalidation sous 83.4178, objectif 2 R. IA principale : 50% de chances de gain (moyenne apprise 25%), espérance +0.27 R après frais : trade pris.",
+      "Repli dans une tendance haussière : tendance d'une heure haussière (+13.88%), volume +0.7 écarts, 45% d'achats au marché, BTC stable. Invalidation sous 2239.44, objectif 2 R. IA principale : 40% de chances de gain (moyenne apprise 25%), espérance +0.26 R après frais : trade pris.",
+      "Repli dans une tendance haussière : tendance d'une heure haussière (+7.92%), volume -0.4 écarts, 53% d'achats au marché, BTC stable. Invalidation sous 1.10425, objectif 2 R. IA principale : 40% de chances de gain (moyenne apprise 25%), espérance +0.26 R après frais : trade pris."
+     ],
+     "trades": [
+      {
+       "symbol": "DOGEUSDC",
+       "setup": "breakout",
+       "decided_at": 1787172900000,
+       "exit_ms": 1787178840000,
+       "outcome": "point mort",
+       "r": 0.0,
+       "pnl": 0.0
+      },
+      {
+       "symbol": "BNBUSDC",
+       "setup": "breakout",
+       "decided_at": 1787172900000,
+       "exit_ms": 1787188680000,
+       "outcome": "point mort",
+       "r": 0.0,
+       "pnl": 0.0
+      },
+      {
+       "symbol": "SOLUSDC",
+       "setup": "breakout",
+       "decided_at": 1787173800000,
+       "exit_ms": 1787195400000,
+       "outcome": "durée",
+       "r": -0.8096591522358165,
+       "pnl": -4.035411513134538
+      },
+      {
+       "symbol": "ETHUSDC",
+       "setup": "pullback",
+       "decided_at": 1787183100000,
+       "exit_ms": 1787195340000,
+       "outcome": "stop",
+       "r": -1.2276800428721448,
+       "pnl": -2.7499855236
+      },
+      {
+       "symbol": "XRPUSDC",
+       "setup": "pullback",
+       "decided_at": 1787188800000,
+       "exit_ms": 1787193540000,
+       "outcome": "stop",
+       "r": -1.2319649705857438,
+       "pnl": -2.7086078277
+      },
+      {
+       "symbol": "BTCUSDC",
+       "setup": "pullback",
+       "decided_at": 1787239800000,
+       "exit_ms": 1787263440000,
+       "outcome": "point mort",
+       "r": 0.0,
+       "pnl": 0.0
+      },
+      {
+       "symbol": "XRPUSDC",
+       "setup": "pullback",
+       "decided_at": 1787241000000,
+       "exit_ms": 1787244420000,
+       "outcome": "objectif",
+       "r": 1.8967967925174805,
+       "pnl": 9.284422516935509
+      },
+      {
+       "symbol": "XRPUSDC",
+       "setup": "pullback",
+       "decided_at": 1787264700000,
+       "exit_ms": 1787275740000,
+       "outcome": "objectif",
+       "r": 1.8227511375807124,
+       "pnl": 5.24352167364976
+      },
+      {
+       "symbol": "BTCUSDC",
+       "setup": "breakout",
+       "decided_at": 1787275200000,
+       "exit_ms": 1787296800000,
+       "outcome": "durée",
+       "r": 1.3328371312325387,
+       "pnl": 6.603784294538283
+      },
+      {
+       "symbol": "XRPUSDC",
+       "setup": "pullback",
+       "decided_at": 1787279400000,
+       "exit_ms": 1787286480000,
+       "outcome": "point mort",
+       "r": 0.0,
+       "pnl": 0.0
+      },
+      {
+       "symbol": "BTCUSDC",
+       "setup": "pullback",
+       "decided_at": 1787299800000,
+       "exit_ms": 1787302080000,
+       "outcome": "objectif",
+       "r": 1.794956169655523,
+       "pnl": 4.516503320574042
+      },
+      {
+       "symbol": "ADAUSDC",
+       "setup": "pullback",
+       "decided_at": 1787358900000,
+       "exit_ms": 1787367240000,
+       "outcome": "objectif",
+       "r": 1.9188598678777573,
+       "pnl": 9.369077487133787
+      },
+      {
+       "symbol": "SOLUSDC",
+       "setup": "breakout",
+       "decided_at": 1787373300000,
+       "exit_ms": 1787375400000,
+       "outcome": "stop",
+       "r": -1.0466735449376188,
+       "pnl": -5.366940562311055
+      }
+     ]
+    }
+   ]
+  },
+  "v5": {
+   "schema": "scalp-trial-v1",
+   "commit": "5c0a616",
+   "variant": {
+    "name": "v5",
+    "round_trip": 0.0017000000000000001,
+    "daily_trend": true,
+    "extra": [
+     "trend_1d",
+     "slope_1d"
+    ],
+    "core_share": 1.0,
+    "note": "position de fond seule : double élan journalier (20 jours, 3 meneuses sur 14 jours), frais BNB"
+   },
+   "margin_r": 0.1,
+   "symbols": [
+    "BTCUSDC",
+    "ETHUSDC",
+    "SOLUSDC",
+    "BNBUSDC",
+    "XRPUSDC",
+    "DOGEUSDC",
+    "ADAUSDC",
+    "LINKUSDC"
+   ],
+   "data_from": "2024-09",
+   "months": [
+    {
+     "month": "2026-08",
+     "train_alerts": 11635,
+     "month_alerts": 781,
+     "ai_taken": 19,
+     "ai_ready": true,
+     "core_share": 1.0,
+     "system": {
+      "return_pct": 31.624781031057793,
+      "max_drawdown_pct": 6.225712886092993,
+      "tactical_trades": 0,
+      "core_orders": 25
+     },
+     "core": {
+      "return_pct": 31.624781031057793,
+      "orders": 25,
+      "max_drawdown_pct": 6.225712886092993,
+      "days_invested_share": 1.0
+     },
+     "with_ai": {
+      "return_pct": 2.015636386608577,
+      "trades": 13,
+      "trades_per_week": 2.9354838709677415,
+      "win_rate": 0.38461538461538464,
+      "breakeven_trades": 4,
+      "avg_win_pct_equity": 0.7003461858566277,
+      "avg_loss_pct_equity": -0.3715236356686399,
+      "avg_trade_r": 0.34232487601789907,
+      "profit_factor": 2.356331194771088,
+      "max_drawdown_pct": 0.9494004864434635,
+      "positive_weeks": "2/5",
+      "by_setup": {
+       "breakout": {
+        "trades": 5,
+        "wins": 1,
+        "pnl": -2.7985677809073106
+       },
+       "pullback": {
+        "trades": 8,
+        "wins": 4,
+        "pnl": 22.9549316469931
+       }
+      },
+      "refusals": {
+       "abstention de l'IA principale": 762,
+       "nombre maximal de positions": 1,
+       "position déjà ouverte sur cette crypto": 1,
+       "pause après 3 pertes d'affilée": 4
+      }
+     },
+     "all_alerts": {
+      "return_pct": 4.284420717900206,
+      "trades": 149,
+      "trades_per_week": 33.64516129032258,
+      "win_rate": 0.3221476510067114,
+      "breakeven_trades": 38,
+      "avg_win_pct_equity": 0.5377415087033985,
+      "avg_loss_pct_equity": -0.3417011380930623,
+      "avg_trade_r": 0.05639197269002217,
+      "profit_factor": 1.1990238558801243,
+      "max_drawdown_pct": 5.834353466028763,
+      "positive_weeks": "3/5",
+      "by_setup": {
+       "pullback": {
+        "trades": 118,
+        "wins": 36,
+        "pnl": 3.3387902048029128
+       },
+       "breakout": {
+        "trades": 31,
+        "wins": 12,
+        "pnl": 39.505416974199164
+       }
+      }
+     },
+     "buy_and_hold_pct": 27.796378347595724,
+     "cash_pct": 0.0,
+     "examples": [
+      "Cassure de range avec volume : tendance d'une heure haussière (+5.36%), volume +2.5 écarts, 64% d'achats au marché, BTC stable. Invalidation sous 0.0728922, objectif 2 R. IA principale : 50% de chances de gain (moyenne apprise 25%), espérance +0.27 R après frais : trade pris.",
+      "Cassure de range avec volume : tendance d'une heure haussière (+2.94%), volume +3.3 écarts, 61% d'achats au marché, BTC stable. Invalidation sous 616.076, objectif 2 R. IA principale : 50% de chances de gain (moyenne apprise 25%), espérance +0.27 R après frais : trade pris.",
+      "Cassure de range avec volume : tendance d'une heure haussière (+11.03%), volume +2.5 écarts, 61% d'achats au marché, BTC stable. Invalidation sous 83.4178, objectif 2 R. IA principale : 50% de chances de gain (moyenne apprise 25%), espérance +0.27 R après frais : trade pris.",
+      "Repli dans une tendance haussière : tendance d'une heure haussière (+13.88%), volume +0.7 écarts, 45% d'achats au marché, BTC stable. Invalidation sous 2239.44, objectif 2 R. IA principale : 40% de chances de gain (moyenne apprise 25%), espérance +0.26 R après frais : trade pris.",
+      "Repli dans une tendance haussière : tendance d'une heure haussière (+7.92%), volume -0.4 écarts, 53% d'achats au marché, BTC stable. Invalidation sous 1.10425, objectif 2 R. IA principale : 40% de chances de gain (moyenne apprise 25%), espérance +0.26 R après frais : trade pris."
+     ],
+     "trades": [
+      {
+       "symbol": "DOGEUSDC",
+       "setup": "breakout",
+       "decided_at": 1787172900000,
+       "exit_ms": 1787178840000,
+       "outcome": "point mort",
+       "r": 0.0,
+       "pnl": 0.0
+      },
+      {
+       "symbol": "BNBUSDC",
+       "setup": "breakout",
+       "decided_at": 1787172900000,
+       "exit_ms": 1787188680000,
+       "outcome": "point mort",
+       "r": 0.0,
+       "pnl": 0.0
+      },
+      {
+       "symbol": "SOLUSDC",
+       "setup": "breakout",
+       "decided_at": 1787173800000,
+       "exit_ms": 1787195400000,
+       "outcome": "durée",
+       "r": -0.8096591522358165,
+       "pnl": -4.035411513134538
+      },
+      {
+       "symbol": "ETHUSDC",
+       "setup": "pullback",
+       "decided_at": 1787183100000,
+       "exit_ms": 1787195340000,
+       "outcome": "stop",
+       "r": -1.2276800428721448,
+       "pnl": -2.7499855236
+      },
+      {
+       "symbol": "XRPUSDC",
+       "setup": "pullback",
+       "decided_at": 1787188800000,
+       "exit_ms": 1787193540000,
+       "outcome": "stop",
+       "r": -1.2319649705857438,
+       "pnl": -2.7086078277
+      },
+      {
+       "symbol": "BTCUSDC",
+       "setup": "pullback",
+       "decided_at": 1787239800000,
+       "exit_ms": 1787263440000,
+       "outcome": "point mort",
+       "r": 0.0,
+       "pnl": 0.0
+      },
+      {
+       "symbol": "XRPUSDC",
+       "setup": "pullback",
+       "decided_at": 1787241000000,
+       "exit_ms": 1787244420000,
+       "outcome": "objectif",
+       "r": 1.8967967925174805,
+       "pnl": 9.284422516935509
+      },
+      {
+       "symbol": "XRPUSDC",
+       "setup": "pullback",
+       "decided_at": 1787264700000,
+       "exit_ms": 1787275740000,
+       "outcome": "objectif",
+       "r": 1.8227511375807124,
+       "pnl": 5.24352167364976
+      },
+      {
+       "symbol": "BTCUSDC",
+       "setup": "breakout",
+       "decided_at": 1787275200000,
+       "exit_ms": 1787296800000,
+       "outcome": "durée",
+       "r": 1.3328371312325387,
+       "pnl": 6.603784294538283
+      },
+      {
+       "symbol": "XRPUSDC",
+       "setup": "pullback",
+       "decided_at": 1787279400000,
+       "exit_ms": 1787286480000,
+       "outcome": "point mort",
+       "r": 0.0,
+       "pnl": 0.0
+      },
+      {
+       "symbol": "BTCUSDC",
+       "setup": "pullback",
+       "decided_at": 1787299800000,
+       "exit_ms": 1787302080000,
+       "outcome": "objectif",
+       "r": 1.794956169655523,
+       "pnl": 4.516503320574042
+      },
+      {
+       "symbol": "ADAUSDC",
+       "setup": "pullback",
+       "decided_at": 1787358900000,
+       "exit_ms": 1787367240000,
+       "outcome": "objectif",
+       "r": 1.9188598678777573,
+       "pnl": 9.369077487133787
+      },
+      {
+       "symbol": "SOLUSDC",
+       "setup": "breakout",
+       "decided_at": 1787373300000,
+       "exit_ms": 1787375400000,
+       "outcome": "stop",
+       "r": -1.0466735449376188,
+       "pnl": -5.366940562311055
+      }
+     ]
+    }
+   ]
+  },
+  "v6": {
+   "schema": "scalp-trial-v1",
+   "commit": "5c0a616",
+   "variant": {
+    "name": "v6",
+    "round_trip": 0.0017000000000000001,
+    "daily_trend": true,
+    "extra": [
+     "trend_1d",
+     "slope_1d"
+    ],
+    "core_share": 0.7,
+    "note": "70 % position de fond (v5) + 30 % trading court (v4)"
+   },
+   "margin_r": 0.1,
+   "symbols": [
+    "BTCUSDC",
+    "ETHUSDC",
+    "SOLUSDC",
+    "BNBUSDC",
+    "XRPUSDC",
+    "DOGEUSDC",
+    "ADAUSDC",
+    "LINKUSDC"
+   ],
+   "data_from": "2024-09",
+   "months": [
+    {
+     "month": "2026-08",
+     "train_alerts": 11635,
+     "month_alerts": 781,
+     "ai_taken": 19,
+     "ai_ready": true,
+     "core_share": 0.7,
+     "system": {
+      "return_pct": 22.742037637723023,
+      "max_drawdown_pct": 4.728565394766071,
+      "tactical_trades": 13,
+      "core_orders": 25
+     },
+     "core": {
+      "return_pct": 31.624781031057793,
+      "orders": 25,
+      "max_drawdown_pct": 6.225712886092982,
+      "days_invested_share": 1.0
+     },
      "with_ai": {
       "return_pct": 2.015636386608577,
       "trades": 13,
