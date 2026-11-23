@@ -8,6 +8,8 @@ Mis à jour le 13 novembre 2026 (intégration #32/#33, mission #34).
 > produit sur un vrai Windows 11 n'existe pas, la page « Préparation » du panel affiche
 > « Installation validée sur Windows 11 : NON TESTÉ » et l'observation reste **BLOQUÉE**.
 
+Pour ouvrir Sentinelle dans sa propre fenêtre (application de bureau), voir la section 7.
+
 Rien de ce qui suit ne passe d'ordre réel, ne demande de clé, ne démarre de service permanent
 ni ne modifie votre dossier `data`. Le lanceur historique peut installer les dépendances
 dans `.venv` ; privilégiez le PowerShell isolé pour ce diagnostic.
@@ -175,3 +177,56 @@ Le compte principal existant doit être EUR/30 € fictifs ; les anciens comptes
 Rapports à retourner : diagnostic JSON + transcript + éventuel échec navigateur + `status`, puis
 bilans `data/supervisor/daily/` du lancement autorisé. Ces fichiers peuvent contenir des chemins
 locaux ; aucune clé financière n'est requise ni chargée.
+
+## 7. Application de bureau (fenêtre Sentinelle)
+
+> **État : NON TESTÉ sur Windows 11.** Les tests automatiques (Linux, et `windows-latest` en CI) vérifient le serveur
+> local, son arrêt, l'ordre des fenêtres et un démarrage complet avec une fenêtre de contrôle. Ils n'affichent pas la
+> vraie fenêtre. Ne considérez pas l'application comme opérationnelle avant les vérifications ci-dessous.
+
+**Lancer.**
+1. Double-cliquez sur `bureau.bat` dans le dossier de TRADER AI. Au premier lancement, il prépare l'environnement Python
+   comme `lancer.bat`, installe la fenêtre légère pywebview 5.4 (facultative) et crée le raccourci « Sentinelle » sur le
+   Bureau.
+2. Ensuite, double-cliquez sur le raccourci « Sentinelle » du Bureau : la console reste réduite dans la barre des tâches.
+3. Pour essayer sur un marché simulé, sans toucher à votre dossier `data` (PowerShell) :
+   `.\bureau.bat --demo --data $env:TEMP\sentinelle-demo`.
+
+**Fonctionnement.**
+- Le serveur n'écoute que sur 127.0.0.1, sur le port 8765 ou sur un autre port libre si celui-ci est pris. Il n'est
+  jamais exposé au réseau : `--remote` est refusé.
+- La fenêtre utilise pywebview (moteur WebView2 de Windows). À défaut, Edge en mode application, avec un profil dédié
+  dans `data\fenetre`. En dernier recours, le navigateur par défaut : fermez alors la console pour arrêter Sentinelle.
+- Fermer la fenêtre arrête Sentinelle : le serveur termine les requêtes en cours, puis la base est fermée.
+
+**Diagnostic si la fenêtre ne s'ouvre pas.**
+- La console reste ouverte en cas d'erreur : lisez son message.
+- Journal `data\logs\sentinelle.log`. La ligne « Application de bureau sur http://127.0.0.1:PORT/ » indique le port.
+  La ligne « Fenêtre fermée (pywebview | edge-app | navigateur) : serveur local arrêté » indique la fenêtre utilisée.
+- Contrôle sans fenêtre, sur des données temporaires. Une fenêtre de contrôle vérifie le cockpit et l'état du serveur,
+  puis se ferme ; le code de sortie attendu est 0 :
+
+  ```powershell
+  $env:SENTINELLE_DESKTOP_SMOKE = "1"
+  .\.venv\Scripts\python.exe -m sentinelle --desktop --demo --data $env:TEMP\sentinelle-essai
+  Remove-Item Env:SENTINELLE_DESKTOP_SMOKE
+  ```
+
+- Tests : `.\.venv\Scripts\python.exe -m pytest tests\test_desktop.py -v`.
+- Installation complète : `diagnostic.bat` (section 1).
+
+**Vérifications à faire sur votre PC.**
+1. Double clic sur `bureau.bat` : la fenêtre « Sentinelle » s'ouvre sur l'écran de connexion, et le raccourci apparaît
+   sur le Bureau.
+2. Fermer la fenêtre ferme la console, et `http://127.0.0.1:8765` ne répond plus.
+3. Sans pywebview, la fenêtre Edge en mode application s'ouvre. `bureau.bat` réinstallant pywebview, lancez Sentinelle
+   directement :
+
+   ```powershell
+   .\.venv\Scripts\python.exe -m pip uninstall -y pywebview
+   .\.venv\Scripts\python.exe -m sentinelle --desktop --demo --data $env:TEMP\sentinelle-demo
+   ```
+
+   À la fermeture de la fenêtre, le serveur s'arrête, et aucun processus Edge du profil `fenetre` ne reste dans le
+   Gestionnaire des tâches. Le prochain `bureau.bat` réinstalle pywebview.
+4. La fenêtre suit le thème clair ou sombre de Windows tant qu'aucun choix n'est enregistré dans le cockpit.
