@@ -70,7 +70,7 @@
 
 ## Extension du Sprint 5 — campagne moteur de 48 heures actives
 
-- **Autorisation propriétaire du 21 novembre 2026.** Cette campagne prolonge le Sprint 5 existant après la fusion de #91 (commit `34dee21087c3632a03c164166fe27fbdb15a5068`). Son cadrage doit être fusionné sur main avant tout développement hors P0. Le développement du cockpit est suspendu.
+- **Autorisation propriétaire du 21 novembre 2026.** Cette campagne prolonge le Sprint 5 existant après la fusion de #91 (commit `34dee21087c3632a03c164166fe27fbdb15a5068`). Son cadrage doit être fusionné sur main avant tout développement hors P0. Le développement du cockpit est suspendu pour cette campagne ; il reprend uniquement dans le chantier Interface web et application Windows V1 ci-dessous.
 - **Claude Code, budget de 24 h actives.** Diversification et fiabilisation des stratégies, régimes de marché, réduction des faux signaux, mauvaises entrées et pertes, exécution causale, résilience réseau et préparation de cinq profils expérimentaux de risque.
 - **GPT Work, budget de 24 h actives.** Méthode reproductible sur les 50 derniers jours historiques disponibles, séparation temporelle développement/évaluation, comparaison indépendante des cinq profils avec frais et glissement, drawdown, pertes et journées sans transaction, tests extrêmes et audit du moteur livré par Claude.
 - Les deux budgets sont indépendants. Une publication de consignes ne vaut pas démarrage d'agent. Claude ne peut être annoncé actif qu'après ACK ou identifiant de session authentifié.
@@ -124,3 +124,95 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
 - Bilan final seulement après 24 h actives prouvées pour chaque agent, avec changements, jeux de données, SHA, tests, limites, régressions et préparation de la stabilisation suivante.
 - PR ciblées, au plus six fichiers selon les contraintes du Sprint 5, vérification des tests ciblés et intégrés sous Linux/Windows. Windows n'est attesté que sur une exécution Windows effective.
 - Simulation exclusive `asset_domain="memecoin"`, aucun ordre réel, clé privée, levier, short ou promotion automatique. Aucune nouvelle mission hors campagne, aucun service permanent. Les archives #54 (`5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18`) et #55 (`18b31bb901f656d6126b370f47c510775f135c57`) restent intégralement gelées.
+
+## Extension du Sprint 5 — chantier Interface web et application Windows V1
+
+- **Autorisation du propriétaire du 23 novembre 2026.** Le propriétaire demande explicitement ce chantier. Il s'inscrit dans le Sprint 5, seul sprint en cours, et lève, pour lui seul, la suspension du développement du cockpit. Aucune modification d'interface n'a lieu avant la fusion de ce cadrage sur main.
+- **Articulation avec la campagne moteur.** La campagne moteur, ses garanties et ses budgets sont inchangés. Le temps de ce chantier n'est pas imputé aux 24 h actives de Claude sur le moteur. Il n'entre pas dans `docs/evaluation/active-time/claude.jsonl` ; il est consigné à part, avec le même schéma, dans `docs/interface/active-time.jsonl`.
+- **Objectif.** Une application de qualité, intuitive, stable et complète. Un seul logiciel, deux présentations : le cockpit web et une application de bureau Windows 11 qui réutilise le même cockpit et la même API locale.
+
+### Responsabilités et fichiers
+
+- **Claude Code.** GPT Work est indisponible ; Claude Code mène le chantier dans ce périmètre :
+  - le cockpit `web/` (HTML, JavaScript, CSS, bibliothèques déjà embarquées) ;
+  - les routes de `sentinelle/api/` strictement nécessaires à l'interface ;
+  - les tests d'interface : `tests/e2e/`, tests Pytest d'API et d'interface ;
+  - l'emballage Windows (`scripts/`, lanceurs `.bat`, module de démarrage de bureau) ;
+  - le job cockpit de la CI ;
+  - la documentation de livraison dans `docs/interface/`.
+- **Règles métier hors chantier.** Le moteur, le Guardian (`tokenrisk.py`), le Risk Commander, la flotte, les profils, Kelly et la causalité ne changent pas dans ce chantier ; l'interface affiche ce qu'ils décident. Un défaut moteur relevé suit les règles de la campagne moteur.
+- **Fichiers de GPT Work et archives.** Les fichiers réservés à GPT Work (`tools/evaluation/`, `tests/test_memecoin_evaluation*.py`, rapports de `docs/evaluation/`) ne sont pas modifiés. Les archives #54/#55 restent gelées.
+
+### Périmètre
+
+1. **Version web.**
+   - Base : le cockpit Vue 3 + FastAPI + Lightweight Charts existant, sans étape de compilation ajoutée ni chargement depuis un CDN.
+   - Écrans : affichage adapté à l'ordinateur, la tablette et le téléphone ; mode clair et sombre.
+   - États visibles : chargement, erreur, absence de données et déconnexion.
+   - Montants : en euros et en pourcentage, selon la devise de la session.
+   - Données fictives : toujours présentées comme simulées.
+   - Règles métier : jamais dupliquées dans le navigateur.
+2. **Application de bureau Windows 11.**
+   - Emballage léger : fenêtre dédiée sur WebView2 au moyen d'une bibliothèque légère. Electron et les dépendances lourdes sont exclus, sauf justification écrite.
+   - Serveur : lié à `127.0.0.1` sur un port local, démarré et arrêté proprement avec la fenêtre. L'application de bureau n'active jamais l'option `--remote`.
+   - Installation : lancement depuis un raccourci du Bureau ; méthode de packaging reproductible documentée.
+   - L'application n'est déclarée opérationnelle qu'après un test effectif sous Windows 11, consigné.
+3. **Refonte UX/UI.**
+   - Tableau de bord principal clair, navigation simplifiée, cockpit de trading fictif lisible.
+   - Graphiques interactifs ; positions, gains et pertes.
+   - Surveillance des stratégies et des agents.
+   - Page Memecoin : scanner, décisions du Guardian, risque, historique.
+   - Journal d'activité consultable et paramètres regroupés.
+   - La fonction prime sur l'apparence.
+4. **Audit des actions.** Chaque action interactive de chaque page est inventoriée dans `docs/interface/inventaire-actions.md`, selon huit rubriques :
+   1. libellé et emplacement ;
+   2. effet attendu ;
+   3. gestionnaire JavaScript ;
+   4. route FastAPI ;
+   5. changement d'état attendu ;
+   6. résultat constaté ;
+   7. erreurs et cas limites ;
+   8. test automatisé.
+
+   Aucune action ne doit être décorative. Une fonction indisponible est signalée comme telle, jamais simulée.
+
+### Critères de validation
+
+- **Effet vérifié.** Chaque action visible a un comportement réel, vérifiable, sûr et compréhensible. Son test vérifie l'effet attendu sur le système : une réponse HTTP 200 ne suffit pas.
+- **Matrice Playwright,** sur une base SQLite temporaire et jetable, couvrant :
+  - Chromium sur ordinateur et l'affichage mobile ;
+  - les états vides et les erreurs d'API ;
+  - la session expirée ;
+  - le WebSocket coupé puis rétabli ;
+  - le double clic et les commandes concurrentes ;
+  - les paramètres enregistrés puis rechargés ;
+  - l'arrêt et le redémarrage ;
+  - les données fictives jamais présentées comme réelles.
+- **Intégration continue.** Les parcours critiques entrent dans la CI. Les contrôles requis (pytest ubuntu-latest, pytest windows-latest, Vue cockpit Chromium) restent obligatoires et verts sur chaque PR.
+- **Windows.**
+  - Automatisé : un test de démarrage et d'arrêt du serveur de l'application de bureau s'exécute sous windows-latest.
+  - Manuel : la validation sous Windows 11 par le propriétaire est consignée avant toute annonce d'application opérationnelle.
+- **Livrables.**
+  - Interface web améliorée ; application Windows lançable.
+  - Tests des parcours critiques.
+  - Inventaire des actions et leur statut ; liste des fonctions réellement opérationnelles.
+  - Rapport des défauts corrigés ; instructions de lancement et de diagnostic Windows.
+  - Limites et tests encore nécessaires.
+
+### Séquence et contraintes
+
+- **Séquence de PR.** PR ciblées d'au plus six fichiers, qui énumèrent leurs chemins exacts, dans cet ordre :
+  1. cadrage (cette section) ;
+  2. inventaire et audit fonctionnel ;
+  3. correction des défauts réellement reproduits ;
+  4. navigation et design ;
+  5. renforcement des tests Playwright ;
+  6. emballage Windows et tests de démarrage ;
+  7. validation globale et documentation de livraison.
+
+  La séquence s'adapte aux défauts observés : aucun défaut n'est inventé, aucune PR n'est multipliée sans nécessité. Chaque PR est fusionnée selon la directive de fusion du 21 novembre 2026, après réussite des contrôles requis.
+- **Sécurité.**
+  - Simulation exclusive : aucun courtier réel, aucune clé privée, aucun ordre réel, aucun levier, aucun short, aucune promotion automatique.
+  - L'API n'est jamais exposée publiquement.
+  - Le Guardian, les limites du Risk Commander et la causalité des transactions fictives sont préservés.
+  - Aucune campagne prospective n'est lancée ; la campagne de 72 heures a son propre démarrage autorisé.
