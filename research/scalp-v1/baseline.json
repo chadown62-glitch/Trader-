@@ -1,0 +1,1163 @@
+{
+ "schema": "scalp-baseline-v1",
+ "protocol": "research/scalp-v1/protocol.json",
+ "rules": {
+  "decision": "clôture de la bougie i",
+  "entry": "ouverture de la bougie i+1",
+  "same_bar_stop_and_target": "stop retenu",
+  "time_exit": "clôture de la dernière bougie de la durée maximale",
+  "long_only": true
+ },
+ "costs": {
+  "standard": {
+   "fee_per_side": 0.001,
+   "slippage_per_side": 0.0001,
+   "round_trip": 0.0022
+  },
+  "bnb": {
+   "fee_per_side": 0.00075,
+   "slippage_per_side": 0.0001,
+   "round_trip": 0.0017000000000000001
+  }
+ },
+ "entries": "une décision toutes les 5 minutes, sans aucun signal",
+ "markets": {
+  "BTCUSDC": {
+   "integrity": {
+    "symbol": "BTCUSDC",
+    "from": "2025-09",
+    "to": "2026-08",
+    "bars": 525600,
+    "missing_minutes": 0,
+    "gaps": 0,
+    "duplicates_removed": 0,
+    "files": [
+     {
+      "file": "BTCUSDC-1m-2025-09.zip",
+      "sha256": "56895ef000dfa81991ed5e007b1cc882d897866b37b5197c4dde3056abf42a36"
+     },
+     {
+      "file": "BTCUSDC-1m-2025-10.zip",
+      "sha256": "e8439788b43a822d6084b713e6e077ff5c25b527237813062b9a44908bf25b1b"
+     },
+     {
+      "file": "BTCUSDC-1m-2025-11.zip",
+      "sha256": "bf24f05365420ae14aa202c0b1b8af3288d8b19fe6bb0486ea1071e8bb8e7128"
+     },
+     {
+      "file": "BTCUSDC-1m-2025-12.zip",
+      "sha256": "104bdba86ffe2f44ec5955d441b27db9930425886bd791e3f2fae81c4e347ff4"
+     },
+     {
+      "file": "BTCUSDC-1m-2026-01.zip",
+      "sha256": "490512dc4086bae721dee717dbbe9ba40c6438276c7a4586fa4745face716db5"
+     },
+     {
+      "file": "BTCUSDC-1m-2026-02.zip",
+      "sha256": "b1484c9d2f3f7928209f51421180b1e028847292ff142f2aca348a2c9e282a8e"
+     },
+     {
+      "file": "BTCUSDC-1m-2026-03.zip",
+      "sha256": "bedca033bfc3f6a691441b9b6be50a6283d94a876b1ca81c1e60abf75ab47a68"
+     },
+     {
+      "file": "BTCUSDC-1m-2026-04.zip",
+      "sha256": "f14c8c3ea7e84e32a19dc815720be5bc12b06ce190a8df2fa9930483d4012acc"
+     },
+     {
+      "file": "BTCUSDC-1m-2026-05.zip",
+      "sha256": "7d9646d0ae95b7c6b3d5cdd66aed00fc6cef24907e1356c94508c2b85a3b1e2b"
+     },
+     {
+      "file": "BTCUSDC-1m-2026-06.zip",
+      "sha256": "f5a1cbb7b549ad1e8f7854e6412e5ee0d7a1358deabe947556db7d3c1f63814c"
+     },
+     {
+      "file": "BTCUSDC-1m-2026-07.zip",
+      "sha256": "af93d800e00f9b9bcf99c94d2fc210a2ccf7ea54598c1ed12ada66197228c663"
+     },
+     {
+      "file": "BTCUSDC-1m-2026-08.zip",
+      "sha256": "71641b068bf1d5970191c251db10067117d540c9c9e37ec925717e2e64198ce2"
+     }
+    ]
+   },
+   "standard": {
+    "grid": [
+     {
+      "barrier": {
+       "target_pct": 0.3,
+       "stop_pct": 0.3,
+       "max_minutes": 60
+      },
+      "trades": 105108,
+      "invalid": 0,
+      "target_share": 0.3033736727936979,
+      "stop_share": 0.3203086349278837,
+      "time_share": 0.3763176922784184,
+      "mean_net": -0.002247559292562723,
+      "net_positive_share": 0.31441945427560225,
+      "breakeven_win_rate": 0.8666666666666666,
+      "mean_net_ci95_daily_blocks": [
+       -0.0022890655490128814,
+       -0.0022080634860501295
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 0.5,
+       "stop_pct": 0.5,
+       "max_minutes": 120
+      },
+      "trades": 105096,
+      "invalid": 0,
+      "target_share": 0.26572847682119205,
+      "stop_share": 0.2863762655096293,
+      "time_share": 0.44789525766917865,
+      "mean_net": -0.0022725187040005617,
+      "net_positive_share": 0.3289373525157951,
+      "breakeven_win_rate": 0.72,
+      "mean_net_ci95_daily_blocks": [
+       -0.002364394025693824,
+       -0.0021809251167569472
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 0.5,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.15041114664230243,
+      "stop_share": 0.437423861732907,
+      "time_share": 0.41216499162479064,
+      "mean_net": -0.0023132487165147013,
+      "net_positive_share": 0.2974055885488046,
+      "breakeven_win_rate": 0.48,
+      "mean_net_ci95_daily_blocks": [
+       -0.0024939348867016008,
+       -0.002144340748617767
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 1.0,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.17907720420283235,
+      "stop_share": 0.19952984620070047,
+      "time_share": 0.6213929495964672,
+      "mean_net": -0.002344253215989718,
+      "net_positive_share": 0.3503216841784681,
+      "breakeven_win_rate": 0.61,
+      "mean_net_ci95_daily_blocks": [
+       -0.0025694748249281826,
+       -0.0021240707306646347
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 2.0,
+       "stop_pct": 1.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.22170711233211232,
+      "stop_share": 0.5397493131868132,
+      "time_share": 0.2385435744810745,
+      "mean_net": -0.002166703433107375,
+      "net_positive_share": 0.36637667887667885,
+      "breakeven_win_rate": 0.40666666666666673,
+      "mean_net_ci95_daily_blocks": [
+       -0.0030012564049133393,
+       -0.0013240513996084307
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 2.0,
+       "stop_pct": 2.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.2694120115995116,
+      "stop_share": 0.305078601953602,
+      "time_share": 0.42550938644688646,
+      "mean_net": -0.0025675436417073576,
+      "net_positive_share": 0.4583047161172161,
+      "breakeven_win_rate": 0.555,
+      "mean_net_ci95_daily_blocks": [
+       -0.0038108362794790265,
+       -0.0013573901705087631
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 0.5,
+       "stop_pct": 1.5,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.4295625856555505,
+      "stop_share": 0.08399002588701081,
+      "time_share": 0.48644738845743873,
+      "mean_net": -0.0023242992566409374,
+      "net_positive_share": 0.4726758793969849,
+      "breakeven_win_rate": 0.86,
+      "mean_net_ci95_daily_blocks": [
+       -0.002525278371282375,
+       -0.002124699392223083
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 3.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.5579117063492064,
+      "stop_share": 0.1466346153846154,
+      "time_share": 0.29545367826617824,
+      "mean_net": -0.00267234910211309,
+      "net_positive_share": 0.611092032967033,
+      "breakeven_win_rate": 0.8049999999999999,
+      "mean_net_ci95_daily_blocks": [
+       -0.0036566477914738624,
+       -0.0017045877137387888
+      ]
+     }
+    ],
+    "hours": 8759,
+    "hour_peak_ge_1pct": 0.04475396734787076,
+    "hour_peak_ge_2pct": 0.006507592190889371
+   },
+   "bnb": {
+    "grid": [
+     {
+      "barrier": {
+       "target_pct": 0.3,
+       "stop_pct": 0.3,
+       "max_minutes": 60
+      },
+      "trades": 105108,
+      "invalid": 0,
+      "target_share": 0.3033736727936979,
+      "stop_share": 0.3203086349278837,
+      "time_share": 0.3763176922784184,
+      "mean_net": -0.0017475592925627228,
+      "net_positive_share": 0.33531225025687866,
+      "breakeven_win_rate": 0.7833333333333333,
+      "mean_net_ci95_daily_blocks": [
+       -0.0017890655490128895,
+       -0.0017080634860501369
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 0.5,
+       "stop_pct": 0.5,
+       "max_minutes": 120
+      },
+      "trades": 105096,
+      "invalid": 0,
+      "target_share": 0.26572847682119205,
+      "stop_share": 0.2863762655096293,
+      "time_share": 0.44789525766917865,
+      "mean_net": -0.0017725187040005615,
+      "net_positive_share": 0.35894800943898914,
+      "breakeven_win_rate": 0.67,
+      "mean_net_ci95_daily_blocks": [
+       -0.0018643940256938337,
+       -0.0016809251167569565
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 0.5,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.15041114664230243,
+      "stop_share": 0.437423861732907,
+      "time_share": 0.41216499162479064,
+      "mean_net": -0.0018132487165147006,
+      "net_positive_share": 0.32255976853966806,
+      "breakeven_win_rate": 0.4466666666666667,
+      "mean_net_ci95_daily_blocks": [
+       -0.0019939348867016116,
+       -0.0016443407486177767
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 1.0,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.17907720420283235,
+      "stop_share": 0.19952984620070047,
+      "time_share": 0.6213929495964672,
+      "mean_net": -0.0018442532159897176,
+      "net_positive_share": 0.37962539972590226,
+      "breakeven_win_rate": 0.585,
+      "mean_net_ci95_daily_blocks": [
+       -0.002069474824928195,
+       -0.0016240707306646464
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 2.0,
+       "stop_pct": 1.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.22170711233211232,
+      "stop_share": 0.5397493131868132,
+      "time_share": 0.2385435744810745,
+      "mean_net": -0.0016667034331073745,
+      "net_positive_share": 0.37398885836385837,
+      "breakeven_win_rate": 0.39,
+      "mean_net_ci95_daily_blocks": [
+       -0.00250125640491333,
+       -0.0008240513996084235
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 2.0,
+       "stop_pct": 2.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.2694120115995116,
+      "stop_share": 0.305078601953602,
+      "time_share": 0.42550938644688646,
+      "mean_net": -0.0020675436417073576,
+      "net_positive_share": 0.4690647893772894,
+      "breakeven_win_rate": 0.5425,
+      "mean_net_ci95_daily_blocks": [
+       -0.0033108362794790265,
+       -0.0008573901705087543
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 0.5,
+       "stop_pct": 1.5,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.4295625856555505,
+      "stop_share": 0.08399002588701081,
+      "time_share": 0.48644738845743873,
+      "mean_net": -0.0018242992566409372,
+      "net_positive_share": 0.49270976092584134,
+      "breakeven_win_rate": 0.835,
+      "mean_net_ci95_daily_blocks": [
+       -0.0020252783712823783,
+       -0.0016246993922230865
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 3.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.5579117063492064,
+      "stop_share": 0.1466346153846154,
+      "time_share": 0.29545367826617824,
+      "mean_net": -0.00217234910211309,
+      "net_positive_share": 0.6179506257631258,
+      "breakeven_win_rate": 0.7925,
+      "mean_net_ci95_daily_blocks": [
+       -0.0031566477914738416,
+       -0.0012045877137387769
+      ]
+     }
+    ],
+    "hours": 8759,
+    "hour_peak_ge_1pct": 0.04475396734787076,
+    "hour_peak_ge_2pct": 0.006507592190889371
+   }
+  },
+  "ETHUSDC": {
+   "integrity": {
+    "symbol": "ETHUSDC",
+    "from": "2025-09",
+    "to": "2026-08",
+    "bars": 525600,
+    "missing_minutes": 0,
+    "gaps": 0,
+    "duplicates_removed": 0,
+    "files": [
+     {
+      "file": "ETHUSDC-1m-2025-09.zip",
+      "sha256": "55f9863d805ac327b50d094d321f4b2e2e2f14ac22edd8558c177066a86c133b"
+     },
+     {
+      "file": "ETHUSDC-1m-2025-10.zip",
+      "sha256": "dbc187c3f08c78555842cdfbb830562b87447ed5f5d1885a70e1524cd58590f3"
+     },
+     {
+      "file": "ETHUSDC-1m-2025-11.zip",
+      "sha256": "4186df66e22fc03de598d4aacfe4f7a6802d934eae58783d158b2a0f753aa69f"
+     },
+     {
+      "file": "ETHUSDC-1m-2025-12.zip",
+      "sha256": "ba7bc3ca00a4e7178a2611e9376df24f5bd943ccb8213eaf138e16637c50ed51"
+     },
+     {
+      "file": "ETHUSDC-1m-2026-01.zip",
+      "sha256": "8dbceb998a152bf1d704ef394af355571d7d57b2e20d1d5e126e9d5988ec5c03"
+     },
+     {
+      "file": "ETHUSDC-1m-2026-02.zip",
+      "sha256": "597a22dc80b0526ef148f36c9295cab91003269885b7a81e86139901ec489114"
+     },
+     {
+      "file": "ETHUSDC-1m-2026-03.zip",
+      "sha256": "954e14ada2fc479b4efc50f9a419e6ae06eb0b3f578fff91e8a8f35dba554167"
+     },
+     {
+      "file": "ETHUSDC-1m-2026-04.zip",
+      "sha256": "c6fe4176d8ec3b4e636e72c2654637b11c550a5493580df9e5dec1bf6f17f5bb"
+     },
+     {
+      "file": "ETHUSDC-1m-2026-05.zip",
+      "sha256": "f2932954e11ca00379f3139c3315f59a907810b1c850417523556d6e6981bc28"
+     },
+     {
+      "file": "ETHUSDC-1m-2026-06.zip",
+      "sha256": "0bc2dfab62928f0a7c0b53ff84eb52f2b658efc4db1be64e3d12f080ef9bd1fd"
+     },
+     {
+      "file": "ETHUSDC-1m-2026-07.zip",
+      "sha256": "757b44e91a80a07ca1f282b813886d6ef7f6e96bf56cf8419320c83ab77e2fd4"
+     },
+     {
+      "file": "ETHUSDC-1m-2026-08.zip",
+      "sha256": "d4eefbed69eedf36dc07e394fabf61e084e573f130fe27d7d0525a73ab573eac"
+     }
+    ]
+   },
+   "standard": {
+    "grid": [
+     {
+      "barrier": {
+       "target_pct": 0.3,
+       "stop_pct": 0.3,
+       "max_minutes": 60
+      },
+      "trades": 105108,
+      "invalid": 0,
+      "target_share": 0.3849849678426,
+      "stop_share": 0.4031662670776725,
+      "time_share": 0.21184876507972752,
+      "mean_net": -0.0022482591839772972,
+      "net_positive_share": 0.39088366251855233,
+      "breakeven_win_rate": 0.8666666666666666,
+      "mean_net_ci95_daily_blocks": [
+       -0.0022916545847379106,
+       -0.0022081810439672166
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 0.5,
+       "stop_pct": 0.5,
+       "max_minutes": 120
+      },
+      "trades": 105096,
+      "invalid": 0,
+      "target_share": 0.35707353277003884,
+      "stop_share": 0.374942909340032,
+      "time_share": 0.2679835578899292,
+      "mean_net": -0.0022637062309471658,
+      "net_positive_share": 0.3948960949988582,
+      "breakeven_win_rate": 0.72,
+      "mean_net_ci95_daily_blocks": [
+       -0.0023664447269024116,
+       -0.0021743191232186576
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 0.5,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.2169179229480737,
+      "stop_share": 0.5346143596771737,
+      "time_share": 0.24846771737475254,
+      "mean_net": -0.002300848510351472,
+      "net_positive_share": 0.314841251713111,
+      "breakeven_win_rate": 0.48,
+      "mean_net_ci95_daily_blocks": [
+       -0.002493668516946727,
+       -0.002128262554478714
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 1.0,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.26945332724227194,
+      "stop_share": 0.2966632404446475,
+      "time_share": 0.4338834323130806,
+      "mean_net": -0.0023916992419768524,
+      "net_positive_share": 0.39359677173747526,
+      "breakeven_win_rate": 0.61,
+      "mean_net_ci95_daily_blocks": [
+       -0.002674679991238861,
+       -0.0021496559875264047
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 2.0,
+       "stop_pct": 1.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.27133890415140416,
+      "stop_share": 0.611492673992674,
+      "time_share": 0.11716842185592186,
+      "mean_net": -0.002330801010447946,
+      "net_positive_share": 0.3497786935286935,
+      "breakeven_win_rate": 0.40666666666666673,
+      "mean_net_ci95_daily_blocks": [
+       -0.003079153194736113,
+       -0.0015956353364807935
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 2.0,
+       "stop_pct": 2.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.36976304945054944,
+      "stop_share": 0.3902720543345543,
+      "time_share": 0.23996489621489622,
+      "mean_net": -0.00223398141219555,
+      "net_positive_share": 0.48538614163614163,
+      "breakeven_win_rate": 0.555,
+      "mean_net_ci95_daily_blocks": [
+       -0.0034223068763607114,
+       -0.001095053461601577
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 0.5,
+       "stop_pct": 1.5,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.5437128825947921,
+      "stop_share": 0.14103662250647175,
+      "time_share": 0.3152504948987361,
+      "mean_net": -0.002355659065476097,
+      "net_positive_share": 0.5669445713415563,
+      "breakeven_win_rate": 0.86,
+      "mean_net_ci95_daily_blocks": [
+       -0.002586730896594645,
+       -0.002147575313602851
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 3.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.6500782203907204,
+      "stop_share": 0.19293727106227107,
+      "time_share": 0.15698450854700854,
+      "mean_net": -0.0024033587563410852,
+      "net_positive_share": 0.675442612942613,
+      "breakeven_win_rate": 0.8049999999999999,
+      "mean_net_ci95_daily_blocks": [
+       -0.0034406733273089035,
+       -0.0014923947329475015
+      ]
+     }
+    ],
+    "hours": 8759,
+    "hour_peak_ge_1pct": 0.09361799292156639,
+    "hour_peak_ge_2pct": 0.01918027172051604
+   },
+   "bnb": {
+    "grid": [
+     {
+      "barrier": {
+       "target_pct": 0.3,
+       "stop_pct": 0.3,
+       "max_minutes": 60
+      },
+      "trades": 105108,
+      "invalid": 0,
+      "target_share": 0.3849849678426,
+      "stop_share": 0.4031662670776725,
+      "time_share": 0.21184876507972752,
+      "mean_net": -0.0017482591839772972,
+      "net_positive_share": 0.403118696959318,
+      "breakeven_win_rate": 0.7833333333333333,
+      "mean_net_ci95_daily_blocks": [
+       -0.0017916545847379186,
+       -0.0017081810439672238
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 0.5,
+       "stop_pct": 0.5,
+       "max_minutes": 120
+      },
+      "trades": 105096,
+      "invalid": 0,
+      "target_share": 0.35707353277003884,
+      "stop_share": 0.374942909340032,
+      "time_share": 0.2679835578899292,
+      "mean_net": -0.0017637062309471656,
+      "net_positive_share": 0.4136313465783664,
+      "breakeven_win_rate": 0.67,
+      "mean_net_ci95_daily_blocks": [
+       -0.001866444726902423,
+       -0.001674319123218667
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 0.5,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.2169179229480737,
+      "stop_share": 0.5346143596771737,
+      "time_share": 0.24846771737475254,
+      "mean_net": -0.0018008485103514714,
+      "net_positive_share": 0.33154408405664687,
+      "breakeven_win_rate": 0.4466666666666667,
+      "mean_net_ci95_daily_blocks": [
+       -0.0019936685169467364,
+       -0.0016282625544787241
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 1.0,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.26945332724227194,
+      "stop_share": 0.2966632404446475,
+      "time_share": 0.4338834323130806,
+      "mean_net": -0.0018916992419768521,
+      "net_positive_share": 0.41557217907720423,
+      "breakeven_win_rate": 0.585,
+      "mean_net_ci95_daily_blocks": [
+       -0.002174679991238875,
+       -0.0016496559875264186
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 2.0,
+       "stop_pct": 1.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.27133890415140416,
+      "stop_share": 0.611492673992674,
+      "time_share": 0.11716842185592186,
+      "mean_net": -0.0018308010104479459,
+      "net_positive_share": 0.3541666666666667,
+      "breakeven_win_rate": 0.39,
+      "mean_net_ci95_daily_blocks": [
+       -0.0025791531947361086,
+       -0.0010956353364807874
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 2.0,
+       "stop_pct": 2.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.36976304945054944,
+      "stop_share": 0.3902720543345543,
+      "time_share": 0.23996489621489622,
+      "mean_net": -0.0017339814121955495,
+      "net_positive_share": 0.4927407661782662,
+      "breakeven_win_rate": 0.5425,
+      "mean_net_ci95_daily_blocks": [
+       -0.0029223068763607105,
+       -0.0005950534616015753
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 0.5,
+       "stop_pct": 1.5,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.5437128825947921,
+      "stop_share": 0.14103662250647175,
+      "time_share": 0.3152504948987361,
+      "mean_net": -0.001855659065476097,
+      "net_positive_share": 0.5796977310796406,
+      "breakeven_win_rate": 0.835,
+      "mean_net_ci95_daily_blocks": [
+       -0.002086730896594645,
+       -0.0016475753136028519
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 3.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.6500782203907204,
+      "stop_share": 0.19293727106227107,
+      "time_share": 0.15698450854700854,
+      "mean_net": -0.0019033587563410846,
+      "net_positive_share": 0.6795348748473748,
+      "breakeven_win_rate": 0.7925,
+      "mean_net_ci95_daily_blocks": [
+       -0.00294067332730888,
+       -0.0009923947329474937
+      ]
+     }
+    ],
+    "hours": 8759,
+    "hour_peak_ge_1pct": 0.09361799292156639,
+    "hour_peak_ge_2pct": 0.01918027172051604
+   }
+  },
+  "SOLUSDC": {
+   "integrity": {
+    "symbol": "SOLUSDC",
+    "from": "2025-09",
+    "to": "2026-08",
+    "bars": 525600,
+    "missing_minutes": 0,
+    "gaps": 0,
+    "duplicates_removed": 0,
+    "files": [
+     {
+      "file": "SOLUSDC-1m-2025-09.zip",
+      "sha256": "17dcdf9193214046b57aad6d753a3062af499affa281dbcf4b39d58c24eb653a"
+     },
+     {
+      "file": "SOLUSDC-1m-2025-10.zip",
+      "sha256": "1f8d97c6365731b55d39569ac23ec5d7925e2b0a66fa5b8aa7bedfae0422e779"
+     },
+     {
+      "file": "SOLUSDC-1m-2025-11.zip",
+      "sha256": "525581298a281f6b883373d8b86795c72527dc72279858e76915d4dcbf931cc3"
+     },
+     {
+      "file": "SOLUSDC-1m-2025-12.zip",
+      "sha256": "430796f9d985b7f5385fea03ba604f252b6dc5799579999953e55b81a71f1276"
+     },
+     {
+      "file": "SOLUSDC-1m-2026-01.zip",
+      "sha256": "4b35ebfdda1af7394f50516263e177c9124abc3ae275ad9d509bb12304e286d7"
+     },
+     {
+      "file": "SOLUSDC-1m-2026-02.zip",
+      "sha256": "a45584afb64adf26db0dd6506342a3f41619208c222c4b28643509c3f6184930"
+     },
+     {
+      "file": "SOLUSDC-1m-2026-03.zip",
+      "sha256": "64025cc182fcf010c16dd7f2137e6210e0dd70a0c8ce3b2c335fd7a03922fba3"
+     },
+     {
+      "file": "SOLUSDC-1m-2026-04.zip",
+      "sha256": "c6f80b14a3f76326a58d77c6c1c869a7e940d759a01c51ecf3e36e0fd0a966ad"
+     },
+     {
+      "file": "SOLUSDC-1m-2026-05.zip",
+      "sha256": "ad0daf1611b61d191fe35f5d1eb65a8783e161b7ee49dd065e670aac0a3f123d"
+     },
+     {
+      "file": "SOLUSDC-1m-2026-06.zip",
+      "sha256": "e65342b137fda1ccc04945ee803937471aaab481a12a38e6bdc262daea2dfacf"
+     },
+     {
+      "file": "SOLUSDC-1m-2026-07.zip",
+      "sha256": "872d30a03db53ce821894aa0325df5a8648714f0171ae0a5a9c0cae5269f1944"
+     },
+     {
+      "file": "SOLUSDC-1m-2026-08.zip",
+      "sha256": "e8f5bdf76257f53675b50186055f2d726d4aa4a1898d4cb2a1500306f1eeae71"
+     }
+    ]
+   },
+   "standard": {
+    "grid": [
+     {
+      "barrier": {
+       "target_pct": 0.3,
+       "stop_pct": 0.3,
+       "max_minutes": 60
+      },
+      "trades": 105108,
+      "invalid": 0,
+      "target_share": 0.42537199832553185,
+      "stop_share": 0.4427826616432622,
+      "time_share": 0.131845340031206,
+      "mean_net": -0.002246677163519543,
+      "net_positive_share": 0.4308425619362941,
+      "breakeven_win_rate": 0.8666666666666666,
+      "mean_net_ci95_daily_blocks": [
+       -0.0022852496690911593,
+       -0.0022068509137937132
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 0.5,
+       "stop_pct": 0.5,
+       "max_minutes": 120
+      },
+      "trades": 105096,
+      "invalid": 0,
+      "target_share": 0.39330707162974804,
+      "stop_share": 0.41599109385704497,
+      "time_share": 0.19070183451320696,
+      "mean_net": -0.0022928873968107353,
+      "net_positive_share": 0.4261532313313542,
+      "breakeven_win_rate": 0.72,
+      "mean_net_ci95_daily_blocks": [
+       -0.0023832658053499593,
+       -0.0022029185245155966
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 0.5,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.24318562509517283,
+      "stop_share": 0.5854556875285518,
+      "time_share": 0.17135868737627533,
+      "mean_net": -0.002378640919306156,
+      "net_positive_share": 0.3186291305009898,
+      "breakeven_win_rate": 0.48,
+      "mean_net_ci95_daily_blocks": [
+       -0.0025566637729580893,
+       -0.0021968563084240594
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 1.0,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.3117100654789097,
+      "stop_share": 0.3399573625704279,
+      "time_share": 0.3483325719506624,
+      "mean_net": -0.002455320833277569,
+      "net_positive_share": 0.4162764580478148,
+      "breakeven_win_rate": 0.61,
+      "mean_net_ci95_daily_blocks": [
+       -0.0027205265338976267,
+       -0.002185277543991295
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 2.0,
+       "stop_pct": 1.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.29406097374847373,
+      "stop_share": 0.6406631562881563,
+      "time_share": 0.06527586996336997,
+      "mean_net": -0.002396021467826131,
+      "net_positive_share": 0.3367960164835165,
+      "breakeven_win_rate": 0.40666666666666673,
+      "mean_net_ci95_daily_blocks": [
+       -0.0031223892151131896,
+       -0.0016790121600112758
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 2.0,
+       "stop_pct": 2.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.4106761294261294,
+      "stop_share": 0.4249847374847375,
+      "time_share": 0.1643391330891331,
+      "mean_net": -0.0023583831867048047,
+      "net_positive_share": 0.48426053113553114,
+      "breakeven_win_rate": 0.555,
+      "mean_net_ci95_daily_blocks": [
+       -0.0035192533422272014,
+       -0.0012334389757265843
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 0.5,
+       "stop_pct": 1.5,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.5898050860362418,
+      "stop_share": 0.1566640018273184,
+      "time_share": 0.2535309121364398,
+      "mean_net": -0.002384317743896628,
+      "net_positive_share": 0.608430409623877,
+      "breakeven_win_rate": 0.86,
+      "mean_net_ci95_daily_blocks": [
+       -0.002614624440748295,
+       -0.002168291024639883
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 3.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.6766731532356532,
+      "stop_share": 0.21253052503052502,
+      "time_share": 0.11079632173382173,
+      "mean_net": -0.002634940058644186,
+      "net_positive_share": 0.6902472527472527,
+      "breakeven_win_rate": 0.8049999999999999,
+      "mean_net_ci95_daily_blocks": [
+       -0.003652477883889659,
+       -0.0016869400158249918
+      ]
+     }
+    ],
+    "hours": 8759,
+    "hour_peak_ge_1pct": 0.12101838109373216,
+    "hour_peak_ge_2pct": 0.024774517638999887
+   },
+   "bnb": {
+    "grid": [
+     {
+      "barrier": {
+       "target_pct": 0.3,
+       "stop_pct": 0.3,
+       "max_minutes": 60
+      },
+      "trades": 105108,
+      "invalid": 0,
+      "target_share": 0.42537199832553185,
+      "stop_share": 0.4427826616432622,
+      "time_share": 0.131845340031206,
+      "mean_net": -0.0017466771635195428,
+      "net_positive_share": 0.439310043003387,
+      "breakeven_win_rate": 0.7833333333333333,
+      "mean_net_ci95_daily_blocks": [
+       -0.001785249669091167,
+       -0.00170685091379372
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 0.5,
+       "stop_pct": 0.5,
+       "max_minutes": 120
+      },
+      "trades": 105096,
+      "invalid": 0,
+      "target_share": 0.39330707162974804,
+      "stop_share": 0.41599109385704497,
+      "time_share": 0.19070183451320696,
+      "mean_net": -0.0017928873968107346,
+      "net_positive_share": 0.43964565730379845,
+      "breakeven_win_rate": 0.67,
+      "mean_net_ci95_daily_blocks": [
+       -0.0018832658053499702,
+       -0.0017029185245156073
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 0.5,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.24318562509517283,
+      "stop_share": 0.5854556875285518,
+      "time_share": 0.17135868737627533,
+      "mean_net": -0.0018786409193061557,
+      "net_positive_share": 0.3287174508908177,
+      "breakeven_win_rate": 0.4466666666666667,
+      "mean_net_ci95_daily_blocks": [
+       -0.0020566637729580997,
+       -0.0016968563084240693
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 1.0,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.3117100654789097,
+      "stop_share": 0.3399573625704279,
+      "time_share": 0.3483325719506624,
+      "mean_net": -0.001955320833277569,
+      "net_positive_share": 0.4315992843002893,
+      "breakeven_win_rate": 0.585,
+      "mean_net_ci95_daily_blocks": [
+       -0.0022205265338976405,
+       -0.001685277543991308
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 2.0,
+       "stop_pct": 1.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.29406097374847373,
+      "stop_share": 0.6406631562881563,
+      "time_share": 0.06527586996336997,
+      "mean_net": -0.0018960214678261308,
+      "net_positive_share": 0.3384271978021978,
+      "breakeven_win_rate": 0.39,
+      "mean_net_ci95_daily_blocks": [
+       -0.002622389215113186,
+       -0.0011790121600112724
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 2.0,
+       "stop_pct": 2.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.4106761294261294,
+      "stop_share": 0.4249847374847375,
+      "time_share": 0.1643391330891331,
+      "mean_net": -0.001858383186704804,
+      "net_positive_share": 0.48790445665445664,
+      "breakeven_win_rate": 0.5425,
+      "mean_net_ci95_daily_blocks": [
+       -0.003019253342227199,
+       -0.0007334389757265786
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 0.5,
+       "stop_pct": 1.5,
+       "max_minutes": 240
+      },
+      "trades": 105072,
+      "invalid": 0,
+      "target_share": 0.5898050860362418,
+      "stop_share": 0.1566640018273184,
+      "time_share": 0.2535309121364398,
+      "mean_net": -0.0018843177438966276,
+      "net_positive_share": 0.6162440992843002,
+      "breakeven_win_rate": 0.835,
+      "mean_net_ci95_daily_blocks": [
+       -0.0021146244407482953,
+       -0.0016682910246398842
+      ]
+     },
+     {
+      "barrier": {
+       "target_pct": 1.0,
+       "stop_pct": 3.0,
+       "max_minutes": 1440
+      },
+      "trades": 104832,
+      "invalid": 0,
+      "target_share": 0.6766731532356532,
+      "stop_share": 0.21253052503052502,
+      "time_share": 0.11079632173382173,
+      "mean_net": -0.002134940058644186,
+      "net_positive_share": 0.6921836843711844,
+      "breakeven_win_rate": 0.7925,
+      "mean_net_ci95_daily_blocks": [
+       -0.00315247788388963,
+       -0.0011869400158249748
+      ]
+     }
+    ],
+    "hours": 8759,
+    "hour_peak_ge_1pct": 0.12101838109373216,
+    "hour_peak_ge_2pct": 0.024774517638999887
+   }
+  }
+ }
+}
