@@ -12,6 +12,14 @@ Protections du profil prudent (variantes v7 et v8), fixées avant mesure :
   descendante), rien n'est détenu ;
 - stop suiveur : une position est vendue dans la journée si le cours touche 10 % sous son plus haut de clôture depuis
   l'achat (exécution au stop, ou à l'ouverture si elle est déjà plus basse) ; pas de rachat pendant 3 jours.
+
+Stabilité (variantes v9 à v12), fixées avant mesure :
+- maintien : une crypto détenue est gardée tant qu'elle reste éligible et parmi les 5 plus fortes ; une nouvelle
+  entrée doit être parmi les 3 plus fortes (moins d'allers-retours, donc moins de frais) ;
+- tendance de fond : l'éligibilité exige aussi un cours au-dessus de la moyenne de 50 jours (crypto et BTC), pour
+  ne pas acheter les faux rebonds d'un marché baissier ;
+- volatilité : à l'achat, une place reçoit au plus (capital / 3) × 50 % / volatilité annuelle sur 20 jours ; une crypto
+  très agitée reçoit moins, le reste demeure en USDC.
 Paramètres fixés avant toute mesure (research/scalp-v1/trials.jsonl) ; aucun levier, aucune vente à découvert.
 """
 
@@ -35,6 +43,10 @@ class CoreRules:
     market_filter: str | None = None
     trailing_stop: float | None = None
     cooldown_days: int = 3
+    keep_rank: int | None = None
+    trend_days: int | None = None
+    vol_target: float | None = None
+    vol_days: int = 20
 
 
 def daily_table(minutes_by_symbol: dict) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -47,28 +59,40 @@ def daily_table(minutes_by_symbol: dict) -> tuple[pd.DataFrame, pd.DataFrame, pd
     return pd.DataFrame(opens), pd.DataFrame(closes), pd.DataFrame(lows)
 
 
-def targets(closes: pd.DataFrame, rules: CoreRules = CoreRules()) -> pd.DataFrame:
-    """Pour chaque jour d : cryptos à détenir, décidées sur les clôtures jusqu'à d − 1 (décalage d'un jour)."""
+def signals(closes: pd.DataFrame, rules: CoreRules = CoreRules()) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Rang d'élan des cryptos éligibles (NaN sinon) et volatilité annuelle, connus au jour d (clôtures jusqu'à d − 1)."""
     ema = closes.ewm(span=rules.ema_days, adjust=False, min_periods=rules.ema_days).mean()
     eligible = (closes > ema) & (ema > ema.shift(1))
+    if rules.trend_days:
+        slow = closes.ewm(span=rules.trend_days, adjust=False, min_periods=rules.trend_days).mean()
+        eligible &= closes > slow
     momentum = closes / closes.shift(rules.lookback_days) - 1
-    score = momentum.where(eligible)
-    rank = score.rank(axis=1, ascending=False, method="first")
-    hold = (rank <= rules.top) & score.notna()
+    rank = momentum.where(eligible).rank(axis=1, ascending=False, method="first")
     if rules.market_filter:
-        hold = hold.mul(eligible[rules.market_filter], axis=0).astype(bool)
-    return hold.shift(1, fill_value=False).astype(bool)
+        rank = rank.mul(eligible[rules.market_filter].astype(float).replace(0.0, np.nan), axis=0)
+    vol = np.log(closes).diff().rolling(rules.vol_days).std() * np.sqrt(365)
+    return rank.shift(1), vol.shift(1)
+
+
+def targets(closes: pd.DataFrame, rules: CoreRules = CoreRules()) -> pd.DataFrame:
+    """Pour chaque jour d : cryptos à détenir, décidées sur les clôtures jusqu'à d − 1 (décalage d'un jour)."""
+    rank, _ = signals(closes, rules)
+    return (rank <= rules.top).fillna(False).astype(bool)
 
 
 def run(opens: pd.DataFrame, closes: pd.DataFrame, start_ms: int, end_ms: int, capital: float,
         rules: CoreRules = CoreRules(), lows: pd.DataFrame | None = None) -> dict:
     side_cost = rules.fee_per_side + rules.slippage_per_side
-    want = targets(closes, rules)
+    rank, vol = signals(closes, rules)
+    keep_limit = rules.keep_rank or rules.top
     days = [d for d in closes.index if start_ms // DAY_MS <= d < -(-end_ms // DAY_MS)]
     cash, units, trades, curve, peak, blocked = capital, {}, [], [], {}, {}
     for d in days:
-        target = {s for s in want.columns if want.at[d, s] and blocked.get(s, -1) < d}
-        for s in [s for s in units if s not in target]:
+        r = rank.loc[d]
+        free = {s for s in rank.columns if blocked.get(s, -1) < d}
+        keep = {s for s in units if s in free and r[s] <= keep_limit}
+        target = keep | {s for s in free if r[s] <= rules.top}
+        for s in [s for s in units if s not in keep]:
             price = opens.at[d, s]
             if not np.isfinite(price):
                 continue
@@ -76,10 +100,17 @@ def run(opens: pd.DataFrame, closes: pd.DataFrame, start_ms: int, end_ms: int, c
             proceeds = units.pop(s) * price * (1 - side_cost)
             cash += proceeds
             trades.append({"day": int(d), "symbol": s, "side": "vente", "value": proceeds})
-        new = [s for s in sorted(target) if s not in units and np.isfinite(opens.at[d, s])]
+        new = sorted((s for s in target if s not in units and np.isfinite(opens.at[d, s])), key=lambda s: r[s])
         slots = rules.top - len(units)
+        worth = cash + sum(u * opens.at[d, s] for s, u in units.items() if np.isfinite(opens.at[d, s]))
         for s in new[:max(0, slots)]:
             budget = cash / max(1, slots)
+            if rules.vol_target:
+                v = vol.at[d, s]
+                scale = min(1.0, rules.vol_target / v) if np.isfinite(v) and v > 0 else 0.0
+                budget = min(budget, worth / rules.top * scale)
+            if budget <= 0:
+                continue
             units[s] = budget * (1 - side_cost) / opens.at[d, s]
             cash -= budget
             slots -= 1

@@ -118,3 +118,41 @@ def test_year_runs_the_core_continuously_without_monthly_reset():
     assert len(year["monthly"]) == 12 and year["months"][0] == "2025-09"
     total = np.prod([1 + r["system_pct"] / 100 for r in year["monthly"]])
     assert total == pytest.approx(direct["final_equity"] / 1000.0, rel=1e-9)
+
+
+def test_a_holding_is_kept_while_it_stays_among_the_five_strongest():
+    n = 70
+    growth = {"A": 1.010, "B": 1.012, "C": 1.014, "D": 1.016, "E": 1.018, "F": 1.020}
+    paths = {s: 100 * g ** np.arange(n) for s, g in growth.items()}
+    # A mène, puis ralentit au 5e rang : hors des 3 meilleures, mais encore parmi les 5.
+    paths["A"] = np.r_[100 * 1.03 ** np.arange(40), 100 * 1.03 ** 39 * 1.013 ** np.arange(1, n - 39)]
+    opens, closes = table(paths)
+    start, end = int(closes.index[30]) * core.DAY_MS, int(closes.index[-1] + 1) * core.DAY_MS
+    plain = core.run(opens, closes, start, end, 1000.0, core.CoreRules())
+    kept = core.run(opens, closes, start, end, 1000.0, core.CoreRules(keep_rank=5))
+    sold = [t for t in plain["trades"] if t["symbol"] == "A" and t["side"] == "vente"]
+    assert sold and not [t for t in kept["trades"] if t["symbol"] == "A" and t["side"] == "vente"]
+    assert len(kept["trades"]) < len(plain["trades"])
+
+
+def test_slow_trend_rejects_a_rebound_below_the_fifty_day_average():
+    n = 110
+    fall = np.r_[100 * 0.99 ** np.arange(100), 100 * 0.99 ** 99 * 1.02 ** np.arange(1, n - 99)]  # rebond de 10 jours
+    _, closes = table({"A": fall})
+    assert core.targets(closes).iloc[-1]["A"]  # sans la moyenne de 50 jours : le rebond est acheté
+    assert not core.targets(closes, core.CoreRules(trend_days=50)).iloc[-1]["A"]
+
+
+def test_volatility_sizing_gives_a_smaller_place_to_an_agitated_crypto():
+    rng = np.random.default_rng(3)
+    n = 80
+    calm = 100 * np.exp(np.cumsum(np.full(n, 0.01) + rng.normal(0, 0.005, n)))
+    wild = 100 * np.exp(np.cumsum(np.full(n, 0.012) + rng.normal(0, 0.08, n)))
+    opens, closes = table({"CALM": calm, "WILD": wild})
+    rules = core.CoreRules(vol_target=0.5)
+    _, vol = core.signals(closes, rules)
+    r = core.run(opens, closes, int(closes.index[40]) * core.DAY_MS, int(closes.index[41]) * core.DAY_MS, 900.0, rules)
+    buys = {t["symbol"]: t["value"] for t in r["trades"] if t["side"] == "achat"}
+    d = int(closes.index[40])
+    assert buys["CALM"] == pytest.approx(300.0)  # volatilité sous 50 % : place entière (900 / 3)
+    assert buys["WILD"] == pytest.approx(300.0 * 0.5 / vol.at[d, "WILD"]) and buys["WILD"] < 300.0
