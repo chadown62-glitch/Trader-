@@ -15,6 +15,19 @@ revision = sys.argv[3] if len(sys.argv) > 3 else "?"
 crawl = json.load(open(crawl_path, encoding="utf-8"))
 
 
+def tag_end(src, i):
+    """Position du « > » qui ferme la balise, sans s'arrêter à ceux des valeurs d'attributs (« v => v.trim() »)."""
+    quote = None
+    for j in range(i, len(src)):
+        if quote:
+            quote = None if src[j] == quote else quote
+        elif src[j] in "\"'":
+            quote = src[j]
+        elif src[j] == ">":
+            return j
+    return -1
+
+
 def extract():
     """Chaque gestionnaire d'événement de la coque et des vues, son élément, son libellé et les routes qu'il appelle."""
     files = [root / "web/js/main.js"] + sorted((root / "web/js/views").glob("*.js"))
@@ -33,7 +46,7 @@ def extract():
         for m in EVENT.finditer(src):
             tag_start = src.rfind("<", 0, m.start())
             tag = re.match(r"<([a-zA-Z0-9-]+)", src[tag_start:]).group(1)
-            close = src.find(">", m.end())
+            close = tag_end(src, m.end())
             end = src.find(f"</{tag}>", close)
             inner = re.sub(r"<[^>]+>", " ", src[close + 1:end if end != -1 and end - close < 400 else close + 120])
             attrs = src[tag_start:close]
@@ -104,11 +117,27 @@ ROUTES = {  # expected effect and state change, from the API code
     "/api/markets": ("relit la liste des marchés", "liste rafraîchie"),
     "/api/overview": ("relit la vue d'ensemble", "comptes rafraîchis"),
 }
-DEFECTS = {  # reproduced in this audit
-    ("settings", "enableTotp"): "D-UI1 : code trop court → message brut en anglais (« String should have at least 6 characters ») ; même cause pour toute erreur 422",
-    ("signals", "saveCreds"): "D-UI3 : champs vides → aucune requête, aucun message, bouton actif",
-    ("signals", "addChannel"): "D-UI2 : champ vide → aucune requête, aucun message, bouton actif",
-}
+# Défauts reproduits par l'audit (D-UI1 à D-UI3) ou pendant le chantier (D-UI4 à D-UI7) : constat, fichiers corrigés,
+# PR de correction, parcours qui échouait avant et réussit après.
+FIXES = [
+    ("D-UI1", "code de double authentification trop court : message brut en anglais (« String should have at least 6 "
+              "characters ») ; même cause pour toute erreur 422", "`web/js/api.js`", "#119", "`feedback_check.js`"),
+    ("D-UI2", "« Ajouter » (Signaux) actif sur champ vide, sans requête ni message", "`web/js/views/signals.js`", "#119",
+     "`feedback_check.js`"),
+    ("D-UI3", "« Enregistrer » (Signaux) actif sur champs vides, sans requête ni message", "`web/js/views/signals.js`", "#119",
+     "`feedback_check.js`"),
+    ("D-UI4", "système en clair : cockpit ouvert en sombre ; en thème clair, listes, barres de défilement et barre du "
+              "navigateur mobile restées sombres", "`web/js/main.js`, `web/styles.css`", "#121", "`design_check.js`"),
+    ("D-UI5", "session expirée : messages « Connexion requise » empilés, écran de connexion sans explication",
+     "`web/js/api.js`, `web/js/main.js`", "#122", "`robustness_check.js`"),
+    ("D-UI6", "serveur injoignable présenté comme un état vide (« Aucune donnée. »), page non rechargée au retour",
+     "`web/js/api.js`, `web/js/main.js`", "#122", "`robustness_check.js`"),
+    ("D-UI7", "double clic : commande envoyée deux fois et message répété (le serveur ignorait déjà le doublon)",
+     "`web/js/api.js`, `web/js/store.js`", "#122", "`robustness_check.js`"),
+]
+DEFECTS = {("settings", "enableTotp"): "D-UI1", ("signals", "addChannel"): "D-UI2", ("signals", "saveCreds"): "D-UI3",
+           ("main", "toggleTheme"): "D-UI4"}  # actions de l'inventaire concernées
+FIXED_BY = {d: pr for d, _, _, pr, _ in FIXES}
 
 
 def local_effect(handler):
@@ -264,10 +293,10 @@ for page in PAGES:
         seen = describe(c, r)
         name = re.findall(r"\b([a-zA-Z_]\w*)\s*\(", r["handler"]) or [r["handler"].strip()]
         defect = next((v for (p, h), v in DEFECTS.items() if p == page and h in name), "")
-        limits = defect or ("refusé avec message clair" if c and any(x.split()[-1][0] in "45" for x in c["calls"]) else "")
+        refused = "refusé avec message clair" if c and any(x.split()[-1][0] in "45" for x in c["calls"]) else ""
+        limits = "; ".join(x for x in (f"{defect} corrigé ({FIXED_BY[defect]})" if defect else "", refused) if x)
         test = test_ref(r)
         stats["total"] += 1
-        stats["défaut"] += bool(defect)
         stats["vérifié"] += bool(c and c["outcome"] != "désactivé" and seen != "aucun effet visible")
         stats["non cliqué"] += c is None and not seen.startswith("libellé dynamique")
         stats["sans test"] += test == "aucun"
@@ -286,7 +315,7 @@ disabled_flatten = next((c for c in crawl if c["label"].startswith("Tout revendr
 lines += extra
 head = f"""# Inventaire des actions du cockpit
 
-Main audité : `{revision}`.
+Révision auditée : `{revision}`.
 - **Méthode statique :** extraction de chaque gestionnaire d'événement des 15 pages et de la coque (`web/js/`), avec les
   routes appelées par la fonction correspondante.
 - **Méthode dynamique :** `tests/e2e/actions_audit.js`, sur une instance de démonstration jetable. Marché simulé, base
@@ -298,7 +327,7 @@ Main audité : `{revision}`.
 - {stats['total']} actions inventoriées ;
 - {stats['vérifié']} avec un effet constaté ;
 - {stats['non cliqué']} non cliquées par l'audit dynamique (raison indiquée) ;
-- {stats['défaut']} défauts reproduits ;
+- {len(FIXES)} défauts reproduits, tous corrigés (tableau ci-dessous) ;
 - {stats['sans test']} sans test automatisé associé.
 
 **Statut :**
@@ -318,12 +347,14 @@ Main audité : `{revision}`.
   - la revente fictive appelle `POST /api/emergency` (200) ;
   - l'alerte critique diffusée par le serveur s'affiche en rouge, en plus du message de l'action (deux messages pour une
     seule action : voulu, non corrigé).
-- Thème clair et sombre : bascule constatée.
+- Thème clair et sombre : bascule constatée ; le thème suit le système tant qu'aucun choix n'est enregistré
+  (`design_check.js`).
+- Session expirée, serveur arrêté puis relancé, double clic, réglage rechargé : `robustness_check.js`.
 
-**Défauts reproduits** (corrigés dans la PR suivante du chantier) :
-- {DEFECTS[('settings', 'enableTotp')]} (`web/js/api.js` l. 25-26).
-- {DEFECTS[('signals', 'addChannel')]} (`web/js/views/signals.js` l. 47-51 et 94).
-- {DEFECTS[('signals', 'saveCreds')]} (`web/js/views/signals.js` l. 25-30 et 79).
-"""
+**Défauts reproduits et corrigés.** Chaque parcours cité échouait avant la correction et réussit après.
+
+| Défaut | Constat avant correction | Fichiers corrigés | Correction | Parcours |
+|---|---|---|---|---|
+""" + "\n".join(f"| {d} | {what} | {files} | {pr} | {test} |" for d, what, files, pr, test in FIXES) + "\n"
 out_path.write_text(head + "\n".join(lines) + "\n", encoding="utf-8")
 print(stats)
