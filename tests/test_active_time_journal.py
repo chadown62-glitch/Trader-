@@ -2,7 +2,7 @@
 
 Append-only lines, ordered and non-overlapping intervals, credited seconds never above the observed interval minus the
 excluded periods inside it. The engine campaign stays within its 24 h budget; the Interface V1 work is recorded apart,
-outside that budget. Offline: reads the committed files only."""
+outside that budget, and so is the short-term engine work (chantier Moteur court terme). Offline: reads the committed files only."""
 
 import json
 from datetime import datetime
@@ -10,6 +10,7 @@ from pathlib import Path
 
 JOURNAL = Path(__file__).resolve().parents[1] / "docs" / "evaluation" / "active-time" / "claude.jsonl"
 INTERFACE = Path(__file__).resolve().parents[1] / "docs" / "interface" / "active-time.jsonl"
+SCALP = Path(__file__).resolve().parents[1] / "docs" / "scalp" / "active-time.jsonl"
 BUDGET_S = 24 * 3600
 
 
@@ -48,4 +49,9 @@ def test_claude_active_time_journal_is_consistent():
 
 def test_interface_active_time_journal_is_consistent_and_outside_the_engine_budget():
     total, rows = _credited_total(INTERFACE)
+    assert total > 0 and all(row["budget"].startswith("hors budget des 24 h actives moteur") for row in rows)
+
+
+def test_short_term_engine_journal_is_consistent_and_outside_the_engine_budget():
+    total, rows = _credited_total(SCALP)
     assert total > 0 and all(row["budget"].startswith("hors budget des 24 h actives moteur") for row in rows)
