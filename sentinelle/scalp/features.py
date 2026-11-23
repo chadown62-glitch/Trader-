@@ -69,7 +69,7 @@ def compute(bars: pd.DataFrame, btc: pd.DataFrame | None = None) -> pd.DataFrame
     std20 = c.rolling(20).std()
     f["bb_mid"], f["bb_up"] = c.rolling(20).mean(), c.rolling(20).mean() + 2 * std20
     width = std20 / c
-    f["squeeze"] = width / width.rolling(2 * DAY, min_periods=DAY).min()
+    f["squeeze"] = width / width.rolling(2 * DAY, min_periods=DAY).min().replace(0.0, np.nan)  # cours figé : pas de mesure
     r = np.log(c).diff()
     f["realized_vol"] = r.rolling(DAY, min_periods=DAY // 2).std()
     hour = (f["t"] // 3_600_000) % 24
@@ -79,5 +79,6 @@ def compute(bars: pd.DataFrame, btc: pd.DataFrame | None = None) -> pd.DataFrame
     ctx = btc.set_index("t")[["trend_1h", "ret_1h", "ret_4h"]].rename(
         columns={"trend_1h": "btc_trend_1h", "ret_1h": "btc_ret_1h", "ret_4h": "btc_ret_4h"})
     f = f.join(ctx, on="t")
+    f[FEATURES + DAILY] = f[FEATURES + DAILY].replace([np.inf, -np.inf], np.nan)  # jamais de valeur infinie
     f.loc[~f["complete"], FEATURES + DAILY] = np.nan
     return f

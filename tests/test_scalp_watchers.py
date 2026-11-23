@@ -82,3 +82,11 @@ def test_stop_rules_entry_below_stop_and_missing_minutes():
     assert manage(o, h, l, c, 0, 99.0, 5)["outcome"] == INVALID  # issue encore inconnue
 
 
+
+
+def test_a_frozen_price_after_listing_never_gives_infinite_features():
+    m = minutes(4000, seed=7)
+    m.loc[:1500, ["o", "h", "l", "c"]] = 100.0  # paire tout juste cotée : cours figé, aucune transaction
+    m.loc[:1500, ["v", "taker_buy"]] = 0.0
+    f = compute(five_minute_bars(m))
+    assert not np.isinf(f[FEATURES].to_numpy(dtype=float)).any()
