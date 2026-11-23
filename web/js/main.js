@@ -117,10 +117,12 @@ const EmergencyModal = {
       busy.value = false;
       if (r) { toast(`Arrêt d'urgence : ${r.positions_closed} position(s) fermée(s).` + (r.errors.length ? ' Erreurs : ' + r.errors.join(' ; ') : ''), r.errors.length ? 'error' : 'warn', 10000); store.emergencyOpen = false; }
     };
-    return { store, typed, scope, busy, pause, flatten };
+    // Un clic sur le fond ferme la fenêtre, sauf le second clic d'un double clic sur le bouton qui vient de l'ouvrir.
+    const dismiss = (e) => { if (e.detail < 2) store.emergencyOpen = false; };
+    return { store, typed, scope, busy, pause, flatten, dismiss };
   },
   template: `
-  <div class="modal-bg" @click.self="store.emergencyOpen=false">
+  <div class="modal-bg" @click.self="dismiss">
     <div class="modal danger">
       <h2>🛑 Arrêt d'urgence</h2>
       <p class="muted">Deux niveaux possibles :</p>
@@ -148,10 +150,11 @@ const ConfirmModal = {
   setup() {
     const c = computed(() => store.confirm);
     const close = (v) => { const r = store.confirm.resolve; store.confirm = null; r(v); };
-    return { c, close };
+    const dismiss = (e) => { if (e.detail < 2) close(false); };  // même règle que la fenêtre d'urgence
+    return { c, close, dismiss };
   },
   template: `
-  <div class="modal-bg" @click.self="close(false)">
+  <div class="modal-bg" @click.self="dismiss">
     <div class="modal" :class="{danger: c.danger}">
       <h2>{{ c.title }}</h2>
       <p style="white-space:pre-line">{{ c.message }}</p>

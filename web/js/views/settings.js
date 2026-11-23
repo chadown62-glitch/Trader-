@@ -153,6 +153,16 @@ export default {
       else if (f.kind === 'int') v = parseInt(raw, 10);
       form[section][f.key] = v;
     };
+    // Refus du serveur (« risk.risk_per_trade doit être compris entre 0.001 et 0.02 ») réécrit avec le libellé et l'unité
+    // du champ affiché ; les bornes restent celles du serveur.
+    const number = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 4 });
+    const fieldError = (message) => {
+      const m = /^(\w+)\.(\w+) (doit .*)$/.exec(message || '');
+      const f = m && SECTIONS[m[1]]?.fields.find(x => x.key === m[2]);
+      if (!f) return message;
+      const unit = (v) => (f.kind === 'pct' ? number.format(Number(v) * 100) + ' %' : number.format(Number(v)));
+      return `« ${f.label} » ${m[3].replace(/entre (\S+) et (\S+)$/, (_, lo, hi) => `entre ${unit(lo)} et ${unit(hi)}`)}`;
+    };
     const save = async (section) => {
       const patch = { [section]: JSON.parse(JSON.stringify(form[section])) };
       if (section === 'news') {
@@ -160,7 +170,7 @@ export default {
         patch.news.telegram_channels = tgText.value.split('\n').map(s => s.trim()).filter(Boolean);
       }
       if (section === 'macro') patch.macro.events = eventsText.value.split('\n').map(s => s.trim()).filter(Boolean);
-      const r = await safe(api.put('/api/settings', patch), 'Réglages enregistrés');
+      const r = await safe(api.put('/api/settings', patch).catch((e) => { e.message = fieldError(e.message); throw e; }), 'Réglages enregistrés');
       if (r) { store.settings = r; }
     };
     const saveGeneral = async () => {

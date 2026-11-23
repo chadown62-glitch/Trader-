@@ -6,7 +6,9 @@ dépendent d'un compte extérieur (Telegram, canaux de signaux) doivent refuser 
 """
 
 import json
+import threading
 import time
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -165,6 +167,43 @@ def test_services_without_an_account_refuse_with_a_reason(client):
     assert r.status_code == 400 and "Envoi impossible" in r.json()["detail"]
     r = client.post("/api/signals/login", headers=H)
     assert r.status_code == 400 and "Numéro de téléphone manquant" in r.json()["detail"]
+
+
+def test_emergency_pause_also_stops_an_ai_still_in_preparation(client, app, monkeypatch):
+    """« Arrêter les IA » pendant le téléchargement de l'historique : l'IA ne démarre pas une fois la préparation finie."""
+    gate = threading.Event()
+    original = app.history.update
+    monkeypatch.setattr(app.history, "update", lambda *a, **k: (gate.wait(30), original(*a, **k))[1])
+    assert client.post("/api/agents/ia_entrainement/start", json={}, headers=H).json()["status"] == "préparation"
+    stopped = client.post("/api/emergency", json={"action": "pause"}, headers=H).json()
+    assert stopped["agents_stopped"] == ["ia_entrainement"]
+    gate.set()
+    end = time.time() + 60
+    while time.time() < end and app.jobs.running("prepare"):
+        time.sleep(0.2)
+    assert not app.jobs.running("prepare")
+    agent = next(a for a in client.get("/api/overview").json()["agents"] if a["name"] == "ia_entrainement")
+    assert agent["status"] == "arrêté" and not agent.get("running") and "ia_entrainement" not in app.agents
+
+
+def test_model_report_refused_activation_and_retirement(client, app):
+    """Boutons « Rapport », « Activer » et « Retirer » (page IA) : un modèle non validé n'est jamais activé."""
+    from sentinelle.ai.bench import make_candidates
+    from sentinelle.ai.model import MetaModel
+
+    model = MetaModel("1h").fit(make_candidates(400, "simple", seed=1)[0])
+    model.version, model.metrics = "m-cockpit-1", {"verdict": "non validé", "trial": True}
+    app.models.register(SimpleNamespace(final_model=model, ok=False, trial=True, reasons=["test"]), {"origin": "test du cockpit"})
+    status = lambda: {m["version"]: m["status"] for m in client.get("/api/ai/models").json()}["m-cockpit-1"]  # noqa: E731
+    assert status() == "trial"
+    assert client.get("/api/ai/models/m-cockpit-1/report").json() == {"origin": "test du cockpit"}
+    refused = client.post("/api/ai/models/m-cockpit-1/promote", headers=H)
+    assert refused.status_code == 400 and "Seul un modèle validé" in refused.json()["detail"]
+    assert status() == "trial" and app.models.champion("1h") is None  # rien n'a changé
+    assert client.post("/api/ai/models/m-cockpit-1/retire", headers=H).json() == {"ok": True}
+    assert status() == "retired" and app.models.trial("1h") is None
+    assert client.post("/api/ai/models/m-inconnu/promote", headers=H).status_code == 400
+    assert client.get("/api/ai/models/m-inconnu/report").status_code in (400, 404)
 
 
 def test_password_change_keeps_the_old_one_on_error_and_revokes_other_sessions(client, api):

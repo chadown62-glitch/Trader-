@@ -217,7 +217,9 @@ class AgentsMixin:
     # ======================================================================
     def emergency(self, action: str, confirm: str | None = None, scope: str = "ai") -> dict:
         self.paper_runtimes()  # sécurité : l'urgence n'agit que sur des comptes simulés
-        stopped = [n for n in list(self.agents)]
+        # Une IA encore en préparation (historique en téléchargement) est arrêtée aussi : sans cela, elle démarrerait
+        # une fois la préparation finie, après l'arrêt d'urgence.
+        stopped = [n for n in AGENTS if n in self.agents or self.agent_state.get(n, {}).get("status") == "préparation"]
         for n in stopped:
             self.stop_agent(n)
         closed, errors = 0, []
