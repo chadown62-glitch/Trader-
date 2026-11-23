@@ -5,6 +5,34 @@ export class ApiError extends Error {
   constructor(message, status, data) { super(message); this.status = status; this.data = data; }
 }
 
+// Erreurs de validation (422) : jamais le texte brut du validateur (en anglais), toujours un message en français qui
+// nomme le champ. Un message déjà rédigé par le serveur (« Value error, … ») est repris tel quel.
+const RULES = {
+  missing: () => 'valeur obligatoire',
+  string_too_short: (c) => `au moins ${c.min_length} caractères`,
+  string_too_long: (c) => `au plus ${c.max_length} caractères`,
+  too_short: (c) => `au moins ${c.min_length} élément(s)`,
+  too_long: (c) => `au plus ${c.max_length} élément(s)`,
+  greater_than: (c) => `supérieur à ${c.gt}`,
+  greater_than_equal: (c) => `au moins ${c.ge}`,
+  less_than: (c) => `inférieur à ${c.lt}`,
+  less_than_equal: (c) => `au plus ${c.le}`,
+  int_parsing: () => 'nombre entier attendu', int_type: () => 'nombre entier attendu', int_from_float: () => 'nombre entier attendu',
+  float_parsing: () => 'nombre attendu', float_type: () => 'nombre attendu', finite_number: () => 'nombre fini attendu',
+  bool_parsing: () => 'oui ou non attendu', bool_type: () => 'oui ou non attendu',
+  string_type: () => 'texte attendu', dict_type: () => 'objet attendu', list_type: () => 'liste attendue',
+  literal_error: () => 'valeur non autorisée', enum: () => 'valeur non autorisée',
+  string_pattern_mismatch: () => 'format invalide', json_invalid: () => 'requête mal formée', extra_forbidden: () => 'champ non autorisé',
+};
+export function validationMessage(d) {
+  if (!d || typeof d !== 'object') return String(d);
+  const field = (d.loc || []).filter((x) => !['body', 'query', 'path'].includes(x)).join('.');
+  const text = ['value_error', 'assertion_error'].includes(d.type)
+    ? String(d.msg || '').replace(/^(Value|Assertion) error, /, '') || 'valeur invalide'
+    : (RULES[d.type] || (() => 'valeur invalide'))(d.ctx || {});
+  return field ? `« ${field} » : ${text}` : text;
+}
+
 async function request(method, path, body) {
   const opts = { method, headers: { 'X-Sentinelle': '1' }, credentials: 'same-origin' };
   if (body !== undefined) {
@@ -23,7 +51,7 @@ async function request(method, path, body) {
   if (!res.ok) {
     if (res.status === 401 && !path.startsWith('/api/auth/')) store.auth.authenticated = false;
     let msg = (data && data.detail) || `Erreur ${res.status}`;
-    if (Array.isArray(msg)) msg = msg.map(d => d.msg || JSON.stringify(d)).join(' ; ');
+    if (Array.isArray(msg)) msg = 'Saisie refusée : ' + msg.map(validationMessage).join(' ; ');
     throw new ApiError(msg, res.status, data);
   }
   return data;

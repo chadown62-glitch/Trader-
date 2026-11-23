@@ -63,7 +63,7 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/ui" --no-save playwright@1.56.1
           "$RUNNER_TEMP/ui/node_modules/.bin/playwright" install --with-deps chromium
       - name: Check desktop and mobile cockpit
-        run: NODE_PATH="$RUNNER_TEMP/ui/node_modules" python tests/e2e/run.py memecoin_check.js
+        run: NODE_PATH="$RUNNER_TEMP/ui/node_modules" python tests/e2e/run.py memecoin_check.js feedback_check.js
 
   merge:
     name: Request squash merge
