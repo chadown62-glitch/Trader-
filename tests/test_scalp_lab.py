@@ -156,3 +156,27 @@ def test_a_cached_archive_modified_after_verification_is_refused(tmp_path):
     path.write_bytes(body + b"x")
     with pytest.raises(data.DataIntegrityError):
         data.download_month("BTCUSDC", "2026-06", tmp_path)
+
+
+def test_daily_archives_complete_a_month_not_yet_archived_and_stay_locked(tmp_path):
+    with pytest.raises(data.ReservedPeriodError):
+        data.download_day("BTCUSDC", "2026-11-03", tmp_path)
+    july = data.month_bounds("2026-07")[0] * 1000
+    aug1 = data.month_bounds("2026-08")[0] * 1000
+    bodies = {"BTCUSDC-1m-2026-07.zip": _archive([_row(july, 100)]),
+              "BTCUSDC-1m-2026-08-01.zip": _archive([_row(aug1, 101), _row(aug1 + 60_000_000, 102)]),
+              "BTCUSDC-1m-2026-08-02.zip": _archive([_row(aug1 + 86_400_000_000, 103)])}
+
+    def handler(request):
+        name = request.url.path.rsplit("/", 1)[-1]
+        if name.endswith(".CHECKSUM"):
+            zip_name = name[:-len(".CHECKSUM")]
+            return httpx.Response(200, text=f"{hashlib.sha256(bodies[zip_name]).hexdigest()}  {zip_name}\n")
+        return httpx.Response(200, content=bodies[name])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        frame, report = data.load_bars("BTCUSDC", "2026-07", "2026-08", tmp_path, client=client, last_day="2026-08-02")
+    assert [f["file"] for f in report["files"]] == list(bodies)
+    assert frame["t"].iloc[-1] == (aug1 + 86_400_000_000) // 1000 and frame["o"].iloc[-1] == 103
+    with pytest.raises(ValueError):
+        data.load_bars("BTCUSDC", "2026-07", "2026-08", tmp_path, last_day="2026-09-01")
