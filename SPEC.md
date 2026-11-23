@@ -287,6 +287,11 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
 - **Hors périmètre initial.**
   - Les actions boursières : pas de source publique gratuite en temps réel intégrée, et des horaires de bourse. Elles pourront être ajoutées plus tard, en veille seule, sur décision du propriétaire.
   - Le levier, la vente à découvert et les dérivés comme instruments de trading.
+- **Décision du propriétaire (nuit du 23 au 24 novembre 2026).** Le propriétaire demande un système d'agents qui surveille les cryptos, les memecoins et les actions, relié aux actualités avec le moins de délai possible, et qui répartit le capital entre ces marchés pour stabiliser les rendements. Le périmètre s'étend, en simulation exclusive :
+  - **Actions et fonds indiciels.** Historique journalier public (cours ajustés des dividendes). Allocation par tendance entre grandes classes d'actifs (actions américaines et mondiales, obligations, or, matières premières, immobilier coté), aux règles publiées et fixées avant mesure. Le système ne s'appuie sur aucun courtier et ne transmet aucun ordre.
+  - **Actualités à faible délai.** Un agent de veille interroge des sources publiques : annonces de cotation et de retrait de Binance, déclarations officielles des entreprises cotées (formulaires 8-K de la SEC), communiqués de la Réserve fédérale et fils de presse. Chaque dépêche est conservée avec son heure de publication et son heure de réception, et le délai entre les deux est mesuré. Les dépêches graves servent d'abord d'alerte et de veto ; leur effet sur les prix ne sera mesuré que sur l'archive ainsi constituée.
+  - **Répartition entre poches.** La part de chaque poche (crypto, actions et fonds) est fixée avant mesure. Plusieurs parts sont publiées côte à côte, sans en retenir une après coup.
+  - **Garde-fous inchangés.** Aucun ordre réel, aucun levier, aucune vente à découvert, aucun service permanent lancé sans le propriétaire. La date du 15 décembre 2026 évoquée par le propriétaire pour engager de l'argent réel ne modifie ni ces garde-fous ni les critères préenregistrés avant toute décision d'argent réel.
 
 ### Période réservée et critères préenregistrés
 
