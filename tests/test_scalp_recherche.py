@@ -116,3 +116,12 @@ def test_a_crypto_outside_the_universe_is_never_bought():
     assert rank["XUSDT"].isna().all() and (rank["BTCUSDT"].dropna() == 1).all()
     res = core.run(closes, closes, 0, 200 * core.DAY_MS, 1000.0, rules, members=members)
     assert all(h in ([], ["BTCUSDT"]) for _, h in res["holdings"])
+
+
+def test_relisting_after_a_trading_halt_is_cut():
+    # LUNA : dernière cotation le 13 mai 2022 à 0,00005 $, 17 jours sans cotation, puis nouvel actif à 8,87 $.
+    idx = pd.RangeIndex(100, 106)
+    c = pd.Series([1.0, 0.00005, np.nan, np.nan, 8.87, 6.5], index=idx)
+    bars = pd.DataFrame({"o": [1.2, 1.0, np.nan, np.nan, 1.0, 8.87], "c": c, "l": c, "q": 1.0})
+    cut, at = recherche.cut_at_break(bars)
+    assert at == 104 and cut.index[-1] == 103
