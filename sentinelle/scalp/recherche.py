@@ -194,7 +194,7 @@ def cut_at_break(bars: pd.DataFrame) -> tuple[pd.DataFrame, int | None]:
     """Coupe la série au premier bond de plus de ×20 en un jour (ouverture ou clôture contre la clôture de la veille) :
     au-delà, ce n'est plus le même actif (par exemple LUNA, recotée sous le même nom après son effondrement). Une chute,
     même brutale, est un fait de marché : elle est gardée."""
-    prev = bars["c"].shift(1)
+    prev = bars["c"].ffill().shift(1)  # dernière clôture connue : une recotation suit souvent des jours sans cotation
     jump = np.maximum(bars["o"], bars["c"]) / prev
     bad = bars.index[jump > BREAK]
     if len(bad) == 0:
