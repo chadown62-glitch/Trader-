@@ -1,0 +1,309 @@
+{
+ "schema": "scalp-reserved-v1",
+ "frozen_sha256": "2a508b2b3b4873d9f645f8dcda62e978a778e6d7728273165bd1f373678b01bb",
+ "period": [
+  "2026-09-01T00:00:00Z",
+  "2026-11-22T23:59:59Z"
+ ],
+ "results": {
+  "systeme": {
+   "return_pct": -6.945174146471933,
+   "max_drawdown_pct": 8.984030513996188,
+   "years": {},
+   "mean_week_pct": -0.5856021446042914,
+   "median_week_pct": -0.6423788244351025,
+   "positive_weeks": 2,
+   "negative_weeks": 7,
+   "flat_weeks": 3,
+   "weeks": 12,
+   "worst_week_pct": -3.573791550426497,
+   "best_week_pct": 2.1110065329203342,
+   "positive_months": 0,
+   "n_months": 3,
+   "months": [
+    {
+     "month": "2026-09",
+     "pct": -1.6837142875598676
+    },
+    {
+     "month": "2026-10",
+     "pct": -2.960394470125305
+    },
+    {
+     "month": "2026-11",
+     "pct": -2.4641180669806917
+    }
+   ],
+   "core_orders": 46,
+   "fast_trades": 49
+  },
+  "fond_seul": {
+   "return_pct": -10.540461615986164,
+   "max_drawdown_pct": 12.267941514457448,
+   "years": {},
+   "mean_week_pct": -0.8995958225586945,
+   "median_week_pct": -0.7098916524578724,
+   "positive_weeks": 3,
+   "negative_weeks": 6,
+   "flat_weeks": 3,
+   "weeks": 12,
+   "worst_week_pct": -4.908788318545287,
+   "best_week_pct": 3.274091484984143,
+   "positive_months": 0,
+   "n_months": 3,
+   "months": [
+    {
+     "month": "2026-09",
+     "pct": -3.9079629887325162
+    },
+    {
+     "month": "2026-10",
+     "pct": -3.4072082452136443
+    },
+    {
+     "month": "2026-11",
+     "pct": -3.6183105640475444
+    }
+   ],
+   "core_orders": 46,
+   "fast_trades": 0
+  },
+  "rapide_seul": {
+   "return_pct": 1.4438299490611595,
+   "max_drawdown_pct": 2.8372174303610165,
+   "years": {},
+   "mean_week_pct": 0.12474142168537501,
+   "median_week_pct": 0.0,
+   "positive_weeks": 2,
+   "negative_weeks": 5,
+   "flat_weeks": 5,
+   "weeks": 12,
+   "worst_week_pct": -0.9863282978514132,
+   "best_week_pct": 2.4422602496033674,
+   "positive_months": 1,
+   "n_months": 3,
+   "months": [
+    {
+     "month": "2026-09",
+     "pct": 3.506199348509509
+    },
+    {
+     "month": "2026-10",
+     "pct": -1.992508093649814
+    },
+    {
+     "month": "2026-11",
+     "pct": 0.0
+    }
+   ],
+   "core_orders": 0,
+   "fast_trades": 49
+  }
+ },
+ "benchmarks": {
+  "cash_pct": 0.0,
+  "btc_pct": -22.14329995562054,
+  "buy_and_hold_8_pct": -27.259287414829764,
+  "buy_and_hold_20_pct": -19.656366708450953
+ },
+ "verdict": "non confirmé",
+ "integrity": {
+  "BTCUSDC": {
+   "bars": 1697760,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "ETHUSDC": {
+   "bars": 1697760,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "SOLUSDC": {
+   "bars": 1527360,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "BNBUSDC": {
+   "bars": 1697760,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "XRPUSDC": {
+   "bars": 1527360,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "DOGEUSDC": {
+   "bars": 1426560,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "ADAUSDC": {
+   "bars": 1527360,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "LINKUSDC": {
+   "bars": 1488480,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "AVAXUSDC": {
+   "bars": 1522080,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "LTCUSDC": {
+   "bars": 1387680,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "DOTUSDC": {
+   "bars": 1522080,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "SUIUSDC": {
+   "bars": 1495680,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "TRXUSDC": {
+   "bars": 1165920,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "NEARUSDC": {
+   "bars": 1417920,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "APTUSDC": {
+   "bars": 1364280,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "PEPEUSDC": {
+   "bars": 1426560,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "WIFUSDC": {
+   "bars": 1384800,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "BONKUSDC": {
+   "bars": 1397460,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "SHIBUSDC": {
+   "bars": 1426560,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  },
+  "FLOKIUSDC": {
+   "bars": 1397460,
+   "missing_minutes": 0,
+   "last": "2026-11-22 23:59:00"
+  }
+ },
+ "measured_costs": {
+  "systeme": {
+   "return_pct": -7.2271779717934965,
+   "max_drawdown_pct": 9.235392355821958,
+   "years": {},
+   "mean_week_pct": -0.610632067345147,
+   "median_week_pct": -0.6818493404485371,
+   "positive_weeks": 2,
+   "negative_weeks": 7,
+   "flat_weeks": 3,
+   "weeks": 12,
+   "worst_week_pct": -3.623113672963585,
+   "best_week_pct": 2.079779348159172,
+   "positive_months": 0,
+   "n_months": 3,
+   "months": [
+    {
+     "month": "2026-09",
+     "pct": -1.8447552374319276
+    },
+    {
+     "month": "2026-10",
+     "pct": -3.077072802998926
+    },
+    {
+     "month": "2026-11",
+     "pct": -2.4829095197961837
+    }
+   ],
+   "core_orders": 46,
+   "fast_trades": 49
+  },
+  "fond_seul": {
+   "return_pct": -10.734171510176449,
+   "max_drawdown_pct": 12.436265062662532,
+   "years": {},
+   "mean_week_pct": -0.9172742062359842,
+   "median_week_pct": -0.7250467314710796,
+   "positive_weeks": 3,
+   "negative_weeks": 6,
+   "flat_weeks": 3,
+   "weeks": 12,
+   "worst_week_pct": -4.9439328655832115,
+   "best_week_pct": 3.26591817310824,
+   "positive_months": 0,
+   "n_months": 3,
+   "months": [
+    {
+     "month": "2026-09",
+     "pct": -4.026866203319224
+    },
+    {
+     "month": "2026-10",
+     "pct": -3.4726970372577104
+    },
+    {
+     "month": "2026-11",
+     "pct": -3.642529167148656
+    }
+   ],
+   "core_orders": 46,
+   "fast_trades": 0
+  },
+  "rapide_seul": {
+   "return_pct": 0.9558069511000689,
+   "max_drawdown_pct": 3.107814984201951,
+   "years": {},
+   "mean_week_pct": 0.08456422110891167,
+   "median_week_pct": 0.0,
+   "positive_weeks": 2,
+   "negative_weeks": 5,
+   "flat_weeks": 5,
+   "weeks": 12,
+   "worst_week_pct": -1.0395914152179775,
+   "best_week_pct": 2.3969854240606825,
+   "positive_months": 1,
+   "n_months": 3,
+   "months": [
+    {
+     "month": "2026-09",
+     "pct": 3.2468370163050597
+    },
+    {
+     "month": "2026-10",
+     "pct": -2.218983294222543
+    },
+    {
+     "month": "2026-11",
+     "pct": 0.0
+    }
+   ],
+   "core_orders": 0,
+   "fast_trades": 49
+  },
+  "core_slippage_per_side": 0.0003390979993218579
+ },
+ "known_limit": "un trade rapide dont la sortie dépasserait le 22 novembre 2026 23:59 n'a pas d'issue connue et n'est pas compté ; une position de fond encore ouverte est valorisée à la dernière clôture"
+}

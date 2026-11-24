@@ -14,7 +14,7 @@ import hashlib
 import json
 import math
 import time
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 
 import pandas as pd
@@ -59,6 +59,29 @@ def check_frozen(path: Path = FROZEN) -> tuple[dict, str]:
     return frozen, hashlib.sha256(raw).hexdigest()
 
 
+def measured_slippage(path) -> dict:
+    """Glissement par côté mesuré sur le carnet public pour un ordre de 330 USDC (pire de l'achat et de la vente),
+    jamais sous l'hypothèse du système figé (0,01 %)."""
+    rows = json.loads(Path(path).read_text(encoding="utf-8"))["rows"]
+    return {r["symbol"]: max(0.0001, max(r["buy_330"], r["sell_330"]) / 100) for r in rows}
+
+
+def with_costs(cands: pd.DataFrame, slip: dict, base: float = 0.0001) -> pd.DataFrame:
+    """Mêmes trades, frais d'exécution mesurés : les sorties du stop suiveur ne dépendent pas des frais."""
+    extra = cands["symbol"].map(lambda s: 2 * (slip.get(s, base) - base))
+    net = cands["net_return"] - extra
+    return cands.assign(net_return=net, r=net / cands["risk_pct"])
+
+
+def sensitivity(tables, cands, take, start, end, slip: dict, core_symbols, share) -> dict:
+    core_rules = replace(CORE_RULES, slippage_per_side=max(slip.get(s, 0.0001) for s in core_symbols))
+    adjusted = with_costs(cands, slip)
+    out = {name: systeme.evaluate(tables, adjusted, take, core_rules, sh, start, end)
+           for name, sh in (("systeme", share), ("fond_seul", 1.0), ("rapide_seul", 0.0))}
+    out["core_slippage_per_side"] = core_rules.slippage_per_side
+    return out
+
+
 def load(symbols, first, cache_dir):
     out = {}
     for s in symbols:
@@ -73,6 +96,7 @@ def main(argv=None):
     ap.add_argument("--cache", default="data/scalp-cache")
     ap.add_argument("--out", default="research/scalp-v1/reserved-2026-09-2026-11.json")
     ap.add_argument("--trials", default="research/scalp-v1/trials.jsonl")
+    ap.add_argument("--costs", default=None, help="coûts mesurés (live-costs-*.json) : sensibilité publiée à côté du verdict")
     args = ap.parse_args(argv)
     frozen, digest = check_frozen()
     start = int(pd.Timestamp(RESERVED_FROM).timestamp() * 1000)
@@ -106,8 +130,13 @@ def main(argv=None):
                   "buy_and_hold_20_pct": bh(closes, rapide.UNIVERSE)}
     s = results["systeme"]
     verdict = "confirmé" if s["return_pct"] >= 0 and s["max_drawdown_pct"] <= 20 else "non confirmé"
+    measured = None
+    if args.costs:
+        measured = sensitivity(tables, cands, take, start, end, measured_slippage(args.costs), frozen["core"]["universe"],
+                               frozen["core"]["share"])
     report = {"schema": "scalp-reserved-v1", "frozen_sha256": digest, "period": [RESERVED_FROM, RESERVED_TO],
               "results": results, "benchmarks": benchmarks, "verdict": verdict, "integrity": integrity,
+              "measured_costs": measured,
               "known_limit": frozen["evaluation"]["known_limit"]}
     Path(args.out).write_text(json.dumps(report, ensure_ascii=False, indent=1, default=float) + "\n", encoding="utf-8")
     for name, r in results.items():
@@ -115,9 +144,15 @@ def main(argv=None):
               f"− {r['negative_weeks']} 0 {r['flat_weeks']}, semaine moyenne {r['mean_week_pct']:+.2f} %, pire {r['worst_week_pct']:+.2f} %, "
               f"ordres de fond {r['core_orders']}, trades rapides {r['fast_trades']}")
     print("références :", {k: round(v, 2) for k, v in benchmarks.items()}, "| verdict :", verdict)
+    if measured:
+        for name in ("systeme", "fond_seul", "rapide_seul"):
+            r = measured[name]
+            print(f"  coûts mesurés, {name} : {r['return_pct']:+.2f} %, baisse max {r['max_drawdown_pct']:.2f} %, "
+                  f"semaine moyenne {r['mean_week_pct']:+.2f} %")
     with open(args.trials, "a", encoding="utf-8") as fh:
         fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "reserve",
                              "frozen_sha256": digest, "verdict": verdict, "benchmarks": benchmarks,
+                             "measured_costs": None if not measured else {n: measured[n]["return_pct"] for n in ("systeme", "fond_seul", "rapide_seul")},
                              "results": {n: {k: r[k] for k in ("return_pct", "max_drawdown_pct", "mean_week_pct", "positive_weeks",
                                                                "negative_weeks", "flat_weeks", "worst_week_pct")}
                                          for n, r in results.items()}}, ensure_ascii=False, default=float) + "\n")
