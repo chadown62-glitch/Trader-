@@ -125,3 +125,93 @@ def test_relisting_after_a_trading_halt_is_cut():
     bars = pd.DataFrame({"o": [1.2, 1.0, np.nan, np.nan, 1.0, 8.87], "c": c, "l": c, "q": 1.0})
     cut, at = recherche.cut_at_break(bars)
     assert at == 104 and cut.index[-1] == 103
+
+
+def bars_of(closes, start):
+    c = pd.Series(closes, index=pd.RangeIndex(start, start + len(closes)), dtype=float)
+    return pd.DataFrame({"o": c.shift(1).fillna(c.iloc[0]), "c": c, "l": c * 0.99, "q": 1.0})
+
+
+def rename(last, first, ratio=1.0, announced_days_before=12):
+    day = lambda d: str(pd.to_datetime(d * recherche.DAY_MS, unit="ms").date())  # noqa: E731
+    return {"nouvelle": "NEWUSDT", "ratio": ratio, "annonce": day(last - announced_days_before), "arret_utc": day(last) + "T03:00:00Z",
+            "ouverture_utc": day(first) + "T08:00:00Z", "sources": ["https://www.binance.com/en/support/announcement/x"]}
+
+
+def test_a_renamed_pair_is_spliced_at_the_announced_ratio_and_dates():
+    # MATIC → POL : dernier cours 0,3794 $, deux jours sans cotation, nouvelle paire ouverte à 0,3794 $.
+    old, new = bars_of([0.40, 0.39, 0.3794], 100), bars_of([0.3794, 0.41, 0.40], 105)
+    new.loc[105, "o"] = 0.3794
+    joined, rep = recherche.splice(old, new, rename(102, 105))
+    assert rep["statut"] == "relié" and rep["jours_sans_cotation"] == 2 and rep["ecart_prix"] == 0.0
+    assert joined.index.tolist() == list(range(100, 108))
+    assert joined.loc[103:104, "c"].isna().all() and joined.at[106, "c"] == 0.41
+    # VEN → VET, 1 pour 100 : prix de l'ancienne divisés par 100, volumes en unités multipliés par 100.
+    ven = bars_of([2.0, 1.8], 200).assign(v=5.0)
+    vet = bars_of([0.018, 0.02], 202).assign(v=900.0)
+    joined, rep = recherche.splice(ven, vet, rename(201, 202, ratio=100.0))
+    assert rep["statut"] == "relié" and joined.at[200, "c"] == pytest.approx(0.02) and joined.at[201, "v"] == 500.0
+
+
+def test_the_spliced_series_never_uses_the_new_pair_before_it_trades():
+    old, new = bars_of([1.0, 1.1, 1.2, 1.25], 300), bars_of([1.25, 1.3, 1.4], 306)
+    joined, _ = recherche.splice(old, new, rename(303, 306))
+    pd.testing.assert_frame_equal(joined.loc[:303], old.loc[:303], check_freq=False)  # avant l'arrêt : l'ancienne seule
+    assert joined.loc[304:305].isna().all().all()  # pendant l'arrêt : aucun cours inventé
+
+
+def test_a_same_day_handover_merges_the_two_bars():
+    # BCHABC → BCH le 28/11/2019 : arrêt à 02:00, ouverture à 10:00, même jour.
+    old, new = bars_of([210.0, 220.08], 400).assign(q=4.0), bars_of([220.08, 224.0], 401).assign(q=11.0)
+    old.loc[401, "o"], new.loc[401, "o"], new.loc[401, "c"] = 219.2, 220.08, 217.41
+    joined, rep = recherche.splice(old, new, rename(401, 401))
+    assert rep["statut"] == "relié" and rep["jours_sans_cotation"] == 0
+    assert (joined.at[401, "o"], joined.at[401, "c"], joined.at[401, "q"]) == (219.2, 217.41, 15.0)
+
+
+def test_a_splice_is_refused_on_a_price_jump_wrong_dates_late_announcement_or_long_halt():
+    old = bars_of([1.0, 1.0, 1.0], 100)
+    jump = bars_of([1.05, 1.05], 104)
+    jump.loc[104, "o"] = 1.05  # +5 % : pas le même actif au ratio annoncé
+    joined, rep = recherche.splice(old, jump, rename(102, 104))
+    assert joined is None and rep["statut"] == "refusé" and "cours de reprise" in rep["raisons"][0]
+    assert recherche.splice(old, bars_of([1.0, 1.0], 104), rename(102, 105))[1]["statut"] == "refusé"  # dates hors annonce
+    assert recherche.splice(old, bars_of([1.0, 1.0], 104), rename(102, 104, announced_days_before=-1))[1]["raisons"] == ["annonce postérieure à l'arrêt"]
+    assert recherche.splice(old, bars_of([1.0, 1.0], 101), rename(102, 101))[1]["statut"] == "refusé"  # chevauchement
+    assert recherche.splice(old, bars_of([1.0, 1.0], 112), rename(102, 112))[1]["statut"] == "refusé"  # 9 jours sans cotation
+    assert recherche.splice(old, pd.DataFrame(columns=old.columns), rename(102, 104)) == (None, {"statut": "absent"})
+    stray = pd.concat([old, bars_of([0.0001], 190)])  # cotation résiduelle trois mois après l'arrêt annoncé
+    new = bars_of([1.0, 1.0], 104)
+    new.loc[104, "o"] = 1.0
+    joined, rep = recherche.splice(stray, new, rename(102, 104))
+    assert rep["statut"] == "relié" and rep["jours_cotes_apres_arret_ignores"] == 1 and joined.index[-1] == 105
+
+
+def test_the_chain_stops_at_the_first_refused_link():
+    saved = dict(recherche.RENAMES), dict(recherche.PREDECESSORS)
+    try:
+        recherche.RENAMES.clear()
+        recherche.RENAMES.update({"AUSDT": {**rename(102, 104), "nouvelle": "BUSDT"}, "BUSDT": {**rename(105, 107), "nouvelle": "CUSDT"}})
+        recherche.PREDECESSORS.clear()
+        recherche.PREDECESSORS.update({"BUSDT": "AUSDT", "CUSDT": "BUSDT"})
+        series = {"AUSDT": bars_of([1.0, 1.0, 1.0], 100), "CUSDT": bars_of([9.0, 9.0], 107)}
+        series["CUSDT"].loc[107, "o"] = 9.0  # ×9 : refusé
+        b = bars_of([1.0, 1.0], 104)
+        b.loc[104, "o"] = 1.0
+        bars, links = recherche.link_chain("BUSDT", b, series.get)
+        assert [(x["sens"], x["statut"]) for x in links] == [("prédécesseur", "relié"), ("successeur", "refusé")]
+        assert bars.index[0] == 100 and bars.index[-1] == 105
+    finally:
+        recherche.RENAMES.clear()
+        recherche.RENAMES.update(saved[0])
+        recherche.PREDECESSORS.clear()
+        recherche.PREDECESSORS.update(saved[1])
+
+
+def test_declared_renames_are_official_announced_before_the_halt_and_never_counted_twice():
+    assert set(recherche.RENAMES) == {"VENUSDT", "BCHABCUSDT", "MATICUSDT", "EOSUSDT", "TONUSDT"}
+    for r in recherche.RENAMES.values():
+        assert all(u.startswith("https://www.binance.com/") for u in r["sources"]) and r["ratio"] > 0
+        assert r["annonce"] < r["arret_utc"][:10] <= r["ouverture_utc"][:10]  # connue avant l'arrêt : aucune fuite
+    linked = set(recherche.RENAMES) | {r["nouvelle"] for r in recherche.RENAMES.values()}
+    assert len(linked & set(recherche.CANDIDATES)) == len(recherche.RENAMES)  # un seul membre de chaque lien est candidat

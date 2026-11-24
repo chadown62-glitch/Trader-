@@ -168,6 +168,34 @@ CANDIDATES = [c + "USDT" for c in (
 TOP_N = 8
 PIT_SLIPPAGE = 0.000339  # le plus élevé mesuré parmi les 8 cryptos ; aucune mesure n'existe pour les cryptos disparues
 BREAK = 20.0  # bond d'un jour au-delà de ×20 : changement d'actif sous le même nom (série coupée)
+# Renommages et migrations (C091). Chaque lien s'appuie sur l'annonce officielle de Binance (lue le 24/11/2026) : date
+# d'annonce, ratio, arrêt de l'ancienne paire et ouverture de la nouvelle. Les jours d'arrêt et d'ouverture sont revérifiés
+# sur les archives journalières, et à la minute dans l'étude C091. Un lien n'est relié que si les cours se suivent au
+# ratio annoncé (écart ≤ 2 %) ; VEN → VET (1 pour 100) est déclaré mais refusé par cette règle (reprise +22,8 %).
+RENAMES = {
+    "VENUSDT": {"nouvelle": "VETUSDT", "ratio": 100.0, "annonce": "2018-07-19", "arret_utc": "2018-07-23T04:00:00Z",
+                "ouverture_utc": "2018-07-25T04:00:00Z", "sources": ["https://www.binance.com/en/support/announcement/information-regarding-the-upcoming-ven-vet-mainnet-swap-360007439672"]},
+    "BCHABCUSDT": {"nouvelle": "BCHUSDT", "ratio": 1.0, "annonce": "2019-11-27", "arret_utc": "2019-11-28T02:00:00Z",
+                   "ouverture_utc": "2019-11-28T10:00:00Z", "sources": ["https://www.binance.com/en/support/articles/360037219511"]},
+    "MATICUSDT": {"nouvelle": "POLUSDT", "ratio": 1.0, "annonce": "2024-08-28", "arret_utc": "2024-09-10T03:00:00Z",
+                  "ouverture_utc": "2024-09-13T10:00:00Z", "sources": ["https://www.binance.com/en/support/articles/6a6de383727f4659a3050f7982e1620f",
+                                                                      "https://www.binance.com/en-AE/support/announcement/detail/619c4929fc3f4a0d9df7f9ae1d4519a5"]},
+    "EOSUSDT": {"nouvelle": "AUSDT", "ratio": 1.0, "annonce": "2025-05-14", "arret_utc": "2025-05-26T03:00:00Z",
+                "ouverture_utc": "2025-05-28T08:00:00Z", "sources": ["https://www.binance.com/en/support/announcement/1e89a9ca957c4b0ca7502e60b993e201",
+                                                                    "https://www.binance.com/en/support/announcement/f5a19fab8c5d4078a1235a17f542dfc5"]},
+    "TONUSDT": {"nouvelle": "GRAMUSDT", "ratio": 1.0, "annonce": "2026-06-12", "arret_utc": "2026-06-30T03:00:00Z",
+                "ouverture_utc": "2026-07-02T08:00:00Z", "sources": ["https://www.binance.com/en/support/announcement/detail/fe307fba935b44698fde4db01e84a7eb"]},
+}
+# Bornes d'identité examinées par le balayage de toutes les paires USDT publiées et volontairement non reliées.
+NOT_SPLICED = {
+    "BCCUSDT → BCHABCUSDT": "scission : BCHABCUSDT et BCHSVUSDT ouvrent toutes deux le 16/11/2018, au lendemain du dernier cours de "
+                            "BCCUSDT ; la valeur se partage entre deux actifs (annonce officielle non relue ici)",
+    "LUNAUSDT → LUNCUSDT": "ancienne LUNA (série coupée à sa recotation de mai 2022) ; LUNCUSDT cotée à partir de septembre 2022, "
+                           "bien après 7 jours ; identité non vérifiée sur une annonce officielle",
+}
+PREDECESSORS = {v["nouvelle"]: k for k, v in RENAMES.items()}
+SPLICE_MAX_GAP_DAYS = 7  # jours sans cotation tolérés entre l'ancienne et la nouvelle paire
+SPLICE_MAX_PRICE_GAP = 0.02  # écart maximal entre le dernier cours de l'une (au ratio annoncé) et le premier de l'autre
 
 
 def published_range(symbol: str, last: str, client) -> tuple[str, str] | None:
@@ -202,7 +230,89 @@ def cut_at_break(bars: pd.DataFrame) -> tuple[pd.DataFrame, int | None]:
     return bars.loc[:bad[0] - 1], int(bad[0])
 
 
-def candidate_bars(symbol: str, last_day: str, cache_dir, client) -> tuple[pd.DataFrame, dict]:
+def _day_of(utc: str) -> int:
+    return int(pd.Timestamp(utc).value // 1_000_000 // DAY_MS)
+
+
+def splice(old: pd.DataFrame, new: pd.DataFrame, rename: dict) -> tuple[pd.DataFrame | None, dict]:
+    """Relie une paire à celle qui la remplace, au ratio annoncé (prix de l'ancienne divisés par le ratio, volumes en
+    unités multipliés). Refusé si les jours d'arrêt et d'ouverture diffèrent de l'annonce, si l'annonce n'a pas précédé
+    l'arrêt (aucune information future), si plus de 7 jours séparent les deux, ou si le premier cours de la nouvelle
+    s'écarte de plus de 2 % du dernier cours de l'ancienne. Un jour de passage commun fusionne les deux bougies ; les jours
+    sans cotation restent vides ; avant le passage, la série est exactement celle de l'ancienne paire. Les cotations
+    résiduelles de l'ancienne paire après l'arrêt annoncé sont ignorées et comptées."""
+    if old.empty or new.empty or old["c"].last_valid_index() is None or new["o"].first_valid_index() is None:
+        return None, {"statut": "absent"}
+    halt = _day_of(rename["arret_utc"])
+    stray = int(old.loc[halt + 1:, "c"].notna().sum())  # cotations résiduelles après l'arrêt annoncé (VEN : 0,0001 $ le 19/10/2018)
+    old = old.loc[:halt].copy()
+    if old["c"].last_valid_index() is None:
+        return None, {"statut": "absent"}
+    for col in ("o", "h", "l", "c"):
+        if col in old:
+            old[col] = old[col] / rename["ratio"]
+    for col in ("v", "taker_buy"):
+        if col in old:
+            old[col] = old[col] * rename["ratio"]
+    last, first = int(old["c"].last_valid_index()), int(new["o"].first_valid_index())
+    gap = new.at[first, "o"] / old.at[last, "c"] - 1
+    report = {"dernier_jour": str(pd.to_datetime(last * DAY_MS, unit="ms").date()), "premier_jour": str(pd.to_datetime(first * DAY_MS, unit="ms").date()),
+              "jours_sans_cotation": max(int(first - last - 1), 0), "ratio": rename["ratio"], "ecart_prix": round(float(gap), 6),
+              "jours_cotes_apres_arret_ignores": stray,
+              "annonce": rename["annonce"], "sources": rename["sources"]}
+    reasons = []
+    if (last, first) != (halt, _day_of(rename["ouverture_utc"])):
+        reasons.append("jours d'arrêt ou d'ouverture différents de l'annonce")
+    if _day_of(rename["annonce"] + "T00:00:00Z") > last:
+        reasons.append("annonce postérieure à l'arrêt")
+    if not 0 <= first - last <= SPLICE_MAX_GAP_DAYS + 1:
+        reasons.append("chevauchement ou interruption trop longue")
+    if abs(gap) > SPLICE_MAX_PRICE_GAP:
+        reasons.append(f"cours de reprise à {gap:+.1%} du dernier cours au ratio annoncé")
+    if reasons:
+        return None, {**report, "statut": "refusé", "raisons": reasons}
+    head, tail = old.loc[:last], new.loc[first:].copy()
+    if first == last:  # passage dans la journée : ouverture de l'ancienne, clôture de la nouvelle, volumes additionnés
+        a, b = head.loc[last], tail.loc[first]
+        merged = b.copy()
+        merged["o"] = a["o"]
+        if "h" in merged:
+            merged["h"] = np.nanmax([a["h"], b["h"]])
+        merged["l"] = np.nanmin([a["l"], b["l"]])
+        for col in ("v", "taker_buy", "q"):
+            if col in merged:
+                merged[col] = np.nansum([a[col], b[col]])
+        tail.loc[first] = merged
+        head = head.loc[:last - 1]
+    joined = pd.concat([head, tail])
+    return joined.reindex(np.arange(joined.index[0], joined.index[-1] + 1)), {**report, "statut": "relié"}
+
+
+def link_chain(symbol: str, bars: pd.DataFrame, raw) -> tuple[pd.DataFrame, list[dict]]:
+    """Relie une candidate à ses prédécesseurs et successeurs déclarés (« raw(symbole) » charge une paire seule) ;
+    la chaîne s'arrête au premier lien refusé."""
+    links, cur = [], symbol
+    while cur in PREDECESSORS:
+        prev = PREDECESSORS[cur]
+        joined, rep = splice(raw(prev), bars, RENAMES[prev])
+        links.append({"sens": "prédécesseur", "ancienne": prev, "nouvelle": cur, **rep})
+        if joined is None:
+            break
+        bars, cur = joined, prev
+    cur = symbol
+    while cur in RENAMES:
+        nxt = RENAMES[cur]["nouvelle"]
+        joined, rep = splice(bars, raw(nxt), RENAMES[cur])
+        links.append({"sens": "successeur", "ancienne": cur, "nouvelle": nxt, **rep})
+        if joined is None:
+            break
+        bars, cur = joined, nxt
+    return bars, links
+
+
+def candidate_bars(symbol: str, last_day: str, cache_dir, client, continuity: bool = False) -> tuple[pd.DataFrame, dict]:
+    """Bougies d'une candidate ; « continuity » relie une paire renommée à ses prédécesseurs et successeurs (C091).
+    Désactivé par défaut : les résultats publiés restent reproductibles et rien n'entre dans une décision sans approbation."""
     prev = (pd.Timestamp(last_day).replace(day=1) - pd.Timedelta(days=1)).strftime("%Y-%m")
     span = published_range(symbol, prev, client)
     if span is None:
@@ -223,8 +333,20 @@ def candidate_bars(symbol: str, last_day: str, cache_dir, client) -> tuple[pd.Da
     raw = raw.assign(day=raw["t"].astype("int64") // DAY_MS).drop_duplicates("day").set_index("day").sort_index()
     bars = raw.reindex(np.arange(raw.index[0], raw.index[-1] + 1))[["o", "c", "l", "v"]].astype(float)
     bars["q"] = bars["v"] * bars["c"]
-    bars, cut = cut_at_break(bars.drop(columns="v"))
-    return bars, {"symbol": symbol, "listed": first, "last_month": last, "still_listed": current,
+    bars, links = bars.drop(columns="v"), []
+    if continuity:
+        reports = {}
+
+        def raw(sym):
+            b, reports[sym] = candidate_bars(sym, last_day, cache_dir, client)
+            return b
+
+        bars, links = link_chain(symbol, bars, raw)
+        forward = [x["nouvelle"] for x in links if x["sens"] == "successeur" and x["statut"] == "relié"]
+        if forward:
+            current = reports[forward[-1]].get("still_listed", current)  # cotée encore sous son nouveau nom
+    bars, cut = cut_at_break(bars)
+    return bars, {"symbol": symbol, "listed": first, "last_month": last, "still_listed": current, "raccords": links,
                   "missing_periods": missing, "cut_at": str(pd.to_datetime(cut * DAY_MS, unit="ms").date()) if cut else None}
 
 
