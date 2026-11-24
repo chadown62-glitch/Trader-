@@ -343,3 +343,58 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
 - **Sécurité.**
   - Simulation exclusive : aucun ordre réel, aucune clé privée, aucun levier, aucun short, aucune promotion automatique.
   - Aucun service permanent. L'observation prospective ne démarre que sur ordre explicite du propriétaire, et la campagne de 72 heures garde son propre démarrage autorisé.
+
+## Extension du Sprint 5 — catalogue de capacités C001–C100 (décision du propriétaire du 24 novembre 2026)
+
+- **Autorisation.** Le propriétaire valide l'étude et la réalisation progressive de 100 capacités candidates. Le dossier est transcrit dans `docs/scalp/catalogue-C001-C100.md`. Cette extension s'inscrit dans le Sprint 5, seul sprint en cours, et ne crée aucune mission autonome. Aucune implémentation qui dépend du catalogue ne commence avant la fusion de ce cadrage sur main.
+- **Nature des capacités.** Ce sont des composants légers, pas des agents autonomes. Au plus quatre agents restent actifs, avec des modèles légers chargés à la demande et jamais plusieurs grands modèles de langage en même temps.
+  - **Point ouvert pour l'audit indépendant** : la flotte M57 (`sentinelle/fleet/agents.py`) déclare douze agents consultés à la demande. Le coordinateur limite les modèles lourds (un seul), pas le nombre d'agents consultés. La lecture de la règle « quatre agents actifs » revient au propriétaire ; rien n'est modifié en attendant.
+- **Garde-fous inchangés.**
+  - Simulation exclusive : aucun ordre réel, aucune clé privée, aucun levier, aucune vente à découvert, aucune promotion automatique, aucun service permanent ni observation prospective sans autorisation spécifique.
+  - Archives #54 (`5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18`) et #55 (`18b31bb901f656d6126b370f47c510775f135c57`) intouchables.
+  - Guardian, Risk Commander, causalité, plafonds de risque et protections réseau jamais assouplis. Ils ne sont modifiés que pour corriger un défaut démontré.
+  - Sources publiques uniquement, dans le respect de leurs quotas et conditions d'accès.
+  - La période réservée, déjà consommée, n'est plus une période aveugle. Il ne reste aucune période historique aveugle.
+- **Cible expérimentale.** +1,30 % par semaine en moyenne géométrique, net de frais, sur 52 semaines, avec une pire baisse visée de 10 %. Ce n'est jamais une fonction à optimiser sur les données d'évaluation, ni un critère qui augmente le risque, assouplit un veto ou choisit un réglage après consultation.
+- **Registre de couverture versionné.** `research/scalp-v1/registre-capacites.json` est produit par `sentinelle/scalp/registre.py` et vérifié par `tests/test_scalp_registre.py`. Pour chaque capacité, il donne :
+  - le statut vérifié : `EXISTANTE_ET_TESTÉE`, `PARTIELLE`, `ABSENTE`, `BLOQUÉE_DONNÉES`, `EXPÉRIMENT_REJETÉ` ou `EXPÉRIMENT_VALIDÉ_PROVISOIRE` ;
+  - les preuves dans le code (fichier, symbole et lignes exactes au commit audité) ;
+  - les tests, qui doivent vraiment exercer le code cité ;
+  - les dépendances, l'hypothèse falsifiable, le contrat de données résumé et le verdict.
+  
+  Une capacité n'entre dans aucune décision fictive sans approbation humaine.
+- **Inventaire au commit `e7be7af`.**
+  - 32 capacités existantes et testées, 43 partielles, 17 absentes, 3 bloquées faute de données, 5 expériences rejetées et aucune validée.
+  - Les 27 capacités de priorité haute se répartissent en 6 existantes et testées, 17 partielles, 3 absentes et 1 bloquée.
+- **Baseline figé.** Il est inscrit dans le registre (clé `baseline`) : SHA de main, empreintes des modules, rendement hebdomadaire géométrique net, pire baisse, coûts, transactions, semaines positives, tests et provenance des résultats. Il comprend trois références :
+  - B0, momentum simple : référence des capacités d'analyse technique ;
+  - B1, vote 2 sur 3, volatilité visée, avec fonds : seul ratio de Sharpe dégonflé probable (#147) ;
+  - B2, moteur unique U1 (#143).
+  
+  Les résultats négatifs de #140 et #146 et les conclusions de #147 sont conservés. Aucune date d'achèvement des 100 capacités n'est fixée.
+- **Définition de fait d'une capacité.** Elle comprend :
+  - statut vérifié, fichiers et lignes, hypothèse falsifiable, entrées, sorties et métriques ;
+  - contrat de données : provenance, licence, horodatages, disponibilité effective, couverture, trous, identifiants, latence ;
+  - tests déterministes : cas normal, absent, ancien, dupliqué, contradictoire, incident réseau, absence de fuite temporelle et invariants de sécurité ;
+  - comparaison avec et sans la capacité, sur mêmes périodes, capital, coûts et univers, avec intervalles de confiance et correction des essais multiples ;
+  - verdict : utilité technique, avantage historique, avantage prospectif, rejet ou non évaluable.
+- **Ordre de construction.**
+  - **Lot 0** : ce cadrage, le registre et le baseline.
+  - **Lot 1 : fiabilité des mesures et exécution**, avec C091, C094, C095, C061, C062, C097 et C099. Il couvre l'univers défini à la date (LUNA corrigée en #145, MATIC → POL à relier), les essais multiples (#147), un outil d'ablation, les frais datés, les minima d'ordre, les stress de coûts et l'écart entre simulation et cotation accessible. Les conversions et les fonds européens restent dans le périmètre autorisé. Livrables : tests de propriétés et rapport d'invariants.
+  - **Lot 2 : actualités, régimes et abstention**, avec C001, C003, C005, C006, C007, C021, C024, C026, C030, C082, C083 et C084.
+    - `flash.py` est renforcé sans réécrire ses huit sources.
+    - Les actualités positives restent en observation fantôme, jamais en signal d'achat automatique.
+    - La comparaison « sans actualités » contre « actualités et vetos » attend une archive suffisante.
+  - **Lot 3 : microstructure et maîtrise du risque**, avec C043, C046, C048, C067, C074 et C079. Les tests A/B se font hors ligne, sur des cotations datées, avec les données manquantes déclarées. Aucune donnée historique n'est inventée.
+  - **Lots suivants** : selon les dépendances et la valeur marginale démontrée, sans multiplier les PR ni intégrer cent filtres dans le moteur.
+- **Règle d'arrêt.** Un indicateur dont le gain net est non significatif, instable ou issu d'une période déjà optimisée n'est pas activé dans la décision. Une capacité de sécurité peut être conservée malgré un rendement inférieur. Une capacité rejetée peut être abandonnée comme filtre.
+- **Répartition.**
+  - Claude Code : audit, inventaire, cadrage, registre, tests techniques et corrections mesurables autorisées.
+  - GPT Work : audit indépendant, disponible le mercredi 25 novembre 2026. Fichiers réservés, non modifiés : `tools/evaluation/`, `tests/test_memecoin_evaluation*.py`, `docs/evaluation/`.
+  - Le propriétaire décide de toute observation prospective, de toute promotion et de toute extension des sources.
+- **Rapport d'acceptation de chaque PR.**
+  - Numéro, SHA, au plus six fichiers, et les trois contrôles CI verts sur le dernier commit (Ubuntu, Windows, Chromium).
+  - Identifiants Cxxx, fichiers et lignes, état avant et après, tests exécutés, commande Windows 11. Windows n'est déclaré validé qu'après une exécution Windows effective.
+  - Protocoles préenregistrés et résultats négatifs conservés.
+  - Gel #54/#55 et invariants vérifiés : simulation exclusive, Guardian, Risk Commander, causalité.
+  - Rendement, intervalles de confiance, pire baisse, coûts, actifs, périodes et seuils d'abstention, ou la mention NON MESURÉ.

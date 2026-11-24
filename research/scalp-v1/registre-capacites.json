@@ -1,0 +1,3115 @@
+{
+ "schema": "sentinelle-registre-capacites-v1",
+ "source": "dossier du propriétaire C001–C100 (24 novembre 2026), docs/scalp/catalogue-C001-C100.md",
+ "main_audite": "e7be7af8f05c558dd2a46170dbb6975a25ccfc81",
+ "statuts": {
+  "EXISTANTE_ET_TESTÉE": 32,
+  "PARTIELLE": 43,
+  "ABSENTE": 17,
+  "BLOQUÉE_DONNÉES": 3,
+  "EXPÉRIMENT_REJETÉ": 5,
+  "EXPÉRIMENT_VALIDÉ_PROVISOIRE": 0
+ },
+ "capacites": [
+  {
+   "id": "C001",
+   "titre": "Mesure des délais publication→réception→marché",
+   "domaine": "Actualités et événements",
+   "premiere_preuve_exigee": "horodatage, source et effet mesuré après disponibilité effective",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "Archive.latency",
+     "lignes": "169-175"
+    },
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "poll",
+     "lignes": "178-206"
+    },
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "Archive.add",
+     "lignes": "145-153"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_flash.py"
+   ],
+   "dependances": [],
+   "hypothese": "Le délai publication→réception est mesurable par source ; le délai réception→réaction du prix ne l'est pas encore.",
+   "donnees": "8 sources publiques, archive SQLite en ajout seul depuis le 23 novembre 2026 ; veille bornée de 20 minutes publiée.",
+   "verdict": "à mesurer",
+   "note": "réception→marché absent ; archive trop jeune",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C002",
+   "titre": "Classification automatique des événements",
+   "domaine": "Actualités et événements",
+   "premiere_preuve_exigee": "horodatage, source et effet mesuré après disponibilité effective",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "classify",
+     "lignes": "69-84"
+    },
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "RULES",
+     "lignes": "53-64"
+    },
+    {
+     "fichier": "sentinelle/news/service.py",
+     "symbole": "validate_analysis",
+     "lignes": "99-125"
+    },
+    {
+     "fichier": "sentinelle/news/shadow/parsers.py",
+     "symbole": "event_type",
+     "lignes": "63-73"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_flash.py",
+    "tests/test_news_telegram.py",
+    "tests/test_macro_shadow.py"
+   ],
+   "dependances": [],
+   "hypothese": "Le classement par mots-clés (et l'IA locale à la demande) reproduit les catégories d'un échantillon annoté.",
+   "donnees": "Titres et résumés des flux publics ; aucun échantillon annoté pour mesurer l'exactitude.",
+   "verdict": "utilité technique",
+   "note": "exactitude du classement non mesurée ; faux positif connu (ancien piratage Binance)",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C003",
+   "titre": "Association sûre des nouvelles aux actifs",
+   "domaine": "Actualités et événements",
+   "premiere_preuve_exigee": "horodatage, source et effet mesuré après disponibilité effective",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "classify",
+     "lignes": "69-84"
+    },
+    {
+     "fichier": "sentinelle/news/service.py",
+     "symbole": "NewsService._allowed_assets",
+     "lignes": "207-209"
+    },
+    {
+     "fichier": "sentinelle/dmh/tokens.py",
+     "symbole": "TokenRegistry",
+     "lignes": "107-165"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_flash.py",
+    "tests/test_dmh_components.py"
+   ],
+   "dependances": [
+    "C002"
+   ],
+   "hypothese": "L'association par symbole confond des actifs (BTC cité dans une dépêche Binance) ; une association par identité vérifiée réduit les vetos erronés.",
+   "donnees": "Symboles dans les titres ; identité réseau+adresse côté memecoins (dmh).",
+   "verdict": "à mesurer",
+   "note": "association par symbole seulement dans flash.py",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C004",
+   "titre": "Notation de provenance et fiabilité des sources",
+   "domaine": "Actualités et événements",
+   "premiere_preuve_exigee": "horodatage, source et effet mesuré après disponibilité effective",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/news/signals.py",
+     "symbole": "SignalWatcher",
+     "lignes": "153-385"
+    },
+    {
+     "fichier": "sentinelle/news/signals.py",
+     "symbole": "simulate_signal",
+     "lignes": "115-150"
+    }
+   ],
+   "tests": [
+    "tests/test_new_features.py",
+    "tests/test_realtime.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une note de fiabilité par source (exactitude, délai, doublons) prédit la justesse des alertes futures.",
+   "donnees": "Fiabilité mesurée seulement pour les canaux Telegram en observation, pas pour les flux d'actualité.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C005",
+   "titre": "Déduplication inter-sources",
+   "domaine": "Actualités et événements",
+   "premiere_preuve_exigee": "horodatage, source et effet mesuré après disponibilité effective",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/news/service.py",
+     "symbole": "similarity",
+     "lignes": "93-96"
+    },
+    {
+     "fichier": "sentinelle/news/service.py",
+     "symbole": "NewsService._copy_from_cluster",
+     "lignes": "282-298"
+    },
+    {
+     "fichier": "sentinelle/news/shadow/parsers.py",
+     "symbole": "cluster_key",
+     "lignes": "180-181"
+    },
+    {
+     "fichier": "sentinelle/news/shadow/parsers.py",
+     "symbole": "dependent",
+     "lignes": "184-185"
+    },
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "Archive.add",
+     "lignes": "145-153"
+    }
+   ],
+   "tests": [
+    "tests/test_news_telegram.py",
+    "tests/test_macro_shadow.py",
+    "tests/test_scalp_flash.py"
+   ],
+   "dependances": [
+    "C002"
+   ],
+   "hypothese": "Regrouper une même nouvelle reprise par plusieurs sources évite de compter plusieurs fois un événement et de prolonger un veto.",
+   "donnees": "flash.py ne déduplique qu'à l'intérieur d'une source (identifiant ou lien).",
+   "verdict": "à mesurer",
+   "note": "pas de déduplication inter-sources dans flash.py",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C006",
+   "titre": "Surprise chiffrée contre consensus antérieur",
+   "domaine": "Actualités et événements",
+   "premiere_preuve_exigee": "horodatage, source et effet mesuré après disponibilité effective",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/news/shadow/parsers.py",
+     "symbole": "surprise_at",
+     "lignes": "188-208"
+    },
+    {
+     "fichier": "sentinelle/news/shadow/parsers.py",
+     "symbole": "bls_series",
+     "lignes": "152-177"
+    },
+    {
+     "fichier": "sentinelle/news/shadow/parsers.py",
+     "symbole": "difference",
+     "lignes": "55-60"
+    }
+   ],
+   "tests": [
+    "tests/test_macro_shadow.py"
+   ],
+   "dependances": [
+    "C011",
+    "C012"
+   ],
+   "hypothese": "La surprise (publié − consensus connu avant publication) explique la réaction du marché mieux que la valeur publiée seule.",
+   "donnees": "Calendrier public (consensus) et séries BLS officielles, en observation fantôme ; aucune mesure d'effet.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C007",
+   "titre": "Études de réactions aux événements",
+   "domaine": "Actualités et événements",
+   "premiere_preuve_exigee": "horodatage, source et effet mesuré après disponibilité effective",
+   "priorite": "HAUTE",
+   "statut": "BLOQUÉE_DONNÉES",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "Archive",
+     "lignes": "127-175"
+    },
+    {
+     "fichier": "sentinelle/news/shadow/store.py",
+     "symbole": "ShadowStore",
+     "lignes": "53-218"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_flash.py"
+   ],
+   "dependances": [
+    "C001",
+    "C003",
+    "C005"
+   ],
+   "hypothese": "Après une catégorie d'événement, le rendement anormal sur 1 h à 24 h diffère de zéro, avec intervalle et correction des essais.",
+   "donnees": "Aucun historique d'actualités ; l'archive existe depuis le 23 novembre 2026 : pas assez d'événements.",
+   "verdict": "non évaluable",
+   "note": "outil d'étude d'événements absent ; données insuffisantes",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C008",
+   "titre": "Décroissance temporelle des alertes et vetos",
+   "domaine": "Actualités et événements",
+   "premiere_preuve_exigee": "horodatage, source et effet mesuré après disponibilité effective",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "VETO_ASSET_MS",
+     "lignes": "66-66"
+    },
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "VETO_MARKET_MS",
+     "lignes": "66-66"
+    },
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "Archive.vetoes",
+     "lignes": "155-167"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_flash.py"
+   ],
+   "dependances": [
+    "C007"
+   ],
+   "hypothese": "Un veto qui s'éteint progressivement fait moins d'entrées manquées qu'une fenêtre fixe, sans plus de pertes.",
+   "donnees": "Fenêtres fixes de 24 h et 6 h datées à la publication ; aucune décroissance.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C009",
+   "titre": "Détection d'événements systémiques",
+   "domaine": "Actualités et événements",
+   "premiere_preuve_exigee": "horodatage, source et effet mesuré après disponibilité effective",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "classify",
+     "lignes": "69-84"
+    },
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "Archive.vetoes",
+     "lignes": "155-167"
+    },
+    {
+     "fichier": "sentinelle/risk/shield.py",
+     "symbole": "Shield._major_news",
+     "lignes": "225-238"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_flash.py",
+    "tests/test_realtime.py"
+   ],
+   "dependances": [
+    "C002"
+   ],
+   "hypothese": "Les événements systémiques (macro, piratage majeur, faillite, décrochage) précèdent des baisses du marché entier.",
+   "donnees": "Classement par mots-clés et IA locale ; effet non mesuré.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C010",
+   "titre": "Attente d'une réaction initiale et contrôle de liquidité",
+   "domaine": "Actualités et événements",
+   "premiere_preuve_exigee": "horodatage, source et effet mesuré après disponibilité effective",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/risk/shield.py",
+     "symbole": "Shield.check_entry",
+     "lignes": "241-263"
+    },
+    {
+     "fichier": "sentinelle/risk/shield.py",
+     "symbole": "Shield.microstructure",
+     "lignes": "120-130"
+    },
+    {
+     "fichier": "sentinelle/risk/macro.py",
+     "symbole": "blackout",
+     "lignes": "34-42"
+    }
+   ],
+   "tests": [
+    "tests/test_realtime.py"
+   ],
+   "dependances": [
+    "C001",
+    "C041"
+   ],
+   "hypothese": "Attendre la première réaction et un carnet redevenu profond après un événement réduit le glissement et les entrées perdantes.",
+   "donnees": "Le bouclier bloque les nouvelles entrées pendant les à-coups ; pas d'attente explicite de réaction initiale.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C011",
+   "titre": "Surprises d'inflation",
+   "domaine": "Macroéconomie et inter-marchés",
+   "premiere_preuve_exigee": "publication antérieure et référence comparée sans fuite",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/news/shadow/parsers.py",
+     "symbole": "surprise_at",
+     "lignes": "188-208"
+    },
+    {
+     "fichier": "sentinelle/news/shadow/parsers.py",
+     "symbole": "bls_series",
+     "lignes": "152-177"
+    }
+   ],
+   "tests": [
+    "tests/test_macro_shadow.py"
+   ],
+   "dependances": [
+    "C006"
+   ],
+   "hypothese": "Une inflation au-dessus du consensus précède une baisse des cryptos dans l'heure.",
+   "donnees": "Calendrier et BLS en observation fantôme.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C012",
+   "titre": "Surprises emploi et révisions",
+   "domaine": "Macroéconomie et inter-marchés",
+   "premiere_preuve_exigee": "publication antérieure et référence comparée sans fuite",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/news/shadow/parsers.py",
+     "symbole": "surprise_at",
+     "lignes": "188-208"
+    },
+    {
+     "fichier": "sentinelle/news/shadow/parsers.py",
+     "symbole": "bls_series",
+     "lignes": "152-177"
+    }
+   ],
+   "tests": [
+    "tests/test_macro_shadow.py"
+   ],
+   "dependances": [
+    "C006"
+   ],
+   "hypothese": "La surprise de l'emploi, révisions comprises, explique la réaction du marché.",
+   "donnees": "Révisions non suivies.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C013",
+   "titre": "Décisions et communications banques centrales",
+   "domaine": "Macroéconomie et inter-marchés",
+   "premiere_preuve_exigee": "publication antérieure et référence comparée sans fuite",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/flash.py",
+     "symbole": "SOURCES",
+     "lignes": "36-45"
+    },
+    {
+     "fichier": "sentinelle/risk/macro.py",
+     "symbole": "events",
+     "lignes": "26-31"
+    },
+    {
+     "fichier": "sentinelle/risk/macro.py",
+     "symbole": "blackout",
+     "lignes": "34-42"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_flash.py",
+    "tests/test_realtime.py"
+   ],
+   "dependances": [
+    "C020"
+   ],
+   "hypothese": "Les décisions et communiqués des banques centrales augmentent la volatilité ; une pause autour réduit les pertes.",
+   "donnees": "Flux de communiqués de la Fed ; fenêtre de pause macro ; effet non mesuré.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C014",
+   "titre": "Mouvements des rendements obligataires",
+   "domaine": "Macroéconomie et inter-marchés",
+   "premiere_preuve_exigee": "publication antérieure et référence comparée sans fuite",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/actifs.py",
+     "symbole": "UNIVERSE",
+     "lignes": "28-28"
+    },
+    {
+     "fichier": "sentinelle/scalp/actifs.py",
+     "symbole": "month_end_signals",
+     "lignes": "62-76"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_actifs.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une hausse rapide des rendements obligataires précède une baisse des actifs risqués.",
+   "donnees": "Cours des fonds IEF et TLT (Yahoo) ; pas de série de rendements ni de signal.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C015",
+   "titre": "Contexte de force du dollar",
+   "domaine": "Macroéconomie et inter-marchés",
+   "premiere_preuve_exigee": "publication antérieure et référence comparée sans fuite",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/market/context.py",
+     "symbole": "INDICES",
+     "lignes": "19-19"
+    },
+    {
+     "fichier": "sentinelle/market/context.py",
+     "symbole": "fetch_index",
+     "lignes": "32-40"
+    }
+   ],
+   "tests": [
+    "tests/test_realtime.py"
+   ],
+   "dependances": [],
+   "hypothese": "Un dollar en hausse (DXY) précède une faiblesse des cryptos.",
+   "donnees": "DXY affiché (Yahoo), non utilisé ni mesuré.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C016",
+   "titre": "Indicateurs de stress actions (VIX)",
+   "domaine": "Macroéconomie et inter-marchés",
+   "premiere_preuve_exigee": "publication antérieure et référence comparée sans fuite",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/market/context.py",
+     "symbole": "INDICES",
+     "lignes": "19-19"
+    },
+    {
+     "fichier": "sentinelle/market/context.py",
+     "symbole": "fetch_index",
+     "lignes": "32-40"
+    }
+   ],
+   "tests": [
+    "tests/test_realtime.py"
+   ],
+   "dependances": [],
+   "hypothese": "Un VIX élevé ou en hausse précède des baisses des cryptos.",
+   "donnees": "VIX affiché (Yahoo), non utilisé ni mesuré.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C017",
+   "titre": "Propagation sectorielle actions→crypto",
+   "domaine": "Macroéconomie et inter-marchés",
+   "premiere_preuve_exigee": "publication antérieure et référence comparée sans fuite",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [
+    "C014",
+    "C016"
+   ],
+   "hypothese": "Les secteurs actions liés (semi-conducteurs, valeurs crypto) mènent les cryptos.",
+   "donnees": "Aucune donnée sectorielle intégrée.",
+   "verdict": "non évaluable",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C018",
+   "titre": "Flux publics de stablecoins",
+   "domaine": "Macroéconomie et inter-marchés",
+   "premiere_preuve_exigee": "publication antérieure et référence comparée sans fuite",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [],
+   "hypothese": "Les créations et destructions de stablecoins précèdent les flux vers les cryptos.",
+   "donnees": "Aucune source intégrée ; sources publiques à vérifier (licence, horodatage).",
+   "verdict": "non évaluable",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C019",
+   "titre": "Flux ETF horodatés",
+   "domaine": "Macroéconomie et inter-marchés",
+   "premiere_preuve_exigee": "publication antérieure et référence comparée sans fuite",
+   "priorite": "normale",
+   "statut": "BLOQUÉE_DONNÉES",
+   "preuves": [],
+   "tests": [],
+   "dependances": [],
+   "hypothese": "Les flux des ETF bitcoin précèdent le cours.",
+   "donnees": "Aucune source publique horodatée et à licence claire identifiée.",
+   "verdict": "non évaluable",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C020",
+   "titre": "Calendrier des événements à risque",
+   "domaine": "Macroéconomie et inter-marchés",
+   "premiere_preuve_exigee": "publication antérieure et référence comparée sans fuite",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/risk/macro.py",
+     "symbole": "blackout",
+     "lignes": "34-42"
+    },
+    {
+     "fichier": "sentinelle/risk/macro.py",
+     "symbole": "upcoming",
+     "lignes": "45-53"
+    },
+    {
+     "fichier": "sentinelle/market/context.py",
+     "symbole": "fetch_calendar",
+     "lignes": "64-82"
+    },
+    {
+     "fichier": "sentinelle/risk/manager.py",
+     "symbole": "RiskManager.evaluate_entry",
+     "lignes": "130-264"
+    }
+   ],
+   "tests": [
+    "tests/test_realtime.py",
+    "tests/test_risk_agent_backtest.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une pause autour des annonces majeures évite des pertes sans coût en rendement.",
+   "donnees": "Calendrier public ; effet non mesuré.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C021",
+   "titre": "Classification tendance/range",
+   "domaine": "Régimes de marché",
+   "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/core.py",
+     "symbole": "signals",
+     "lignes": "62-79"
+    },
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "families",
+     "lignes": "130-164"
+    },
+    {
+     "fichier": "sentinelle/dmh/memecoin_simulator.py",
+     "symbole": "market_regime",
+     "lignes": "255-266"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_core.py",
+    "tests/test_scalp_signaux.py",
+    "tests/test_memecoin_regime.py"
+   ],
+   "dependances": [
+    "C023",
+    "C024"
+   ],
+   "hypothese": "Un classement tendance/range décidé hors échantillon améliore le rapport rendement/baisse en s'abstenant en range.",
+   "donnees": "Bougies journalières vérifiées ; les filtres de tendance testés (F2, F3, F10) n'ont pas d'avantage démontré.",
+   "verdict": "avantage historique non démontré",
+   "note": "pas de classificateur tendance/range explicite",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C022",
+   "titre": "Breadth et participation des altcoins",
+   "domaine": "Régimes de marché",
+   "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [
+    "C091"
+   ],
+   "hypothese": "La part des altcoins en tendance (breadth) prédit le rendement de l'univers.",
+   "donnees": "Calculable sur l'univers à la date existant.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C023",
+   "titre": "Force de tendance ADX",
+   "domaine": "Régimes de marché",
+   "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/ai/indicators.py",
+     "symbole": "atr",
+     "lignes": "41-43"
+    }
+   ],
+   "tests": [
+    "tests/test_ai_core.py"
+   ],
+   "dependances": [],
+   "hypothese": "Un ADX élevé distingue les tendances exploitables.",
+   "donnees": "ADX non implémenté (ATR, RSI, MACD, EMA existent).",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C024",
+   "titre": "Régimes de volatilité",
+   "domaine": "Régimes de marché",
+   "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "families",
+     "lignes": "130-164"
+    },
+    {
+     "fichier": "sentinelle/scalp/core.py",
+     "symbole": "run",
+     "lignes": "88-144"
+    },
+    {
+     "fichier": "sentinelle/risk/shield.py",
+     "symbole": "Shield._evaluate_volatility",
+     "lignes": "87-103"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_signaux.py",
+    "tests/test_scalp_core.py",
+    "tests/test_realtime.py"
+   ],
+   "dependances": [],
+   "hypothese": "Les régimes de volatilité changent le rendement par unité de risque ; s'adapter au régime réduit les baisses.",
+   "donnees": "F9 (volatilité calme) sans avantage ; ciblage de volatilité mesuré (baisse divisée par plus de 2).",
+   "verdict": "avantage historique non démontré",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C025",
+   "titre": "Détection des ruptures de régime",
+   "domaine": "Régimes de marché",
+   "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [
+    "C021",
+    "C024"
+   ],
+   "hypothese": "Une rupture de régime détectée tôt réduit la perte du début de baisse.",
+   "donnees": "Aucun détecteur.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C026",
+   "titre": "Corrélations dynamiques BTC/altcoins",
+   "domaine": "Régimes de marché",
+   "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/ai/knowledge.py",
+     "symbole": "compute_profile",
+     "lignes": "86-200"
+    },
+    {
+     "fichier": "sentinelle/scalp/features.py",
+     "symbole": "compute",
+     "lignes": "42-84"
+    }
+   ],
+   "tests": [
+    "tests/test_learning.py",
+    "tests/test_scalp_watchers.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une corrélation BTC/altcoins qui monte annonce un risque commun ; plafonner l'exposition réduit les baisses.",
+   "donnees": "Lien avec le BTC sur tout l'historique (fiche) et contexte BTC court terme ; aucune corrélation glissante.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C027",
+   "titre": "Funding rate en observation",
+   "domaine": "Régimes de marché",
+   "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/market/context.py",
+     "symbole": "fetch_funding",
+     "lignes": "43-49"
+    },
+    {
+     "fichier": "sentinelle/market/context.py",
+     "symbole": "funding_comment",
+     "lignes": "85-90"
+    }
+   ],
+   "tests": [
+    "tests/test_realtime.py"
+   ],
+   "dependances": [],
+   "hypothese": "Un taux de financement extrême précède des retournements.",
+   "donnees": "OKX public, observation seulement.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C028",
+   "titre": "Open interest et liquidations en observation",
+   "domaine": "Régimes de marché",
+   "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/risk/shield.py",
+     "symbole": "Shield.poll_liquidations",
+     "lignes": "172-200"
+    },
+    {
+     "fichier": "sentinelle/risk/shield.py",
+     "symbole": "Shield._evaluate_cascade",
+     "lignes": "202-222"
+    }
+   ],
+   "tests": [
+    "tests/test_realtime.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une cascade de liquidations précède un excès de mouvement.",
+   "donnees": "Liquidations suivies ; open interest absent.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C029",
+   "titre": "Effets horaires et calendaires",
+   "domaine": "Régimes de marché",
+   "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/features.py",
+     "symbole": "compute",
+     "lignes": "42-84"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_watchers.py",
+    "tests/test_scalp_desk.py"
+   ],
+   "dependances": [],
+   "hypothese": "Certaines heures ou jours ont un rendement ou un coût différent.",
+   "donnees": "Heure dans les caractéristiques ; aucune étude calendaire.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C030",
+   "titre": "Régime d'abstention",
+   "domaine": "Régimes de marché",
+   "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/core.py",
+     "symbole": "signals",
+     "lignes": "62-79"
+    },
+    {
+     "fichier": "sentinelle/scalp/brain.py",
+     "symbole": "PrincipalAI",
+     "lignes": "33-87"
+    },
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "abstention",
+     "lignes": "359-368"
+    },
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "timing_edge",
+     "lignes": "235-254"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_core.py",
+    "tests/test_scalp_signaux.py",
+    "tests/test_scalp_lab.py"
+   ],
+   "dependances": [
+    "C021",
+    "C024"
+   ],
+   "hypothese": "S'abstenir dans un régime défavorable défini d'avance améliore le rapport rendement/baisse hors échantillon.",
+   "donnees": "Filtre BTC, marge d'abstention de l'IA et motifs d'abstention publiés ; diagnostic temporel de F7 non significatif.",
+   "verdict": "avantage historique non démontré",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C031",
+   "titre": "Pivots confirmés causalement",
+   "domaine": "Analyse technique",
+   "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [],
+   "hypothese": "Des pivots confirmés après coup seulement (sans regard en avant) aident à placer les stops.",
+   "donnees": "Non implémenté.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C032",
+   "titre": "Trendlines avec qualité d'ajustement",
+   "domaine": "Analyse technique",
+   "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
+   "priorite": "normale",
+   "statut": "EXPÉRIMENT_REJETÉ",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "_trendline",
+     "lignes": "102-112"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_signaux.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une ligne de tendance bien ajustée (pente > 0, R² ≥ 0,6) bat le momentum simple.",
+   "donnees": "signaux-v1 : écart +0,071 %/j, IC [−0,058 ; +0,206], non significatif.",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/signaux-v1.json (F3)",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C033",
+   "titre": "Zones support/résistance",
+   "domaine": "Analyse technique",
+   "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
+   "priorite": "normale",
+   "statut": "EXPÉRIMENT_REJETÉ",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "families",
+     "lignes": "130-164"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_signaux.py"
+   ],
+   "dependances": [
+    "C031"
+   ],
+   "hypothese": "Les zones support/résistance améliorent les entrées.",
+   "donnees": "signaux-v1 : F4 (résistance 20 j) et F5 (support EMA 20) sans avantage.",
+   "verdict": "rejet",
+   "note": "zones par regroupement de pivots non testées ; research/scalp-v1/signaux-v1.json (F4, F5)",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C034",
+   "titre": "Retest de cassure",
+   "domaine": "Analyse technique",
+   "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [
+    "C033"
+   ],
+   "hypothese": "Entrer au retest d'une cassure plutôt qu'à la cassure améliore le rapport gain/perte.",
+   "donnees": "Non implémenté.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C035",
+   "titre": "Identification des fausses cassures",
+   "domaine": "Analyse technique",
+   "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
+   "priorite": "normale",
+   "statut": "EXPÉRIMENT_REJETÉ",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "_breakout_state",
+     "lignes": "115-127"
+    },
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "families",
+     "lignes": "130-164"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_signaux.py"
+   ],
+   "dependances": [
+    "C043"
+   ],
+   "hypothese": "Filtrer les cassures par le volume élimine les fausses cassures.",
+   "donnees": "signaux-v1 : F11, écart +0,038 %/j, IC [−0,060 ; +0,140].",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/signaux-v1.json (F11)",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C036",
+   "titre": "Amplitude des ranges",
+   "domaine": "Analyse technique",
+   "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/features.py",
+     "symbole": "compute",
+     "lignes": "42-84"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_watchers.py",
+    "tests/test_scalp_desk.py"
+   ],
+   "dependances": [],
+   "hypothese": "L'amplitude du range prédit l'ampleur du mouvement suivant.",
+   "donnees": "Position et hauteur du range dans les caractéristiques courtes ; aucune étude.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C037",
+   "titre": "Compression de volatilité",
+   "domaine": "Analyse technique",
+   "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
+   "priorite": "normale",
+   "statut": "EXPÉRIMENT_REJETÉ",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/watchers.py",
+     "symbole": "detect",
+     "lignes": "45-71"
+    },
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "families",
+     "lignes": "130-164"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_watchers.py",
+    "tests/test_scalp_signaux.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une compression de volatilité précède une expansion exploitable.",
+   "donnees": "signaux-v1 : F9 sans avantage ; veilleur « squeeze » du court terme, perdant après frais.",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/signaux-v1.json (F9)",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C038",
+   "titre": "Divergences RSI/prix",
+   "domaine": "Analyse technique",
+   "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/ai/indicators.py",
+     "symbole": "rsi",
+     "lignes": "21-31"
+    }
+   ],
+   "tests": [
+    "tests/test_ai_core.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une divergence RSI/prix annonce un retournement.",
+   "donnees": "RSI disponible ; divergences non implémentées.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C039",
+   "titre": "Épuisement de mouvement",
+   "domaine": "Analyse technique",
+   "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/watchers.py",
+     "symbole": "detect",
+     "lignes": "45-71"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_watchers.py"
+   ],
+   "dependances": [],
+   "hypothese": "Un mouvement à bout de souffle (capitulation) se retourne.",
+   "donnees": "Veilleur « capitulation » du court terme, rejeté avec l'ensemble du court terme après frais.",
+   "verdict": "avantage historique non démontré",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C040",
+   "titre": "Confluence multi-timeframe authentique",
+   "domaine": "Analyse technique",
+   "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
+   "priorite": "normale",
+   "statut": "EXPÉRIMENT_REJETÉ",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "families",
+     "lignes": "130-164"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_signaux.py"
+   ],
+   "dependances": [],
+   "hypothese": "L'accord des tendances hebdomadaire et journalière bat le momentum simple.",
+   "donnees": "signaux-v1 : F10, écart +0,023 %/j, IC [−0,057 ; +0,106].",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/signaux-v1.json (F10)",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C041",
+   "titre": "Spread achat/vente mesuré",
+   "domaine": "Microstructure et volumes",
+   "premiere_preuve_exigee": "niveau de carnet, tailles et coûts réellement accessibles",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/costs/book.py",
+     "symbole": "measure",
+     "lignes": "40-61"
+    },
+    {
+     "fichier": "sentinelle/dmh/observe.py",
+     "symbole": "Book.half_spread_bps",
+     "lignes": "82-83"
+    }
+   ],
+   "tests": [
+    "tests/test_costs_measure.py",
+    "tests/test_dmh_components.py"
+   ],
+   "dependances": [],
+   "hypothese": "Le coût d'aller-retour mesuré dépasse l'hypothèse fixe des backtests pour certains marchés.",
+   "donnees": "Carnets publics datés ; instantané du 23 novembre 2026 publié.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C042",
+   "titre": "Déséquilibre de carnet multi-niveaux",
+   "domaine": "Microstructure et volumes",
+   "premiere_preuve_exigee": "niveau de carnet, tailles et coûts réellement accessibles",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/observe.py",
+     "symbole": "Book",
+     "lignes": "49-99"
+    }
+   ],
+   "tests": [
+    "tests/test_dmh_components.py"
+   ],
+   "dependances": [
+    "C041"
+   ],
+   "hypothese": "Le déséquilibre du carnet sur plusieurs niveaux prédit le mouvement à très court terme.",
+   "donnees": "Carnets disponibles en direct ; aucun historique de carnet archivé.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C043",
+   "titre": "Pression des transactions agressives",
+   "domaine": "Microstructure et volumes",
+   "premiere_preuve_exigee": "niveau de carnet, tailles et coûts réellement accessibles",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "families",
+     "lignes": "130-164"
+    },
+    {
+     "fichier": "sentinelle/scalp/features.py",
+     "symbole": "compute",
+     "lignes": "42-84"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_signaux.py",
+    "tests/test_scalp_lab.py"
+   ],
+   "dependances": [],
+   "hypothese": "La part des achats au marché prédit le rendement suivant.",
+   "donnees": "signaux-v1 F6 : p brute 0,0125, Holm 0,137 (#147) : non significatif après correction.",
+   "verdict": "avantage historique non démontré",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C044",
+   "titre": "Volume delta cumulatif",
+   "domaine": "Microstructure et volumes",
+   "premiere_preuve_exigee": "niveau de carnet, tailles et coûts réellement accessibles",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [
+    "C043"
+   ],
+   "hypothese": "Le delta de volume cumulé ajoute à la pression acheteuse.",
+   "donnees": "Calculable sur les bougies (achats au marché).",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C045",
+   "titre": "Instabilité des ordres affichés",
+   "domaine": "Microstructure et volumes",
+   "premiere_preuve_exigee": "niveau de carnet, tailles et coûts réellement accessibles",
+   "priorite": "normale",
+   "statut": "BLOQUÉE_DONNÉES",
+   "preuves": [],
+   "tests": [],
+   "dependances": [
+    "C042"
+   ],
+   "hypothese": "Les ordres affichés qui disparaissent signalent un faux carnet.",
+   "donnees": "Exige un flux de carnet en continu, non archivé.",
+   "verdict": "non évaluable",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C046",
+   "titre": "Impact du notional sur l'exécution",
+   "domaine": "Microstructure et volumes",
+   "premiere_preuve_exigee": "niveau de carnet, tailles et coûts réellement accessibles",
+   "priorite": "HAUTE",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/execution/liquidity.py",
+     "symbole": "simulate_taker",
+     "lignes": "63-117"
+    },
+    {
+     "fichier": "sentinelle/costs/book.py",
+     "symbole": "measure",
+     "lignes": "40-61"
+    },
+    {
+     "fichier": "sentinelle/dmh/router.py",
+     "symbole": "walk",
+     "lignes": "188-207"
+    }
+   ],
+   "tests": [
+    "tests/test_liquidity_simulation.py",
+    "tests/test_costs_measure.py",
+    "tests/test_dmh_components.py"
+   ],
+   "dependances": [
+    "C041"
+   ],
+   "hypothese": "Le coût d'un ordre croît avec sa taille selon la profondeur du carnet.",
+   "donnees": "Carnets publics datés (sondes).",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C047",
+   "titre": "Glissement conditionnel à la volatilité",
+   "domaine": "Microstructure et volumes",
+   "premiere_preuve_exigee": "niveau de carnet, tailles et coûts réellement accessibles",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/costs/measure.py",
+     "symbole": "stress_states",
+     "lignes": "159-195"
+    }
+   ],
+   "tests": [
+    "tests/test_costs_measure.py"
+   ],
+   "dependances": [
+    "C041",
+    "C024"
+   ],
+   "hypothese": "Le glissement augmente avec la volatilité.",
+   "donnees": "États de stress mesurés ; pas de modèle de glissement en fonction de la volatilité dans les backtests.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C048",
+   "titre": "Profondeur de revente exploitable",
+   "domaine": "Microstructure et volumes",
+   "premiere_preuve_exigee": "niveau de carnet, tailles et coûts réellement accessibles",
+   "priorite": "HAUTE",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/established_pools.py",
+     "symbole": "round_trip",
+     "lignes": "100-109"
+    },
+    {
+     "fichier": "sentinelle/costs/inventory.py",
+     "symbole": "round_trip",
+     "lignes": "47-66"
+    },
+    {
+     "fichier": "sentinelle/execution/liquidity.py",
+     "symbole": "simulate_taker",
+     "lignes": "63-117"
+    }
+   ],
+   "tests": [
+    "tests/test_memecoin_sellability.py",
+    "tests/test_dmh_scanner.py",
+    "tests/test_costs_engine.py"
+   ],
+   "dependances": [
+    "C046"
+   ],
+   "hypothese": "Une position dont la revente est vérifiée perd moins à la sortie.",
+   "donnees": "Devis Jupiter sans portefeuille ; carnets publics.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C049",
+   "titre": "Anomalies compatibles avec wash trading",
+   "domaine": "Microstructure et volumes",
+   "premiere_preuve_exigee": "niveau de carnet, tailles et coûts réellement accessibles",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [],
+   "hypothese": "Des volumes compatibles avec des échanges fictifs faussent l'univers défini par le volume.",
+   "donnees": "Non implémenté.",
+   "verdict": "à mesurer",
+   "note": "concerne directement l'univers à la date (C091)",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C050",
+   "titre": "Contrôle de cohérence inter-plateformes",
+   "domaine": "Microstructure et volumes",
+   "premiere_preuve_exigee": "niveau de carnet, tailles et coûts réellement accessibles",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/market/crosscheck.py",
+     "symbole": "CrossChecker.check",
+     "lignes": "53-61"
+    },
+    {
+     "fichier": "sentinelle/dmh/observe.py",
+     "symbole": "consensus",
+     "lignes": "143-159"
+    }
+   ],
+   "tests": [
+    "tests/test_new_features.py",
+    "tests/test_dmh_components.py"
+   ],
+   "dependances": [],
+   "hypothese": "Un écart de prix entre plateformes signale une donnée erronée.",
+   "donnees": "Deuxième plateforme publique.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C051",
+   "titre": "Historique âge et activité du pool",
+   "domaine": "On-chain et Memecoins",
+   "premiere_preuve_exigee": "token et pool identifiés, veto inchangé et revente vérifiée",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/established_pools.py",
+     "symbole": "MIN_AGE_MINUTES",
+     "lignes": "35-35"
+    },
+    {
+     "fichier": "sentinelle/dmh/established_pools.py",
+     "symbole": "prefilter",
+     "lignes": "84-97"
+    }
+   ],
+   "tests": [
+    "tests/test_memecoin_engine.py",
+    "tests/test_memecoin_sellability.py"
+   ],
+   "dependances": [],
+   "hypothese": "L'âge et l'activité du pool réduisent les pertes par arnaque.",
+   "donnees": "Instantané à la détection ; aucun historique.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C052",
+   "titre": "Historique de concentration des détenteurs",
+   "domaine": "On-chain et Memecoins",
+   "premiere_preuve_exigee": "token et pool identifiés, veto inchangé et revente vérifiée",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/tokenrisk.py",
+     "symbole": "_rugcheck_holders",
+     "lignes": "117-144"
+    },
+    {
+     "fichier": "sentinelle/dmh/tokenrisk.py",
+     "symbole": "BENEFICIAL_MAX_TOP10",
+     "lignes": "112-112"
+    },
+    {
+     "fichier": "sentinelle/dmh/solana_scanner.py",
+     "symbole": "scan_once",
+     "lignes": "92-129"
+    }
+   ],
+   "tests": [
+    "tests/test_dmh_scanner.py",
+    "tests/test_memecoin_engine.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une concentration croissante des détenteurs précède une baisse.",
+   "donnees": "Rugcheck, instantané ; aucun historique.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C053",
+   "titre": "Surveillance des verrous de liquidité",
+   "domaine": "On-chain et Memecoins",
+   "premiere_preuve_exigee": "token et pool identifiés, veto inchangé et revente vérifiée",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/tokenrisk.py",
+     "symbole": "_rugcheck",
+     "lignes": "48-63"
+    },
+    {
+     "fichier": "sentinelle/dmh/solana_scanner.py",
+     "symbole": "scan_once",
+     "lignes": "92-129"
+    }
+   ],
+   "tests": [
+    "tests/test_dmh_scanner.py",
+    "tests/test_memecoin_engine.py"
+   ],
+   "dependances": [],
+   "hypothese": "Un verrou de liquidité expirant augmente le risque de retrait.",
+   "donnees": "Verrous connus exclus du calcul ; aucune surveillance dans le temps.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C054",
+   "titre": "Routes et volumes de revente",
+   "domaine": "On-chain et Memecoins",
+   "premiere_preuve_exigee": "token et pool identifiés, veto inchangé et revente vérifiée",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/established_pools.py",
+     "symbole": "round_trip",
+     "lignes": "100-109"
+    },
+    {
+     "fichier": "sentinelle/dmh/dex.py",
+     "symbole": "jupiter_quote",
+     "lignes": "82-114"
+    }
+   ],
+   "tests": [
+    "tests/test_memecoin_sellability.py",
+    "tests/test_memecoin_routing.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une route de revente vérifiée évite les pièges.",
+   "donnees": "Jupiter public.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C055",
+   "titre": "Restrictions et frais de transfert",
+   "domaine": "On-chain et Memecoins",
+   "premiere_preuve_exigee": "token et pool identifiés, veto inchangé et revente vérifiée",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/tokenrisk.py",
+     "symbole": "_goplus_evm",
+     "lignes": "20-35"
+    },
+    {
+     "fichier": "sentinelle/dmh/tokenrisk.py",
+     "symbole": "assess_candidate",
+     "lignes": "173-231"
+    },
+    {
+     "fichier": "sentinelle/dmh/solana_scanner.py",
+     "symbole": "scan_once",
+     "lignes": "92-129"
+    }
+   ],
+   "tests": [
+    "tests/test_dmh_scanner.py"
+   ],
+   "dependances": [],
+   "hypothese": "Les restrictions et frais de transfert signalent un piège.",
+   "donnees": "GoPlus, Rugcheck ; Token-2022 refusé sauf métadonnées.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C056",
+   "titre": "Flux des grands détenteurs",
+   "domaine": "On-chain et Memecoins",
+   "premiere_preuve_exigee": "token et pool identifiés, veto inchangé et revente vérifiée",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/memecoin_strategies.py",
+     "symbole": "entry_signals",
+     "lignes": "136-169"
+    },
+    {
+     "fichier": "sentinelle/dmh/memecoin_strategies.py",
+     "symbole": "NAMES",
+     "lignes": "28-28"
+    }
+   ],
+   "tests": [
+    "tests/test_memecoin_signals.py",
+    "tests/test_memecoin_journal_whale.py"
+   ],
+   "dependances": [
+    "C059"
+   ],
+   "hypothese": "Les achats des grands détenteurs précèdent une hausse.",
+   "donnees": "Stratégie whale_tail en simulation memecoin.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C057",
+   "titre": "Retraits de liquidité rapides",
+   "domaine": "On-chain et Memecoins",
+   "premiere_preuve_exigee": "token et pool identifiés, veto inchangé et revente vérifiée",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/memecoin_simulator.py",
+     "symbole": "valuation",
+     "lignes": "707-713"
+    },
+    {
+     "fichier": "sentinelle/dmh/memecoin_simulator.py",
+     "symbole": "refresh_round_trip",
+     "lignes": "393-410"
+    }
+   ],
+   "tests": [
+    "tests/test_memecoin_valuation.py"
+   ],
+   "dependances": [
+    "C054"
+   ],
+   "hypothese": "Un retrait rapide de liquidité se détecte à temps pour sortir.",
+   "donnees": "Revente revérifiée ; aucun détecteur dédié aux retraits.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C058",
+   "titre": "Portefeuilles liés au créateur, preuves vérifiées",
+   "domaine": "On-chain et Memecoins",
+   "premiere_preuve_exigee": "token et pool identifiés, veto inchangé et revente vérifiée",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [],
+   "hypothese": "Des portefeuilles liés au créateur, prouvés sur la chaîne, signalent une arnaque.",
+   "donnees": "Non implémenté.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C059",
+   "titre": "Performance point-in-time des smart wallets",
+   "domaine": "On-chain et Memecoins",
+   "premiere_preuve_exigee": "token et pool identifiés, veto inchangé et revente vérifiée",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/smart_wallets.py",
+     "symbole": "recency_weight",
+     "lignes": "39-43"
+    },
+    {
+     "fichier": "sentinelle/dmh/smart_wallets.py",
+     "symbole": "HALF_LIFE_S",
+     "lignes": "27-27"
+    }
+   ],
+   "tests": [
+    "tests/test_memecoin_calibrator.py",
+    "tests/test_memecoin_engine.py",
+    "tests/test_memecoin_journal_whale.py"
+   ],
+   "dependances": [],
+   "hypothese": "Les portefeuilles performants à la date gardent un avantage.",
+   "donnees": "Allers-retours WSOL clos, échantillons finalisés bornés.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C060",
+   "titre": "Cohérence de prix et liquidité multi-pools",
+   "domaine": "On-chain et Memecoins",
+   "premiere_preuve_exigee": "token et pool identifiés, veto inchangé et revente vérifiée",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/observe.py",
+     "symbole": "dex_vs_reference",
+     "lignes": "162-167"
+    },
+    {
+     "fichier": "sentinelle/dmh/router.py",
+     "symbole": "build_routes",
+     "lignes": "440-573"
+    }
+   ],
+   "tests": [
+    "tests/test_dmh_components.py",
+    "tests/test_memecoin_routing.py"
+   ],
+   "dependances": [],
+   "hypothese": "Un écart de prix entre pools signale une liquidité fragile.",
+   "donnees": "Comparaison à une référence ; pas de suivi multi-pools.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C061",
+   "titre": "Frais point-in-time par instrument",
+   "domaine": "Exécution et sorties fictives",
+   "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/costs/venues.py",
+     "symbole": "binance_spot_vip0",
+     "lignes": "39-59"
+    },
+    {
+     "fichier": "sentinelle/costs/venues.py",
+     "symbole": "FeeSchedule",
+     "lignes": "23-36"
+    },
+    {
+     "fichier": "sentinelle/costs/evidence.py",
+     "symbole": "Value",
+     "lignes": "18-68"
+    }
+   ],
+   "tests": [
+    "tests/test_costs_engine.py",
+    "tests/test_costs_protocol.py"
+   ],
+   "dependances": [],
+   "hypothese": "Des frais datés par instrument changent le classement des stratégies par rapport à un frais constant.",
+   "donnees": "Grille VIP 0 datée et sourcée ; les backtests du moteur court terme utilisent des frais constants (0,075 %).",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C062",
+   "titre": "Minimum de notional/lot/tick",
+   "domaine": "Exécution et sorties fictives",
+   "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/costs/venues.py",
+     "symbole": "MarketFilters",
+     "lignes": "63-80"
+    },
+    {
+     "fichier": "sentinelle/costs/venues.py",
+     "symbole": "parse_exchange_info",
+     "lignes": "83-104"
+    },
+    {
+     "fichier": "sentinelle/costs/inventory.py",
+     "symbole": "round_trip",
+     "lignes": "47-66"
+    },
+    {
+     "fichier": "sentinelle/risk/manager.py",
+     "symbole": "RiskManager._minimum_qty",
+     "lignes": "267-280"
+    }
+   ],
+   "tests": [
+    "tests/test_costs_engine.py",
+    "tests/test_principal_eur30.py"
+   ],
+   "dependances": [],
+   "hypothese": "Les minima de montant, de lot et de pas rendent certaines positions impossibles avec un petit capital.",
+   "donnees": "Règles de marché lues sur la plateforme ; les simulations du moteur court terme ne les appliquent pas.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C063",
+   "titre": "Exécutions partielles simulées",
+   "domaine": "Exécution et sorties fictives",
+   "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/costs/execution.py",
+     "symbole": "evaluate_sample",
+     "lignes": "177-200"
+    },
+    {
+     "fichier": "sentinelle/execution/liquidity.py",
+     "symbole": "simulate_taker",
+     "lignes": "63-117"
+    }
+   ],
+   "tests": [
+    "tests/test_costs_engine.py",
+    "tests/test_liquidity_simulation.py"
+   ],
+   "dependances": [
+    "C046"
+   ],
+   "hypothese": "Les exécutions partielles réduisent le gain réalisable.",
+   "donnees": "Ruban de transactions public.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C064",
+   "titre": "Modèles de latence et exécution",
+   "domaine": "Exécution et sorties fictives",
+   "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/costs/execution.py",
+     "symbole": "evaluate_sample",
+     "lignes": "177-200"
+    },
+    {
+     "fichier": "sentinelle/dmh/observe.py",
+     "symbole": "Book.build",
+     "lignes": "61-67"
+    }
+   ],
+   "tests": [
+    "tests/test_costs_engine.py",
+    "tests/test_dmh_components.py"
+   ],
+   "dependances": [],
+   "hypothese": "La latence dégrade le prix d'exécution.",
+   "donnees": "Ruban public, latence simulée.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C065",
+   "titre": "Causalité stricte décision→cotation ultérieure",
+   "domaine": "Exécution et sorties fictives",
+   "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/memecoin_simulator.py",
+     "symbole": "_causal",
+     "lignes": "570-575"
+    },
+    {
+     "fichier": "sentinelle/dmh/memecoin_simulator.py",
+     "symbole": "execution_check",
+     "lignes": "551-567"
+    },
+    {
+     "fichier": "sentinelle/execution/contract.py",
+     "symbole": "signal_time",
+     "lignes": "36-38"
+    },
+    {
+     "fichier": "sentinelle/scalp/core.py",
+     "symbole": "run",
+     "lignes": "88-144"
+    }
+   ],
+   "tests": [
+    "tests/test_memecoin_simulator.py",
+    "tests/test_execution_contract.py",
+    "tests/test_scalp_signaux.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une décision ne s'exécute jamais sur la cotation qui l'a déclenchée.",
+   "donnees": "Cotations datées ; ouverture suivante dans les backtests.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C066",
+   "titre": "Refus des cotations périmées",
+   "domaine": "Exécution et sorties fictives",
+   "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/observe.py",
+     "symbole": "MAX_AGE_MS",
+     "lignes": "19-19"
+    },
+    {
+     "fichier": "sentinelle/dmh/observe.py",
+     "symbole": "Book.fresh",
+     "lignes": "92-93"
+    }
+   ],
+   "tests": [
+    "tests/test_dmh_components.py",
+    "tests/test_memecoin_quote_time.py"
+   ],
+   "dependances": [],
+   "hypothese": "Refuser une cotation trop ancienne évite des exécutions irréalistes.",
+   "donnees": "Âge de la cotation mesuré.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C067",
+   "titre": "Stops avec gaps et liquidité insuffisante",
+   "domaine": "Exécution et sorties fictives",
+   "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/execution/contract.py",
+     "symbole": "stop_fill",
+     "lignes": "62-66"
+    },
+    {
+     "fichier": "sentinelle/scalp/trade.py",
+     "symbole": "manage",
+     "lignes": "26-66"
+    },
+    {
+     "fichier": "sentinelle/scalp/core.py",
+     "symbole": "run",
+     "lignes": "88-144"
+    }
+   ],
+   "tests": [
+    "tests/test_execution_contract.py",
+    "tests/test_scalp_lab.py",
+    "tests/test_scalp_core.py"
+   ],
+   "dependances": [
+    "C046"
+   ],
+   "hypothese": "Un stop franchi par un écart s'exécute à l'ouverture ; en krach, la liquidité insuffisante aggrave la perte.",
+   "donnees": "Écarts gérés ; le stop suiveur journalier du moteur est exécuté au prix du stop dans la journée, sans liquidité insuffisante simulée.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C068",
+   "titre": "Prises de bénéfices partielles",
+   "domaine": "Exécution et sorties fictives",
+   "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/memecoin_strategies.py",
+     "symbole": "ExitPolicy",
+     "lignes": "196-219"
+    },
+    {
+     "fichier": "sentinelle/dmh/memecoin_strategies.py",
+     "symbole": "exit_decision",
+     "lignes": "280-297"
+    }
+   ],
+   "tests": [
+    "tests/test_memecoin_calibrator_stop.py",
+    "tests/test_memecoin_simulator.py"
+   ],
+   "dependances": [],
+   "hypothese": "Vendre une part à 1,25× puis par paliers améliore le rendement net.",
+   "donnees": "Simulation memecoin calibrée hors ligne.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C069",
+   "titre": "Limite de durée des positions",
+   "domaine": "Exécution et sorties fictives",
+   "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/trade.py",
+     "symbole": "manage",
+     "lignes": "26-66"
+    },
+    {
+     "fichier": "sentinelle/dmh/memecoin_simulator.py",
+     "symbole": "time_exit",
+     "lignes": "93-99"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_lab.py",
+    "tests/test_memecoin_simulator.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une durée maximale limite les positions immobilisées.",
+   "donnees": "Règles de sortie.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C070",
+   "titre": "Filtre d'avantage espéré net de coûts",
+   "domaine": "Exécution et sorties fictives",
+   "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/costs/benefit.py",
+     "symbole": "net_edge",
+     "lignes": "15-34"
+    },
+    {
+     "fichier": "sentinelle/scalp/brain.py",
+     "symbole": "PrincipalAI",
+     "lignes": "33-87"
+    },
+    {
+     "fichier": "sentinelle/ai/model.py",
+     "symbole": "MetaModel.expected_r",
+     "lignes": "175-180"
+    }
+   ],
+   "tests": [
+    "tests/test_costs_engine.py",
+    "tests/test_scalp_lab.py",
+    "tests/test_ai_core.py"
+   ],
+   "dependances": [],
+   "hypothese": "N'entrer que si l'avantage espéré dépasse les coûts avec une marge améliore l'espérance nette.",
+   "donnees": "Coûts mesurés et hypothèses datées.",
+   "verdict": "avantage historique non démontré",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C071",
+   "titre": "Frein perte quotidienne",
+   "domaine": "Gestion des risques",
+   "premiere_preuve_exigee": "invariants des plafonds de risque et scénarios extrêmes",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/risk/manager.py",
+     "symbole": "RiskManager.evaluate_entry",
+     "lignes": "130-264"
+    },
+    {
+     "fichier": "sentinelle/scalp/desk.py",
+     "symbole": "run",
+     "lignes": "32-90"
+    }
+   ],
+   "tests": [
+    "tests/test_risk_agent_backtest.py",
+    "tests/test_scalp_desk.py"
+   ],
+   "dependances": [],
+   "hypothese": "Le frein journalier n'est jamais dépassé et limite la perte d'un jour.",
+   "donnees": "Journal fictif.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C072",
+   "titre": "Frein perte hebdomadaire",
+   "domaine": "Gestion des risques",
+   "premiere_preuve_exigee": "invariants des plafonds de risque et scénarios extrêmes",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/risk/manager.py",
+     "symbole": "RiskManager.evaluate_entry",
+     "lignes": "130-264"
+    },
+    {
+     "fichier": "sentinelle/risk/manager.py",
+     "symbole": "RiskManager.state",
+     "lignes": "80-112"
+    }
+   ],
+   "tests": [
+    "tests/test_risk_agent_backtest.py"
+   ],
+   "dependances": [],
+   "hypothese": "Le frein hebdomadaire (7 jours) n'est jamais dépassé.",
+   "donnees": "Journal fictif.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C073",
+   "titre": "Exposition plafonnée par stratégie",
+   "domaine": "Gestion des risques",
+   "premiere_preuve_exigee": "invariants des plafonds de risque et scénarios extrêmes",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/risk/manager.py",
+     "symbole": "RiskManager.evaluate_entry",
+     "lignes": "130-264"
+    },
+    {
+     "fichier": "sentinelle/dmh/memecoin_strategies.py",
+     "symbole": "RiskProfile",
+     "lignes": "224-246"
+    }
+   ],
+   "tests": [
+    "tests/test_risk_agent_backtest.py",
+    "tests/test_memecoin_profiles.py"
+   ],
+   "dependances": [],
+   "hypothese": "Un plafond par stratégie limite la concentration du risque.",
+   "donnees": "Positions maximales et budgets par stratégie memecoin ; pas de plafond par stratégie dans le moteur court terme.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C074",
+   "titre": "Exposition plafonnée par clusters corrélés",
+   "domaine": "Gestion des risques",
+   "premiere_preuve_exigee": "invariants des plafonds de risque et scénarios extrêmes",
+   "priorite": "HAUTE",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [
+    "C026"
+   ],
+   "hypothese": "Plafonner l'exposition aux actifs corrélés (même grappe) réduit les baisses sans réduire le rendement net.",
+   "donnees": "Corrélations calculables sur les bougies ; aucune grappe ni plafond.",
+   "verdict": "à mesurer",
+   "note": "le moteur court terme ne limite qu'à une position par crypto",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C075",
+   "titre": "Dimensionnement sous incertitude plafonné",
+   "domaine": "Gestion des risques",
+   "premiere_preuve_exigee": "invariants des plafonds de risque et scénarios extrêmes",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/memecoin_strategies.py",
+     "symbole": "kelly",
+     "lignes": "300-304"
+    },
+    {
+     "fichier": "sentinelle/dmh/memecoin_strategies.py",
+     "symbole": "confidence",
+     "lignes": "320-326"
+    },
+    {
+     "fichier": "sentinelle/costs/benefit.py",
+     "symbole": "net_edge",
+     "lignes": "15-34"
+    }
+   ],
+   "tests": [
+    "tests/test_memecoin_calibrator_kelly.py",
+    "tests/test_costs_engine.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une mise réduite quand l'incertitude est grande réduit les baisses.",
+   "donnees": "Kelly plafonné et confiance (memecoin) ; absent du moteur court terme.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C076",
+   "titre": "Ciblage de volatilité sans levier",
+   "domaine": "Gestion des risques",
+   "premiere_preuve_exigee": "invariants des plafonds de risque et scénarios extrêmes",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/core.py",
+     "symbole": "run",
+     "lignes": "88-144"
+    },
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "positions",
+     "lignes": "176-184"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_core.py",
+    "tests/test_scalp_signaux.py"
+   ],
+   "dependances": [],
+   "hypothese": "Le ciblage de volatilité sans levier réduit la pire baisse à rendement par unité de risque égal ou meilleur.",
+   "donnees": "signaux-v1 : baisse 48 % → 19 % (vote) ; essais multiples #147 : DSR 0,947 seule, 0,975 avec fonds.",
+   "verdict": "avantage historique non démontré",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C077",
+   "titre": "Réduction d'exposition après drawdown",
+   "domaine": "Gestion des risques",
+   "premiere_preuve_exigee": "invariants des plafonds de risque et scénarios extrêmes",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/recherche.py",
+     "symbole": "brake_returns",
+     "lignes": "96-105"
+    },
+    {
+     "fichier": "sentinelle/risk/manager.py",
+     "symbole": "RiskManager.evaluate_entry",
+     "lignes": "130-264"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_recherche.py",
+    "tests/test_risk_agent_backtest.py"
+   ],
+   "dependances": [],
+   "hypothese": "Réduire l'exposition après une baisse de 15 % réduit la pire baisse.",
+   "donnees": "recherche-v1 : frein présent dans la grille, choisi certaines années.",
+   "verdict": "avantage historique non démontré",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C078",
+   "titre": "Stress de liquidité",
+   "domaine": "Gestion des risques",
+   "premiere_preuve_exigee": "invariants des plafonds de risque et scénarios extrêmes",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/costs/measure.py",
+     "symbole": "stress_states",
+     "lignes": "159-195"
+    },
+    {
+     "fichier": "sentinelle/dmh/memecoin_calibrator.py",
+     "symbole": "MemecoinCalibrator",
+     "lignes": "851-1015"
+    }
+   ],
+   "tests": [
+    "tests/test_costs_measure.py",
+    "tests/test_memecoin_calibrator.py"
+   ],
+   "dependances": [
+    "C046"
+   ],
+   "hypothese": "Une liquidité dégradée augmente le coût de sortie au-delà du plafond de risque.",
+   "donnees": "Stress mesurés (coûts) et banc memecoin ; pas de stress de liquidité du moteur court terme.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C079",
+   "titre": "Scénarios de pertes extrêmes",
+   "domaine": "Gestion des risques",
+   "premiere_preuve_exigee": "invariants des plafonds de risque et scénarios extrêmes",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "stability",
+     "lignes": "257-299"
+    },
+    {
+     "fichier": "sentinelle/dmh/memecoin_calibrator.py",
+     "symbole": "MemecoinCalibrator",
+     "lignes": "851-1015"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_signaux.py",
+    "tests/test_paired_crash.py"
+   ],
+   "dependances": [
+    "C067",
+    "C078"
+   ],
+   "hypothese": "Les scénarios extrêmes (krach de 2018, 2022, LUNA, FTT) restent sous le plafond de perte.",
+   "donnees": "Rendement en marché baissier publié (BTC à plus de 30 % sous son plus haut) ; pas de scénarios dédiés au moteur court terme.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C080",
+   "titre": "Réserve minimale de liquidités",
+   "domaine": "Gestion des risques",
+   "premiere_preuve_exigee": "invariants des plafonds de risque et scénarios extrêmes",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/dmh/memecoin_simulator.py",
+     "symbole": "_buy",
+     "lignes": "448-507"
+    },
+    {
+     "fichier": "sentinelle/dmh/memecoin_strategies.py",
+     "symbole": "RiskProfile",
+     "lignes": "224-246"
+    }
+   ],
+   "tests": [
+    "tests/test_memecoin_profiles.py",
+    "tests/test_memecoin_simulator.py"
+   ],
+   "dependances": [],
+   "hypothese": "Une réserve minimale de liquidités n'est jamais entamée.",
+   "donnees": "Réserve par profil memecoin ; le moteur court terme peut être investi à 100 %.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C081",
+   "titre": "Étiquettes et features causales",
+   "domaine": "Apprentissage et orchestration",
+   "premiere_preuve_exigee": "calibration temporelle, robustesse et absence de promotion automatique",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/ai/labeling.py",
+     "symbole": "label_candidates",
+     "lignes": "82-135"
+    },
+    {
+     "fichier": "sentinelle/scalp/barriers.py",
+     "symbole": "simulate",
+     "lignes": "49-80"
+    },
+    {
+     "fichier": "sentinelle/scalp/features.py",
+     "symbole": "compute",
+     "lignes": "42-84"
+    }
+   ],
+   "tests": [
+    "tests/test_ai_core.py",
+    "tests/test_scalp_lab.py",
+    "tests/test_validation_leakage.py"
+   ],
+   "dependances": [],
+   "hypothese": "Étiquettes et caractéristiques n'utilisent que le passé (aucun regard en avant).",
+   "donnees": "Bougies vérifiées.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C082",
+   "titre": "Calibration probabiliste",
+   "domaine": "Apprentissage et orchestration",
+   "premiere_preuve_exigee": "calibration temporelle, robustesse et absence de promotion automatique",
+   "priorite": "HAUTE",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/ai/model.py",
+     "symbole": "MetaModel.fit_calibration",
+     "lignes": "163-169"
+    },
+    {
+     "fichier": "sentinelle/ai/model.py",
+     "symbole": "MetaModel.calibrate",
+     "lignes": "171-173"
+    },
+    {
+     "fichier": "sentinelle/scalp/brain.py",
+     "symbole": "PrincipalAI",
+     "lignes": "33-87"
+    }
+   ],
+   "tests": [
+    "tests/test_holdout_boundary_audit.py",
+    "tests/test_learning.py",
+    "tests/test_scalp_desk.py"
+   ],
+   "dependances": [
+    "C093"
+   ],
+   "hypothese": "Les probabilités calibrées hors échantillon sont fiables (diagramme de fiabilité, Brier).",
+   "donnees": "Calibration de Platt et isotonique ; fiabilité hors échantillon non publiée.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C083",
+   "titre": "Abstention par incertitude",
+   "domaine": "Apprentissage et orchestration",
+   "premiere_preuve_exigee": "calibration temporelle, robustesse et absence de promotion automatique",
+   "priorite": "HAUTE",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/brain.py",
+     "symbole": "PrincipalAI",
+     "lignes": "33-87"
+    },
+    {
+     "fichier": "sentinelle/ai/model.py",
+     "symbole": "MetaModel.predict",
+     "lignes": "182-187"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_desk.py",
+    "tests/test_learning.py"
+   ],
+   "dependances": [
+    "C082"
+   ],
+   "hypothese": "S'abstenir quand l'espérance calibrée ne dépasse pas le coût améliore l'espérance des trades pris.",
+   "donnees": "Marge d'abstention 0,10 R ; l'IA principale fait à peine mieux que le hasard (RESULTATS §10).",
+   "verdict": "avantage historique non démontré",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C084",
+   "titre": "Détection de dérive des données",
+   "domaine": "Apprentissage et orchestration",
+   "premiere_preuve_exigee": "calibration temporelle, robustesse et absence de promotion automatique",
+   "priorite": "HAUTE",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [
+    "C082"
+   ],
+   "hypothese": "Une dérive des données détectée tôt évite d'appliquer un modèle hors de son domaine.",
+   "donnees": "Aucun détecteur (la dérive mesurée dans dmh concerne le prix à l'exécution).",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C085",
+   "titre": "Spécialistes légers par régime",
+   "domaine": "Apprentissage et orchestration",
+   "premiere_preuve_exigee": "calibration temporelle, robustesse et absence de promotion automatique",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [
+    "C021",
+    "C024"
+   ],
+   "hypothese": "Des spécialistes légers par régime battent un modèle unique.",
+   "donnees": "Non implémenté.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C086",
+   "titre": "Déduplication des caractéristiques corrélées",
+   "domaine": "Apprentissage et orchestration",
+   "premiere_preuve_exigee": "calibration temporelle, robustesse et absence de promotion automatique",
+   "priorite": "normale",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [],
+   "hypothese": "Retirer les caractéristiques redondantes stabilise le modèle.",
+   "donnees": "Non implémenté.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C087",
+   "titre": "Ensembles légers et benchmark",
+   "domaine": "Apprentissage et orchestration",
+   "premiere_preuve_exigee": "calibration temporelle, robustesse et absence de promotion automatique",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/brain.py",
+     "symbole": "PrincipalAI",
+     "lignes": "33-87"
+    },
+    {
+     "fichier": "sentinelle/ai/bench.py",
+     "symbole": "run_bench",
+     "lignes": "139-185"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_desk.py",
+    "tests/test_learning.py"
+   ],
+   "dependances": [],
+   "hypothese": "Un ensemble léger bat le meilleur modèle seul et les règles simples.",
+   "donnees": "Banc d'essai synthétique et historique.",
+   "verdict": "avantage historique non démontré",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C088",
+   "titre": "Analyse textuelle du contexte à la demande",
+   "domaine": "Apprentissage et orchestration",
+   "premiere_preuve_exigee": "calibration temporelle, robustesse et absence de promotion automatique",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/news/service.py",
+     "symbole": "OllamaClient",
+     "lignes": "128-154"
+    },
+    {
+     "fichier": "sentinelle/dmh/llm.py",
+     "symbole": "draft_strategy",
+     "lignes": "81-109"
+    },
+    {
+     "fichier": "sentinelle/dmh/llm.py",
+     "symbole": "is_loopback_url",
+     "lignes": "35-40"
+    }
+   ],
+   "tests": [
+    "tests/test_news_telegram.py",
+    "tests/test_dmh_components.py"
+   ],
+   "dependances": [],
+   "hypothese": "L'analyse locale à la demande ajoute un contexte utile sans charger plusieurs modèles lourds.",
+   "donnees": "IA locale (Ollama), un seul modèle chargé.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C089",
+   "titre": "Anomalies de marché et incertitude",
+   "domaine": "Apprentissage et orchestration",
+   "premiere_preuve_exigee": "calibration temporelle, robustesse et absence de promotion automatique",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/risk/shield.py",
+     "symbole": "Shield.check_entry",
+     "lignes": "241-263"
+    },
+    {
+     "fichier": "sentinelle/market/crosscheck.py",
+     "symbole": "CrossChecker.check",
+     "lignes": "53-61"
+    }
+   ],
+   "tests": [
+    "tests/test_realtime.py",
+    "tests/test_new_features.py"
+   ],
+   "dependances": [],
+   "hypothese": "Les anomalies de marché bloquent les entrées pendant l'incertitude.",
+   "donnees": "Relevés en direct.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C090",
+   "titre": "Champion/challenger paper-only",
+   "domaine": "Apprentissage et orchestration",
+   "premiere_preuve_exigee": "calibration temporelle, robustesse et absence de promotion automatique",
+   "priorite": "HAUTE",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/services/champion.py",
+     "symbole": "register_pair",
+     "lignes": "41-76"
+    },
+    {
+     "fichier": "sentinelle/services/champion.py",
+     "symbole": "RegisteredComparison",
+     "lignes": "79-207"
+    },
+    {
+     "fichier": "sentinelle/services/models.py",
+     "symbole": "ModelStore.promote",
+     "lignes": "203-227"
+    }
+   ],
+   "tests": [
+    "tests/test_champion_integration.py",
+    "tests/test_production_evidence.py"
+   ],
+   "dependances": [],
+   "hypothese": "La comparaison champion/challenger préenregistrée reste en simulation, sans promotion automatique.",
+   "donnees": "Prévisions appariées préenregistrées.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C091",
+   "titre": "Univers point-in-time sans biais de survie",
+   "domaine": "Preuves et exploitation",
+   "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/recherche.py",
+     "symbole": "point_in_time_members",
+     "lignes": "231-247"
+    },
+    {
+     "fichier": "sentinelle/scalp/recherche.py",
+     "symbole": "cut_at_break",
+     "lignes": "193-202"
+    },
+    {
+     "fichier": "sentinelle/scalp/recherche.py",
+     "symbole": "published_range",
+     "lignes": "173-190"
+    },
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "members",
+     "lignes": "89-93"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_recherche.py",
+    "tests/test_scalp_signaux.py"
+   ],
+   "dependances": [],
+   "hypothese": "Un univers défini à la date fait disparaître l'avantage des listes choisies après coup.",
+   "donnees": "42 candidates (disparues comprises), LUNA coupée (#145) ; restent : MATIC → POL non relié, liste de candidates dressée en 2026.",
+   "verdict": "utilité technique",
+   "note": "#144 : v10 passe de +0,94 % à +0,28 %/semaine",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C092",
+   "titre": "Registre immuable d'essais et empreintes",
+   "domaine": "Preuves et exploitation",
+   "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "load_bars",
+     "lignes": "52-80"
+    },
+    {
+     "fichier": "sentinelle/scalp/data.py",
+     "symbole": "_fetch_verified",
+     "lignes": "68-96"
+    }
+   ],
+   "tests": [
+    "tests/test_active_time_journal.py",
+    "tests/test_configurable_capital.py"
+   ],
+   "dependances": [],
+   "hypothese": "Le registre des essais et les empreintes rendent chaque résultat rejouable et non modifiable.",
+   "donnees": "trials.jsonl en ajout seul par convention (aucun test ne l'impose) ; empreintes SHA-256 des archives ; gel #54/#55 testé.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C093",
+   "titre": "Validation temporelle purgée avec embargo",
+   "domaine": "Preuves et exploitation",
+   "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/ai/trainer.py",
+     "symbole": "train_walk_forward",
+     "lignes": "156-350"
+    },
+    {
+     "fichier": "sentinelle/scalp/recherche.py",
+     "symbole": "walk_forward",
+     "lignes": "142-160"
+    },
+    {
+     "fichier": "sentinelle/scalp/brain.py",
+     "symbole": "PrincipalAI",
+     "lignes": "33-87"
+    }
+   ],
+   "tests": [
+    "tests/test_learning.py",
+    "tests/test_scalp_recherche.py",
+    "tests/test_validation_leakage.py"
+   ],
+   "dependances": [],
+   "hypothese": "La validation purgée avec embargo empêche toute fuite.",
+   "donnees": "Fenêtres chronologiques purgées ; embargo d'un jour.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C094",
+   "titre": "Correction des essais multiples",
+   "domaine": "Preuves et exploitation",
+   "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
+   "priorite": "HAUTE",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/essais.py",
+     "symbole": "holm",
+     "lignes": "74-83"
+    },
+    {
+     "fichier": "sentinelle/scalp/essais.py",
+     "symbole": "benjamini_hochberg",
+     "lignes": "86-96"
+    },
+    {
+     "fichier": "sentinelle/scalp/essais.py",
+     "symbole": "deflated_sharpe",
+     "lignes": "123-130"
+    },
+    {
+     "fichier": "sentinelle/scalp/essais.py",
+     "symbole": "bootstrap_pvalue",
+     "lignes": "61-71"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_essais.py"
+   ],
+   "dependances": [
+    "C096"
+   ],
+   "hypothese": "Après correction des essais multiples, l'avantage apparent disparaît-il ?",
+   "donnees": "#147 : aucune des 11 familles significative à 5 % (Holm, BH) ; DSR publiés.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C095",
+   "titre": "Tests d'ablation par capacité",
+   "domaine": "Preuves et exploitation",
+   "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "run",
+     "lignes": "386-461"
+    },
+    {
+     "fichier": "sentinelle/scalp/moteur.py",
+     "symbole": "unify",
+     "lignes": "177-211"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_signaux.py",
+    "tests/test_scalp_moteur.py"
+   ],
+   "dependances": [
+    "C094",
+    "C096"
+   ],
+   "hypothese": "Chaque capacité se compare avec et sans elle, à capital, univers, période et coûts identiques.",
+   "donnees": "Comparaisons ponctuelles (filtre de l'élan, transferts entre poches) ; aucun outil d'ablation générique.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C096",
+   "titre": "IC robustes avec dépendance temporelle",
+   "domaine": "Preuves et exploitation",
+   "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
+   "priorite": "normale",
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "edge",
+     "lignes": "216-232"
+    },
+    {
+     "fichier": "sentinelle/scalp/essais.py",
+     "symbole": "bootstrap_pvalue",
+     "lignes": "61-71"
+    },
+    {
+     "fichier": "sentinelle/costs/stats.py",
+     "symbole": "cluster_bootstrap",
+     "lignes": "11-28"
+    },
+    {
+     "fichier": "sentinelle/ai/metrics.py",
+     "symbole": "lower_bound",
+     "lignes": "66-70"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_signaux.py",
+    "tests/test_scalp_essais.py",
+    "tests/test_costs_measure.py"
+   ],
+   "dependances": [],
+   "hypothese": "Les intervalles par blocs tiennent compte de la dépendance temporelle.",
+   "donnees": "Blocs circulaires de 20 jours ; grappes de dates.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C097",
+   "titre": "Stress frais/spread/glissement",
+   "domaine": "Preuves et exploitation",
+   "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "run",
+     "lignes": "386-461"
+    },
+    {
+     "fichier": "sentinelle/scalp/reserve.py",
+     "symbole": "sensitivity",
+     "lignes": "76-82"
+    },
+    {
+     "fichier": "sentinelle/costs/measure.py",
+     "symbole": "stress_states",
+     "lignes": "159-195"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_signaux.py",
+    "tests/test_scalp_reserve.py",
+    "tests/test_costs_measure.py"
+   ],
+   "dependances": [
+    "C041",
+    "C061"
+   ],
+   "hypothese": "Le classement des stratégies résiste au doublement des frais, de l'écart et du glissement.",
+   "donnees": "Stress à 0,25 % par côté publié ; pas de grille de stress générique.",
+   "verdict": "utilité technique",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C098",
+   "titre": "Faisabilité avec capital fictif de 30 € et produits UE",
+   "domaine": "Preuves et exploitation",
+   "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
+   "priorite": "normale",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/costs/inventory.py",
+     "symbole": "round_trip",
+     "lignes": "47-66"
+    },
+    {
+     "fichier": "sentinelle/dmh/ledger.py",
+     "symbole": "Ledger",
+     "lignes": "159-588"
+    }
+   ],
+   "tests": [
+    "tests/test_principal_eur30.py",
+    "tests/test_costs_engine.py"
+   ],
+   "dependances": [
+    "C062"
+   ],
+   "hypothese": "Avec 30 € fictifs, les minima d'ordre et les frais fixes rendent la stratégie faisable ou non ; idem avec des fonds UCITS.",
+   "donnees": "Portefeuille de 30 € et minima pour le hub ; aucun équivalent UCITS testé.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C099",
+   "titre": "Écart entre simulation et cotation accessible",
+   "domaine": "Preuves et exploitation",
+   "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
+   "priorite": "HAUTE",
+   "statut": "PARTIELLE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/costs/measure.py",
+     "symbole": "bar_touch_optimism",
+     "lignes": "224-254"
+    },
+    {
+     "fichier": "sentinelle/scalp/reserve.py",
+     "symbole": "measured_slippage",
+     "lignes": "62-66"
+    }
+   ],
+   "tests": [
+    "tests/test_costs_measure.py",
+    "tests/test_scalp_reserve.py"
+   ],
+   "dependances": [
+    "C041"
+   ],
+   "hypothese": "Le prix simulé (ouverture de la bougie) s'écarte du prix accessible au carnet d'un montant mesurable.",
+   "donnees": "Un seul instantané de carnet (23 novembre 2026) ; optimisme des contacts de bougie mesuré pour le plan de coûts.",
+   "verdict": "à mesurer",
+   "note": "",
+   "integration_decision": "aucune sans approbation humaine"
+  },
+  {
+   "id": "C100",
+   "titre": "Observation prospective figée sur 52 semaines",
+   "domaine": "Preuves et exploitation",
+   "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
+   "priorite": "HAUTE",
+   "statut": "ABSENTE",
+   "preuves": [],
+   "tests": [],
+   "dependances": [
+    "C092",
+    "C095"
+   ],
+   "hypothese": "Une configuration figée garde son avantage sur 52 semaines d'observation fictive.",
+   "donnees": "Exige l'autorisation du propriétaire ; aucune observation démarrée.",
+   "verdict": "non évaluable",
+   "note": "décision du propriétaire",
+   "integration_decision": "aucune sans approbation humaine"
+  }
+ ],
+ "baseline": {
+  "main": "e7be7af8f05c558dd2a46170dbb6975a25ccfc81",
+  "modules_sha256": {
+   "sentinelle/scalp/signaux.py": "caf7696771a622241f355fd5a624c085464511ed6a75d71f9e37353ac1792412",
+   "sentinelle/scalp/moteur.py": "2c6c060cbc978700aff616c6c7b5381630a25ede8fbd125c587d96fa4751c191",
+   "sentinelle/scalp/core.py": "b2485ba64e2fcb4024b8cd3e8ab99bedc9e085e36bf0b8d003e6f38ac5c4f4de",
+   "sentinelle/scalp/data.py": "220f6b58771259c5d9cf6c6fcd97266d7d412aae940421de61c6619c3a2afd83",
+   "sentinelle/scalp/actifs.py": "c31ada257b484e5420e051d373bb443380f661db60d6b3213681c8827958ec99",
+   "sentinelle/scalp/recherche.py": "2802f4786e48bf2c7fbbcac9de9943d95df25a95b22eb1bde3c5f16aed25dfd5"
+  },
+  "references": [
+   {
+    "nom": "B0 — momentum simple F1 (référence des capacités techniques)",
+    "rendement_hebdo_geometrique_net_pct": 0.5335,
+    "rendement_annuel_net_pct": 32.0,
+    "pire_baisse_pct": 59.99,
+    "semaines_positives": 205,
+    "semaines": 464,
+    "couts_par_cote": 0.00125,
+    "transactions": "NON MESURÉ (non publié par signaux-v1)",
+    "tests": [
+     "tests/test_scalp_signaux.py"
+    ],
+    "provenance": {
+     "fichier": "research/scalp-v1/signaux-v1.json",
+     "sha256": "e8e75b1e76adaa2934199ca0958e4a317b107cd6a32f64520f33407c4e9a5ec6",
+     "periode": "2018-01-01 → 2026-11-22 (historique consulté)"
+    }
+   },
+   {
+    "nom": "B1 — vote 2 sur 3, volatilité visée 30 %, avec fonds 35/65 (seul DSR probable, #147)",
+    "rendement_hebdo_geometrique_net_pct": 0.2037,
+    "rendement_annuel_net_pct": 11.2,
+    "pire_baisse_pct": 12.88,
+    "semaines_positives": 274,
+    "semaines": 464,
+    "couts_par_cote": 0.00125,
+    "transactions": 2232,
+    "tests": [
+     "tests/test_scalp_signaux.py",
+     "tests/test_scalp_essais.py"
+    ],
+    "provenance": {
+     "fichier": "research/scalp-v1/signaux-v1.json",
+     "sha256": "e8e75b1e76adaa2934199ca0958e4a317b107cd6a32f64520f33407c4e9a5ec6",
+     "periode": "2018-01-01 → 2026-11-22 (historique consulté)"
+    }
+   },
+   {
+    "nom": "B2 — moteur unique U1 sur main (#143)",
+    "rendement_hebdo_geometrique_net_pct": 0.197,
+    "rendement_annuel_net_pct": 10.82,
+    "pire_baisse_pct": 21.01,
+    "semaines_positives": 251,
+    "semaines": 464,
+    "couts_par_cote": "crypto 0,075 % + glissement mesuré ; fonds 0,10 %",
+    "transactions": {
+     "transferts_entre_poches": 355,
+     "ordres_poche_crypto": 1998
+    },
+    "tests": [
+     "tests/test_scalp_moteur.py"
+    ],
+    "provenance": {
+     "fichier": "research/scalp-v1/moteur-unique-2018-2026.json",
+     "sha256": "c118f3d27cdafbf8b5c2400b235d30b3d379dcb902053dfcd51a3f6287e83699",
+     "periode": "2018-01-01 → 2026-11-22 (historique consulté)"
+    }
+   }
+  ],
+  "resultats_negatifs_conserves": [
+   "#140 test réservé −6,95 % « non confirmé »",
+   "#146 verdict négatif (aucune stratégie à +1,30 %/semaine)",
+   "#147 aucune famille significative à 5 % après correction"
+  ],
+  "note": "aucune date d'achèvement des 100 capacités n'est fixée ; aucune période historique aveugle ne reste"
+ }
+}
