@@ -59,15 +59,20 @@ def daily_table(minutes_by_symbol: dict) -> tuple[pd.DataFrame, pd.DataFrame, pd
     return pd.DataFrame(opens), pd.DataFrame(closes), pd.DataFrame(lows)
 
 
-def signals(closes: pd.DataFrame, rules: CoreRules = CoreRules()) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Rang d'élan des cryptos éligibles (NaN sinon) et volatilité annuelle, connus au jour d (clôtures jusqu'à d − 1)."""
+def signals(closes: pd.DataFrame, rules: CoreRules = CoreRules(),
+            members: pd.DataFrame | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Rang d'élan des cryptos éligibles (NaN sinon) et volatilité annuelle, connus au jour d (clôtures jusqu'à d − 1).
+
+    « members » (facultatif) : univers défini à la date (vrai si la crypto en fait partie à la clôture du jour) ; hors de
+    l'univers, une crypto n'est pas classée (donc ni achetée ni gardée). Le filtre de marché n'en dépend pas."""
     ema = closes.ewm(span=rules.ema_days, adjust=False, min_periods=rules.ema_days).mean()
     eligible = (closes > ema) & (ema > ema.shift(1))
     if rules.trend_days:
         slow = closes.ewm(span=rules.trend_days, adjust=False, min_periods=rules.trend_days).mean()
         eligible &= closes > slow
     momentum = closes / closes.shift(rules.lookback_days) - 1
-    rank = momentum.where(eligible).rank(axis=1, ascending=False, method="first")
+    ranked = eligible if members is None else eligible & members.reindex(index=eligible.index, columns=eligible.columns, fill_value=False).astype(bool)
+    rank = momentum.where(ranked).rank(axis=1, ascending=False, method="first")
     if rules.market_filter:
         rank = rank.mul(eligible[rules.market_filter].astype(float).replace(0.0, np.nan), axis=0)
     vol = np.log(closes).diff().rolling(rules.vol_days).std() * np.sqrt(365)
@@ -81,9 +86,9 @@ def targets(closes: pd.DataFrame, rules: CoreRules = CoreRules()) -> pd.DataFram
 
 
 def run(opens: pd.DataFrame, closes: pd.DataFrame, start_ms: int, end_ms: int, capital: float,
-        rules: CoreRules = CoreRules(), lows: pd.DataFrame | None = None) -> dict:
+        rules: CoreRules = CoreRules(), lows: pd.DataFrame | None = None, members: pd.DataFrame | None = None) -> dict:
     side_cost = rules.fee_per_side + rules.slippage_per_side
-    rank, vol = signals(closes, rules)
+    rank, vol = signals(closes, rules, members)
     keep_limit = rules.keep_rank or rules.top
     days = [d for d in closes.index if start_ms // DAY_MS <= d < -(-end_ms // DAY_MS)]
     cash, units, trades, curve, peak, blocked = capital, {}, [], [], {}, {}
