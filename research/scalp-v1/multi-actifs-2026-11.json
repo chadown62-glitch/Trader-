@@ -1,0 +1,612 @@
+{
+ "schema": "scalp-multi-actifs-v1",
+ "status": "simulation ; règles publiées fixées avant mesure ; non validé en direct",
+ "etf_rules": "Faber 2007 : G1 (chaque fonds au-dessus de sa moyenne de 10 mois, 1/8), G2 (3 meilleurs en tendance, 1/3) ; exécution le jour de bourse suivant la fin de mois ; 0,10 % par côté ; liquidités à 0 %",
+ "etf_data": {
+  "source": "Yahoo Finance, historique journalier ajusté des dividendes",
+  "manifests": {
+   "DBC.sha256": "a18aa37a0767bacaefe78e6d6fb8619ad5da25f8853f487fe97aa11df467ad20  DBC.json  téléchargé 2026-11-23T21:01:40Z",
+   "EEM.sha256": "ea504cd7f6eb7aecd643509f8be03396602ddd7dec8a34de50c2b0ac5365d06e  EEM.json  téléchargé 2026-11-23T21:01:38Z",
+   "EFA.sha256": "ef73297bfe2bbf54162bca447817cf47f43433fdc67dcdc05d77b3be7de7012e  EFA.json  téléchargé 2026-11-23T21:01:37Z",
+   "GLD.sha256": "6487f4dabb74712a8ac8ccdf28a148d13503402dbdffb39d99fc286a6bb8b1fc  GLD.json  téléchargé 2026-11-23T21:01:39Z",
+   "IEF.sha256": "f324122c19d3132efd68efa0773935aeb7866a35b270f17f70cbb6a95fdf01fb  IEF.json  téléchargé 2026-11-23T21:01:38Z",
+   "SPY.sha256": "81192a7d00b6cd39b556e3a5714af2f2140a2d116059f1359b05be35310094d8  SPY.json  téléchargé 2026-11-23T21:01:37Z",
+   "TLT.sha256": "8e8ff3957dded62bd02d8e46dd76d172c47b3237cf3e92d040f6288e5b88d5d7  TLT.json  téléchargé 2026-11-23T21:01:39Z",
+   "VNQ.sha256": "99fe92d25795526d1a52cc7df6206bbc36dd2e177514a85bdb48738e16631358  VNQ.json  téléchargé 2026-11-23T21:01:40Z"
+  }
+ },
+ "etf_periods": {
+  "2007-01-01→2026-11-20": {
+   "G1": {
+    "return_pct": 127.78234259473074,
+    "annual_pct": 4.227981507188239,
+    "max_drawdown_pct": 12.115042443415824,
+    "turnover": 63.51632195765631
+   },
+   "G2": {
+    "return_pct": 437.6045397675961,
+    "annual_pct": 8.828957327831244,
+    "max_drawdown_pct": 27.116733906102596,
+    "turnover": 236.7025369187904
+   },
+   "SPY": {
+    "return_pct": 598.7455245071262,
+    "annual_pct": 10.273655394958126,
+    "max_drawdown_pct": 55.18943418645564
+   },
+   "60/40": {
+    "return_pct": 348.7241671176679,
+    "annual_pct": 7.844131011764288,
+    "max_drawdown_pct": 32.20545356549176
+   },
+   "8 fonds égaux": {
+    "return_pct": 223.1010304955105,
+    "annual_pct": 6.07700294328779,
+    "max_drawdown_pct": 37.48247682882677
+   }
+  },
+  "2024-09-01→2026-11-20": {
+   "G1": {
+    "return_pct": 17.838429650757416,
+    "annual_pct": 7.702230962888934,
+    "max_drawdown_pct": 6.253915862806203,
+    "turnover": 5.063209038720702
+   },
+   "G2": {
+    "return_pct": 37.31647120669233,
+    "annual_pct": 15.413450684637153,
+    "max_drawdown_pct": 12.98355733039137,
+    "turnover": 13.611587940518305
+   },
+   "SPY": {
+    "return_pct": 28.098792195195422,
+    "annual_pct": 11.844564087805809,
+    "max_drawdown_pct": 18.75522908467665
+   },
+   "60/40": {
+    "return_pct": 17.585587896196863,
+    "annual_pct": 7.597705782054209,
+    "max_drawdown_pct": 10.577299628153703
+   },
+   "8 fonds égaux": {
+    "return_pct": 22.079165670666455,
+    "annual_pct": 9.437364962739858,
+    "max_drawdown_pct": 9.864513625904891
+   }
+  },
+  "2007-01-01→2009-12-31": {
+   "G1": {
+    "return_pct": 26.331018484358992,
+    "annual_pct": 8.123924160652995,
+    "max_drawdown_pct": 12.115042443415824,
+    "turnover": 5.781980428017104
+   },
+   "G2": {
+    "return_pct": 43.15136357466034,
+    "annual_pct": 12.735966069391736,
+    "max_drawdown_pct": 27.116733906102596,
+    "turnover": 17.528431172434768
+   },
+   "SPY": {
+    "return_pct": -15.963375889127118,
+    "annual_pct": -5.646172979974184,
+    "max_drawdown_pct": 55.18943418645564
+   },
+   "60/40": {
+    "return_pct": -0.06781058056956057,
+    "annual_pct": -0.022665515110820156,
+    "max_drawdown_pct": 32.20545356549176
+   },
+   "8 fonds égaux": {
+    "return_pct": 11.913741090485663,
+    "annual_pct": 3.8330158371802536,
+    "max_drawdown_pct": 37.48247682882677
+   }
+  },
+  "2022-01-01→2022-12-31": {
+   "G1": {
+    "return_pct": -5.316411443584112,
+    "annual_pct": -5.37728715008633,
+    "max_drawdown_pct": 6.333562664435388,
+    "turnover": 2.753155029246752
+   },
+   "G2": {
+    "return_pct": -8.88623869947317,
+    "annual_pct": -8.986008040198247,
+    "max_drawdown_pct": 13.497557127529147,
+    "turnover": 4.040860823311325
+   },
+   "SPY": {
+    "return_pct": -18.73228025901028,
+    "annual_pct": -18.93048909008114,
+    "max_drawdown_pct": 24.576105402008096
+   },
+   "60/40": {
+    "return_pct": -16.692207306592376,
+    "annual_pct": -16.871131118366456,
+    "max_drawdown_pct": 20.95223099886191
+   },
+   "8 fonds égaux": {
+    "return_pct": -13.466848035849955,
+    "annual_pct": -13.614076136829844,
+    "max_drawdown_pct": 19.773419118070358
+   }
+  }
+ },
+ "portfolio": {
+  "from": "2024-09-01",
+  "to": "2026-11-20",
+  "splits": [
+   [
+    0.2,
+    0.8
+   ],
+   [
+    0.35,
+    0.65
+   ],
+   [
+    0.5,
+    0.5
+   ]
+  ],
+  "rows": {
+   "crypto": {
+    "return_pct": 38.79004324936191,
+    "annual_pct": 15.90813028588045,
+    "max_drawdown_pct": 15.999277062538042,
+    "mean_week_pct": 0.32236850144469614,
+    "positive_weeks": 29,
+    "negative_weeks": 43,
+    "flat_weeks": 45,
+    "weeks": 117,
+    "worst_week_pct": -4.456971655012831,
+    "positive_months": 11,
+    "n_months": 27
+   },
+   "G1": {
+    "return_pct": 17.838429650757416,
+    "annual_pct": 7.672673301903243,
+    "max_drawdown_pct": 6.253915862806203,
+    "mean_week_pct": 0.14558089329511173,
+    "positive_weeks": 67,
+    "negative_weeks": 49,
+    "flat_weeks": 1,
+    "weeks": 117,
+    "worst_week_pct": -3.1333123244511984,
+    "positive_months": 20,
+    "n_months": 27
+   },
+   "G2": {
+    "return_pct": 37.31647120669233,
+    "annual_pct": 15.352266164588313,
+    "max_drawdown_pct": 12.98355733039137,
+    "mean_week_pct": 0.29079443957579687,
+    "positive_weeks": 72,
+    "negative_weeks": 44,
+    "flat_weeks": 1,
+    "weeks": 117,
+    "worst_week_pct": -7.0600489453212845,
+    "positive_months": 20,
+    "n_months": 27
+   },
+   "crypto 20% + G1 80%": {
+    "return_pct": 22.028752370478323,
+    "annual_pct": 9.38051415925074,
+    "max_drawdown_pct": 7.2693417312378,
+    "mean_week_pct": 0.1762657718892373,
+    "positive_weeks": 65,
+    "negative_weeks": 51,
+    "flat_weeks": 1,
+    "weeks": 117,
+    "worst_week_pct": -2.4379506716350807,
+    "positive_months": 20,
+    "n_months": 27
+   },
+   "crypto 35% + G1 65%": {
+    "return_pct": 25.171494410269002,
+    "annual_pct": 10.640343481206038,
+    "max_drawdown_pct": 8.311068450347502,
+    "mean_week_pct": 0.20115003680885177,
+    "positive_weeks": 63,
+    "negative_weeks": 53,
+    "flat_weeks": 1,
+    "weeks": 117,
+    "worst_week_pct": -2.2608872121040013,
+    "positive_months": 17,
+    "n_months": 27
+   },
+   "crypto 50% + G1 50%": {
+    "return_pct": 28.31423645005966,
+    "annual_pct": 11.88290448110736,
+    "max_drawdown_pct": 9.280282005294705,
+    "mean_week_pct": 0.22738106297265168,
+    "positive_weeks": 58,
+    "negative_weeks": 58,
+    "flat_weeks": 1,
+    "weeks": 117,
+    "worst_week_pct": -2.6515725985699956,
+    "positive_months": 16,
+    "n_months": 27
+   },
+   "crypto 20% + G2 80%": {
+    "return_pct": 37.61118561522625,
+    "annual_pct": 15.46370031049442,
+    "max_drawdown_pct": 11.750945439062743,
+    "mean_week_pct": 0.28867375065446715,
+    "positive_weeks": 70,
+    "negative_weeks": 46,
+    "flat_weeks": 1,
+    "weeks": 117,
+    "worst_week_pct": -5.7173643800726985,
+    "positive_months": 19,
+    "n_months": 27
+   },
+   "crypto 35% + G2 65%": {
+    "return_pct": 37.83222142162668,
+    "annual_pct": 15.547189866026102,
+    "max_drawdown_pct": 11.24770399165602,
+    "mean_week_pct": 0.28989110719837086,
+    "positive_weeks": 69,
+    "negative_weeks": 47,
+    "flat_weeks": 1,
+    "weeks": 117,
+    "worst_week_pct": -4.688519466388586,
+    "positive_months": 18,
+    "n_months": 27
+   },
+   "crypto 50% + G2 50%": {
+    "return_pct": 38.05325722802713,
+    "annual_pct": 15.630605864664737,
+    "max_drawdown_pct": 11.390146140733059,
+    "mean_week_pct": 0.2934676029829628,
+    "positive_weeks": 67,
+    "negative_weeks": 49,
+    "flat_weeks": 1,
+    "weeks": 117,
+    "worst_week_pct": -3.640376867729389,
+    "positive_months": 17,
+    "n_months": 27
+   }
+  },
+  "months": {
+   "crypto": [
+    {
+     "month": "2024-09",
+     "pct": 0.05462481817894993
+    },
+    {
+     "month": "2024-10",
+     "pct": -1.2337525697688756
+    },
+    {
+     "month": "2024-11",
+     "pct": 24.07163285062328
+    },
+    {
+     "month": "2024-12",
+     "pct": -0.45158518658728886
+    },
+    {
+     "month": "2025-01",
+     "pct": -1.3710669476822868
+    },
+    {
+     "month": "2025-02",
+     "pct": -3.354327169058635
+    },
+    {
+     "month": "2025-03",
+     "pct": 0.0
+    },
+    {
+     "month": "2025-04",
+     "pct": 2.2940102515939476
+    },
+    {
+     "month": "2025-05",
+     "pct": 3.760826104690862
+    },
+    {
+     "month": "2025-06",
+     "pct": -1.0003730900038588
+    },
+    {
+     "month": "2025-07",
+     "pct": 12.263420058431752
+    },
+    {
+     "month": "2025-08",
+     "pct": 4.8613920301759705
+    },
+    {
+     "month": "2025-09",
+     "pct": 0.7577591584652765
+    },
+    {
+     "month": "2025-10",
+     "pct": 0.0441590267470815
+    },
+    {
+     "month": "2025-11",
+     "pct": 0.0
+    },
+    {
+     "month": "2025-12",
+     "pct": 0.0
+    },
+    {
+     "month": "2026-01",
+     "pct": -8.682579832139448
+    },
+    {
+     "month": "2026-02",
+     "pct": 0.0
+    },
+    {
+     "month": "2026-03",
+     "pct": -1.7099368840783224
+    },
+    {
+     "month": "2026-04",
+     "pct": 1.2201520497494345
+    },
+    {
+     "month": "2026-05",
+     "pct": 1.1101524771554905
+    },
+    {
+     "month": "2026-06",
+     "pct": 0.0
+    },
+    {
+     "month": "2026-07",
+     "pct": -2.8296077281581455
+    },
+    {
+     "month": "2026-08",
+     "pct": 18.451962086029905
+    },
+    {
+     "month": "2026-09",
+     "pct": -4.027120647594307
+    },
+    {
+     "month": "2026-10",
+     "pct": -3.066032387423301
+    },
+    {
+     "month": "2026-11",
+     "pct": -2.736037504022115
+    }
+   ],
+   "G2": [
+    {
+     "month": "2024-09",
+     "pct": 4.27163889389095
+    },
+    {
+     "month": "2024-10",
+     "pct": 0.004191667561936896
+    },
+    {
+     "month": "2024-11",
+     "pct": 2.368626096148563
+    },
+    {
+     "month": "2024-12",
+     "pct": -4.071548256521962
+    },
+    {
+     "month": "2025-01",
+     "pct": 3.71708816889309
+    },
+    {
+     "month": "2025-02",
+     "pct": 1.438352853672531
+    },
+    {
+     "month": "2025-03",
+     "pct": 1.3187787375086302
+    },
+    {
+     "month": "2025-04",
+     "pct": 0.1852091897167396
+    },
+    {
+     "month": "2025-05",
+     "pct": 1.3538527976051817
+    },
+    {
+     "month": "2025-06",
+     "pct": 2.8795080556448527
+    },
+    {
+     "month": "2025-07",
+     "pct": -0.6918029572639872
+    },
+    {
+     "month": "2025-08",
+     "pct": 3.6451068098555917
+    },
+    {
+     "month": "2025-09",
+     "pct": 6.956923933618997
+    },
+    {
+     "month": "2025-10",
+     "pct": 3.260292701848777
+    },
+    {
+     "month": "2025-11",
+     "pct": 1.2682648109425765
+    },
+    {
+     "month": "2025-12",
+     "pct": 2.303153793405621
+    },
+    {
+     "month": "2026-01",
+     "pct": 8.420434100994111
+    },
+    {
+     "month": "2026-02",
+     "pct": 6.415909033326916
+    },
+    {
+     "month": "2026-03",
+     "pct": -9.293064323277722
+    },
+    {
+     "month": "2026-04",
+     "pct": 7.022223184263865
+    },
+    {
+     "month": "2026-05",
+     "pct": 2.1916387685165573
+    },
+    {
+     "month": "2026-06",
+     "pct": -3.4470997096078038
+    },
+    {
+     "month": "2026-07",
+     "pct": -1.635884428523704
+    },
+    {
+     "month": "2026-08",
+     "pct": 5.342614912599908
+    },
+    {
+     "month": "2026-09",
+     "pct": 0.7539318644098403
+    },
+    {
+     "month": "2026-10",
+     "pct": -1.861385800214288
+    },
+    {
+     "month": "2026-11",
+     "pct": -9.694415116443967
+    }
+   ],
+   "crypto 35% + G2 65%": [
+    {
+     "month": "2024-09",
+     "pct": 2.79568396739176
+    },
+    {
+     "month": "2024-10",
+     "pct": -0.41753533984765223
+    },
+    {
+     "month": "2024-11",
+     "pct": 9.701528749903265
+    },
+    {
+     "month": "2024-12",
+     "pct": -2.6882368051662997
+    },
+    {
+     "month": "2025-01",
+     "pct": 1.7280405430612822
+    },
+    {
+     "month": "2025-02",
+     "pct": -0.3781117100511544
+    },
+    {
+     "month": "2025-03",
+     "pct": 0.8338833242026
+    },
+    {
+     "month": "2025-04",
+     "pct": 0.9541718615525108
+    },
+    {
+     "month": "2025-05",
+     "pct": 2.2431908083587304
+    },
+    {
+     "month": "2025-06",
+     "pct": 1.4246754404192208
+    },
+    {
+     "month": "2025-07",
+     "pct": 4.049846364117982
+    },
+    {
+     "month": "2025-08",
+     "pct": 4.125411461867223
+    },
+    {
+     "month": "2025-09",
+     "pct": 4.49160317941415
+    },
+    {
+     "month": "2025-10",
+     "pct": 2.0269849793112416
+    },
+    {
+     "month": "2025-11",
+     "pct": 0.7913684733506621
+    },
+    {
+     "month": "2025-12",
+     "pct": 1.4439154647532204
+    },
+    {
+     "month": "2026-01",
+     "pct": 2.1306266779894
+    },
+    {
+     "month": "2026-02",
+     "pct": 4.306209854586607
+    },
+    {
+     "month": "2026-03",
+     "pct": -6.902499493471526
+    },
+    {
+     "month": "2026-04",
+     "pct": 5.0911140724944515
+    },
+    {
+     "month": "2026-05",
+     "pct": 1.844945210402793
+    },
+    {
+     "month": "2026-06",
+     "pct": -2.3500308553843885
+    },
+    {
+     "month": "2026-07",
+     "pct": -2.024939965123773
+    },
+    {
+     "month": "2026-08",
+     "pct": 9.580092479369906
+    },
+    {
+     "month": "2026-09",
+     "pct": -0.9166218991482733
+    },
+    {
+     "month": "2026-10",
+     "pct": -2.269089185726836
+    },
+    {
+     "month": "2026-11",
+     "pct": -7.358609495319158
+    }
+   ]
+  }
+ },
+ "warnings": [
+  "la poche crypto inclut la période réservée (septembre à novembre 2026), où elle a perdu −6,95 % ; ses règles sont figées",
+  "les fonds américains (SPY, EFA…) ne sont pas achetables tels quels par un particulier en Europe : il faudrait leurs équivalents UCITS, aux résultats proches mais pas identiques",
+  "les fonds et la crypto sont en dollars : un investisseur en euros porte aussi le risque de change euro/dollar, non compté ici",
+  "trois répartitions et deux règles publiées côte à côte ; aucune n'est retenue après coup",
+  "liquidités rémunérées à 0 % (prudent) ; les impôts ne sont pas comptés"
+ ]
+}
