@@ -247,8 +247,9 @@ def point_in_time_members(quote: pd.DataFrame, n: int = TOP_N) -> pd.DataFrame:
     return members
 
 
-def survie(cache_dir, client, configs, R, days, switch) -> dict:
-    """a) sélection limitée aux réglages BTC + ETH ; b) univers des 8 cryptos les plus échangées à la date."""
+def survie(cache_dir, client, configs, R, days, switch, keep_series: dict | None = None) -> dict:
+    """a) sélection limitée aux réglages BTC + ETH ; b) univers des 8 cryptos les plus échangées à la date.
+    « keep_series » (facultatif) reçoit les séries calculées, pour les contrôles statistiques (essais multiples)."""
     out = {"a_btc_eth": {}, "b_univers_a_la_date": {}}
     sub = [k for k, c in enumerate(configs) if c["universe"] == "BTC + ETH"]
     for rule in ("R1", "R2"):
@@ -298,6 +299,10 @@ def survie(cache_dir, client, configs, R, days, switch) -> dict:
             s["choisis"] = {y: label(pit_configs[v["index"]]["universe"], pit_configs[v["index"]]["rules"],
                                      pit_configs[v["index"]]["mix"], pit_configs[v["index"]]["brake"]) for y, v in res["chosen"].items()}
             out["b_univers_a_la_date"][f"{rule}, fenêtre {window}"] = s
+            if keep_series is not None:
+                keep_series.setdefault("oos", {})[f"{rule}, fenêtre {window}"] = res
+    if keep_series is not None:
+        keep_series.update(P=P, days=pdays, configs=pit_configs)
     v10 = next(k for k, c in enumerate(pit_configs) if c["mix"] == 1.0 and c["brake"] is None
                and asdict(c["rules"]) == asdict(replace(V10, slippage_per_side=PIT_SLIPPAGE)))
     oos = pdays >= moteur._day("2020-01-01")
