@@ -649,8 +649,11 @@ def coverage_of(item: dict, runs: dict) -> dict:
 def measure_execution(registry: dict, workers: int = 4) -> dict:
     """Rejoue chaque fichier de test cité sous traceur et qualifie la couverture effective de chaque capacité."""
     tests = sorted({t for i in registry["capacites"] for t in i["tests"]})
+    runs = {}
     with ThreadPoolExecutor(workers) as pool:
-        runs = dict(zip(tests, pool.map(trace, tests)))
+        for t, r in zip(tests, pool.map(trace, tests)):
+            runs[t] = r
+            print(f"{t} : code pytest {r['code_pytest']}, {r['secondes']} s", flush=True)
     for i in registry["capacites"]:
         i["couverture_effective"] = coverage_of(i, runs)
     levels = {n: sum(i["couverture_effective"]["niveau"] == n for i in registry["capacites"]) for n in NIVEAUX}
