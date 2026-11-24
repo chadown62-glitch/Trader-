@@ -292,6 +292,21 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
   - **Actualités à faible délai.** Un agent de veille interroge des sources publiques : annonces de cotation et de retrait de Binance, déclarations officielles des entreprises cotées (formulaires 8-K de la SEC), communiqués de la Réserve fédérale et fils de presse. Chaque dépêche est conservée avec son heure de publication et son heure de réception, et le délai entre les deux est mesuré. Les dépêches graves servent d'abord d'alerte et de veto ; leur effet sur les prix ne sera mesuré que sur l'archive ainsi constituée.
   - **Répartition entre poches.** La part de chaque poche (crypto, actions et fonds) est fixée avant mesure. Plusieurs parts sont publiées côte à côte, sans en retenir une après coup.
   - **Garde-fous inchangés.** Aucun ordre réel, aucun levier, aucune vente à découvert, aucun service permanent lancé sans le propriétaire. La date du 15 décembre 2026 évoquée par le propriétaire pour engager de l'argent réel ne modifie ni ces garde-fous ni les critères préenregistrés avant toute décision d'argent réel.
+- **Décision du propriétaire (24 novembre 2026) : moteur unique.** Le propriétaire demande un seul moteur et un seul portefeuille pour les memecoins, les cryptos et les actions, les marchés étant choisis par lui. Il veut gagner en année haussière comme en année baissière, et vise environ 1,30 % par semaine. Il demande de ne plus multiplier les missions ni les PR. Le moteur est livré dans une seule PR, en simulation exclusive :
+  - **Poches réutilisées sans réglage nouveau.** La poche crypto réunit les cryptos et memecoins choisis, aux règles figées de la position de fond (`frozen-system-v1`). La poche actions applique la règle G2 de Faber aux 8 fonds indiciels déjà publiés.
+  - **Portefeuille unique.** Les parts de base sont fixées avant mesure (crypto 35 %, actions 65 %). Une poche sans position cède sa part aux poches investies, pour que le capital ne dorme pas. Les règles sont consignées dans `research/scalp-v1/trials.jsonl` avant tout calcul.
+  - **Baisses.** La vente à découvert reste interdite (CLAUDE.md). En baisse, le moteur sort vers les obligations, l'or, les matières premières ou les liquidités. L'actualité sert de veto d'entrée.
+  - **Objectif hebdomadaire.** Les 1,30 % par semaine ne sont ni un paramètre ni un critère : la part des semaines qui les atteignent est seulement publiée.
+  - **Mesure unique.** Elle porte sur la période de 2018 à novembre 2026, avec chaque année publiée. La période réservée, déjà consommée par l'évaluation unique (#140), n'y figure qu'à titre d'historique, publiée à part.
+  - **Garde-fous et argent réel.** Les critères avant argent réel restent ceux ci-dessus. La preuve prospective reste obligatoire.
+  - **Résultat mesuré (`research/scalp-v1/moteur-unique-2018-2026.json`).** Période du 1er janvier 2018 au 22 novembre 2026, 464 semaines :
+    - **Rendement :** +149 %, soit +10,8 % par an, pour une pire baisse de 21 %.
+    - **Semaines :** +0,22 % en moyenne. 251 sont positives et 209 négatives. 109 atteignent +1,30 % ou plus.
+    - **Années baissières :** −7,4 % en 2018 et −12,3 % en 2022, contre −73 % et −64 % pour le BTC.
+    - **Références :** SPY +12,9 % par an (pire baisse 33,7 %), 60/40 +8,3 % par an (21,2 %).
+    - **Transferts entre poches :** ils n'apportent rien. Les parts fixes font +151,6 %, avec une pire baisse de 17,8 %. Les 355 transferts coûtent environ 534 € pour 1 000 € de départ.
+    - **Memecoins :** ils dégradent la poche crypto (pire baisse 40,7 % avec les cryptos, contre 27,1 % sans).
+    - **Verdict :** les critères avant argent réel ne sont pas atteints.
 
 ### Période réservée et critères préenregistrés
 
