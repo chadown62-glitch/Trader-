@@ -1,0 +1,3295 @@
+{
+ "schema": "scalp-moteur-unique-v1",
+ "status": "simulation ; règles préenregistrées ; non validé en direct",
+ "period": {
+  "from": "2018-01-01",
+  "to": "2026-11-22",
+  "dev_end": "2026-08-31"
+ },
+ "data": [
+  {
+   "symbol": "BTCUSDT",
+   "listed": "2017-08",
+   "files": 133,
+   "days": 3385,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "ETHUSDT",
+   "listed": "2017-08",
+   "files": 133,
+   "days": 3385,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "SOLUSDT",
+   "listed": "2020-08",
+   "files": 97,
+   "days": 2295,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "BNBUSDT",
+   "listed": "2017-11",
+   "files": 130,
+   "days": 3304,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "XRPUSDT",
+   "listed": "2018-05",
+   "files": 124,
+   "days": 3125,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "ADAUSDT",
+   "listed": "2018-04",
+   "files": 125,
+   "days": 3142,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "LINKUSDT",
+   "listed": "2019-01",
+   "files": 116,
+   "days": 2868,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "AVAXUSDT",
+   "listed": "2020-09",
+   "files": 96,
+   "days": 2253,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "LTCUSDT",
+   "listed": "2017-12",
+   "files": 129,
+   "days": 3267,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "DOTUSDT",
+   "listed": "2020-08",
+   "files": 97,
+   "days": 2288,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "SUIUSDT",
+   "listed": "2023-05",
+   "files": 64,
+   "days": 1300,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "TRXUSDT",
+   "listed": "2018-06",
+   "files": 123,
+   "days": 3087,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "NEARUSDT",
+   "listed": "2020-10",
+   "files": 95,
+   "days": 2231,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "APTUSDT",
+   "listed": "2022-10",
+   "files": 71,
+   "days": 1496,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "DOGEUSDT",
+   "listed": "2019-07",
+   "files": 110,
+   "days": 2698,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "PEPEUSDT",
+   "listed": "2023-05",
+   "files": 64,
+   "days": 1298,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "WIFUSDT",
+   "listed": "2024-03",
+   "files": 54,
+   "days": 993,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "BONKUSDT",
+   "listed": "2023-12",
+   "files": 57,
+   "days": 1074,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "SHIBUSDT",
+   "listed": "2021-05",
+   "files": 88,
+   "days": 2023,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  },
+  {
+   "symbol": "FLOKIUSDT",
+   "listed": "2023-05",
+   "files": 64,
+   "days": 1298,
+   "missing_days": 0,
+   "current_month": "2026-11"
+  }
+ ],
+ "etf_last_close": "2026-11-20",
+ "rows": {
+  "moteur U1 (crypto + memecoins + actions)": {
+   "all": {
+    "return_pct": 149.23882879692752,
+    "annual_pct": 10.815612144775244,
+    "max_drawdown_pct": 21.01095544209991,
+    "weeks": 464,
+    "mean_week_pct": 0.21679831612404774,
+    "median_week_pct": 0.13268856912925786,
+    "compound_week_pct": 0.19701308405319917,
+    "positive_weeks": 251,
+    "negative_weeks": 209,
+    "flat_weeks": 4,
+    "worst_week_pct": -7.060048945321274,
+    "best_week_pct": 11.205837195510583,
+    "weeks_at_reference": 109,
+    "positive_months": 60,
+    "n_months": 107,
+    "years": {
+     "2018": -7.36,
+     "2019": 19.04,
+     "2020": 23.15,
+     "2021": 48.28,
+     "2022": -12.34,
+     "2023": 0.22,
+     "2024": 17.62,
+     "2025": 21.83,
+     "2026": -1.69
+    }
+   },
+   "dev": {
+    "return_pct": 180.85878732092934,
+    "annual_pct": 12.656639535111802,
+    "max_drawdown_pct": 21.01095544209991,
+    "weeks": 453,
+    "mean_week_pct": 0.2474992724627316,
+    "median_week_pct": 0.1716289398854487,
+    "compound_week_pct": 0.22822511980973292,
+    "positive_weeks": 249,
+    "negative_weeks": 200,
+    "flat_weeks": 4,
+    "worst_week_pct": -6.476502233539117,
+    "best_week_pct": 11.205837195510583,
+    "weeks_at_reference": 107,
+    "positive_months": 59,
+    "n_months": 104,
+    "years": {
+     "2018": -7.36,
+     "2019": 19.04,
+     "2020": 23.15,
+     "2021": 48.28,
+     "2022": -12.34,
+     "2023": 0.22,
+     "2024": 17.62,
+     "2025": 21.83,
+     "2026": 10.78
+    }
+   },
+   "reserved": {
+    "return_pct": -11.258311988604653,
+    "annual_pct": -40.88052515561207,
+    "max_drawdown_pct": 14.433150180193511,
+    "weeks": 12,
+    "mean_week_pct": -0.9608464509180514,
+    "median_week_pct": -0.440542390323162,
+    "compound_week_pct": -0.9903997354359984,
+    "positive_weeks": 3,
+    "negative_weeks": 9,
+    "flat_weeks": 0,
+    "worst_week_pct": -7.0600489453212845,
+    "best_week_pct": 1.9267341081673273,
+    "weeks_at_reference": 2,
+    "positive_months": 1,
+    "n_months": 3,
+    "years": {
+     "2026": -11.26
+    }
+   },
+   "transfers": 355,
+   "transfer_costs": 533.5998520179329,
+   "days_invested_share": 0.9861453201970444,
+   "base_shares": {
+    "crypto": 0.35,
+    "actions": 0.65
+   },
+   "crypto_slippage_per_side": 0.0022988505747125743
+  },
+  "U0 parts fixes 35/65 sans transfert": {
+   "all": {
+    "return_pct": 151.6370818238217,
+    "annual_pct": 10.935012931943856,
+    "max_drawdown_pct": 17.76962626511218,
+    "weeks": 464,
+    "mean_week_pct": 0.2162479505806006,
+    "median_week_pct": 0.08018335774919727,
+    "compound_week_pct": 0.19908103125902965,
+    "positive_weeks": 246,
+    "negative_weeks": 214,
+    "flat_weeks": 4,
+    "worst_week_pct": -4.298263765138199,
+    "best_week_pct": 14.841368019854716,
+    "weeks_at_reference": 82,
+    "positive_months": 58,
+    "n_months": 107,
+    "years": {
+     "2018": -7.31,
+     "2019": 17.35,
+     "2020": 24.51,
+     "2021": 48.99,
+     "2022": -9.0,
+     "2023": 4.45,
+     "2024": 21.61,
+     "2025": 12.78,
+     "2026": -4.34
+    }
+   },
+   "dev": {
+    "return_pct": 178.60933042001585,
+    "annual_pct": 12.552141897089308,
+    "max_drawdown_pct": 17.76962626511218,
+    "weeks": 453,
+    "mean_week_pct": 0.2433856751321587,
+    "median_week_pct": 0.09478112843381847,
+    "compound_week_pct": 0.2264459284818443,
+    "positive_weeks": 243,
+    "negative_weeks": 206,
+    "flat_weeks": 4,
+    "worst_week_pct": -4.056731908343414,
+    "best_week_pct": 14.841368019854716,
+    "weeks_at_reference": 80,
+    "positive_months": 57,
+    "n_months": 104,
+    "years": {
+     "2018": -7.31,
+     "2019": 17.35,
+     "2020": 24.51,
+     "2021": 48.99,
+     "2022": -9.0,
+     "2023": 4.45,
+     "2024": 21.61,
+     "2025": 12.78,
+     "2026": 5.92
+    }
+   },
+   "reserved": {
+    "return_pct": -9.681028469338148,
+    "annual_pct": -36.1147073366662,
+    "max_drawdown_pct": 12.335767156322696,
+    "weeks": 12,
+    "mean_week_pct": -0.8268415448162972,
+    "median_week_pct": -0.7177998929998375,
+    "compound_week_pct": -0.8449323213853943,
+    "positive_weeks": 4,
+    "negative_weeks": 8,
+    "flat_weeks": 0,
+    "worst_week_pct": -4.298263765138199,
+    "best_week_pct": 1.9951802128260754,
+    "weeks_at_reference": 2,
+    "positive_months": 1,
+    "n_months": 3,
+    "years": {
+     "2026": -9.68
+    }
+   }
+  },
+  "U1 crypto": {
+   "all": {
+    "return_pct": 199.88585943619697,
+    "annual_pct": 13.145040370460137,
+    "max_drawdown_pct": 27.111285982820345,
+    "weeks": 464,
+    "mean_week_pct": 0.2757007440905114,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.2369682035427534,
+    "positive_weeks": 115,
+    "negative_weeks": 169,
+    "flat_weeks": 180,
+    "worst_week_pct": -6.5171563006580335,
+    "best_week_pct": 21.86879275166276,
+    "weeks_at_reference": 82,
+    "positive_months": 37,
+    "n_months": 107,
+    "years": {
+     "2018": -7.14,
+     "2019": 36.14,
+     "2020": 49.89,
+     "2021": 52.3,
+     "2022": -17.15,
+     "2023": 32.57,
+     "2024": -1.42,
+     "2025": -8.17,
+     "2026": 4.52
+    }
+   },
+   "dev": {
+    "return_pct": 206.46381369370826,
+    "annual_pct": 13.796667206818647,
+    "max_drawdown_pct": 27.111285982820345,
+    "weeks": 453,
+    "mean_week_pct": 0.28672348088027944,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.24753090819735757,
+    "positive_weeks": 113,
+    "negative_weeks": 163,
+    "flat_weeks": 177,
+    "worst_week_pct": -6.5171563006580335,
+    "best_week_pct": 21.86879275166276,
+    "weeks_at_reference": 81,
+    "positive_months": 36,
+    "n_months": 104,
+    "years": {
+     "2018": -7.14,
+     "2019": 36.14,
+     "2020": 49.89,
+     "2021": 52.3,
+     "2022": -17.15,
+     "2023": 32.57,
+     "2024": -1.42,
+     "2025": -8.17,
+     "2026": 6.81
+    }
+   },
+   "reserved": {
+    "return_pct": -2.14640488161697,
+    "annual_pct": -9.106634878235397,
+    "max_drawdown_pct": 6.460996901409599,
+    "weeks": 12,
+    "mean_week_pct": -0.1636513134570943,
+    "median_week_pct": -0.11389883281450186,
+    "compound_week_pct": -0.18065122641338638,
+    "positive_weeks": 3,
+    "negative_weeks": 6,
+    "flat_weeks": 3,
+    "worst_week_pct": -2.620225142601018,
+    "best_week_pct": 4.937397336101346,
+    "weeks_at_reference": 1,
+    "positive_months": 1,
+    "n_months": 3,
+    "years": {
+     "2026": -2.15
+    }
+   },
+   "transfers": 333
+  },
+  "U1 memecoins": {
+   "all": {
+    "return_pct": 128.72528075710488,
+    "annual_pct": 9.750434962095046,
+    "max_drawdown_pct": 24.676490171595134,
+    "weeks": 464,
+    "mean_week_pct": 0.2401130301199634,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.17846756630635063,
+    "positive_weeks": 60,
+    "negative_weeks": 129,
+    "flat_weeks": 275,
+    "worst_week_pct": -6.3046794895659675,
+    "best_week_pct": 65.82417822878728,
+    "weeks_at_reference": 37,
+    "positive_months": 23,
+    "n_months": 107,
+    "years": {
+     "2018": 0.0,
+     "2019": -0.7,
+     "2020": 9.37,
+     "2021": 43.46,
+     "2022": 17.86,
+     "2023": -8.2,
+     "2024": 64.25,
+     "2025": -6.0,
+     "2026": -12.12
+    }
+   },
+   "dev": {
+    "return_pct": 145.9258266275207,
+    "annual_pct": 10.943000922065703,
+    "max_drawdown_pct": 21.96850403181976,
+    "weeks": 453,
+    "mean_week_pct": 0.26156452213296044,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.19884197350734656,
+    "positive_weeks": 59,
+    "negative_weeks": 122,
+    "flat_weeks": 272,
+    "worst_week_pct": -6.3046794895659675,
+    "best_week_pct": 65.82417822878728,
+    "weeks_at_reference": 35,
+    "positive_months": 23,
+    "n_months": 104,
+    "years": {
+     "2018": 0.0,
+     "2019": -0.7,
+     "2020": 9.37,
+     "2021": 43.46,
+     "2022": 17.86,
+     "2023": -8.2,
+     "2024": 64.25,
+     "2025": -6.0,
+     "2026": -5.51
+    }
+   },
+   "reserved": {
+    "return_pct": -6.9942006930682314,
+    "annual_pct": -27.318286074672603,
+    "max_drawdown_pct": 8.560431667953349,
+    "weeks": 12,
+    "mean_week_pct": -0.5898050091380549,
+    "median_week_pct": -0.20435937691234418,
+    "compound_week_pct": -0.6024143033527718,
+    "positive_weeks": 2,
+    "negative_weeks": 7,
+    "flat_weeks": 3,
+    "worst_week_pct": -3.9211154931059977,
+    "best_week_pct": 1.7942864600947406,
+    "weeks_at_reference": 2,
+    "positive_months": 0,
+    "n_months": 3,
+    "years": {
+     "2026": -6.99
+    }
+   },
+   "transfers": 283
+  },
+  "U1 actions": {
+   "all": {
+    "return_pct": 128.5861218123026,
+    "annual_pct": 9.74292401507235,
+    "max_drawdown_pct": 14.646222225184447,
+    "weeks": 464,
+    "mean_week_pct": 0.19376328496694975,
+    "median_week_pct": 0.33383982436218096,
+    "compound_week_pct": 0.17833616937450447,
+    "positive_weeks": 276,
+    "negative_weeks": 181,
+    "flat_weeks": 7,
+    "worst_week_pct": -7.060048945321274,
+    "best_week_pct": 6.8544835514941616,
+    "weeks_at_reference": 104,
+    "positive_months": 70,
+    "n_months": 107,
+    "years": {
+     "2018": -3.46,
+     "2019": 8.94,
+     "2020": 18.55,
+     "2021": 29.59,
+     "2022": -8.78,
+     "2023": 3.5,
+     "2024": 11.75,
+     "2025": 31.15,
+     "2026": 2.25
+    }
+   },
+   "dev": {
+    "return_pct": 155.9960860401706,
+    "annual_pct": 11.458010466383506,
+    "max_drawdown_pct": 14.646222225184447,
+    "weeks": 453,
+    "mean_week_pct": 0.22262581959836966,
+    "median_week_pct": 0.3373103350139406,
+    "compound_week_pct": 0.20771918403093004,
+    "positive_weeks": 272,
+    "negative_weeks": 174,
+    "flat_weeks": 7,
+    "worst_week_pct": -6.476502233539172,
+    "best_week_pct": 6.8544835514941616,
+    "weeks_at_reference": 103,
+    "positive_months": 69,
+    "n_months": 104,
+    "years": {
+     "2018": -3.46,
+     "2019": 8.94,
+     "2020": 18.55,
+     "2021": 29.59,
+     "2022": -8.78,
+     "2023": 3.5,
+     "2024": 11.75,
+     "2025": 31.15,
+     "2026": 14.51
+    }
+   },
+   "reserved": {
+    "return_pct": -10.707180977589982,
+    "annual_pct": -39.24764446099401,
+    "max_drawdown_pct": 12.983557330391339,
+    "weeks": 12,
+    "mean_week_pct": -0.9124811344993592,
+    "median_week_pct": -0.2491481314538413,
+    "compound_week_pct": -0.9393033538555362,
+    "positive_weeks": 5,
+    "negative_weeks": 7,
+    "flat_weeks": 0,
+    "worst_week_pct": -7.0600489453212845,
+    "best_week_pct": 1.519090066183315,
+    "weeks_at_reference": 1,
+    "positive_months": 1,
+    "n_months": 3,
+    "years": {
+     "2026": -10.71
+    }
+   },
+   "transfers": 3
+  },
+  "U1 crypto + memecoins": {
+   "all": {
+    "return_pct": 100.75231552831968,
+    "annual_pct": 8.152194436568315,
+    "max_drawdown_pct": 40.721536571091455,
+    "weeks": 464,
+    "mean_week_pct": 0.19635591201881142,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.1503071803236944,
+    "positive_weeks": 109,
+    "negative_weeks": 175,
+    "flat_weeks": 180,
+    "worst_week_pct": -6.551127903654064,
+    "best_week_pct": 30.110229296170022,
+    "weeks_at_reference": 77,
+    "positive_months": 36,
+    "n_months": 107,
+    "years": {
+     "2018": -10.31,
+     "2019": 28.33,
+     "2020": 25.17,
+     "2021": 68.28,
+     "2022": -12.16,
+     "2023": 1.44,
+     "2024": 13.36,
+     "2025": -13.59,
+     "2026": -5.13
+    }
+   },
+   "dev": {
+    "return_pct": 102.60466348053532,
+    "annual_pct": 8.489627259447662,
+    "max_drawdown_pct": 40.721536571091455,
+    "weeks": 453,
+    "mean_week_pct": 0.20273030539347323,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.15599050652477242,
+    "positive_weeks": 107,
+    "negative_weeks": 169,
+    "flat_weeks": 177,
+    "worst_week_pct": -6.551127903654064,
+    "best_week_pct": 30.110229296170022,
+    "weeks_at_reference": 75,
+    "positive_months": 35,
+    "n_months": 104,
+    "years": {
+     "2018": -10.31,
+     "2019": 28.33,
+     "2020": 25.17,
+     "2021": 68.28,
+     "2022": -12.16,
+     "2023": 1.44,
+     "2024": 13.36,
+     "2025": -13.59,
+     "2026": -4.26
+    }
+   },
+   "reserved": {
+    "return_pct": -0.9142671843748396,
+    "annual_pct": -3.9612386804336874,
+    "max_drawdown_pct": 6.730953314079513,
+    "weeks": 12,
+    "mean_week_pct": -0.061329824966724344,
+    "median_week_pct": -0.26046357330143377,
+    "compound_week_pct": -0.07651007084247263,
+    "positive_weeks": 3,
+    "negative_weeks": 6,
+    "flat_weeks": 3,
+    "worst_week_pct": -2.2540367914477666,
+    "best_week_pct": 4.143209569968964,
+    "weeks_at_reference": 2,
+    "positive_months": 1,
+    "n_months": 3,
+    "years": {
+     "2026": -0.91
+    }
+   },
+   "transfers": 353
+  },
+  "U1 crypto + actions": {
+   "all": {
+    "return_pct": 179.28844527659268,
+    "annual_pct": 12.24328257142635,
+    "max_drawdown_pct": 20.2303937549818,
+    "weeks": 464,
+    "mean_week_pct": 0.2400886687281863,
+    "median_week_pct": 0.20297435064122737,
+    "compound_week_pct": 0.22159751772521386,
+    "positive_weeks": 264,
+    "negative_weeks": 196,
+    "flat_weeks": 4,
+    "worst_week_pct": -7.060048945321295,
+    "best_week_pct": 8.404728817163143,
+    "weeks_at_reference": 117,
+    "positive_months": 63,
+    "n_months": 107,
+    "years": {
+     "2018": -6.23,
+     "2019": 21.58,
+     "2020": 31.36,
+     "2021": 43.65,
+     "2022": -17.09,
+     "2023": 11.76,
+     "2024": 10.84,
+     "2025": 24.05,
+     "2026": 1.88
+    }
+   },
+   "dev": {
+    "return_pct": 216.49481127834505,
+    "annual_pct": 14.220413442256863,
+    "max_drawdown_pct": 20.2303937549818,
+    "weeks": 453,
+    "mean_week_pct": 0.27261754073500144,
+    "median_week_pct": 0.21730948313614107,
+    "compound_week_pct": 0.25465850917612,
+    "positive_weeks": 260,
+    "negative_weeks": 189,
+    "flat_weeks": 4,
+    "worst_week_pct": -6.47650223353915,
+    "best_week_pct": 8.404728817163143,
+    "weeks_at_reference": 115,
+    "positive_months": 62,
+    "n_months": 104,
+    "years": {
+     "2018": -6.23,
+     "2019": 21.58,
+     "2020": 31.36,
+     "2021": 43.65,
+     "2022": -17.09,
+     "2023": 11.76,
+     "2024": 10.84,
+     "2025": 24.05,
+     "2026": 15.46
+    }
+   },
+   "reserved": {
+    "return_pct": -11.75575860200463,
+    "annual_pct": -42.32503674147259,
+    "max_drawdown_pct": 14.350208333253867,
+    "weeks": 12,
+    "mean_week_pct": -1.0085958675558946,
+    "median_week_pct": -0.5756551923293607,
+    "compound_week_pct": -1.036769321685438,
+    "positive_weeks": 5,
+    "negative_weeks": 7,
+    "flat_weeks": 0,
+    "worst_week_pct": -7.060048945321295,
+    "best_week_pct": 2.110691896684802,
+    "weeks_at_reference": 1,
+    "positive_months": 1,
+    "n_months": 3,
+    "years": {
+     "2026": -11.76
+    }
+   },
+   "transfers": 335
+  },
+  "U1 memecoins + actions": {
+   "all": {
+    "return_pct": 223.22603174903347,
+    "annual_pct": 14.102702840323778,
+    "max_drawdown_pct": 15.97077600515141,
+    "weeks": 464,
+    "mean_week_pct": 0.2790771365704108,
+    "median_week_pct": 0.22582632637768718,
+    "compound_week_pct": 0.25316079168549166,
+    "positive_weeks": 264,
+    "negative_weeks": 196,
+    "flat_weeks": 4,
+    "worst_week_pct": -7.0600489453212845,
+    "best_week_pct": 23.608651692102466,
+    "weeks_at_reference": 101,
+    "positive_months": 65,
+    "n_months": 107,
+    "years": {
+     "2018": -3.46,
+     "2019": 9.68,
+     "2020": 19.46,
+     "2021": 41.85,
+     "2022": 8.48,
+     "2023": 0.48,
+     "2024": 36.44,
+     "2025": 25.83,
+     "2026": -3.73
+    }
+   },
+   "dev": {
+    "return_pct": 272.4391316555989,
+    "annual_pct": 16.38617785301424,
+    "max_drawdown_pct": 13.86127032170913,
+    "weeks": 453,
+    "mean_week_pct": 0.31624967874307164,
+    "median_week_pct": 0.2801959290575473,
+    "compound_week_pct": 0.29068733727573015,
+    "positive_weeks": 262,
+    "negative_weeks": 187,
+    "flat_weeks": 4,
+    "worst_week_pct": -6.476502233539128,
+    "best_week_pct": 23.608651692102466,
+    "weeks_at_reference": 100,
+    "positive_months": 65,
+    "n_months": 104,
+    "years": {
+     "2018": -3.46,
+     "2019": 9.68,
+     "2020": 19.46,
+     "2021": 41.85,
+     "2022": 8.48,
+     "2023": 0.48,
+     "2024": 36.44,
+     "2025": 25.83,
+     "2026": 10.93
+    }
+   },
+   "reserved": {
+    "return_pct": -13.213729633564297,
+    "annual_pct": -46.402142183628406,
+    "max_drawdown_pct": 15.0592100687986,
+    "weeks": 12,
+    "mean_week_pct": -1.1478412692396929,
+    "median_week_pct": -0.7097579025628131,
+    "compound_week_pct": -1.1740679990240754,
+    "positive_weeks": 3,
+    "negative_weeks": 9,
+    "flat_weeks": 0,
+    "worst_week_pct": -7.060048945321295,
+    "best_week_pct": 1.588270663153435,
+    "weeks_at_reference": 1,
+    "positive_months": 0,
+    "n_months": 3,
+    "years": {
+     "2026": -13.21
+    }
+   },
+   "transfers": 285
+  },
+  "poche crypto seule (crypto + memecoins)": {
+   "all": {
+    "return_pct": 193.87927640318026,
+    "annual_pct": 12.887898170887402,
+    "max_drawdown_pct": 30.341812997157923,
+    "weeks": 464,
+    "mean_week_pct": 0.2852902588240877,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.23259743231547336,
+    "positive_weeks": 116,
+    "negative_weeks": 174,
+    "flat_weeks": 174,
+    "worst_week_pct": -6.551127903654064,
+    "best_week_pct": 30.110229296169997,
+    "weeks_at_reference": 83,
+    "positive_months": 37,
+    "n_months": 107,
+    "years": {
+     "2018": -14.64,
+     "2019": 35.04,
+     "2020": 34.62,
+     "2021": 77.97,
+     "2022": -9.28,
+     "2023": 5.48,
+     "2024": 32.2,
+     "2025": -3.88,
+     "2026": -12.49
+    }
+   },
+   "dev": {
+    "return_pct": 219.97066730588486,
+    "annual_pct": 14.364477358846228,
+    "max_drawdown_pct": 30.341812997157923,
+    "weeks": 453,
+    "mean_week_pct": 0.31024928582188843,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.25707582188623235,
+    "positive_weeks": 115,
+    "negative_weeks": 167,
+    "flat_weeks": 171,
+    "worst_week_pct": -6.551127903654064,
+    "best_week_pct": 30.110229296169997,
+    "weeks_at_reference": 81,
+    "positive_months": 36,
+    "n_months": 104,
+    "years": {
+     "2018": -14.64,
+     "2019": 35.04,
+     "2020": 34.62,
+     "2021": 77.97,
+     "2022": -9.28,
+     "2023": 5.48,
+     "2024": 32.2,
+     "2025": -3.88,
+     "2026": -4.72
+    }
+   },
+   "reserved": {
+    "return_pct": -8.15430711895907,
+    "annual_pct": -31.22407448010166,
+    "max_drawdown_pct": 12.09909890707548,
+    "weeks": 12,
+    "mean_week_pct": -0.6813765930020487,
+    "median_week_pct": -1.029510210970458,
+    "compound_week_pct": -0.706329255992022,
+    "positive_weeks": 2,
+    "negative_weeks": 7,
+    "flat_weeks": 3,
+    "worst_week_pct": -4.3095167850663145,
+    "best_week_pct": 4.143209569968986,
+    "weeks_at_reference": 2,
+    "positive_months": 1,
+    "n_months": 3,
+    "years": {
+     "2026": -8.15
+    }
+   },
+   "orders": 1998
+  },
+  "poche actions seule (G2)": {
+   "all": {
+    "return_pct": 128.89128474262833,
+    "annual_pct": 9.759389536780262,
+    "max_drawdown_pct": 14.617742486187202,
+    "weeks": 464,
+    "mean_week_pct": 0.19405752015562097,
+    "median_week_pct": 0.33383982436218096,
+    "compound_week_pct": 0.17862420661685086,
+    "positive_weeks": 276,
+    "negative_weeks": 181,
+    "flat_weeks": 7,
+    "worst_week_pct": -7.060048945321274,
+    "best_week_pct": 6.854483551494184,
+    "weeks_at_reference": 104,
+    "positive_months": 70,
+    "n_months": 107,
+    "years": {
+     "2018": -3.37,
+     "2019": 8.94,
+     "2020": 18.55,
+     "2021": 29.59,
+     "2022": -8.75,
+     "2023": 3.5,
+     "2024": 11.75,
+     "2025": 31.15,
+     "2026": 2.25
+    }
+   },
+   "dev": {
+    "return_pct": 156.3378413276244,
+    "annual_pct": 11.475171894104719,
+    "max_drawdown_pct": 14.617742486187202,
+    "weeks": 453,
+    "mean_week_pct": 0.2229271995708717,
+    "median_week_pct": 0.3373103350138962,
+    "compound_week_pct": 0.20801430210022342,
+    "positive_weeks": 272,
+    "negative_weeks": 174,
+    "flat_weeks": 7,
+    "worst_week_pct": -6.476502233539138,
+    "best_week_pct": 6.854483551494184,
+    "weeks_at_reference": 103,
+    "positive_months": 69,
+    "n_months": 104,
+    "years": {
+     "2018": -3.37,
+     "2019": 8.94,
+     "2020": 18.55,
+     "2021": 29.59,
+     "2022": -8.75,
+     "2023": 3.5,
+     "2024": 11.75,
+     "2025": 31.15,
+     "2026": 14.51
+    }
+   },
+   "reserved": {
+    "return_pct": -10.707180977589925,
+    "annual_pct": -39.24764446099385,
+    "max_drawdown_pct": 12.98355733039135,
+    "weeks": 12,
+    "mean_week_pct": -0.9124811344993544,
+    "median_week_pct": -0.24914813145383574,
+    "compound_week_pct": -0.9393033538555251,
+    "positive_weeks": 5,
+    "negative_weeks": 7,
+    "flat_weeks": 0,
+    "worst_week_pct": -7.060048945321274,
+    "best_week_pct": 1.5190900661833373,
+    "weeks_at_reference": 1,
+    "positive_months": 1,
+    "n_months": 3,
+    "years": {
+     "2026": -10.71
+    }
+   }
+  },
+  "robustesse : U1 avec BTC et ETH seuls": {
+   "all": {
+    "return_pct": 177.01276626071936,
+    "annual_pct": 12.140061535982948,
+    "max_drawdown_pct": 18.659069906730576,
+    "weeks": 464,
+    "mean_week_pct": 0.23610277485287484,
+    "median_week_pct": 0.24896258022492068,
+    "compound_week_pct": 0.21983036970316672,
+    "positive_weeks": 273,
+    "negative_weeks": 187,
+    "flat_weeks": 4,
+    "worst_week_pct": -7.060048945321295,
+    "best_week_pct": 6.854483551494184,
+    "weeks_at_reference": 112,
+    "positive_months": 68,
+    "n_months": 107,
+    "years": {
+     "2018": -4.87,
+     "2019": 23.03,
+     "2020": 31.63,
+     "2021": 27.73,
+     "2022": -16.18,
+     "2023": 9.15,
+     "2024": 17.52,
+     "2025": 30.13,
+     "2026": 0.61
+    }
+   },
+   "dev": {
+    "return_pct": 215.71338894441666,
+    "annual_pct": 14.187833207934975,
+    "max_drawdown_pct": 18.659069906730576,
+    "weeks": 453,
+    "mean_week_pct": 0.2698316734558502,
+    "median_week_pct": 0.3034314978512809,
+    "compound_week_pct": 0.2541114162657898,
+    "positive_weeks": 270,
+    "negative_weeks": 179,
+    "flat_weeks": 4,
+    "worst_week_pct": -6.47650223353915,
+    "best_week_pct": 6.854483551494184,
+    "weeks_at_reference": 111,
+    "positive_months": 67,
+    "n_months": 104,
+    "years": {
+     "2018": -4.87,
+     "2019": 23.03,
+     "2020": 31.63,
+     "2021": 27.73,
+     "2022": -16.18,
+     "2023": 9.15,
+     "2024": 17.52,
+     "2025": 30.13,
+     "2026": 14.67
+    }
+   },
+   "reserved": {
+    "return_pct": -12.25815060080041,
+    "annual_pct": -43.75607281796087,
+    "max_drawdown_pct": 13.815264686102047,
+    "weeks": 12,
+    "mean_week_pct": -1.0577226128831423,
+    "median_week_pct": -0.37850181425008733,
+    "compound_week_pct": -1.083843727992273,
+    "positive_weeks": 4,
+    "negative_weeks": 8,
+    "flat_weeks": 0,
+    "worst_week_pct": -7.060048945321295,
+    "best_week_pct": 1.5023676020469834,
+    "weeks_at_reference": 1,
+    "positive_months": 1,
+    "n_months": 3,
+    "years": {
+     "2026": -12.26
+    }
+   }
+  },
+  "robustesse : poche BTC et ETH seule": {
+   "all": {
+    "return_pct": 274.1402638440516,
+    "annual_pct": 15.995171512610607,
+    "max_drawdown_pct": 15.254237019419914,
+    "weeks": 464,
+    "mean_week_pct": 0.3086141839612401,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.2847712089751653,
+    "positive_weeks": 130,
+    "negative_weeks": 160,
+    "flat_weeks": 174,
+    "worst_week_pct": -4.076373696493496,
+    "best_week_pct": 16.32614428906669,
+    "weeks_at_reference": 76,
+    "positive_months": 43,
+    "n_months": 107,
+    "years": {
+     "2018": -3.37,
+     "2019": 40.95,
+     "2020": 56.73,
+     "2021": 25.01,
+     "2022": -10.6,
+     "2023": 26.58,
+     "2024": 17.91,
+     "2025": 8.76,
+     "2026": -3.39
+    }
+   },
+   "dev": {
+    "return_pct": 313.1466595923638,
+    "annual_pct": 17.787765190777847,
+    "max_drawdown_pct": 15.254237019419914,
+    "weeks": 453,
+    "mean_week_pct": 0.33750179816762377,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.31365476707538864,
+    "positive_weeks": 128,
+    "negative_weeks": 154,
+    "flat_weeks": 171,
+    "worst_week_pct": -4.076373696493496,
+    "best_week_pct": 16.32614428906669,
+    "weeks_at_reference": 74,
+    "positive_months": 43,
+    "n_months": 104,
+    "years": {
+     "2018": -3.37,
+     "2019": 40.95,
+     "2020": 56.73,
+     "2021": 25.01,
+     "2022": -10.6,
+     "2023": 26.58,
+     "2024": 17.91,
+     "2025": 8.76,
+     "2026": 6.68
+    }
+   },
+   "reserved": {
+    "return_pct": -9.44129520175676,
+    "annual_pct": -35.36512025011337,
+    "max_drawdown_pct": 11.026450270943489,
+    "weeks": 12,
+    "mean_week_pct": -0.8090457859482694,
+    "median_week_pct": -0.3513665226181184,
+    "compound_week_pct": -0.8230267178957806,
+    "positive_weeks": 3,
+    "negative_weeks": 6,
+    "flat_weeks": 3,
+    "worst_week_pct": -3.6445196159728632,
+    "best_week_pct": 1.4752703492595165,
+    "weeks_at_reference": 2,
+    "positive_months": 0,
+    "n_months": 3,
+    "years": {
+     "2026": -9.44
+    }
+   }
+  },
+  "CASH": {
+   "all": {
+    "return_pct": 0.0,
+    "annual_pct": 0.0,
+    "max_drawdown_pct": 0.0,
+    "weeks": 464,
+    "mean_week_pct": 0.0,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.0,
+    "positive_weeks": 0,
+    "negative_weeks": 0,
+    "flat_weeks": 464,
+    "worst_week_pct": 0.0,
+    "best_week_pct": 0.0,
+    "weeks_at_reference": 0,
+    "positive_months": 0,
+    "n_months": 107,
+    "years": {
+     "2018": 0.0,
+     "2019": 0.0,
+     "2020": 0.0,
+     "2021": 0.0,
+     "2022": 0.0,
+     "2023": 0.0,
+     "2024": 0.0,
+     "2025": 0.0,
+     "2026": 0.0
+    }
+   },
+   "dev": {
+    "return_pct": 0.0,
+    "annual_pct": 0.0,
+    "max_drawdown_pct": 0.0,
+    "weeks": 453,
+    "mean_week_pct": 0.0,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.0,
+    "positive_weeks": 0,
+    "negative_weeks": 0,
+    "flat_weeks": 453,
+    "worst_week_pct": 0.0,
+    "best_week_pct": 0.0,
+    "weeks_at_reference": 0,
+    "positive_months": 0,
+    "n_months": 104,
+    "years": {
+     "2018": 0.0,
+     "2019": 0.0,
+     "2020": 0.0,
+     "2021": 0.0,
+     "2022": 0.0,
+     "2023": 0.0,
+     "2024": 0.0,
+     "2025": 0.0,
+     "2026": 0.0
+    }
+   },
+   "reserved": {
+    "return_pct": 0.0,
+    "annual_pct": 0.0,
+    "max_drawdown_pct": 0.0,
+    "weeks": 12,
+    "mean_week_pct": 0.0,
+    "median_week_pct": 0.0,
+    "compound_week_pct": 0.0,
+    "positive_weeks": 0,
+    "negative_weeks": 0,
+    "flat_weeks": 12,
+    "worst_week_pct": 0.0,
+    "best_week_pct": 0.0,
+    "weeks_at_reference": 0,
+    "positive_months": 0,
+    "n_months": 3,
+    "years": {
+     "2026": 0.0
+    }
+   }
+  },
+  "BTC (achat-conservation)": {
+   "all": {
+    "return_pct": 346.70072818152914,
+    "annual_pct": 18.330542353600077,
+    "max_drawdown_pct": 81.18477145881701,
+    "weeks": 464,
+    "mean_week_pct": 0.7045949273498584,
+    "median_week_pct": 0.23536495614281394,
+    "compound_week_pct": 0.32308949202592974,
+    "positive_weeks": 240,
+    "negative_weeks": 224,
+    "flat_weeks": 0,
+    "worst_week_pct": -33.26163188025858,
+    "best_week_pct": 28.76468895866504,
+    "weeks_at_reference": 205,
+    "positive_months": 55,
+    "n_months": 107,
+    "years": {
+     "2018": -73.0,
+     "2019": 94.31,
+     "2020": 301.98,
+     "2021": 59.79,
+     "2022": -64.21,
+     "2023": 155.61,
+     "2024": 121.31,
+     "2025": -6.33,
+     "2026": -30.09
+    }
+   },
+   "dev": {
+    "return_pct": 472.9019215010395,
+    "annual_pct": 22.31638010601,
+    "max_drawdown_pct": 81.18477145881701,
+    "weeks": 453,
+    "mean_week_pct": 0.7728252913256184,
+    "median_week_pct": 0.2960481156863537,
+    "compound_week_pct": 0.3860732285099644,
+    "positive_weeks": 237,
+    "negative_weeks": 216,
+    "flat_weeks": 0,
+    "worst_week_pct": -33.26163188025858,
+    "best_week_pct": 28.76468895866504,
+    "weeks_at_reference": 201,
+    "positive_months": 54,
+    "n_months": 104,
+    "years": {
+     "2018": -73.0,
+     "2019": 94.31,
+     "2020": 301.98,
+     "2021": 59.79,
+     "2022": -64.21,
+     "2023": 155.61,
+     "2024": 121.31,
+     "2025": -6.33,
+     "2026": -10.34
+    }
+   },
+   "reserved": {
+    "return_pct": -22.028411597722553,
+    "annual_pct": -66.54546634684971,
+    "max_drawdown_pct": 31.94238051258369,
+    "weeks": 12,
+    "mean_week_pct": -1.931978905497169,
+    "median_week_pct": -2.3174900850453484,
+    "compound_week_pct": -2.0521971386311844,
+    "positive_weeks": 4,
+    "negative_weeks": 8,
+    "flat_weeks": 0,
+    "worst_week_pct": -12.692327629234645,
+    "best_week_pct": 5.642733707772618,
+    "weeks_at_reference": 4,
+    "positive_months": 1,
+    "n_months": 3,
+    "years": {
+     "2026": -22.03
+    }
+   }
+  },
+  "SPY (achat-conservation)": {
+   "all": {
+    "return_pct": 195.1726076007453,
+    "annual_pct": 12.943657266771913,
+    "max_drawdown_pct": 33.717257210811404,
+    "weeks": 464,
+    "mean_week_pct": 0.2657482099050839,
+    "median_week_pct": 0.46061160153905156,
+    "compound_week_pct": 0.23354602540650582,
+    "positive_weeks": 265,
+    "negative_weeks": 199,
+    "flat_weeks": 0,
+    "worst_week_pct": -14.545737775962452,
+    "best_week_pct": 12.091554100608693,
+    "weeks_at_reference": 148,
+    "positive_months": 70,
+    "n_months": 107,
+    "years": {
+     "2018": -4.57,
+     "2019": 31.22,
+     "2020": 18.33,
+     "2021": 28.73,
+     "2022": -18.18,
+     "2023": 26.18,
+     "2024": 24.89,
+     "2025": 17.72,
+     "2026": 1.95
+    }
+   },
+   "dev": {
+    "return_pct": 227.41089676216575,
+    "annual_pct": 14.66825719120477,
+    "max_drawdown_pct": 33.717257210811404,
+    "weeks": 453,
+    "mean_week_pct": 0.2939829261473989,
+    "median_week_pct": 0.4818928033349046,
+    "compound_week_pct": 0.26216330487451867,
+    "positive_weeks": 261,
+    "negative_weeks": 192,
+    "flat_weeks": 0,
+    "worst_week_pct": -14.545737775962452,
+    "best_week_pct": 12.091554100608693,
+    "weeks_at_reference": 147,
+    "positive_months": 70,
+    "n_months": 104,
+    "years": {
+     "2018": -4.57,
+     "2019": 31.22,
+     "2020": 18.33,
+     "2021": 28.73,
+     "2022": -18.18,
+     "2023": 26.18,
+     "2024": 24.89,
+     "2025": 17.72,
+     "2026": 13.08
+    }
+   },
+   "reserved": {
+    "return_pct": -9.846431343682072,
+    "annual_pct": -36.6279522605547,
+    "max_drawdown_pct": 11.459526655375551,
+    "weeks": 12,
+    "mean_week_pct": -0.8221560274777236,
+    "median_week_pct": -0.3257146327671656,
+    "compound_week_pct": -0.8600770863902207,
+    "positive_weeks": 4,
+    "negative_weeks": 8,
+    "flat_weeks": 0,
+    "worst_week_pct": -8.558134334142586,
+    "best_week_pct": 2.5948969331843985,
+    "weeks_at_reference": 1,
+    "positive_months": 0,
+    "n_months": 3,
+    "years": {
+     "2026": -9.85
+    }
+   }
+  },
+  "60/40 SPY/IEF (rééquilibré chaque mois)": {
+   "all": {
+    "return_pct": 103.7995202005852,
+    "annual_pct": 8.33557070044959,
+    "max_drawdown_pct": 21.204368792351993,
+    "weeks": 464,
+    "mean_week_pct": 0.1653073686311843,
+    "median_week_pct": 0.21198680588815355,
+    "compound_week_pct": 0.15355885443928408,
+    "positive_weeks": 264,
+    "negative_weeks": 200,
+    "flat_weeks": 0,
+    "worst_week_pct": -7.569365675573558,
+    "best_week_pct": 6.957083890337956,
+    "weeks_at_reference": 86,
+    "positive_months": 70,
+    "n_months": 107,
+    "years": {
+     "2018": -2.36,
+     "2019": 21.81,
+     "2020": 16.61,
+     "2021": 15.05,
+     "2022": -16.61,
+     "2023": 16.78,
+     "2024": 14.17,
+     "2025": 13.9,
+     "2026": 0.86
+    }
+   },
+   "dev": {
+    "return_pct": 116.72936333132581,
+    "annual_pct": 9.336675400331318,
+    "max_drawdown_pct": 21.204368792351993,
+    "weeks": 453,
+    "mean_week_pct": 0.18261553263406863,
+    "median_week_pct": 0.2283492646919516,
+    "compound_week_pct": 0.17089181762970362,
+    "positive_weeks": 260,
+    "negative_weeks": 193,
+    "flat_weeks": 0,
+    "worst_week_pct": -7.569365675573558,
+    "best_week_pct": 6.957083890337956,
+    "weeks_at_reference": 86,
+    "positive_months": 69,
+    "n_months": 104,
+    "years": {
+     "2018": -2.36,
+     "2019": 21.81,
+     "2020": 16.61,
+     "2021": 15.05,
+     "2022": -16.61,
+     "2023": 16.78,
+     "2024": 14.17,
+     "2025": 13.9,
+     "2026": 7.26
+    }
+   },
+   "reserved": {
+    "return_pct": -5.965893560520497,
+    "annual_pct": -23.71490774568099,
+    "max_drawdown_pct": 6.3618139819698545,
+    "weeks": 12,
+    "mean_week_pct": -0.5018180012590495,
+    "median_week_pct": -0.08154579018601615,
+    "compound_week_pct": -0.5112937133036954,
+    "positive_weeks": 5,
+    "negative_weeks": 7,
+    "flat_weeks": 0,
+    "worst_week_pct": -4.467068475298353,
+    "best_week_pct": 0.8552695327163073,
+    "weeks_at_reference": 0,
+    "positive_months": 1,
+    "n_months": 3,
+    "years": {
+     "2026": -5.97
+    }
+   }
+  }
+ },
+ "main_weeks": [
+  {
+   "semaine_du": "2018-01-01",
+   "pct": 4.828
+  },
+  {
+   "semaine_du": "2018-01-08",
+   "pct": 0.81
+  },
+  {
+   "semaine_du": "2018-01-15",
+   "pct": 1.21
+  },
+  {
+   "semaine_du": "2018-01-22",
+   "pct": 2.322
+  },
+  {
+   "semaine_du": "2018-01-29",
+   "pct": -4.439
+  },
+  {
+   "semaine_du": "2018-02-05",
+   "pct": -5.295
+  },
+  {
+   "semaine_du": "2018-02-12",
+   "pct": 5.093
+  },
+  {
+   "semaine_du": "2018-02-19",
+   "pct": -0.392
+  },
+  {
+   "semaine_du": "2018-02-26",
+   "pct": -2.468
+  },
+  {
+   "semaine_du": "2018-03-05",
+   "pct": 1.821
+  },
+  {
+   "semaine_du": "2018-03-12",
+   "pct": -0.937
+  },
+  {
+   "semaine_du": "2018-03-19",
+   "pct": -4.735
+  },
+  {
+   "semaine_du": "2018-03-26",
+   "pct": 2.503
+  },
+  {
+   "semaine_du": "2018-04-02",
+   "pct": -1.785
+  },
+  {
+   "semaine_du": "2018-04-09",
+   "pct": 2.153
+  },
+  {
+   "semaine_du": "2018-04-16",
+   "pct": -0.15
+  },
+  {
+   "semaine_du": "2018-04-23",
+   "pct": 0.049
+  },
+  {
+   "semaine_du": "2018-04-30",
+   "pct": -0.047
+  },
+  {
+   "semaine_du": "2018-05-07",
+   "pct": -0.15
+  },
+  {
+   "semaine_du": "2018-05-14",
+   "pct": 0.132
+  },
+  {
+   "semaine_du": "2018-05-21",
+   "pct": -0.654
+  },
+  {
+   "semaine_du": "2018-05-28",
+   "pct": -0.196
+  },
+  {
+   "semaine_du": "2018-06-04",
+   "pct": 0.852
+  },
+  {
+   "semaine_du": "2018-06-11",
+   "pct": -1.262
+  },
+  {
+   "semaine_du": "2018-06-18",
+   "pct": 0.787
+  },
+  {
+   "semaine_du": "2018-06-25",
+   "pct": 0.321
+  },
+  {
+   "semaine_du": "2018-07-02",
+   "pct": 0.757
+  },
+  {
+   "semaine_du": "2018-07-09",
+   "pct": -0.639
+  },
+  {
+   "semaine_du": "2018-07-16",
+   "pct": -1.129
+  },
+  {
+   "semaine_du": "2018-07-23",
+   "pct": 0.749
+  },
+  {
+   "semaine_du": "2018-07-30",
+   "pct": 0.253
+  },
+  {
+   "semaine_du": "2018-08-06",
+   "pct": -0.818
+  },
+  {
+   "semaine_du": "2018-08-13",
+   "pct": 0.707
+  },
+  {
+   "semaine_du": "2018-08-20",
+   "pct": 0.811
+  },
+  {
+   "semaine_du": "2018-08-27",
+   "pct": 0.845
+  },
+  {
+   "semaine_du": "2018-09-03",
+   "pct": -1.478
+  },
+  {
+   "semaine_du": "2018-09-10",
+   "pct": 0.59
+  },
+  {
+   "semaine_du": "2018-09-17",
+   "pct": 0.537
+  },
+  {
+   "semaine_du": "2018-09-24",
+   "pct": 0.044
+  },
+  {
+   "semaine_du": "2018-10-01",
+   "pct": -0.733
+  },
+  {
+   "semaine_du": "2018-10-08",
+   "pct": -1.956
+  },
+  {
+   "semaine_du": "2018-10-15",
+   "pct": 0.352
+  },
+  {
+   "semaine_du": "2018-10-22",
+   "pct": -2.239
+  },
+  {
+   "semaine_du": "2018-10-29",
+   "pct": 0.11
+  },
+  {
+   "semaine_du": "2018-11-05",
+   "pct": 0.835
+  },
+  {
+   "semaine_du": "2018-11-12",
+   "pct": 0.08
+  },
+  {
+   "semaine_du": "2018-11-19",
+   "pct": -0.34
+  },
+  {
+   "semaine_du": "2018-11-26",
+   "pct": 0.843
+  },
+  {
+   "semaine_du": "2018-12-03",
+   "pct": -1.548
+  },
+  {
+   "semaine_du": "2018-12-10",
+   "pct": -1.088
+  },
+  {
+   "semaine_du": "2018-12-17",
+   "pct": -4.175
+  },
+  {
+   "semaine_du": "2018-12-24",
+   "pct": 1.108
+  },
+  {
+   "semaine_du": "2018-12-31",
+   "pct": -0.215
+  },
+  {
+   "semaine_du": "2019-01-07",
+   "pct": -0.297
+  },
+  {
+   "semaine_du": "2019-01-14",
+   "pct": -0.828
+  },
+  {
+   "semaine_du": "2019-01-21",
+   "pct": 0.909
+  },
+  {
+   "semaine_du": "2019-01-28",
+   "pct": 0.733
+  },
+  {
+   "semaine_du": "2019-02-04",
+   "pct": 0.805
+  },
+  {
+   "semaine_du": "2019-02-11",
+   "pct": 0.443
+  },
+  {
+   "semaine_du": "2019-02-18",
+   "pct": -0.303
+  },
+  {
+   "semaine_du": "2019-02-25",
+   "pct": -1.286
+  },
+  {
+   "semaine_du": "2019-03-04",
+   "pct": 0.077
+  },
+  {
+   "semaine_du": "2019-03-11",
+   "pct": 0.105
+  },
+  {
+   "semaine_du": "2019-03-18",
+   "pct": 1.292
+  },
+  {
+   "semaine_du": "2019-03-25",
+   "pct": -0.595
+  },
+  {
+   "semaine_du": "2019-04-01",
+   "pct": 4.636
+  },
+  {
+   "semaine_du": "2019-04-08",
+   "pct": -1.51
+  },
+  {
+   "semaine_du": "2019-04-15",
+   "pct": 0.834
+  },
+  {
+   "semaine_du": "2019-04-22",
+   "pct": 0.38
+  },
+  {
+   "semaine_du": "2019-04-29",
+   "pct": 1.572
+  },
+  {
+   "semaine_du": "2019-05-06",
+   "pct": 4.424
+  },
+  {
+   "semaine_du": "2019-05-13",
+   "pct": 3.952
+  },
+  {
+   "semaine_du": "2019-05-20",
+   "pct": 0.768
+  },
+  {
+   "semaine_du": "2019-05-27",
+   "pct": -1.142
+  },
+  {
+   "semaine_du": "2019-06-03",
+   "pct": -0.513
+  },
+  {
+   "semaine_du": "2019-06-10",
+   "pct": -0.5
+  },
+  {
+   "semaine_du": "2019-06-17",
+   "pct": 1.494
+  },
+  {
+   "semaine_du": "2019-06-24",
+   "pct": 1.384
+  },
+  {
+   "semaine_du": "2019-07-01",
+   "pct": 0.137
+  },
+  {
+   "semaine_du": "2019-07-08",
+   "pct": -0.013
+  },
+  {
+   "semaine_du": "2019-07-15",
+   "pct": -0.909
+  },
+  {
+   "semaine_du": "2019-07-22",
+   "pct": 0.655
+  },
+  {
+   "semaine_du": "2019-07-29",
+   "pct": 0.469
+  },
+  {
+   "semaine_du": "2019-08-05",
+   "pct": 1.823
+  },
+  {
+   "semaine_du": "2019-08-12",
+   "pct": 1.031
+  },
+  {
+   "semaine_du": "2019-08-19",
+   "pct": -0.236
+  },
+  {
+   "semaine_du": "2019-08-26",
+   "pct": 0.754
+  },
+  {
+   "semaine_du": "2019-09-02",
+   "pct": -0.236
+  },
+  {
+   "semaine_du": "2019-09-09",
+   "pct": -2.863
+  },
+  {
+   "semaine_du": "2019-09-16",
+   "pct": 2.2
+  },
+  {
+   "semaine_du": "2019-09-23",
+   "pct": -0.106
+  },
+  {
+   "semaine_du": "2019-09-30",
+   "pct": 1.134
+  },
+  {
+   "semaine_du": "2019-10-07",
+   "pct": -1.853
+  },
+  {
+   "semaine_du": "2019-10-14",
+   "pct": 0.445
+  },
+  {
+   "semaine_du": "2019-10-21",
+   "pct": -0.057
+  },
+  {
+   "semaine_du": "2019-10-28",
+   "pct": -0.239
+  },
+  {
+   "semaine_du": "2019-11-04",
+   "pct": -2.925
+  },
+  {
+   "semaine_du": "2019-11-11",
+   "pct": 1.245
+  },
+  {
+   "semaine_du": "2019-11-18",
+   "pct": 0.012
+  },
+  {
+   "semaine_du": "2019-11-25",
+   "pct": 0.705
+  },
+  {
+   "semaine_du": "2019-12-02",
+   "pct": -0.336
+  },
+  {
+   "semaine_du": "2019-12-09",
+   "pct": 0.899
+  },
+  {
+   "semaine_du": "2019-12-16",
+   "pct": 0.155
+  },
+  {
+   "semaine_du": "2019-12-23",
+   "pct": 0.609
+  },
+  {
+   "semaine_du": "2019-12-30",
+   "pct": -0.976
+  },
+  {
+   "semaine_du": "2020-01-06",
+   "pct": 0.59
+  },
+  {
+   "semaine_du": "2020-01-13",
+   "pct": 2.806
+  },
+  {
+   "semaine_du": "2020-01-20",
+   "pct": -2.149
+  },
+  {
+   "semaine_du": "2020-01-27",
+   "pct": -2.042
+  },
+  {
+   "semaine_du": "2020-02-03",
+   "pct": 1.844
+  },
+  {
+   "semaine_du": "2020-02-10",
+   "pct": 0.172
+  },
+  {
+   "semaine_du": "2020-02-17",
+   "pct": 0.962
+  },
+  {
+   "semaine_du": "2020-02-24",
+   "pct": -3.196
+  },
+  {
+   "semaine_du": "2020-03-02",
+   "pct": 6.854
+  },
+  {
+   "semaine_du": "2020-03-09",
+   "pct": -6.477
+  },
+  {
+   "semaine_du": "2020-03-16",
+   "pct": 1.003
+  },
+  {
+   "semaine_du": "2020-03-23",
+   "pct": 5.043
+  },
+  {
+   "semaine_du": "2020-03-30",
+   "pct": 0.615
+  },
+  {
+   "semaine_du": "2020-04-06",
+   "pct": -0.608
+  },
+  {
+   "semaine_du": "2020-04-13",
+   "pct": 0.662
+  },
+  {
+   "semaine_du": "2020-04-20",
+   "pct": 1.282
+  },
+  {
+   "semaine_du": "2020-04-27",
+   "pct": -0.024
+  },
+  {
+   "semaine_du": "2020-05-04",
+   "pct": -1.428
+  },
+  {
+   "semaine_du": "2020-05-11",
+   "pct": 0.711
+  },
+  {
+   "semaine_du": "2020-05-18",
+   "pct": -1.678
+  },
+  {
+   "semaine_du": "2020-05-25",
+   "pct": 0.12
+  },
+  {
+   "semaine_du": "2020-06-01",
+   "pct": -1.17
+  },
+  {
+   "semaine_du": "2020-06-08",
+   "pct": 0.451
+  },
+  {
+   "semaine_du": "2020-06-15",
+   "pct": 0.005
+  },
+  {
+   "semaine_du": "2020-06-22",
+   "pct": 0.177
+  },
+  {
+   "semaine_du": "2020-06-29",
+   "pct": -0.172
+  },
+  {
+   "semaine_du": "2020-07-06",
+   "pct": 1.884
+  },
+  {
+   "semaine_du": "2020-07-13",
+   "pct": 0.255
+  },
+  {
+   "semaine_du": "2020-07-20",
+   "pct": 3.739
+  },
+  {
+   "semaine_du": "2020-07-27",
+   "pct": 1.857
+  },
+  {
+   "semaine_du": "2020-08-03",
+   "pct": -0.221
+  },
+  {
+   "semaine_du": "2020-08-10",
+   "pct": -0.725
+  },
+  {
+   "semaine_du": "2020-08-17",
+   "pct": -0.883
+  },
+  {
+   "semaine_du": "2020-08-24",
+   "pct": -0.59
+  },
+  {
+   "semaine_du": "2020-08-31",
+   "pct": -0.847
+  },
+  {
+   "semaine_du": "2020-09-07",
+   "pct": -0.983
+  },
+  {
+   "semaine_du": "2020-09-14",
+   "pct": 0.236
+  },
+  {
+   "semaine_du": "2020-09-21",
+   "pct": -2.836
+  },
+  {
+   "semaine_du": "2020-09-28",
+   "pct": 1.517
+  },
+  {
+   "semaine_du": "2020-10-05",
+   "pct": 2.796
+  },
+  {
+   "semaine_du": "2020-10-12",
+   "pct": -0.626
+  },
+  {
+   "semaine_du": "2020-10-19",
+   "pct": 2.593
+  },
+  {
+   "semaine_du": "2020-10-26",
+   "pct": -2.298
+  },
+  {
+   "semaine_du": "2020-11-02",
+   "pct": 5.891
+  },
+  {
+   "semaine_du": "2020-11-09",
+   "pct": -0.343
+  },
+  {
+   "semaine_du": "2020-11-16",
+   "pct": 5.867
+  },
+  {
+   "semaine_du": "2020-11-23",
+   "pct": -0.662
+  },
+  {
+   "semaine_du": "2020-11-30",
+   "pct": 0.893
+  },
+  {
+   "semaine_du": "2020-12-07",
+   "pct": -1.538
+  },
+  {
+   "semaine_du": "2020-12-14",
+   "pct": 1.982
+  },
+  {
+   "semaine_du": "2020-12-21",
+   "pct": -0.463
+  },
+  {
+   "semaine_du": "2020-12-28",
+   "pct": 5.189
+  },
+  {
+   "semaine_du": "2021-01-04",
+   "pct": 1.168
+  },
+  {
+   "semaine_du": "2021-01-11",
+   "pct": 0.079
+  },
+  {
+   "semaine_du": "2021-01-18",
+   "pct": 0.071
+  },
+  {
+   "semaine_du": "2021-01-25",
+   "pct": -4.157
+  },
+  {
+   "semaine_du": "2021-02-01",
+   "pct": 3.752
+  },
+  {
+   "semaine_du": "2021-02-08",
+   "pct": 4.899
+  },
+  {
+   "semaine_du": "2021-02-15",
+   "pct": 1.157
+  },
+  {
+   "semaine_du": "2021-02-22",
+   "pct": -2.305
+  },
+  {
+   "semaine_du": "2021-03-01",
+   "pct": 1.519
+  },
+  {
+   "semaine_du": "2021-03-08",
+   "pct": 1.808
+  },
+  {
+   "semaine_du": "2021-03-15",
+   "pct": -1.308
+  },
+  {
+   "semaine_du": "2021-03-22",
+   "pct": -0.092
+  },
+  {
+   "semaine_du": "2021-03-29",
+   "pct": 2.795
+  },
+  {
+   "semaine_du": "2021-04-05",
+   "pct": 0.429
+  },
+  {
+   "semaine_du": "2021-04-12",
+   "pct": 4.631
+  },
+  {
+   "semaine_du": "2021-04-19",
+   "pct": 0.511
+  },
+  {
+   "semaine_du": "2021-04-26",
+   "pct": -0.087
+  },
+  {
+   "semaine_du": "2021-05-03",
+   "pct": 1.824
+  },
+  {
+   "semaine_du": "2021-05-10",
+   "pct": -1.504
+  },
+  {
+   "semaine_du": "2021-05-17",
+   "pct": -0.34
+  },
+  {
+   "semaine_du": "2021-05-24",
+   "pct": 1.92
+  },
+  {
+   "semaine_du": "2021-05-31",
+   "pct": 1.956
+  },
+  {
+   "semaine_du": "2021-06-07",
+   "pct": 1.206
+  },
+  {
+   "semaine_du": "2021-06-14",
+   "pct": -2.719
+  },
+  {
+   "semaine_du": "2021-06-21",
+   "pct": 2.208
+  },
+  {
+   "semaine_du": "2021-06-28",
+   "pct": 1.322
+  },
+  {
+   "semaine_du": "2021-07-05",
+   "pct": 0.303
+  },
+  {
+   "semaine_du": "2021-07-12",
+   "pct": -0.411
+  },
+  {
+   "semaine_du": "2021-07-19",
+   "pct": 1.06
+  },
+  {
+   "semaine_du": "2021-07-26",
+   "pct": 1.401
+  },
+  {
+   "semaine_du": "2021-08-02",
+   "pct": 0.92
+  },
+  {
+   "semaine_du": "2021-08-09",
+   "pct": 1.851
+  },
+  {
+   "semaine_du": "2021-08-16",
+   "pct": 2.448
+  },
+  {
+   "semaine_du": "2021-08-23",
+   "pct": 2.028
+  },
+  {
+   "semaine_du": "2021-08-30",
+   "pct": 2.537
+  },
+  {
+   "semaine_du": "2021-09-06",
+   "pct": -2.098
+  },
+  {
+   "semaine_du": "2021-09-13",
+   "pct": -0.556
+  },
+  {
+   "semaine_du": "2021-09-20",
+   "pct": 0.983
+  },
+  {
+   "semaine_du": "2021-09-27",
+   "pct": -0.297
+  },
+  {
+   "semaine_du": "2021-10-04",
+   "pct": 0.961
+  },
+  {
+   "semaine_du": "2021-10-11",
+   "pct": 3.094
+  },
+  {
+   "semaine_du": "2021-10-18",
+   "pct": 0.966
+  },
+  {
+   "semaine_du": "2021-10-25",
+   "pct": -0.029
+  },
+  {
+   "semaine_du": "2021-11-01",
+   "pct": 1.184
+  },
+  {
+   "semaine_du": "2021-11-08",
+   "pct": -1.183
+  },
+  {
+   "semaine_du": "2021-11-15",
+   "pct": -1.718
+  },
+  {
+   "semaine_du": "2021-11-22",
+   "pct": -2.432
+  },
+  {
+   "semaine_du": "2021-11-29",
+   "pct": -1.338
+  },
+  {
+   "semaine_du": "2021-12-06",
+   "pct": 3.612
+  },
+  {
+   "semaine_du": "2021-12-13",
+   "pct": -0.848
+  },
+  {
+   "semaine_du": "2021-12-20",
+   "pct": 2.238
+  },
+  {
+   "semaine_du": "2021-12-27",
+   "pct": 1.676
+  },
+  {
+   "semaine_du": "2022-01-03",
+   "pct": -1.338
+  },
+  {
+   "semaine_du": "2022-01-10",
+   "pct": 0.32
+  },
+  {
+   "semaine_du": "2022-01-17",
+   "pct": -2.756
+  },
+  {
+   "semaine_du": "2022-01-24",
+   "pct": 0.752
+  },
+  {
+   "semaine_du": "2022-01-31",
+   "pct": 1.233
+  },
+  {
+   "semaine_du": "2022-02-07",
+   "pct": -1.279
+  },
+  {
+   "semaine_du": "2022-02-14",
+   "pct": -1.338
+  },
+  {
+   "semaine_du": "2022-02-21",
+   "pct": 1.365
+  },
+  {
+   "semaine_du": "2022-02-28",
+   "pct": 1.81
+  },
+  {
+   "semaine_du": "2022-03-07",
+   "pct": -1.423
+  },
+  {
+   "semaine_du": "2022-03-14",
+   "pct": -1.326
+  },
+  {
+   "semaine_du": "2022-03-21",
+   "pct": 3.691
+  },
+  {
+   "semaine_du": "2022-03-28",
+   "pct": 0.874
+  },
+  {
+   "semaine_du": "2022-04-04",
+   "pct": -0.764
+  },
+  {
+   "semaine_du": "2022-04-11",
+   "pct": 1.903
+  },
+  {
+   "semaine_du": "2022-04-18",
+   "pct": -1.555
+  },
+  {
+   "semaine_du": "2022-04-25",
+   "pct": -1.881
+  },
+  {
+   "semaine_du": "2022-05-02",
+   "pct": -0.119
+  },
+  {
+   "semaine_du": "2022-05-09",
+   "pct": -1.583
+  },
+  {
+   "semaine_du": "2022-05-16",
+   "pct": 0.543
+  },
+  {
+   "semaine_du": "2022-05-23",
+   "pct": 1.402
+  },
+  {
+   "semaine_du": "2022-05-30",
+   "pct": 0.858
+  },
+  {
+   "semaine_du": "2022-06-06",
+   "pct": 0.399
+  },
+  {
+   "semaine_du": "2022-06-13",
+   "pct": -1.794
+  },
+  {
+   "semaine_du": "2022-06-20",
+   "pct": -1.098
+  },
+  {
+   "semaine_du": "2022-06-27",
+   "pct": -1.089
+  },
+  {
+   "semaine_du": "2022-07-04",
+   "pct": -0.872
+  },
+  {
+   "semaine_du": "2022-07-11",
+   "pct": -1.256
+  },
+  {
+   "semaine_du": "2022-07-18",
+   "pct": -0.229
+  },
+  {
+   "semaine_du": "2022-07-25",
+   "pct": 1.094
+  },
+  {
+   "semaine_du": "2022-08-01",
+   "pct": -2.201
+  },
+  {
+   "semaine_du": "2022-08-08",
+   "pct": 0.807
+  },
+  {
+   "semaine_du": "2022-08-15",
+   "pct": -1.135
+  },
+  {
+   "semaine_du": "2022-08-22",
+   "pct": 0.869
+  },
+  {
+   "semaine_du": "2022-08-29",
+   "pct": -1.656
+  },
+  {
+   "semaine_du": "2022-09-05",
+   "pct": 0.066
+  },
+  {
+   "semaine_du": "2022-09-12",
+   "pct": -2.19
+  },
+  {
+   "semaine_du": "2022-09-19",
+   "pct": -1.157
+  },
+  {
+   "semaine_du": "2022-09-26",
+   "pct": -0.134
+  },
+  {
+   "semaine_du": "2022-10-03",
+   "pct": 0.286
+  },
+  {
+   "semaine_du": "2022-10-10",
+   "pct": 0.0
+  },
+  {
+   "semaine_du": "2022-10-17",
+   "pct": 0.0
+  },
+  {
+   "semaine_du": "2022-10-24",
+   "pct": 3.776
+  },
+  {
+   "semaine_du": "2022-10-31",
+   "pct": 2.832
+  },
+  {
+   "semaine_du": "2022-11-07",
+   "pct": -4.11
+  },
+  {
+   "semaine_du": "2022-11-14",
+   "pct": 0.0
+  },
+  {
+   "semaine_du": "2022-11-21",
+   "pct": 0.0
+  },
+  {
+   "semaine_du": "2022-11-28",
+   "pct": -0.163
+  },
+  {
+   "semaine_du": "2022-12-05",
+   "pct": -1.516
+  },
+  {
+   "semaine_du": "2022-12-12",
+   "pct": -1.508
+  },
+  {
+   "semaine_du": "2022-12-19",
+   "pct": 0.209
+  },
+  {
+   "semaine_du": "2022-12-26",
+   "pct": -0.167
+  },
+  {
+   "semaine_du": "2023-01-02",
+   "pct": 1.573
+  },
+  {
+   "semaine_du": "2023-01-09",
+   "pct": 4.869
+  },
+  {
+   "semaine_du": "2023-01-16",
+   "pct": -0.075
+  },
+  {
+   "semaine_du": "2023-01-23",
+   "pct": -0.641
+  },
+  {
+   "semaine_du": "2023-01-30",
+   "pct": -3.357
+  },
+  {
+   "semaine_du": "2023-02-06",
+   "pct": -1.587
+  },
+  {
+   "semaine_du": "2023-02-13",
+   "pct": 0.052
+  },
+  {
+   "semaine_du": "2023-02-20",
+   "pct": -2.748
+  },
+  {
+   "semaine_du": "2023-02-27",
+   "pct": 0.693
+  },
+  {
+   "semaine_du": "2023-03-06",
+   "pct": -2.303
+  },
+  {
+   "semaine_du": "2023-03-13",
+   "pct": 3.15
+  },
+  {
+   "semaine_du": "2023-03-20",
+   "pct": 0.084
+  },
+  {
+   "semaine_du": "2023-03-27",
+   "pct": 1.347
+  },
+  {
+   "semaine_du": "2023-04-03",
+   "pct": -0.012
+  },
+  {
+   "semaine_du": "2023-04-10",
+   "pct": 1.877
+  },
+  {
+   "semaine_du": "2023-04-17",
+   "pct": -2.288
+  },
+  {
+   "semaine_du": "2023-04-24",
+   "pct": 0.111
+  },
+  {
+   "semaine_du": "2023-05-01",
+   "pct": -0.696
+  },
+  {
+   "semaine_du": "2023-05-08",
+   "pct": -0.648
+  },
+  {
+   "semaine_du": "2023-05-15",
+   "pct": 0.225
+  },
+  {
+   "semaine_du": "2023-05-22",
+   "pct": -1.067
+  },
+  {
+   "semaine_du": "2023-05-29",
+   "pct": 0.684
+  },
+  {
+   "semaine_du": "2023-06-05",
+   "pct": 0.418
+  },
+  {
+   "semaine_du": "2023-06-12",
+   "pct": 1.681
+  },
+  {
+   "semaine_du": "2023-06-19",
+   "pct": -1.315
+  },
+  {
+   "semaine_du": "2023-06-26",
+   "pct": 1.212
+  },
+  {
+   "semaine_du": "2023-07-03",
+   "pct": -1.524
+  },
+  {
+   "semaine_du": "2023-07-10",
+   "pct": 3.709
+  },
+  {
+   "semaine_du": "2023-07-17",
+   "pct": -0.63
+  },
+  {
+   "semaine_du": "2023-07-24",
+   "pct": 1.53
+  },
+  {
+   "semaine_du": "2023-07-31",
+   "pct": -3.054
+  },
+  {
+   "semaine_du": "2023-08-07",
+   "pct": -0.823
+  },
+  {
+   "semaine_du": "2023-08-14",
+   "pct": -2.719
+  },
+  {
+   "semaine_du": "2023-08-21",
+   "pct": 0.89
+  },
+  {
+   "semaine_du": "2023-08-28",
+   "pct": 2.0
+  },
+  {
+   "semaine_du": "2023-09-04",
+   "pct": -1.308
+  },
+  {
+   "semaine_du": "2023-09-11",
+   "pct": 0.473
+  },
+  {
+   "semaine_du": "2023-09-18",
+   "pct": -2.103
+  },
+  {
+   "semaine_du": "2023-09-25",
+   "pct": -1.767
+  },
+  {
+   "semaine_du": "2023-10-02",
+   "pct": -2.863
+  },
+  {
+   "semaine_du": "2023-10-09",
+   "pct": -0.197
+  },
+  {
+   "semaine_du": "2023-10-16",
+   "pct": 1.311
+  },
+  {
+   "semaine_du": "2023-10-23",
+   "pct": 1.243
+  },
+  {
+   "semaine_du": "2023-10-30",
+   "pct": 2.195
+  },
+  {
+   "semaine_du": "2023-11-06",
+   "pct": 0.701
+  },
+  {
+   "semaine_du": "2023-11-13",
+   "pct": -0.37
+  },
+  {
+   "semaine_du": "2023-11-20",
+   "pct": -0.917
+  },
+  {
+   "semaine_du": "2023-11-27",
+   "pct": 1.359
+  },
+  {
+   "semaine_du": "2023-12-04",
+   "pct": 2.019
+  },
+  {
+   "semaine_du": "2023-12-11",
+   "pct": -0.999
+  },
+  {
+   "semaine_du": "2023-12-18",
+   "pct": 2.177
+  },
+  {
+   "semaine_du": "2023-12-25",
+   "pct": -0.537
+  },
+  {
+   "semaine_du": "2024-01-01",
+   "pct": -3.561
+  },
+  {
+   "semaine_du": "2024-01-08",
+   "pct": 0.627
+  },
+  {
+   "semaine_du": "2024-01-15",
+   "pct": -0.731
+  },
+  {
+   "semaine_du": "2024-01-22",
+   "pct": 0.687
+  },
+  {
+   "semaine_du": "2024-01-29",
+   "pct": 0.281
+  },
+  {
+   "semaine_du": "2024-02-05",
+   "pct": 1.252
+  },
+  {
+   "semaine_du": "2024-02-12",
+   "pct": 0.188
+  },
+  {
+   "semaine_du": "2024-02-19",
+   "pct": 0.713
+  },
+  {
+   "semaine_du": "2024-02-26",
+   "pct": 11.206
+  },
+  {
+   "semaine_du": "2024-03-04",
+   "pct": 1.253
+  },
+  {
+   "semaine_du": "2024-03-11",
+   "pct": -0.896
+  },
+  {
+   "semaine_du": "2024-03-18",
+   "pct": 0.294
+  },
+  {
+   "semaine_du": "2024-03-25",
+   "pct": 0.197
+  },
+  {
+   "semaine_du": "2024-04-01",
+   "pct": -0.151
+  },
+  {
+   "semaine_du": "2024-04-08",
+   "pct": -1.76
+  },
+  {
+   "semaine_du": "2024-04-15",
+   "pct": -0.809
+  },
+  {
+   "semaine_du": "2024-04-22",
+   "pct": 0.646
+  },
+  {
+   "semaine_du": "2024-04-29",
+   "pct": 0.356
+  },
+  {
+   "semaine_du": "2024-05-06",
+   "pct": 0.881
+  },
+  {
+   "semaine_du": "2024-05-13",
+   "pct": 1.338
+  },
+  {
+   "semaine_du": "2024-05-20",
+   "pct": -0.646
+  },
+  {
+   "semaine_du": "2024-05-27",
+   "pct": -0.539
+  },
+  {
+   "semaine_du": "2024-06-03",
+   "pct": -0.568
+  },
+  {
+   "semaine_du": "2024-06-10",
+   "pct": -1.095
+  },
+  {
+   "semaine_du": "2024-06-17",
+   "pct": 0.125
+  },
+  {
+   "semaine_du": "2024-06-24",
+   "pct": 0.175
+  },
+  {
+   "semaine_du": "2024-07-01",
+   "pct": 2.283
+  },
+  {
+   "semaine_du": "2024-07-08",
+   "pct": 1.324
+  },
+  {
+   "semaine_du": "2024-07-15",
+   "pct": -0.934
+  },
+  {
+   "semaine_du": "2024-07-22",
+   "pct": -1.786
+  },
+  {
+   "semaine_du": "2024-07-29",
+   "pct": -1.312
+  },
+  {
+   "semaine_du": "2024-08-05",
+   "pct": -0.177
+  },
+  {
+   "semaine_du": "2024-08-12",
+   "pct": 2.517
+  },
+  {
+   "semaine_du": "2024-08-19",
+   "pct": 1.727
+  },
+  {
+   "semaine_du": "2024-08-26",
+   "pct": -0.508
+  },
+  {
+   "semaine_du": "2024-09-02",
+   "pct": -1.548
+  },
+  {
+   "semaine_du": "2024-09-09",
+   "pct": 3.123
+  },
+  {
+   "semaine_du": "2024-09-16",
+   "pct": 1.903
+  },
+  {
+   "semaine_du": "2024-09-23",
+   "pct": 1.088
+  },
+  {
+   "semaine_du": "2024-09-30",
+   "pct": -1.069
+  },
+  {
+   "semaine_du": "2024-10-07",
+   "pct": 0.097
+  },
+  {
+   "semaine_du": "2024-10-14",
+   "pct": 1.15
+  },
+  {
+   "semaine_du": "2024-10-21",
+   "pct": -1.625
+  },
+  {
+   "semaine_du": "2024-10-28",
+   "pct": -1.649
+  },
+  {
+   "semaine_du": "2024-11-04",
+   "pct": 4.714
+  },
+  {
+   "semaine_du": "2024-11-11",
+   "pct": -0.995
+  },
+  {
+   "semaine_du": "2024-11-18",
+   "pct": 2.373
+  },
+  {
+   "semaine_du": "2024-11-25",
+   "pct": 2.012
+  },
+  {
+   "semaine_du": "2024-12-02",
+   "pct": 0.185
+  },
+  {
+   "semaine_du": "2024-12-09",
+   "pct": -1.482
+  },
+  {
+   "semaine_du": "2024-12-16",
+   "pct": -2.991
+  },
+  {
+   "semaine_du": "2024-12-23",
+   "pct": -0.185
+  },
+  {
+   "semaine_du": "2024-12-30",
+   "pct": -0.162
+  },
+  {
+   "semaine_du": "2025-01-06",
+   "pct": -2.148
+  },
+  {
+   "semaine_du": "2025-01-13",
+   "pct": 1.683
+  },
+  {
+   "semaine_du": "2025-01-20",
+   "pct": 0.57
+  },
+  {
+   "semaine_du": "2025-01-27",
+   "pct": -1.757
+  },
+  {
+   "semaine_du": "2025-02-03",
+   "pct": 1.014
+  },
+  {
+   "semaine_du": "2025-02-10",
+   "pct": 1.771
+  },
+  {
+   "semaine_du": "2025-02-17",
+   "pct": -0.353
+  },
+  {
+   "semaine_du": "2025-02-24",
+   "pct": -1.228
+  },
+  {
+   "semaine_du": "2025-03-03",
+   "pct": 0.788
+  },
+  {
+   "semaine_du": "2025-03-10",
+   "pct": -0.183
+  },
+  {
+   "semaine_du": "2025-03-17",
+   "pct": 0.548
+  },
+  {
+   "semaine_du": "2025-03-24",
+   "pct": -0.263
+  },
+  {
+   "semaine_du": "2025-03-31",
+   "pct": -5.606
+  },
+  {
+   "semaine_du": "2025-04-07",
+   "pct": 3.928
+  },
+  {
+   "semaine_du": "2025-04-14",
+   "pct": 2.529
+  },
+  {
+   "semaine_du": "2025-04-21",
+   "pct": 1.371
+  },
+  {
+   "semaine_du": "2025-04-28",
+   "pct": -1.588
+  },
+  {
+   "semaine_du": "2025-05-05",
+   "pct": 4.781
+  },
+  {
+   "semaine_du": "2025-05-12",
+   "pct": -0.045
+  },
+  {
+   "semaine_du": "2025-05-19",
+   "pct": 0.864
+  },
+  {
+   "semaine_du": "2025-05-26",
+   "pct": -0.941
+  },
+  {
+   "semaine_du": "2025-06-02",
+   "pct": 0.743
+  },
+  {
+   "semaine_du": "2025-06-09",
+   "pct": -0.176
+  },
+  {
+   "semaine_du": "2025-06-16",
+   "pct": -1.566
+  },
+  {
+   "semaine_du": "2025-06-23",
+   "pct": 1.5
+  },
+  {
+   "semaine_du": "2025-06-30",
+   "pct": 0.745
+  },
+  {
+   "semaine_du": "2025-07-07",
+   "pct": 0.552
+  },
+  {
+   "semaine_du": "2025-07-14",
+   "pct": 1.249
+  },
+  {
+   "semaine_du": "2025-07-21",
+   "pct": -0.245
+  },
+  {
+   "semaine_du": "2025-07-28",
+   "pct": -3.018
+  },
+  {
+   "semaine_du": "2025-08-04",
+   "pct": 1.902
+  },
+  {
+   "semaine_du": "2025-08-11",
+   "pct": -0.029
+  },
+  {
+   "semaine_du": "2025-08-18",
+   "pct": 0.723
+  },
+  {
+   "semaine_du": "2025-08-25",
+   "pct": 0.218
+  },
+  {
+   "semaine_du": "2025-09-01",
+   "pct": 1.876
+  },
+  {
+   "semaine_du": "2025-09-08",
+   "pct": 2.398
+  },
+  {
+   "semaine_du": "2025-09-15",
+   "pct": -0.141
+  },
+  {
+   "semaine_du": "2025-09-22",
+   "pct": -0.928
+  },
+  {
+   "semaine_du": "2025-09-29",
+   "pct": 4.529
+  },
+  {
+   "semaine_du": "2025-10-06",
+   "pct": -2.242
+  },
+  {
+   "semaine_du": "2025-10-13",
+   "pct": 3.844
+  },
+  {
+   "semaine_du": "2025-10-20",
+   "pct": 0.133
+  },
+  {
+   "semaine_du": "2025-10-27",
+   "pct": -0.869
+  },
+  {
+   "semaine_du": "2025-11-03",
+   "pct": -0.976
+  },
+  {
+   "semaine_du": "2025-11-10",
+   "pct": 0.997
+  },
+  {
+   "semaine_du": "2025-11-17",
+   "pct": -1.902
+  },
+  {
+   "semaine_du": "2025-11-24",
+   "pct": 3.221
+  },
+  {
+   "semaine_du": "2025-12-01",
+   "pct": 0.307
+  },
+  {
+   "semaine_du": "2025-12-08",
+   "pct": 0.703
+  },
+  {
+   "semaine_du": "2025-12-15",
+   "pct": 0.695
+  },
+  {
+   "semaine_du": "2025-12-22",
+   "pct": 2.542
+  },
+  {
+   "semaine_du": "2025-12-29",
+   "pct": -0.493
+  },
+  {
+   "semaine_du": "2026-01-05",
+   "pct": 2.125
+  },
+  {
+   "semaine_du": "2026-01-12",
+   "pct": -0.103
+  },
+  {
+   "semaine_du": "2026-01-19",
+   "pct": 0.79
+  },
+  {
+   "semaine_du": "2026-01-26",
+   "pct": -0.752
+  },
+  {
+   "semaine_du": "2026-02-02",
+   "pct": 1.935
+  },
+  {
+   "semaine_du": "2026-02-09",
+   "pct": 1.635
+  },
+  {
+   "semaine_du": "2026-02-16",
+   "pct": 1.309
+  },
+  {
+   "semaine_du": "2026-02-23",
+   "pct": 1.389
+  },
+  {
+   "semaine_du": "2026-03-02",
+   "pct": -5.721
+  },
+  {
+   "semaine_du": "2026-03-09",
+   "pct": -1.877
+  },
+  {
+   "semaine_du": "2026-03-16",
+   "pct": -5.283
+  },
+  {
+   "semaine_du": "2026-03-23",
+   "pct": -0.091
+  },
+  {
+   "semaine_du": "2026-03-30",
+   "pct": 4.438
+  },
+  {
+   "semaine_du": "2026-04-06",
+   "pct": 1.538
+  },
+  {
+   "semaine_du": "2026-04-13",
+   "pct": 1.388
+  },
+  {
+   "semaine_du": "2026-04-20",
+   "pct": 1.574
+  },
+  {
+   "semaine_du": "2026-04-27",
+   "pct": -0.11
+  },
+  {
+   "semaine_du": "2026-05-04",
+   "pct": 3.035
+  },
+  {
+   "semaine_du": "2026-05-11",
+   "pct": -2.606
+  },
+  {
+   "semaine_du": "2026-05-18",
+   "pct": 0.017
+  },
+  {
+   "semaine_du": "2026-05-25",
+   "pct": 0.755
+  },
+  {
+   "semaine_du": "2026-06-01",
+   "pct": -3.061
+  },
+  {
+   "semaine_du": "2026-06-08",
+   "pct": 1.039
+  },
+  {
+   "semaine_du": "2026-06-15",
+   "pct": 0.87
+  },
+  {
+   "semaine_du": "2026-06-22",
+   "pct": -3.778
+  },
+  {
+   "semaine_du": "2026-06-29",
+   "pct": 0.219
+  },
+  {
+   "semaine_du": "2026-07-06",
+   "pct": 1.044
+  },
+  {
+   "semaine_du": "2026-07-13",
+   "pct": -2.629
+  },
+  {
+   "semaine_du": "2026-07-20",
+   "pct": -0.35
+  },
+  {
+   "semaine_du": "2026-07-27",
+   "pct": 1.437
+  },
+  {
+   "semaine_du": "2026-08-03",
+   "pct": 1.405
+  },
+  {
+   "semaine_du": "2026-08-10",
+   "pct": 1.055
+  },
+  {
+   "semaine_du": "2026-08-17",
+   "pct": 8.18
+  },
+  {
+   "semaine_du": "2026-08-24",
+   "pct": -1.256
+  },
+  {
+   "semaine_du": "2026-08-31",
+   "pct": 2.319
+  },
+  {
+   "semaine_du": "2026-09-07",
+   "pct": -0.068
+  },
+  {
+   "semaine_du": "2026-09-14",
+   "pct": -0.011
+  },
+  {
+   "semaine_du": "2026-09-21",
+   "pct": 1.83
+  },
+  {
+   "semaine_du": "2026-09-28",
+   "pct": -0.908
+  },
+  {
+   "semaine_du": "2026-10-05",
+   "pct": -0.082
+  },
+  {
+   "semaine_du": "2026-10-12",
+   "pct": -2.159
+  },
+  {
+   "semaine_du": "2026-10-19",
+   "pct": -0.799
+  },
+  {
+   "semaine_du": "2026-10-26",
+   "pct": -1.182
+  },
+  {
+   "semaine_du": "2026-11-02",
+   "pct": -3.845
+  },
+  {
+   "semaine_du": "2026-11-09",
+   "pct": 0.828
+  },
+  {
+   "semaine_du": "2026-11-16",
+   "pct": -7.06
+  }
+ ]
+}

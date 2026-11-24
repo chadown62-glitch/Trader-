@@ -299,6 +299,14 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
   - **Objectif hebdomadaire.** Les 1,30 % par semaine ne sont ni un paramètre ni un critère : la part des semaines qui les atteignent est seulement publiée.
   - **Mesure unique.** Elle porte sur la période de 2018 à novembre 2026, avec chaque année publiée. La période réservée, déjà consommée par l'évaluation unique (#140), n'y figure qu'à titre d'historique, publiée à part.
   - **Garde-fous et argent réel.** Les critères avant argent réel restent ceux ci-dessus. La preuve prospective reste obligatoire.
+  - **Résultat mesuré (`research/scalp-v1/moteur-unique-2018-2026.json`).** Période du 1er janvier 2018 au 22 novembre 2026, 464 semaines :
+    - **Rendement :** +149 %, soit +10,8 % par an, pour une pire baisse de 21 %.
+    - **Semaines :** +0,22 % en moyenne. 251 sont positives et 209 négatives. 109 atteignent +1,30 % ou plus.
+    - **Années baissières :** −7,4 % en 2018 et −12,3 % en 2022, contre −73 % et −64 % pour le BTC.
+    - **Références :** SPY +12,9 % par an (pire baisse 33,7 %), 60/40 +8,3 % par an (21,2 %).
+    - **Transferts entre poches :** ils n'apportent rien. Les parts fixes font +151,6 %, avec une pire baisse de 17,8 %. Les 355 transferts coûtent environ 534 € pour 1 000 € de départ.
+    - **Memecoins :** ils dégradent la poche crypto (pire baisse 40,7 % avec les cryptos, contre 27,1 % sans).
+    - **Verdict :** les critères avant argent réel ne sont pas atteints.
 
 ### Période réservée et critères préenregistrés
 
