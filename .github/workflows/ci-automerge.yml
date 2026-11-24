@@ -38,6 +38,9 @@ jobs:
           git fetch --no-tags --depth=1 origin refs/pull/53/head:refs/audit/53 refs/pull/54/head:refs/audit/54 refs/pull/55/head:refs/audit/55
           test "$(git rev-parse refs/audit/54)" = 5284a71358bb7a5f7ef3e5e46f2905db4ffc9e18
           test "$(git rev-parse refs/audit/55)" = 18b31bb901f656d6126b370f47c510775f135c57
+          # Commit du gel du baseline des capacités : ses empreintes sont comparées au contenu de ce commit.
+          BASELINE="$(python -c "import json; print(json.load(open('research/scalp-v1/registre-capacites.json', encoding='utf-8'))['baseline']['main'])")"
+          git fetch --no-tags --depth=1 origin "$BASELINE"
       - name: Install test dependencies
         run: python -m pip install -r requirements-dev.txt
       - name: Verify SHA-256 of the frozen file manifests

@@ -359,14 +359,16 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
 - **Registre de couverture versionné.** `research/scalp-v1/registre-capacites.json` est produit par `sentinelle/scalp/registre.py` et vérifié par `tests/test_scalp_registre.py`. Pour chaque capacité, il donne :
   - le statut vérifié : `EXISTANTE_ET_TESTÉE`, `PARTIELLE`, `ABSENTE`, `BLOQUÉE_DONNÉES`, `EXPÉRIMENT_REJETÉ` ou `EXPÉRIMENT_VALIDÉ_PROVISOIRE` ;
   - les preuves dans le code (fichier, symbole et lignes exactes au commit audité) ;
-  - les tests, qui doivent vraiment exercer le code cité ;
+  - les tests cités, avec deux contrôles distincts (correction de l'audit indépendant de #148) :
+    - le référencement : un test cité nomme le symbole ou son module. Il est nécessaire, pas suffisant ;
+    - l'exécution effective (`python -m sentinelle.scalp.registre --execution`) : chaque fichier de test cité est rejoué sous traceur de lignes. Le niveau est « constatée » si le corps de chaque fonction citée a tourné pendant un test réussi. Un statut existant, partiel ou rejeté sans exécution constatée est marqué « couverture à confirmer » ;
   - les dépendances, l'hypothèse falsifiable, le contrat de données résumé et le verdict.
   
   Une capacité n'entre dans aucune décision fictive sans approbation humaine.
 - **Inventaire au commit `e7be7af`.**
   - 32 capacités existantes et testées, 43 partielles, 17 absentes, 3 bloquées faute de données, 5 expériences rejetées et aucune validée.
   - Les 27 capacités de priorité haute se répartissent en 6 existantes et testées, 17 partielles, 3 absentes et 1 bloquée.
-- **Baseline figé.** Il est inscrit dans le registre (clé `baseline`) : SHA de main, empreintes des modules, rendement hebdomadaire géométrique net, pire baisse, coûts, transactions, semaines positives, tests et provenance des résultats. Il comprend trois références :
+- **Baseline figé.** Il est inscrit dans le registre (clé `baseline`) : SHA de main, empreintes des modules (vérifiées contre leur contenu git à ce SHA, pas contre l'arbre courant, pour laisser le moteur évoluer), rendement hebdomadaire géométrique net, pire baisse, coûts, transactions, semaines positives, tests et provenance des résultats. Il comprend trois références :
   - B0, momentum simple : référence des capacités d'analyse technique ;
   - B1, vote 2 sur 3, volatilité visée, avec fonds : seul ratio de Sharpe dégonflé probable (#147) ;
   - B2, moteur unique U1 (#143).

@@ -7,7 +7,15 @@ décision fictive sans approbation humaine. Toutes les capacités partent « À 
 
 Statuts : EXISTANTE_ET_TESTÉE, PARTIELLE, ABSENTE, BLOQUÉE_DONNÉES, EXPÉRIMENT_REJETÉ, EXPÉRIMENT_VALIDÉ_PROVISOIRE.
 
+Deux contrôles distincts (correction de l'audit indépendant de #148) :
+- référencement (« referenced ») : un test cité nomme un symbole cité ou importe son module. Nécessaire, pas suffisant ;
+- exécution effective (« --execution ») : chaque fichier de test cité est rejoué sous traceur de lignes (sys.monitoring,
+  Python 3.12) et on constate si le corps des fonctions citées a réellement tourné. Un statut EXISTANTE_ET_TESTÉE,
+  PARTIELLE ou EXPÉRIMENT_REJETÉ dont l'exécution n'est pas constatée pour chaque fonction citée est marqué
+  « couverture à confirmer ».
+
 Écrire le registre : python -m sentinelle.scalp.registre --ecrire
+Mesurer l'exécution effective des tests cités : python -m sentinelle.scalp.registre --execution
 Vérifier les références : python -m sentinelle.scalp.registre
 """
 
@@ -17,7 +25,13 @@ import argparse
 import ast
 import hashlib
 import json
+import os
+import platform
 import subprocess
+import sys
+import tempfile
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -428,25 +442,45 @@ entry("C100", "ABSENTE", [], [], ["C092", "C095"], "Une configuration figée gar
 
 # --- Résolution des lignes et vérification ------------------------------------------------------------------------------
 
-def _symbols(path: Path) -> dict:
-    """Symboles d'un fichier Python : fonctions, classes, méthodes (Classe.méthode) et constantes, avec leurs lignes."""
+def _nodes(path: Path) -> dict:
+    """Nœuds des symboles d'un fichier Python : fonctions, classes, méthodes (Classe.méthode) et constantes."""
     tree = ast.parse(path.read_text(encoding="utf-8"))
     out = {}
     for node in tree.body:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            out[node.name] = (node.lineno, node.end_lineno)
+            out[node.name] = node
             if isinstance(node, ast.ClassDef):
                 for sub in node.body:
                     if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        out[f"{node.name}.{sub.name}"] = (sub.lineno, sub.end_lineno)
+                        out[f"{node.name}.{sub.name}"] = sub
         elif isinstance(node, (ast.Assign, ast.AnnAssign)):
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
             for t in targets:
                 names = t.elts if isinstance(t, ast.Tuple) else [t]
                 for n in names:
                     if isinstance(n, ast.Name):
-                        out[n.id] = (node.lineno, node.end_lineno)
+                        out[n.id] = node
     return out
+
+
+def _symbols(path: Path) -> dict:
+    """Symboles d'un fichier Python avec leurs lignes (début, fin)."""
+    return {name: (node.lineno, node.end_lineno) for name, node in _nodes(path).items()}
+
+
+def _body_lines(node) -> set[int]:
+    """Lignes des corps de fonction contenus dans un symbole. En-têtes, décorateurs, valeurs par défaut, docstrings et
+    instructions de niveau classe sont exclus : ils s'exécutent dès l'import, sans qu'aucun test n'appelle le code.
+    Vide pour une constante ou une structure sans méthode (« définition »)."""
+    lines = set()
+    for fn in ast.walk(node):
+        if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            body = fn.body
+            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+                body = body[1:]
+            for stmt in body:
+                lines.update(range(stmt.lineno, stmt.end_lineno + 1))
+    return lines
 
 
 def head_sha() -> str | None:
@@ -491,8 +525,14 @@ def check(registry: dict, strict_lines: bool = True) -> list[str]:
             problems.append(f"{i['id']} : verdict inconnu {i['verdict']}")
         if i["statut"] in ("EXISTANTE_ET_TESTÉE", "PARTIELLE", "EXPÉRIMENT_REJETÉ") and not (i["preuves"] and i["tests"]):
             problems.append(f"{i['id']} : {i['statut']} sans preuve ni test")
-        if i["preuves"] and i["tests"] and not tested(i):
-            problems.append(f"{i['id']} : aucun test cité n'exerce les symboles ou modules cités")
+        if i["preuves"] and i["tests"] and not referenced(i):
+            problems.append(f"{i['id']} : aucun test cité ne référence les symboles ou modules cités")
+        cov = i.get("couverture_effective")
+        if cov is not None:
+            if cov["niveau"] != coverage_level(cov["symboles"], bool(i["preuves"])):
+                problems.append(f"{i['id']} : niveau de couverture incohérent avec les symboles mesurés")
+            if cov["a_confirmer"] != (i["statut"] in CLAIMS_TESTED and cov["niveau"] != "constatée"):
+                problems.append(f"{i['id']} : marque « couverture à confirmer » incohérente")
         if i["statut"] == "EXPÉRIMENT_REJETÉ" and "research/" not in i["note"]:
             problems.append(f"{i['id']} : rejet sans fichier de résultats cité")
         for p in i["preuves"]:
@@ -515,8 +555,9 @@ def check(registry: dict, strict_lines: bool = True) -> list[str]:
     return problems
 
 
-def tested(item: dict) -> bool:
-    """Un test cité exerce-t-il vraiment la capacité ? Il doit nommer un des symboles cités, ou importer leur module."""
+def referenced(item: dict) -> bool:
+    """Contrôle de RÉFÉRENCEMENT seulement : un test cité nomme un des symboles cités ou le nom de leur module. Cela ne
+    prouve pas que le code est exécuté (un commentaire suffit) ; l'exécution se constate avec measure_execution()."""
     words = set()
     for p in item["preuves"]:
         words.add(p["symbole"].split(".")[-1])
@@ -526,6 +567,126 @@ def tested(item: dict) -> bool:
         if any(w in text for w in words):
             return True
     return False
+
+
+# --- Exécution effective des tests cités -----------------------------------------------------------------------------
+
+CLAIMS_TESTED = ("EXISTANTE_ET_TESTÉE", "PARTIELLE", "EXPÉRIMENT_REJETÉ")
+NIVEAUX = ("constatée", "partielle", "non constatée", "référencement seul", "sans preuve")
+TRACE_TIMEOUT = 1800
+
+
+def _trace_run(out: str, tests: list[str]) -> int:
+    """Dans un processus dédié : rejoue des fichiers de test sous traceur de lignes et écrit les lignes exécutées du
+    paquet sentinelle (chaque ligne n'est enregistrée qu'une fois, puis l'évènement est coupé pour rester léger)."""
+    import pytest
+
+    mon = sys.monitoring
+    tool = mon.COVERAGE_ID
+    base = os.path.normcase(str(ROOT / "sentinelle")) + os.sep
+    seen: dict[str, set[int]] = {}
+
+    def on_line(code, line):
+        f = os.path.normcase(os.path.abspath(code.co_filename))
+        if f.startswith(base):
+            seen.setdefault(f, set()).add(line)
+        return mon.DISABLE
+
+    mon.use_tool_id(tool, "sentinelle-registre")
+    mon.register_callback(tool, mon.events.LINE, on_line)
+    mon.set_events(tool, mon.events.LINE)
+    try:
+        code = int(pytest.main([*tests, "-p", "no:cacheprovider"]))
+    finally:
+        mon.set_events(tool, 0)
+        mon.register_callback(tool, mon.events.LINE, None)
+        mon.free_tool_id(tool)
+    rel = {Path(f).relative_to(os.path.normcase(str(ROOT))).as_posix(): sorted(v) for f, v in seen.items()}
+    Path(out).write_text(json.dumps({"code_pytest": code, "lignes": rel}), encoding="utf-8")
+    return code
+
+
+def trace(test: str) -> dict:
+    """Rejoue un fichier de test dans un sous-processus isolé : code de sortie pytest, durée et lignes exécutées."""
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "trace.json"
+        t0 = time.time()
+        proc = subprocess.run([sys.executable, "-m", "sentinelle.scalp.registre", "--tracer", str(out), test], cwd=ROOT,
+                              capture_output=True, text=True, timeout=TRACE_TIMEOUT)
+        if not out.exists():
+            return {"code_pytest": proc.returncode, "secondes": round(time.time() - t0, 1), "lignes": {}, "erreur": proc.stderr[-500:]}
+        run = json.loads(out.read_text(encoding="utf-8"))
+        run["secondes"] = round(time.time() - t0, 1)
+        return run
+
+
+def coverage_level(symbols: list[dict], has_evidence: bool = True) -> str:
+    """« constatée » : le corps de chaque fonction citée a tourné pendant un test cité réussi ; « partielle » : une partie ;
+    « non constatée » : aucune ; « référencement seul » : seules des définitions (constantes, structures) sont citées."""
+    if not has_evidence:
+        return "sans preuve"
+    funcs = [s for s in symbols if s["nature"] == "fonction"]
+    if not funcs:
+        return "référencement seul"
+    hit = sum(bool(s["executee"]) for s in funcs)
+    return "constatée" if hit == len(funcs) else "partielle" if hit else "non constatée"
+
+
+def coverage_of(item: dict, runs: dict) -> dict:
+    """Couverture effective d'une capacité : seuls les fichiers de test cités ET réussis (code pytest 0) comptent."""
+    ok = [t for t in item["tests"] if runs.get(t, {}).get("code_pytest") == 0]
+    symbols = []
+    for p in item["preuves"]:
+        body = _body_lines(_nodes(ROOT / p["fichier"])[p["symbole"]])
+        executed = set().union(*(runs[t]["lignes"].get(p["fichier"], ()) for t in ok)) if ok else set()
+        symbols.append({"fichier": p["fichier"], "symbole": p["symbole"], "nature": "fonction" if body else "définition",
+                        "executee": bool(body & executed) if body else None})
+    level = coverage_level(symbols, bool(item["preuves"]))
+    return {"niveau": level, "symboles": symbols, "tests_en_echec": [t for t in item["tests"] if t not in ok],
+            "a_confirmer": item["statut"] in CLAIMS_TESTED and level != "constatée"}
+
+
+def measure_execution(registry: dict, workers: int = 4) -> dict:
+    """Rejoue chaque fichier de test cité sous traceur et qualifie la couverture effective de chaque capacité."""
+    tests = sorted({t for i in registry["capacites"] for t in i["tests"]})
+    runs = {}
+    with ThreadPoolExecutor(workers) as pool:
+        for t, r in zip(tests, pool.map(trace, tests)):
+            runs[t] = r
+            print(f"{t} : code pytest {r['code_pytest']}, {r['secondes']} s", flush=True)
+    for i in registry["capacites"]:
+        i["couverture_effective"] = coverage_of(i, runs)
+    levels = {n: sum(i["couverture_effective"]["niveau"] == n for i in registry["capacites"]) for n in NIVEAUX}
+    registry["mesure_execution"] = {
+        "methode": "chaque fichier de test cité rejoué seul sous sys.monitoring (évènements LINE) ; une fonction est exécutée si une "
+                   "ligne de son corps a tourné pendant un fichier de test réussi ; en-têtes, décorateurs, docstrings et niveau "
+                   "module exclus ; le code lancé dans un autre processus par un test n'est pas compté",
+        "commit": head_sha(), "date_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "python": platform.python_version(), "plateforme": f"{platform.system()} {platform.machine()}",
+        "commande": "python -m sentinelle.scalp.registre --execution",
+        "tests": {t: {"code_pytest": r["code_pytest"], "secondes": r["secondes"]} for t, r in runs.items()},
+        "niveaux": levels,
+        "statuts_a_couverture_a_confirmer": [i["id"] for i in registry["capacites"] if i["couverture_effective"]["a_confirmer"]]}
+    return registry
+
+
+# --- Empreintes du baseline -------------------------------------------------------------------------------------------
+
+def commit_available(commit: str) -> bool:
+    return subprocess.run(["git", "cat-file", "-e", f"{commit}^{{commit}}"], cwd=ROOT, capture_output=True).returncode == 0
+
+
+def check_fingerprints(base: dict) -> list[str]:
+    """Empreintes figées comparées au contenu des modules AU COMMIT DU GEL (objets git), pas à l'arbre courant : un module
+    peut évoluer ensuite sans invalider le gel, mais l'empreinte publiée doit être celle du code réellement mesuré."""
+    problems = []
+    for path, sha in base["modules_sha256"].items():
+        proc = subprocess.run(["git", "cat-file", "blob", f"{base['main']}:{path}"], cwd=ROOT, capture_output=True)
+        if proc.returncode != 0:
+            problems.append(f"{path} : absent du commit {base['main']}")
+        elif hashlib.sha256(proc.stdout).hexdigest() != sha:
+            problems.append(f"{path} : empreinte différente du contenu au commit {base['main']}")
+    return problems
 
 
 def digest(path: Path) -> str:
@@ -568,14 +729,31 @@ def baseline() -> dict:
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Registre de couverture des capacités C001–C100")
     ap.add_argument("--ecrire", action="store_true", help="réécrit research/scalp-v1/registre-capacites.json sur le code courant")
+    ap.add_argument("--execution", action="store_true", help="rejoue les tests cités sous traceur et écrit la couverture effective")
+    ap.add_argument("--tracer", nargs="+", metavar=("SORTIE", "TEST"), help=argparse.SUPPRESS)  # usage interne de trace()
     args = ap.parse_args(argv)
+    if args.tracer:
+        return _trace_run(args.tracer[0], args.tracer[1:])
     if args.ecrire:
         registry = build()
         registry["baseline"] = baseline()
         OUT.write_text(json.dumps(registry, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    if args.execution:
+        registry = measure_execution(json.loads(OUT.read_text(encoding="utf-8")))
+        OUT.write_text(json.dumps(registry, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     registry = json.loads(OUT.read_text(encoding="utf-8"))
     problems = check(registry)
     print(json.dumps(registry["statuts"], ensure_ascii=False))
+    if "mesure_execution" in registry:
+        m = registry["mesure_execution"]
+        print("couverture effective :", json.dumps(m["niveaux"], ensure_ascii=False), "— à confirmer :", ", ".join(m["statuts_a_couverture_a_confirmer"]) or "aucune")
+    base = registry["baseline"]
+    if commit_available(base["main"]):
+        problems += check_fingerprints(base)
+        moved = [p for p, sha in base["modules_sha256"].items() if digest(ROOT / p) != sha]
+        print(f"empreintes du baseline conformes au commit {base['main'][:7]} ; modules modifiés depuis : {', '.join(moved) or 'aucun'}")
+    else:
+        print(f"commit du baseline {base['main']} absent de l'historique local : git fetch origin {base['main']}")
     print("\n".join(problems) if problems else "registre cohérent avec le code courant")
     return 0 if not problems else 1
 
