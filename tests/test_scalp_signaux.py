@@ -125,3 +125,48 @@ def test_timing_edge_measures_a_market_filter_over_time():
     e = signaux.timing_edge(on, member, r)
     assert e["diff_daily_pct"] == pytest.approx(1.0)  # moyenne de l'univers : +0,5 % les jours vrais, −0,5 % sinon
     assert e["ci95_daily_pct"][0] > 0
+
+
+def test_positions_follow_the_previous_close_signal_and_only_quoted_members():
+    idx = pd.RangeIndex(500, 530)
+    cols = ["AUSDT", "BUSDT"]
+    signal = pd.DataFrame(False, index=idx, columns=cols)
+    signal.loc[505, "AUSDT"] = True
+    signal.loc[510:, "BUSDT"] = True
+    member = pd.DataFrame(True, index=idx, columns=cols)
+    member.loc[516:, "BUSDT"] = False
+    c = pd.DataFrame(100.0, index=idx, columns=cols)
+    o = c.copy()
+    o.loc[513, "BUSDT"] = np.nan  # aucune cotation ce jour-là : aucune exécution
+    on, size = signaux.positions(signal, member, {"o": o, "c": c})
+    assert on.index[on["AUSDT"]].tolist() == [506]  # signal à la clôture de 505 → position à l'ouverture de 506
+    assert on.index[on["BUSDT"]].tolist() == [511, 512, 514, 515]  # hors cotation (513), puis hors univers (516 →)
+    assert (size == 1 / signaux.TOP_N).all().all()
+
+
+def test_volatility_target_sizing_only_uses_closes_known_the_day_before():
+    rng = np.random.default_rng(7)
+    idx = pd.RangeIndex(600, 700)
+    c = pd.DataFrame({"AUSDT": 100 * np.exp(np.cumsum(rng.normal(0, 0.05, len(idx))))}, index=idx)
+    p = {"o": c.copy(), "c": c}
+    signal, member = pd.DataFrame(True, index=idx, columns=["AUSDT"]), pd.DataFrame(True, index=idx, columns=["AUSDT"])
+    _, size = signaux.positions(signal, member, p, vol_target=0.30)
+    shocked = c.copy()
+    shocked.loc[650, "AUSDT"] *= 3.0  # choc à la clôture de 650
+    _, after = signaux.positions(signal, member, {"o": shocked.copy(), "c": shocked}, vol_target=0.30)
+    pd.testing.assert_series_equal(size.loc[:650, "AUSDT"], after.loc[:650, "AUSDT"])  # aucune information future
+    assert after.at[651, "AUSDT"] < size.at[651, "AUSDT"] and (size["AUSDT"] <= 1 / signaux.TOP_N).all()
+
+
+def test_members_need_volume_known_before_the_month_and_sixty_days_of_history():
+    days = pd.RangeIndex(moteur._day("2021-01-01"), moteur._day("2021-06-30") + 1)
+    cols = [f"S{i}USDT" for i in range(12)]
+    v = pd.DataFrame({s: float(100 - i) for i, s in enumerate(cols)}, index=days)
+    v.loc[moteur._day("2021-04-01"):, "S11USDT"] = 10_000.0  # volume record à partir du 1er avril seulement
+    p = {"v": v, "c": pd.DataFrame(1.0, index=days, columns=cols)}
+    m = signaux.members(p)
+    assert not m.loc[moteur._day("2021-02-15")].any()  # moins de 60 jours d'historique
+    assert m.columns[m.loc[moteur._day("2021-03-15")]].tolist() == cols[:10]  # les 10 plus gros volumes
+    assert not m.at[moteur._day("2021-04-15"), "S11USDT"]  # avril : volume d'avril encore inconnu au 1er avril
+    may = m.loc[moteur._day("2021-05-15")]
+    assert may["S11USDT"] and not may["S9USDT"] and int(may.sum()) == 10
