@@ -26,11 +26,16 @@ const prefix = '/api/dmh/memecoin';
         candidates:[{mint:'GATOmint', name:'GATO / SOL', dex_id:'pumpswap', liquidity_usd:212230, volume_h1_usd:57844, round_trip_loss:0.0178}],
         fleet:{counts:{}, kept:0, recent:[]}};
       // Même forme que GET /api/dmh/memecoin/analytics (#78) : sans elle, le panneau « Performance & Stratégies » ne s'affiche pas.
+      const ts = Math.floor(Date.now()/1000);
       const analytics = {asset_domain:'memecoin', currency:'USD', paper_only:true, status:'ok', initial_capital:30, equity:30,
-        open_positions:[{strategy:'sniper',mint:'TEST',quantity:10,cost_basis_usd:8,value_usd:10,price_usd:1.02,unrealized_pnl_pct:25,stale:false}],
+        quote_max_age_s:120,open_positions:[{strategy:'sniper',mint:'TEST',quantity:10,cost_basis_usd:8,value_usd:10,
+          price_usd:1.02,unrealized_pnl_pct:25,unrealized_pnl_usd:2,realized_pnl_usd:0.5,tier_reached:1.25,peak_ratio:3.1,
+          exits:1,opened_at:ts-7200,marked_at:ts,quote_received_at:ts-130,stale:false,
+          realized_eur:{amount:0.4,legs:[{usd:0.5,event_at:ts-10,rate:0.8,source:'Carnet de test',quote_at:ts-12}]}}],
         recent_closed_positions:[{strategy:'momentum',mint:'CLOSED',closed_at:15,pnl_usd:1.8,profit_pct:18}],
         strategy_profit_factors:{sniper:{ratio:1.8,only_gains:false}}, net_pnl:0, net_pnl_pct:0, closed_trades:2, win_rate:0.5, profit_factor:1.8, gross_profit:1.8, gross_loss:1, max_drawdown_pct:3.25,
         strategies:Object.fromEntries(['sniper','momentum','dip_hunter','whale_tail'].map(k=>[k,{pnl:0,trades:0,win_rate:null,avg_profit_pct:k==='sniper'?8.75:null}]))};
+      session.pending_orders = [{kind:'sell',key:'sniper/TEST',detail:'trailing_stop',decided_at:ts-4}];
       const learned = (closed, multiplier, score, reason) => ({
         closed_trades:closed, window_trades:Math.min(closed,20), upside_unlocked:closed>=8, multiplier, score, reason
       });
@@ -51,7 +56,7 @@ const prefix = '/api/dmh/memecoin';
           assert.equal(route.request().postDataJSON().mode,'paper');
           active = url.endsWith('/start');
         }
-        if (url === prefix+'/radar') return route.fulfill({json:{asset_domain:'memecoin',tokens:[],smart_wallets:[]}});
+        if (url === prefix+'/radar') return route.fulfill({json:{asset_domain:'memecoin',tokens:[{mint:'TEST',name:'Token témoin',symbol:'TST',source:'live',eligible_strategies:[]}],smart_wallets:[]}});
         if (url === prefix+'/funnel') return route.fulfill({json:funnel});
         if (url === prefix+'/analytics') return route.fulfill({json:analytics});
         return route.fulfill({json:url === prefix+'/session' || url.endsWith('/tick') ? {...session,revision} :
@@ -68,9 +73,21 @@ const prefix = '/api/dmh/memecoin';
       await page.getByText('Le premier cycle alimentera la courbe.').waitFor();
       const tab = name => page.locator('.mc-tabs').getByRole('button',{name,exact:true}).click();
       await tab('Positions');
-      await page.locator('.mc-position').getByText('TEST',{exact:true}).waitFor();
+      const holding = page.locator('.mc-position');
+      await holding.getByRole('heading',{name:'Token témoin · TST'}).waitFor();
+      await holding.getByText('Mint Solana · TEST').waitFor();
+      await holding.getByText('Durée de détention · 2 h 0 min').waitFor();
+      await holding.getByText(/Périmée · reçue il y a 2 min/).waitFor();
+      await holding.getByText('Stop suiveur et plancher de rentabilité actifs').waitFor();
+      await holding.getByText(/Sortie décidée · Stop suiveur · exécution en attente/).waitFor();
+      await holding.getByText('×1,25 · Vente exécutée').waitFor();
+      await holding.getByText('×3 · Seuil observé').waitFor();
+      assert.match(await holding.innerText(), /0,50 USD · \+0,40\s€/);
+      assert.match(await holding.innerText(), /2,00 USD · EUR indisponible/);
+      await holding.getByText('Change du P&L USD en EUR').click();
+      await holding.getByText(/Carnet de test/).waitFor();
       assert.match(await page.locator('.mc-position').innerText(), /25,00 %/);
-      assert.equal(await page.locator('.mc-ladder span').count(),5);
+      assert.equal(await page.locator('.mc-ladder span').count(),4);
       await tab('Stratégies');
       const performance = page.locator('section.card').filter({hasText:'Performance & Stratégies'});
       await performance.locator('.mc-axis').getByText('Profit factor',{exact:true}).waitFor();  // bilan analytique en lecture seule

@@ -240,6 +240,11 @@ def quote(client, asset, now):
     # price: none is invented. The response fingerprint is kept for provenance only: it also covers the token's other
     # pairs, so a change elsewhere in the response would make an unchanged quote of this pool look new.
     received, fingerprint = getattr(fetched, "received_ms", None), getattr(fetched, "sha256", None)
+    # Display metadata belongs to the verified base mint; it is excluded from pool_fingerprint.
+    for field in ("name", "symbol"):
+        value = pair["baseToken"].get(field)
+        if isinstance(value, str) and value.strip():
+            point["token_" + field] = value.strip()[:100]
     point.update(price=price, ts=now, volume_h1_usd=float(h1) if finite else None,
                  received_ms=received if isinstance(received, int) else None,  # missing: never fills an order
                  source_sha256=fingerprint if isinstance(fingerprint, str) else None, pool_sha256=pool_fingerprint(pair))
@@ -825,7 +830,7 @@ def report(state, wallets):
         "return_24h": return_24h(state),
         "stale_marks": state.get("stale_marks", []),
         "pending_orders": [{"id": oid, "kind": o["kind"], "key": o["key"], "decided_at": o["decided_at"],
-                            "last_refusal": o.get("last_refusal")} for oid, o in sorted(state.get("orders", {}).items())],
+                            "last_refusal": o.get("last_refusal"), "detail": o.get("detail")} for oid, o in sorted(state.get("orders", {}).items())],
         "equity_curve": state["curve"],
         "positions": state["positions"],
         "strategies": strategies,

@@ -210,6 +210,7 @@ def _radar_rows(client, assets, wallets, now):
                 errors.append(f"{address} : RugCheck indisponible")
             vol = pair.get("volume") or {}
             candidates.append({"mint": address, "symbol": str(pair["baseToken"].get("symbol") or address)[:32],
+                               "name": str(pair["baseToken"].get("name") or "")[:100] or None,
                                "liquidity_usd": depth, "volume_5m": _number(vol.get("m5")), "volume_1h": _number(vol.get("h1")),
                                "change_5m_pct": _number((pair.get("priceChange") or {}).get("m5")), "rug_score": score,
                                "risk": risk, "eligible_strategies": signals if risk == "passed" else [], "source": "live"})

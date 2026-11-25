@@ -1,23 +1,65 @@
 """Read-only analytics for an isolated memecoin paper session (USD)."""
 
 import json
+import math
 import sqlite3
 from contextlib import closing
 from pathlib import Path
 
+from ..market.fx import FxQuote, FxUnavailable
 from . import memecoin_learner, memecoin_simulator as sim
 from .memecoin_strategies import LEGACY
 
 
-def _read_snapshot(path):
+def build_analytics_report(db_path):
+    """Read session and optional FX evidence in the same read-only SQLite snapshot."""
+    path = Path(db_path)
     if not path.exists():
-        return None
-    uri = path.resolve().as_uri() + "?mode=ro"
-    with closing(sqlite3.connect(uri, uri=True, timeout=0)) as conn:
-        if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='meta'").fetchone():
-            return None
+        return _report(None)
+    with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=0, isolation_level=None)) as conn:
+        conn.execute("BEGIN")
+        tables = {name for name, in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "meta" not in tables:
+            return _report(None)
         row = conn.execute("SELECT value FROM meta WHERE key=?", (sim.KEY,)).fetchone()
-    return json.loads(row[0]) if row else None
+        return _report(json.loads(row[0]) if row else None, conn if "fx_snapshots" in tables else None)
+
+
+def _available_at(cycle, received_ms):
+    if not sim._finite(cycle) or cycle <= 0 or not sim._finite(received_ms) or received_ms <= 0:
+        return None
+    return max(cycle, received_ms / 1000)
+
+
+def _fill_at(fill):
+    return _available_at(fill.get("ts"), fill.get("execution_received_ms"))
+
+
+def _euro_value(conn, movements):
+    """Contre-valeur du P&L en USD à la date de chaque réalisation ou marque, sans opération de change."""
+    if conn is None or not movements:
+        return None
+    legs = []
+    for amount, at in movements:
+        if not sim._finite(at) or at <= 0 or not sim._finite(amount):
+            return None
+        row = conn.execute("SELECT ts,source,snapshot FROM fx_snapshots WHERE base='EUR' AND quote='USD' AND ts<=? "
+                           "ORDER BY ts DESC, source LIMIT 1", (at,)).fetchone()
+        if not row:
+            return None
+        try:
+            quote = FxQuote(**json.loads(row[2]))
+            if (quote.base, quote.quote, quote.ts, quote.source) != ("EUR", "USD", row[0], row[1]):
+                return None
+            rate, _ = quote.cash_leg(abs(amount), "sell" if amount >= 0 else "buy", at)
+            eur = amount * float(rate)
+            if not math.isfinite(eur):
+                return None
+        except (TypeError, ValueError, ArithmeticError, FxUnavailable, KeyError):
+            return None
+        legs.append({"usd": amount, "event_at": at, "rate": float(rate), "eur": eur,
+                     "source": quote.source, "quote_at": quote.ts})
+    return {"amount": math.fsum(leg["eur"] for leg in legs), "legs": legs}
 
 
 RECENT_CLOSED = 20  # closed lots detailed in the report, most recent first
@@ -31,7 +73,7 @@ def _mean(values):
     return sum(values) / len(values) if values else None
 
 
-def _closed_lots(state):
+def _closed_lots(state, conn=None):
     """Closed lots in closing order, each with its realized P&L (USD) and its return (%) on the initial stake."""
     # One lot per strategy/mint. A new buy starts the next round trip;
     # partial exits belong to the same lot until it closes.
@@ -43,13 +85,14 @@ def _closed_lots(state):
             if key in latest:
                 closed.append(latest[key])
             latest[key] = {"key": key, "strategy": fill["strategy"], "mint": fill["mint"], "pnl_usd": 0.0,
-                           "opened_at": fill.get("ts"), "closed_at": None, "exit_reason": None, "exits": 0}
+                           "opened_at": _fill_at(fill) or fill.get("ts"), "closed_at": None, "exit_reason": None, "exits": 0, "_sales": []}
         elif fill["side"] == "sell":
             lot = latest[key]
             lot["pnl_usd"] += fill["pnl"]
-            lot["closed_at"] = fill.get("ts")
+            lot["closed_at"] = _fill_at(fill) or fill.get("ts")
             lot["exit_reason"] = fill.get("reason")
             lot["exits"] += 1
+            lot["_sales"].append((fill["pnl"], _fill_at(fill)))
         else:
             raise ValueError("Sens d'exécution inconnu")
     closed.extend(lot for key, lot in latest.items() if key not in state["positions"])
@@ -66,6 +109,12 @@ def _closed_lots(state):
         if not queue:
             raise ValueError("Historique des clôtures incomplet")
         lots.append({**queue.pop(0), "profit_pct": 100 * record["return"]})
+    for i, lot in enumerate(lots):
+        sales = lot.pop("_sales")
+        if i >= len(lots) - RECENT_CLOSED:
+            value = _euro_value(conn, sales)
+            if value:
+                lot["realized_eur"] = value
     return lots
 
 
@@ -96,11 +145,17 @@ def _entry_price(buy, initial):
     return (initial - sum(costs)) / quantity
 
 
-def _open_positions(state):
+def _open_positions(state, conn=None):
     """Open lots at their last liquidation mark: entry and current price, value, unrealized P&L in USD and in % of the
     remaining cost, and the take-profit tier reached."""
     stale = set(state.get("stale_marks", []))
-    buys = {fill["strategy"] + "/" + fill["mint"]: fill for fill in state["fills"] if fill["side"] == "buy"}
+    buys, sales = {}, {}
+    for fill in state["fills"]:
+        key = fill["strategy"] + "/" + fill["mint"]
+        if fill["side"] == "buy":
+            buys[key], sales[key] = fill, []
+        elif key in sales:
+            sales[key].append((fill["pnl"], _fill_at(fill)))
     rows = []
     for key, pos in state["positions"].items():
         last = state.get("assets", {}).get(pos["mint"], {}).get("last") or {}
@@ -114,12 +169,30 @@ def _open_positions(state):
             "unrealized_pnl_usd": unrealized, "unrealized_pnl_pct": _pct(unrealized, pos["basis"]),
             "realized_pnl_usd": pos["pnl"], "exits": pos["stage"], "exit_policy": policy_name,
             "tier_reached": reached, "next_tier": upcoming, "peak_ratio": pos.get("high"),
-            "marked_at": last.get("ts"), "opened_at": buy.get("ts"), "stale": pos["mint"] in stale,
+            "marked_at": pos.get("marked_at", last.get("ts") if pos["mint"] not in stale else None),
+            "opened_at": sim.opened_at(state, key, pos), "stale": pos["mint"] in stale,
         })
+        row = rows[-1]
+        received = last.get("received_ms")
+        mark_at = None
+        if sim._finite(received) and received > 0 and last.get("ts") == row["marked_at"]:
+            row["quote_received_at"] = received / 1000
+            mark_at = _available_at(row["marked_at"], received)
+            row["marked_at"] = mark_at
+        row["opened_at"] = _fill_at(buy) or row["opened_at"]
+        movements = sales.get(key, [])
+        if len(movements) == row["exits"] and math.isclose(sum(pnl for pnl, _ in movements), row["realized_pnl_usd"], abs_tol=1e-10):
+            realized = _euro_value(conn, movements)
+            if realized:
+                row["realized_eur"] = realized
+        if not row["stale"]:
+            latent = _euro_value(conn, [(unrealized, mark_at)])
+            if latent:
+                row["unrealized_eur"] = latent
     return rows
 
 
-def build_analytics_report(db_path):
+def _report(state, conn=None):
     """Win rate is a fraction; drawdown, net return and profits are percentages.
 
     ``avg_profit_pct`` is the arithmetic mean, over closed lots, of each lot's return on its initial stake (net of
@@ -128,7 +201,6 @@ def build_analytics_report(db_path):
     the last take-profit multiple sold (``None`` before the first slice). ``learning`` holds the bounded allocation
     multipliers and the entry-threshold suggestions of ``memecoin_learner``, read from the same snapshot.
     """
-    state = _read_snapshot(Path(db_path))
     result = {"asset_domain": sim.DOMAIN, "currency": "USD", "paper_only": True}
     if state is None:
         return {**result, "status": "empty", "avg_profit_pct": None, "open_positions": [], "recent_closed_positions": [],
@@ -138,7 +210,7 @@ def build_analytics_report(db_path):
         if record.get("asset_domain", sim.DOMAIN) != sim.DOMAIN or record.get("simulated", True) is not True:
             raise ValueError("Session incompatible avec le domaine memecoin simulé")
     snapshot = sim.report(state, {})
-    lots = _closed_lots(state)
+    lots = _closed_lots(state, conn)
     closed = [lot["pnl_usd"] for lot in lots]
     strategies = snapshot["strategies"]
     for name, stats in strategies.items():
@@ -153,6 +225,12 @@ def build_analytics_report(db_path):
         if value is not None:
             peak = max(peak, value)
             drawdown = max(drawdown, 100 * (peak - value) / peak)
+    tokens = {}
+    for mint, asset in state.get("assets", {}).items():
+        point = asset.get("last") or {}
+        if point.get("token_name") or point.get("token_symbol"):
+            tokens[mint] = {"name": point.get("token_name"), "symbol": point.get("token_symbol"),
+                            "source": "DexScreener", "received_ms": point.get("received_ms")}
     ranking = snapshot["token_ranking"]
     return {
         **result, "status": "stale" if equity is None else "ok",
@@ -162,7 +240,8 @@ def build_analytics_report(db_path):
         "profit_factor": gains / losses if losses else None,
         "gross_profit": gains, "gross_loss": losses, "max_drawdown_pct": drawdown,
         "avg_profit_pct": _mean([lot["profit_pct"] for lot in lots]), "strategies": strategies,
-        "open_positions": _open_positions(state), "recent_closed_positions": lots[::-1][:RECENT_CLOSED],
+        "tokens": tokens, "revision": state["revision"], "quote_max_age_s": sim.MAX_QUOTE_AGE_S,
+        "open_positions": _open_positions(state, conn), "recent_closed_positions": lots[::-1][:RECENT_CLOSED],
         "learning": memecoin_learner.learn_from_state(state),  # same snapshot: bounded multipliers and suggestions
         "top_tokens": [(mint, pnl) for mint, pnl in ranking if pnl > 0][:5],
         "flop_tokens": [(mint, pnl) for mint, pnl in reversed(ranking) if pnl < 0][:5],
