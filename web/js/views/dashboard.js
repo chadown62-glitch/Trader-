@@ -86,7 +86,7 @@ export default {
       const ext = o.extensions || {};
       return [
         { label: 'Moteur', ok: o.engine_alive },
-        { label: 'Données de marché', ok: o.market?.status?.ok, warn: !o.market?.status?.ok },
+        { label: 'Source de marché', ok: o.market?.status?.ok, warn: !o.market?.status?.ok },
         { label: 'Argent fictif uniquement', ok: o.paper_only?.paper_only === true, err: o.paper_only?.paper_only !== true },
         { label: 'Actualités (IA locale)', ok: ext.news?.enabled && ext.news?.ollama_ok !== false && !ext.news?.error, off: !ext.news?.enabled },
         { label: 'Telegram', ok: ext.telegram?.connected, off: !ext.telegram?.enabled },

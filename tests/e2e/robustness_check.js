@@ -5,7 +5,7 @@
 // 2. réglage enregistré : conservé après rechargement de la page puis après redémarrage du serveur ;
 // 3. session expirée côté serveur : l'écran de connexion l'explique, sans pile de messages d'erreur, et la reconnexion
 //    ramène sur la même page ; une déconnexion volontaire ne l'annonce pas comme une expiration ;
-// 4. serveur arrêté : « Hors ligne » et un bandeau « Serveur injoignable » (pas un état vide trompeur) ; serveur relancé :
+// 4. serveur arrêté : « Flux déconnecté » et un bandeau « Serveur injoignable » (pas un état vide trompeur) ; serveur relancé :
 //    bandeau retiré, temps réel rétabli, session conservée, page rechargée avec ses données ;
 // 5. le badge « Simulation » est affiché sur chacune des 15 pages.
 const { chromium } = require('playwright');
@@ -69,7 +69,7 @@ const expireSessions = () => execFileSync(PY, ['-c', 'import sqlite3,sys;c=sqlit
   };
   await page.goto(BASE + '/');
   await login();
-  await page.waitForSelector('.hud-live:has-text("En direct")', { timeout: 15000 });
+  await page.waitForSelector('.hud-live:has-text("Flux connecté")', { timeout: 15000 });
 
   // 1. Double clic.
   await page.goto(BASE + '/#/dashboard');
@@ -132,7 +132,7 @@ const expireSessions = () => execFileSync(PY, ['-c', 'import sqlite3,sys;c=sqlit
   await sleep(1500);
   check(!(await page.isVisible('.card.empty:has-text("Aucune donnée.")')), 'Performances doit afficher ses données quand le serveur répond');
   await stop();
-  await page.waitForSelector('.hud-live:has-text("Hors ligne")', { timeout: 15000 });
+  await page.waitForSelector('.hud-live:has-text("Flux déconnecté")', { timeout: 15000 });
   await page.click('.nav a[href="#/dashboard"]');
   await page.click('.nav a[href="#/performance"]');
   await page.waitForSelector('main.main [role="alert"]:has-text("Serveur injoignable")', { timeout: 15000 });
@@ -140,7 +140,7 @@ const expireSessions = () => execFileSync(PY, ['-c', 'import sqlite3,sys;c=sqlit
   start(port);
   check(await healthy(port), "l'instance n'a pas redémarré");
   await page.waitForSelector('main.main [role="alert"]', { state: 'detached', timeout: 20000 });
-  await page.waitForSelector('.hud-live:has-text("En direct")', { timeout: 30000 });
+  await page.waitForSelector('.hud-live:has-text("Flux connecté")', { timeout: 30000 });
   check(!(await page.isVisible('form.card')), 'la session doit survivre au redémarrage du serveur');
   await sleep(1500);
   check(!(await page.isVisible('.card.empty:has-text("Aucune donnée.")')), 'la page doit être rechargée au retour de la connexion');
