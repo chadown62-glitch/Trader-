@@ -144,11 +144,17 @@ def book_day(client: httpx.Client, symbol: str, day: str, cache: Path) -> tuple[
     data.guard(start, start + DAY_S * 1000 - 1)  # période réservée refusée, comme pour toute donnée à la minute
     path = cache / symbol / f"{day}.csv"
     meta_path = path.with_suffix(".json")
-    if path.exists() and meta_path.exists():
-        return pd.read_csv(path, index_col="t"), json.loads(meta_path.read_text(encoding="utf-8"))
+    if meta_path.exists():
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        if not meta.get("publiee"):
+            return None, meta  # absence déjà constatée
+        if path.exists():
+            return pd.read_csv(path, index_col="t"), meta
     body, meta = fetch(client, f"{BOOK_URL}/{symbol}/{symbol}-bookDepth-{day}.zip")
     meta["jour"] = day
     if body is None:
+        meta_path.parent.mkdir(parents=True, exist_ok=True)
+        meta_path.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
         return None, meta
     book = parse_book(read_zip_csv(body))
     snaps = wide(book)
@@ -217,6 +223,67 @@ def daily_test(grid: pd.DataFrame, close: pd.Series, level: float, perms: int, r
     rho = float(np.corrcoef(a, b)[0, 1])
     null = np.array([np.corrcoef(a, rng.permutation(b))[0, 1] for _ in range(perms)])
     return {"jours": int(ok.sum()), "rang": rho, "p_bilaterale": float((1 + np.sum(np.abs(null) >= abs(rho))) / (1 + perms))}
+
+
+def _rank_corr(a, b) -> float:
+    ok = np.isfinite(a) & np.isfinite(b)
+    return float(pd.Series(a[ok]).rank().corr(pd.Series(b[ok]).rank())) if ok.sum() > 10 else float("nan")
+
+
+def robustness(grid: pd.DataFrame, close: pd.Series, level: float, horizon_min: int) -> dict:
+    """Contrôles a posteriori (non confirmatoires) : rendement décalé de 5 min, placebo sur le passé, sans recouvrement,
+    corrélation groupée."""
+    i = grid[f"i{level:g}"].to_numpy()
+    t, h = grid.index.to_numpy(), horizon_min * 60
+    price = lambda x: close.reindex(x).to_numpy()  # noqa: E731
+    future, shifted, past = np.log(price(t + h) / price(t)), np.log(price(t + 300 + h) / price(t + 300)), np.log(price(t) / price(t - h))
+    step = max(1, h // STEP_S)
+    days = t // DAY_S
+
+    def per_day(x, sel=slice(None)):
+        frame = pd.DataFrame({"i": i[sel], "r": x[sel], "j": days[sel]}).dropna()
+        rho = frame.groupby("j").apply(lambda d: d["i"].rank().corr(d["r"].rank()) if len(d) >= max(10, 50 // step) else np.nan,
+                                       include_groups=False).dropna()
+        return {"rang_moyen": float(rho.mean()), "z": float(rho.mean() / (rho.std(ddof=1) / math.sqrt(len(rho)))) if len(rho) > 1 else float("nan"), "jours": int(len(rho))}
+
+    def partial_per_day():
+        frame = pd.DataFrame({"i": i, "f": future, "p": past, "j": days}).dropna()
+
+        def one(d):
+            if len(d) < 50:
+                return np.nan
+            ri, rf, rp = (d[c].rank().to_numpy() for c in ("i", "f", "p"))
+            res = lambda y: y - np.polyval(np.polyfit(rp, y, 1), rp)  # noqa: E731
+            return float(np.corrcoef(res(ri), res(rf))[0, 1])
+
+        rho = frame.groupby("j").apply(one, include_groups=False).dropna()
+        return {"rang_moyen": float(rho.mean()), "z": float(rho.mean() / (rho.std(ddof=1) / math.sqrt(len(rho)))), "jours": int(len(rho))}
+
+    reversal_future = pd.DataFrame({"i": -past, "r": future, "j": days}).dropna()
+    rho_rev = reversal_future.groupby("j").apply(lambda d: d["i"].rank().corr(d["r"].rank()) if len(d) >= 50 else np.nan, include_groups=False).dropna()
+    return {"futur": per_day(future), "decale_de_5_min": per_day(shifted), "placebo_passe": per_day(past),
+            "sans_recouvrement": per_day(future, slice(None, None, step)), "groupe_toutes_observations": _rank_corr(i, future),
+            "retour_pur": {"rang_moyen": float(rho_rev.mean()), "z": float(rho_rev.mean() / (rho_rev.std(ddof=1) / math.sqrt(len(rho_rev)))), "jours": int(len(rho_rev))},
+            "apport_propre_a_rendement_passe_donne": partial_per_day()}
+
+
+def daily_terciles(grid: pd.DataFrame, close: pd.Series, level: float) -> dict:
+    starts = grid.index[grid.index % DAY_S == DAY_S - STEP_S]
+    i = grid.loc[starts, f"i{level:g}"].to_numpy()
+    r = np.log(close.reindex(starts + DAY_S).to_numpy() / close.reindex(starts).to_numpy())
+    frame = pd.DataFrame({"i": i, "r": r}).dropna()
+    frame["tercile"] = pd.qcut(frame["i"], 3, labels=["bas", "milieu", "haut"])
+    return {str(k): {"jours": int(len(g)), "rendement_moyen_pb": float(g["r"].mean() * 1e4)} for k, g in frame.groupby("tercile", observed=True)}
+
+
+def robustness_report(grids: dict, closes: dict) -> dict:
+    out = {"statut": "contrôles a posteriori déclarés avant calcul (trials.jsonl), non confirmatoires"}
+    for s in grids:
+        for k in TESTED:
+            for h in HORIZONS_MIN:
+                out[f"{s} ±{k:g} % {h} min"] = robustness(grids[s], closes[s], k, h)
+        out[f"{s} ±5 % 1 jour, terciles"] = daily_terciles(grids[s], closes[s], 5.0)
+    return out
 
 
 def coverage(metas: list[dict]) -> dict:
@@ -290,10 +357,11 @@ def main(argv=None):
                          "alignement_pb": alignment(grids[s], closes[s]),
                          "provenance": {"carnet": {m["jour"]: m.get("sha256") for _, m in books}, "bougies": {m: k["sha256"] for m, (_, k) in zip(months, klines)}}}
     tests = study(grids, closes)
+    checks = robustness_report(grids, closes)
     out = {"schema": "scalp-carnet-c042-v1", "status": "archives publiques vérifiées ; mesure sur historique jamais étudié par le projet ; aucune règle de trading",
            "capacites": ["C042"], "source": {"carnet": BOOK_URL, "bougies": KLINE_URL, "marche": "contrats perpétuels USDⓈ-M (aucune archive au comptant)"},
            "fenetre": {"de": args.first, "a": args.last, "periode_reservee_exclue": [data.RESERVED_FROM, data.RESERVED_TO]},
-           "niveaux_pct": list(LEVELS), "niveaux_testes_pct": list(TESTED), "horizons_min": list(HORIZONS_MIN) + [1440], "inventaire": report, "tests": tests, "seconds": round(time.time() - t0)}
+           "niveaux_pct": list(LEVELS), "niveaux_testes_pct": list(TESTED), "horizons_min": list(HORIZONS_MIN) + [1440], "inventaire": report, "tests": tests, "controles_a_posteriori": checks, "seconds": round(time.time() - t0)}
     for s in SYMBOLS:
         c = report[s]["carnet"]
         print(s, {k: c[k] for k in ("jours_demandes", "jours_publies", "empreintes_verifiees", "instantanes_par_jour", "delai_de_publication_h")},

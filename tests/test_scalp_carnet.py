@@ -119,3 +119,17 @@ def test_coverage_counts_missing_days_and_publication_delays():
              {"jour": "2024-05-11", "publiee": False}]
     c = carnet.coverage(metas)
     assert c["jours_publies"] == 1 and c["jours_absents"] == ["2024-05-11"] and c["delai_de_publication_h"]["mediane"] == pytest.approx(8.0)
+
+
+def test_robustness_separates_own_book_information_from_price_reversal(tmp_path):
+    grid, close = _synthetic(60, informative=True, seed=72)
+    r = carnet.robustness(grid, close, 1.0, 5)
+    assert r["futur"]["rang_moyen"] > 0.3 and r["decale_de_5_min"]["jours"] >= 55
+    assert r["apport_propre_a_rendement_passe_donne"]["rang_moyen"] > 0.3  # le déséquilibre construit n'est pas un retour du prix
+    assert abs(r["retour_pur"]["rang_moyen"]) < 0.1
+    terciles = carnet.daily_terciles(grid, close, 5.0)
+    assert set(terciles) == {"bas", "milieu", "haut"}
+    with httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(404))) as client:
+        assert carnet.book_day(client, "BTCUSDT", "2024-01-01", tmp_path)[0] is None
+    with httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(500))) as client:
+        assert carnet.book_day(client, "BTCUSDT", "2024-01-01", tmp_path) == (None, {"publiee": False, "jour": "2024-01-01"})  # absence relue du cache
