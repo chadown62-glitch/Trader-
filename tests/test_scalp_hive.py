@@ -90,3 +90,70 @@ def test_week_bootstrap_and_negative_transfer_statistics():
             rows.append({"asset": a, "y": 1, "p_ind": 0.6, "p_pool": 0.6 - 0.04 * k})
     out = hive.negative_transfer(pd.DataFrame(rows), div)
     assert out["spearman_divergence"] > 0.9 and out["p_bilaterale"] < 0.01 and out["actifs_en_transfert_negatif"] == 11
+
+
+def test_future_gaps_change_labels_but_never_the_decision_universe():
+    p = _panel(n=400)
+    member = pd.DataFrame(True, index=p["c"].index, columns=p["c"].columns)
+    day = next(d for d in member.index[200:] if hive.flux.weekday([d])[0] == 6)
+    baseline = hive.decision_samples(p, member, hive.features(p), day)
+    changed = {k: v.copy() for k, v in p.items()}
+    changed["c"].loc[day + 7, "AUSDT"] = np.nan
+    full = hive.decision_samples(changed, member, hive.features(changed), day)
+    prefix = {k: v.loc[:day] for k, v in changed.items()}
+    early = hive.decision_samples(prefix, member.loc[:day], hive.features(prefix), day)
+    columns = ["day", "asset", *hive.FEATURES]
+    before = baseline.loc[baseline.day == day, columns].reset_index(drop=True)
+    pd.testing.assert_frame_equal(before, early[columns].reset_index(drop=True))
+    pd.testing.assert_frame_equal(before, full.loc[full.day == day, columns].reset_index(drop=True))
+    assert early.label_status.tolist() == ["immature", "immature"] and early.y.isna().all()
+    lost = full[(full.day == day) & (full.asset == "AUSDT")].iloc[0]
+    assert lost.label_status == "missing" and pd.isna(lost.y)
+    train, _ = hive.split(full, 2021)
+    assert train.y.notna().all() and lost.name not in train.index
+
+
+def test_first_loss_counts_from_initial_capital_and_unknown_pick_is_never_dropped():
+    first = pd.DataFrame({"day": 10, "asset": list("ABCDE"), "p": 0.9, "ret": np.log(0.90),
+                          "label_status": "resolved"})
+    out = hive.portfolio(first, "p")
+    assert out["pire_baisse_pct"] == pytest.approx(10.125)
+    second = first.assign(day=17, ret=np.log(1.20))
+    second.loc[0, ["p", "ret", "label_status"]] = [0.99, np.nan, "missing"]
+    out = hive.portfolio(pd.concat([first, second, first.assign(day=24)], ignore_index=True), "p")
+    assert out["semaines"] == 3
+    assert out["pire_baisse_pct"] is None and out["geometrique_hebdo_pct"] is None
+    assert out["semaines_non_mesurables"] == [{"jour": 17, "lots": {"A": "missing"}}]
+    assert out["prefixe_valorise"]["semaines"] == 1
+    assert out["prefixe_valorise"]["pire_baisse_pct"] == pytest.approx(10.125)
+
+
+def test_immature_unselected_label_does_not_invalidate_cash():
+    frame = pd.DataFrame({"day": [10], "asset": ["A"], "p": [0.1], "ret": [np.nan], "label_status": ["immature"]})
+    out = hive.portfolio(frame, "p", [10, 17])
+    assert out["semaines"] == 2 and out["semaines_non_mesurables"] == []
+    assert out["geometrique_hebdo_pct"] == 0
+
+
+def test_archived_output_is_never_overwritten(tmp_path):
+    archive = tmp_path / "omega-hive-v1.json"
+    archive.write_bytes(b"original")
+    with pytest.raises(FileExistsError):
+        hive.main(["--out", str(archive)])
+    assert archive.read_bytes() == b"original"
+
+
+def test_trailing_empty_calendar_is_not_an_observed_close_or_an_extra_cash_week():
+    p = _panel(n=400)
+    cutoff = next(d for d in p["c"].index[220:] if hive.flux.weekday([d])[0] == 6)
+    full = {k: v.copy() for k, v in p.items()}
+    for values in full.values():
+        values.loc[values.index > cutoff] = np.nan
+    observed = hive.quoted_days(full["c"])
+    assert observed.max() == cutoff
+    member = pd.DataFrame(True, index=full["c"].index, columns=full["c"].columns)
+    samples = hive.decision_samples(full, member, hive.features(full), cutoff)
+    assert set(samples.day) == {cutoff} and set(samples.label_status) == {"immature"}
+    # Un dimanche sans aucune donnée à l'intérieur d'un calendrier observé demeure non évaluable.
+    out = hive.portfolio(samples.assign(p=0.1), "p", [cutoff - 7, cutoff], missing_decisions={cutoff - 7})
+    assert out["pire_baisse_pct"] is None and out["prefixe_valorise"]["semaines"] == 0
