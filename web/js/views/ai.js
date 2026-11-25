@@ -38,28 +38,46 @@ export default {
       const champ = models.value.find(m => m.status === 'champion') || models.value[0];
       if (champ && !reportVersion.value) openReport(champ.version);
     };
-    const openReport = async (v) => { reportVersion.value = v; report.value = await safe(api.get(`/api/ai/models/${encodeURIComponent(v)}/report`)); };
+    const openReport = async (version) => {
+      reportVersion.value = version;
+      report.value = null;
+      const response = await safe(api.get(`/api/ai/models/${encodeURIComponent(version)}/report`));
+      if (reportVersion.value === version) report.value = response;
+    };
     const loadReadiness = async () => { readiness.value = await safe(api.get('/api/ai/readiness')); };
     const loadStats = async () => {
       if (trainingAcc.value) stats.value = await safe(api.get(`/api/stats?account_id=${trainingAcc.value.id}`));
       cands.value = await safe(api.get('/api/candidates?limit=300'));
       decisions.value = (await safe(api.get('/api/decisions?limit=80'))) || [];
     };
-    const loadJobs = async () => { (await safe(api.get('/api/jobs')) || []).forEach(j => { store.jobs[j.id] = j; }); };
+    const loadJobs = async () => {
+      const previous = { ...store.jobs };
+      for (const job of (await safe(api.get('/api/jobs'))) || []) {
+        // A WebSocket notification may have advanced this job while the list was in flight.
+        if (previous[job.id] === store.jobs[job.id]) store.jobs[job.id] = job;
+      }
+    };
+    watch([() => btJob.value?.id, () => btJob.value?.status], async ([id, status], _, onCleanup) => {
+      let current = true;
+      onCleanup(() => { current = false; });
+      btResult.value = null;
+      if (status !== 'done') return;
+      const full = await safe(api.get(`/api/jobs/${encodeURIComponent(id)}`));
+      if (current && full?.id === id) btResult.value = full.result;
+    }, { immediate: true });
     const loadLastTrain = async () => { lastTrain.value = await safe(api.get('/api/ai/last-training')); };
     onMounted(() => { loadModels(); loadReadiness(); loadStats(); loadJobs(); loadLastTrain(); });
     watch(() => trainingAcc.value?.id, loadStats);
     const offs = [
       on('training_done', () => { reportVersion.value = null; loadModels(); loadReadiness(); }),
       on('job', async (j) => {
-        if (j.kind === 'backtest' && j.status === 'done') { const full = await safe(api.get(`/api/jobs/${j.id}`)); btResult.value = full?.result || null; }
         if (j.kind === 'train' && j.status === 'error') toast('Entraînement : ' + (j.error || 'échec'), 'error', 10000);
         if (j.kind === 'train' && j.status === 'done') { const full = await safe(api.get(`/api/jobs/${j.id}`)); if (full?.result) lastTrain.value = { verdict: full.result.verdict, reasons: full.result.reasons, trained_at: Date.now() / 1000 }; }
         if (j.kind === 'backtest' && j.status === 'error') toast('Simulation : ' + (j.error || 'échec'), 'error', 10000);
       }),
       on('decision', (d) => { decisions.value.unshift({ ...d, ts: Date.now() / 1000 }); decisions.value.splice(120); }),
     ];
-    const timer = setInterval(() => { loadReadiness(); loadStats(); }, 30000);
+    const timer = setInterval(() => { loadReadiness(); loadStats(); loadJobs(); }, 30000);
     onBeforeUnmount(() => { offs.forEach(f => f()); clearInterval(timer); });
 
     const startTraining = async () => { await safe(api.post('/api/agents/ia_entrainement/start', {}), 'Préparation de l’IA : téléchargement de l’historique…'); };
@@ -71,7 +89,12 @@ export default {
       await safe(api.post(`/api/agents/${name}/stop`, { close_positions: close }), 'IA arrêtée');
     };
     const train = async () => { await safe(api.post('/api/ai/train', { days: trainDays.value }), 'Entraînement lancé : il peut prendre quelques minutes'); };
-    const backtest = async () => { btResult.value = null; await safe(api.post('/api/ai/backtest', { days: btDays.value, use_model: btUseModel.value, capital: Number(btCapital.value) || null }), 'Simulation lancée'); };
+    const backtest = async () => {
+      const job = await safe(api.post('/api/ai/backtest', {
+        days: btDays.value, use_model: btUseModel.value, capital: Number(btCapital.value) || null,
+      }), 'Simulation lancée');
+      if (job && !store.jobs[job.id]) store.jobs[job.id] = job;
+    };
     const promote = async (m) => {
       if (!window.confirm(`Approuver la version ${m.version} pour les décisions fictives ?\nSHA-256 : ${m.sha256}`)) return;
       const consent = { action: 'approve_paper_model', confirmed_version: m.version, sha256: m.sha256 };
@@ -125,7 +148,7 @@ export default {
           </div>
           <div class="stats-row">
             <div class="stat"><span class="label">Capital fictif</span><span class="value">{{ money(trainingAcc?.equity) }}</span><span class="sub" :class="cls(trainingAcc?.total_pnl)">{{ signed(trainingAcc?.total_pnl) }}</span></div>
-            <div class="stat"><span class="label">Trades de l'IA</span><span class="value">{{ stats?.ai?.n ?? 0 }}</span></div>
+            <div class="stat"><span class="label">Trades de l'IA</span><span class="value">{{ stats?.ai?.n ?? '—' }}</span></div>
             <div class="stat"><span class="label">Taux de réussite</span><span class="value">{{ stats?.ai?.win_rate !== null && stats?.ai?.win_rate !== undefined ? plainPct(stats.ai.win_rate) : '—' }}</span></div>
             <div class="stat"><span class="label">Résultat moyen</span><span class="value" :class="cls(stats?.ai?.mean_r)">{{ rr(stats?.ai?.mean_r) }}</span></div>
           </div>
@@ -167,7 +190,7 @@ export default {
         <div class="card">
           <div class="card-head"><h2>Bulletin de fiabilité</h2><span class="badge paper">ARGENT FICTIF</span></div>
           <div class="note" :class="readiness?.unlocked ? 'ok' : 'warn'" style="margin-bottom:12px">
-            <b>{{ readiness?.unlocked ? '✅ Toutes les preuves sont réunies' : '⏳ Preuves en cours' }}</b> — {{ readiness?.score ?? 0 }} %
+            <b>{{ readiness?.unlocked ? '✅ Toutes les preuves sont réunies' : '⏳ Preuves en cours' }}</b> — {{ pct(readiness?.score, 0, true) }}
             <div class="small" style="margin-top:4px">Ce bulletin mesure si l'IA fait ses preuves en argent fictif, sur des prix en direct. Il n'ouvre aucun mode réel.</div>
           </div>
           <div class="criteria" v-if="readiness">
@@ -233,8 +256,8 @@ export default {
           <div><b>Modèle {{ report.verdict }}{{ report.summary?.mode === 'règles seules' ? ' (règles seules : le filtre IA est désactivé)' : '' }}</b><div v-for="r in report.reasons" :key="r" class="small">{{ r }}</div>
             <div v-if="report.verdict!=='validé'" class="small" style="margin-top:4px">Ce modèle reste disponible pour l’analyse hors ligne. Les décisions fictives utilisent le modèle approuvé pour cet horizon, ou les règles d’exploration configurées.</div></div>
         </div>
-        <div class="grid cols-2" style="margin-bottom:14px" v-if="report.holdout">
-          <div>
+        <div class="grid cols-2" style="margin-bottom:14px">
+          <div v-if="report.holdout">
             <h3>Période de contrôle jamais vue ({{ date(report.period?.holdout_start/1000) }} → {{ date(report.period?.end/1000) }})</h3>
             <div class="table-wrap"><table>
               <thead><tr><th></th><th class="num">Trades</th><th class="num">Réussite</th><th class="num">Moyenne</th><th class="num">Intervalle 95 %</th><th class="num">Profit factor</th></tr></thead>
@@ -252,17 +275,17 @@ export default {
             <div class="legend"><span><i style="background:#3b82f6"></i>Avec l'IA</span><span><i style="background:#93a0b8"></i>Tous les signaux</span></div>
           </div>
           <div>
-            <h3>Simulation du portefeuille sur la même période</h3>
+            <h3>Simulation du portefeuille sur la fenêtre de comparaison finale</h3>
             <template v-if="report.backtest_model">
               <div class="stats-row" style="margin-bottom:8px">
-                <div class="stat"><span class="label">Avec l'IA</span><span class="value" :class="cls(report.backtest_model.equity_metrics.return_pct)">{{ pct(report.backtest_model.equity_metrics.return_pct/100) }}</span><span class="sub muted">baisse max {{ report.backtest_model.equity_metrics.max_dd_pct.toFixed(1) }} %</span></div>
-                <div class="stat"><span class="label">Tous les signaux</span><span class="value" :class="cls(report.backtest_baseline?.equity_metrics?.return_pct)">{{ pct((report.backtest_baseline?.equity_metrics?.return_pct||0)/100) }}</span><span class="sub muted">baisse max {{ report.backtest_baseline?.equity_metrics?.max_dd_pct?.toFixed(1) }} %</span></div>
-                <div class="stat"><span class="label">Acheter et garder</span><span class="value" :class="cls(report.backtest_model.buy_hold_pct)">{{ pct((report.backtest_model.buy_hold_pct||0)/100) }}</span></div>
+                <div class="stat"><span class="label">Avec l'IA</span><span class="value" :class="cls(report.backtest_model?.equity_metrics?.return_pct)">{{ pct(report.backtest_model?.equity_metrics?.return_pct, 2, true) }}</span><span class="sub muted">baisse max {{ pct(report.backtest_model?.equity_metrics?.max_dd_pct, 1, true) }}</span></div>
+                <div class="stat"><span class="label">Tous les signaux</span><span class="value" :class="cls(report.backtest_baseline?.equity_metrics?.return_pct)">{{ pct(report.backtest_baseline?.equity_metrics?.return_pct, 2, true) }}</span><span class="sub muted">baisse max {{ pct(report.backtest_baseline?.equity_metrics?.max_dd_pct, 1, true) }}</span></div>
+                <div class="stat"><span class="label">Acheter et garder</span><span class="value" :class="cls(report.backtest_model.buy_hold_pct)">{{ pct(report.backtest_model.buy_hold_pct, 2, true) }}</span></div>
               </div>
               <LineChart :series="btCurves" height="small" :area="false" />
               <div class="legend"><span><i style="background:#3b82f6"></i>Capital avec l'IA</span><span><i style="background:#93a0b8"></i>Tous les signaux</span></div>
             </template>
-            <div v-else class="empty">Simulation indisponible.</div>
+            <div v-else class="empty">Simulation indisponible. {{ report.paper_comparison?.reason || 'Le rapport ne précise pas le motif.' }}</div>
           </div>
         </div>
         <div class="grid cols-2">
@@ -284,7 +307,7 @@ export default {
             </table></div>
             <h3 style="margin-top:12px">Fiabilité des probabilités</h3>
             <div class="table-wrap"><table><thead><tr><th class="num">Annoncé</th><th class="num">Réel</th><th class="num">Cas</th></tr></thead>
-              <tbody><tr v-for="(c, i) in (report.holdout?.calibration || [])" :key="i"><td class="num">{{ (c.p_mean*100).toFixed(0) }} %</td><td class="num">{{ (c.win_rate*100).toFixed(0) }} %</td><td class="num">{{ c.n }}</td></tr></tbody></table></div>
+              <tbody><tr v-for="(c, i) in (report.holdout?.calibration || [])" :key="i"><td class="num">{{ plainPct(c.p_mean, 0) }}</td><td class="num">{{ plainPct(c.win_rate, 0) }}</td><td class="num">{{ c.n }}</td></tr></tbody></table></div>
           </div>
         </div>
       </div>
@@ -308,18 +331,18 @@ export default {
           <div class="progress" style="margin-top:6px"><div :style="{width: (btJob.progress*100)+'%'}"></div></div></div>
         <div v-if="btResult" style="margin-top:14px">
           <div class="stats-row" style="margin-bottom:10px">
-            <div class="stat"><span class="label">Résultat</span><span class="value" :class="cls(btResult.equity_metrics.return_pct)">{{ pct(btResult.equity_metrics.return_pct/100) }}</span></div>
-            <div class="stat"><span class="label">Baisse maximale</span><span class="value">{{ btResult.equity_metrics.max_dd_pct.toFixed(1) }} %</span></div>
-            <div class="stat"><span class="label">Trades</span><span class="value">{{ btResult.metrics.n }}</span></div>
-            <div class="stat"><span class="label">Réussite</span><span class="value">{{ plainPct(btResult.metrics.win_rate) }}</span></div>
-            <div class="stat"><span class="label">Moyenne</span><span class="value" :class="cls(btResult.metrics.mean_r)">{{ rr(btResult.metrics.mean_r) }}</span></div>
+            <div class="stat"><span class="label">Résultat</span><span class="value" :class="cls(btResult?.equity_metrics?.return_pct)">{{ pct(btResult?.equity_metrics?.return_pct, 2, true) }}</span></div>
+            <div class="stat"><span class="label">Baisse maximale</span><span class="value">{{ pct(btResult?.equity_metrics?.max_dd_pct, 1, true) }}</span></div>
+            <div class="stat"><span class="label">Trades</span><span class="value">{{ btResult.metrics?.n ?? '—' }}</span></div>
+            <div class="stat"><span class="label">Réussite</span><span class="value">{{ plainPct(btResult.metrics?.win_rate) }}</span></div>
+            <div class="stat"><span class="label">Moyenne</span><span class="value" :class="cls(btResult.metrics?.mean_r)">{{ rr(btResult.metrics?.mean_r) }}</span></div>
             <div class="stat"><span class="label">Frais payés</span><span class="value">{{ money(btResult.fees_paid, btResult.conditions?.quote) }}</span></div>
             <div class="stat" v-if="btResult.agent_stats"><span class="label">Signaux refusés</span><span class="value">{{ btResult.agent_stats.refused }}</span></div>
-            <div class="stat"><span class="label">Acheter et garder</span><span class="value" :class="cls(btResult.buy_hold_pct)">{{ pct((btResult.buy_hold_pct||0)/100) }}</span></div>
+            <div class="stat"><span class="label">Acheter et garder</span><span class="value" :class="cls(btResult.buy_hold_pct)">{{ pct(btResult.buy_hold_pct, 2, true) }}</span></div>
           </div>
           <LineChart :series="manualBtCurve" height="medium" />
           <p v-if="btResult.conditions" class="faint small" style="margin:8px 0 0">
-            Capital simulé : {{ money(btResult.conditions.capital, btResult.conditions.currency) }}<span v-if="btResult.conditions.fx"> = {{ money(btResult.initial, btResult.conditions.quote) }} au taux du moment</span>.
+            Simulation {{ btJob?.id }} · {{ btResult.days }} jours · {{ btResult.model || 'Tous les signaux' }} · {{ money(btResult.conditions.capital, btResult.conditions.currency) }}.
             Chaque ordre est exécuté à l'ouverture de la bougie qui suit le signal, frais, glissement<span v-if="btResult.conditions.extra_cost"> et conversion</span> compris.
             La simulation tourne sur un compte à part : elle ne touche pas à votre portefeuille.</p>
           <div v-if="btResult.halted" class="note danger small" style="margin-top:8px">L'arrêt de sécurité (baisse maximale) s'est déclenché pendant la simulation.</div>
