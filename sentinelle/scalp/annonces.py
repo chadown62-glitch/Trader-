@@ -36,6 +36,17 @@ MINUTE, HOUR, DAY = 60_000, 3_600_000, 86_400_000
 BOOT, SEED, PAUSE = 5000, 20261204, 0.25
 
 
+def retry(fn, *args, tries: int = 4, **kw):
+    """Coupures de transport passagères : jusqu'à 4 essais espacés ; les erreurs HTTP (404…) remontent telles quelles."""
+    for k in range(tries):
+        try:
+            return fn(*args, **kw)
+        except httpx.TransportError:
+            if k == tries - 1:
+                raise
+            time.sleep(2 ** k)
+
+
 def tokens_of(title: str) -> tuple[list[str], str] | None:
     """Jetons et date de retrait d'un titre d'annonce de retrait de cote au comptant ; None pour les autres annonces."""
     if EXCLUDE.search(title):
@@ -50,7 +61,7 @@ def tokens_of(title: str) -> tuple[list[str], str] | None:
 def list_catalog(client: httpx.Client, catalog: int, page_size: int = 50) -> list[dict]:
     out, page = [], 1
     while True:
-        r = client.get(f"{CMS}/catalog/list/query", params={"catalogId": catalog, "pageNo": page, "pageSize": page_size})
+        r = retry(client.get, f"{CMS}/catalog/list/query", params={"catalogId": catalog, "pageNo": page, "pageSize": page_size})
         r.raise_for_status()
         arts = (r.json().get("data") or {}).get("articles") or []
         if not arts:
@@ -61,7 +72,7 @@ def list_catalog(client: httpx.Client, catalog: int, page_size: int = 50) -> lis
 
 
 def detail(client: httpx.Client, code: str) -> dict:
-    r = client.get(f"{CMS}/detail/query", params={"articleCode": code})
+    r = retry(client.get, f"{CMS}/detail/query", params={"articleCode": code})
     r.raise_for_status()
     d = r.json()["data"]
     time.sleep(PAUSE)
@@ -72,7 +83,7 @@ def minute_bars(symbol: str, days: list[str], cache, client) -> pd.DataFrame | N
     parts = []
     for day in days:
         try:
-            parts.append(data.read_month(data.download_day(symbol, day, cache, client=client)))
+            parts.append(data.read_month(retry(data.download_day, symbol, day, cache, client=client)))
         except httpx.HTTPStatusError:
             return None  # aucune archive publiée ce jour pour cette paire
     full, _ = data.complete_grid(pd.concat(parts, ignore_index=True))

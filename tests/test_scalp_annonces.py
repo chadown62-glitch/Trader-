@@ -49,3 +49,18 @@ def test_the_reserved_period_is_excluded_without_loading_anything(tmp_path):
         rows = annonces.event_study([ev], tmp_path, client)
     assert rows[0]["exclu"] == "période réservée"
     assert data.RESERVED_FROM.startswith("2026-09-01")
+
+
+def test_transient_transport_errors_are_retried_and_http_errors_are_not(monkeypatch):
+    monkeypatch.setattr(annonces.time, "sleep", lambda s: None)
+    calls = []
+
+    def flaky():
+        calls.append(1)
+        if len(calls) < 3:
+            raise httpx.RemoteProtocolError("coupure")
+        return "ok"
+
+    assert annonces.retry(flaky) == "ok" and len(calls) == 3
+    with pytest.raises(httpx.HTTPStatusError):
+        annonces.retry(lambda: httpx.Response(404, request=httpx.Request("GET", "https://x.test")).raise_for_status())
