@@ -1,5 +1,10 @@
 """OMEGA B — CORTEX, ECHO : règle calibrée, ensemble à poids fixés, erreurs corrélées, information partagée, biais."""
 
+import hashlib
+import json
+import os
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -58,3 +63,39 @@ def test_judge_year_never_learns_from_the_judged_year():
     again = cortex.judge_year(train, test.assign(y=1 - test["y"]))  # l'issue jugée ne change aucune probabilité
     pd.testing.assert_series_equal(out["p_ens"], again["p_ens"])
     assert not np.allclose(cortex.judge_year(shuffled, test)["p_lr"], out["p_lr"])  # l'apprentissage, lui, compte
+
+def test_published_output_and_journal_aliases_are_refused_before_loading(tmp_path, monkeypatch):
+    results = tmp_path / "research" / "scalp-v1"
+    results.mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cortex.rejeu, "RESULTS", results)
+    archive = results / "omega-cortex-v1.json"
+    archive.write_bytes(b'{"published": true}')
+    alias = tmp_path / "other-name.jsonl"
+    os.link(archive, alias)
+    new = tmp_path / "fresh.json"
+    monkeypatch.setattr(cortex.httpx, "Client", lambda **kwargs: pytest.fail("accès avant validation"))
+    for path in (archive, alias):
+        with pytest.raises(FileExistsError):
+            cortex.main(["--out", str(path)])
+        with pytest.raises(ValueError, match="archive"):
+            cortex.main(["--out", str(new), "--trials", str(path)])
+    with pytest.raises(ValueError, match="distinctes"):
+        cortex.main(["--out", str(new), "--trials", str(new)])
+    assert archive.read_bytes() == b'{"published": true}' and not new.exists()
+
+
+def test_replay_identifies_inputs_dependency_and_never_replaces_an_existing_result(tmp_path):
+    manifest = {"symbol": "BTCUSDT", "files": [["2020-01", "a" * 64]]}
+    sources = cortex.rejeu.provenance("cortex", "historical-source", {"BTCUSDT": (None, manifest)}, ["hive"])
+    assert sources["archives_crypto"]["BTCUSDT"] == manifest
+    assert sources["code_sha256"]["hive"] == hashlib.sha256(Path(cortex.hive.__file__).read_bytes()).hexdigest()
+    original = cortex.rejeu.RESULTS / sources["archive_v1"]["nom"]
+    assert sources["archive_v1"]["sha256"] == hashlib.sha256(original.read_bytes()).hexdigest()
+    output = tmp_path / "new.json"
+    digest = cortex.rejeu.write_result(output, {"provenance": sources})
+    assert json.loads(output.read_bytes())["provenance"] == sources
+    assert hashlib.sha256(output.read_bytes()).hexdigest() == digest
+    with pytest.raises(FileExistsError):
+        cortex.rejeu.write_result(output, {"second": True})
+    assert hashlib.sha256(output.read_bytes()).hexdigest() == digest

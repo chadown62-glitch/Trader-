@@ -27,14 +27,13 @@ import argparse
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 
 import httpx
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingClassifier
 
-from . import essais, hive, moteur, recherche, signaux
+from . import essais, hive, moteur, recherche, rejeu, signaux
 
 MODELS = ("lr", "gb", "mom", "base", "ens")
 GB_PARAMS = {"max_depth": 3, "max_iter": 100, "learning_rate": 0.05, "min_samples_leaf": 50, "random_state": 0}
@@ -129,13 +128,16 @@ def biases(frame: pd.DataFrame, models=("lr", "gb", "mom", "base")) -> dict:
 def main(argv=None):
     ap = argparse.ArgumentParser(description="OMEGA B — complémentarité des modèles et erreurs corrélées (simulation exclusive)")
     ap.add_argument("--cache", default="data/scalp-cache")
-    ap.add_argument("--out", default="research/scalp-v1/omega-cortex-v1.json")
+    ap.add_argument("--out", default="research/scalp-v1/omega-cortex-rejeu.json")
     ap.add_argument("--trials", default="research/scalp-v1/trials.jsonl")
     args = ap.parse_args(argv)
+    rejeu.check_paths(args.out, args.trials)
     t0 = time.time()
     with httpx.Client(timeout=60, follow_redirects=True, headers={"User-Agent": "sentinelle-simulation"}) as client:
         with ThreadPoolExecutor(8) as pool:
             loaded = dict(zip(recherche.CANDIDATES, pool.map(lambda s: signaux.load_bars(s, args.cache, client), recherche.CANDIDATES)))
+    sources = rejeu.provenance("cortex", "99a1b4414cde7f9a9627a3df43420072daedc58a", loaded,
+                              ("cortex", "hive", "signaux", "moteur", "recherche", "essais", "data", "flux"))
     p = signaux.panel(loaded)
     member = signaux.members(p)
     frame = hive.samples(p, member, hive.features(p), moteur._day(signaux.FIRST))
@@ -147,7 +149,7 @@ def main(argv=None):
     tests = {k: hive.week_bootstrap(ll[a] - ll[b], weeks) for k, (a, b) in pairs.items()}
     for t, ph in zip(tests.values(), essais.holm([t["p_bilaterale"] for t in tests.values()])):
         t["p_holm"], t["significatif_holm_5pct"] = ph, bool(ph < 0.05)
-    out = {"schema": "scalp-omega-cortex-v1", "status": "mesure hors échantillon (walk-forward annuel) sur historique déjà consulté ; aucune intégration",
+    out = {"schema": "scalp-omega-cortex-rejeu-v1", "provenance": sources, "status": "mesure hors échantillon (walk-forward annuel) sur historique déjà consulté ; aucune intégration",
            "omega": ["CORTEX", "ECHO"], "capacites": ["C087", "C083"], "distinct_de": {"C086": "#164 (redondance des entrées)", "C087": "ensemble de l'IA principale"},
            "parametres": {"gb": GB_PARAMS, "ensemble": "moyenne des logits LR, GB, MOM à poids égaux", "echantillon": "hive.samples", "annees": hive.TEST_YEARS},
            "predictions": int(len(judged)), "perte_log_moyenne": {m: float(v.mean()) for m, v in ll.items()},
@@ -159,10 +161,10 @@ def main(argv=None):
     print("corrélation des biais annuels :", out["biais"]["correlation_des_biais"])
     for k, t in tests.items():
         print(f"{k:24} {t['ecart']:+.5f} IC [{t['ic95'][0]:+.5f} ; {t['ic95'][1]:+.5f}] p {t['p_bilaterale']:.3f} Holm {t['p_holm']:.3f}")
-    Path(args.out).write_text(json.dumps(out, ensure_ascii=False, default=float) + "\n", encoding="utf-8")
+    result_sha = rejeu.write_result(args.out, out)
     if args.trials:
         with open(args.trials, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "omega-cortex-v1",
+            fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "omega-cortex-rejeu-v1", "resultat_sha256": result_sha,
                                  "perte_log_moyenne": out["perte_log_moyenne"], "correlation_des_residus": out["correlation_des_residus"],
                                  "tests": {k: {"ecart": t["ecart"], "p_holm": t["p_holm"]} for k, t in tests.items()}},
                                 ensure_ascii=False, default=float) + "\n")
