@@ -412,7 +412,11 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
   - HIVE, GENOME, RADAR, ATLAS, PHANTOM, ORACLE, NEMESIS, CORTEX, CHRONOS, MEMORY, PULSE, IMMUNITY, EVOLUTION, TITAN, TRUTH, BORDER, ECHO, QUARANTINE, TIMELOCK, REPLAY, LINEAGE, BLINDSPOT, MIRROR, COMPASS et PROVENANCE.
   - Ce sont des propositions de composants ou de méthodes expérimentales, pas des agents : au plus quatre agents restent actifs dans le moteur.
   - Chaque concept est rattaché aux capacités C001–C100 avant toute implémentation : `docs/scalp/omega-cadrage.md`.
-  - Le registre SENTINELLE OMEGA V3 cité par le propriétaire n'est pas présent dans le dépôt ni dans les sources accessibles à la session. Les concepts non décrits dans la décision du 25 novembre portent donc une interprétation **provisoire**, à confirmer avec ce registre. Ses expériences synthétiques sont **reconstruites** à partir de leur description, et signalées comme telles.
+  - Le registre SENTINELLE OMEGA V3 (25 novembre 2026), transmis par le propriétaire en cours de séance, est versé au dépôt en copie conforme : `docs/scalp/omega-registre-v3.md` (SHA-256 `2310472d4d986c52be6da5ec0a89d69cbe7f9c7f15ae33b278d71627538ac0e3`).
+    - Il fait foi pour la fonction et le test proposé de chaque concept. La correspondance de `docs/scalp/omega-cadrage.md` en tient compte.
+    - Il reste un registre de **propositions de recherche** : il ne crée aucune mission et ne valide aucune fonctionnalité.
+    - Ses trois expériences synthétiques (HIVE/BORDER, CORTEX/ECHO, PULSE/QUARANTINE) sont à reproduire dans le dépôt, à partir de leur code et de leur description, comme bibliothèque de ruptures synthétiques (REPLAY).
+    - Les contrôles synthétiques reconstruits avant sa réception (#172 à #174) restent publiés et signalés comme tels.
 - **Cibles expérimentales**, jamais des fonctions à optimiser sur les données d'évaluation :
   - +1,30 % par semaine en moyenne géométrique, net de frais ;
   - pire baisse de 10 % au plus ;
@@ -436,17 +440,23 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
     - Inventaire : couverture, historiques, qualité, dépendances, coûts et liquidité.
     - Univers défini à la date, actifs disparus inclus quand les données existent.
     - Observer plus d'actifs n'augmente jamais automatiquement l'exposition. Toute nouvelle source attend l'autorisation du propriétaire.
+    - D'après le registre V3 :
+      - RADAR mesure la couverture, la qualité des données et l'apport marginal ;
+      - ATLAS mesure la stabilité des corrélations, les regroupements et la dépendance en crise.
   - **D — PULSE, QUARANTINE (15 %)** : dégradation des modèles, y compris à entrées d'apparence normale.
     - Distinguer la dérive des entrées, le biais des prédictions et la hausse des erreurs.
     - Synthétique d'abord, puis ruptures moins marquées, progressives et dépendantes.
     - Mesures : délai de détection, fausses alertes, situations non détectées.
     - Tous les vetos déterministes sont conservés.
+    - QUARANTINE, d'après le registre V3 : signaler explicitement un actif ou un régime hors distribution.
+      - États distincts : diagnostic inconnu, données périmées, erreur confirmée.
+      - Une alerte n'autorise ni changement automatique de modèle ni modification des vetos.
   - **E — intégrité scientifique (10 %)** : principes transversaux.
-    - TRUTH : résultats négatifs conservés, aucune optimisation des évaluations.
-    - TIMELOCK : préenregistrement poussé avant calcul, causalité vérifiée.
-    - MIRROR : témoins et références simples.
-    - MEMORY : registre des essais en ajout seul.
-    - PROVENANCE : empreintes des données.
+    - TRUTH : essais multiples, biais, témoins et réutilisation de l'historique contrôlés ; résultats négatifs conservés.
+    - TIMELOCK : dates de publication, de réception, de disponibilité et de correction des sources vérifiées ; préenregistrement poussé avant calcul.
+    - MIRROR : contrôles négatifs et signaux artificiels sans information, auxquels le laboratoire ne doit attribuer aucune capacité prédictive.
+    - MEMORY : mémoire des essais, des hypothèses rejetées, des versions et des causes d'échec, en ajout seul.
+    - PROVENANCE : identifiants des jeux de données, fenêtres et empreintes associés à chaque prédiction expérimentale.
     - Les essais multiples sont corrigés, et les résultats sont reproductibles pour l'audit de GPT Work.
 - **Méthode.**
   - Hypothèses falsifiables, préenregistrées dans `research/scalp-v1/trials.jsonl` et poussées avant tout calcul.
