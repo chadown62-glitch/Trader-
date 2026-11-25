@@ -648,6 +648,9 @@ def referenced(item: dict) -> bool:
 CLAIMS_TESTED = ("EXISTANTE_ET_TESTÉE", "PARTIELLE", "EXPÉRIMENT_REJETÉ")
 NIVEAUX = ("constatée", "partielle", "non constatée", "référencement seul", "sans preuve")
 TRACE_TIMEOUT = 1800
+# Un fil de calcul mathématique par processus tracé : les fichiers de test tournent en parallèle et des bibliothèques
+# multi-fils surchargeraient le processeur, au point de faire expirer les tests bornés dans le temps (cockpit).
+SINGLE_THREAD = {k: "1" for k in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS")}
 
 
 def _trace_run(out: str, tests: list[str]) -> int:
@@ -686,7 +689,7 @@ def trace(test: str) -> dict:
         out = Path(tmp) / "trace.json"
         t0 = time.time()
         proc = subprocess.run([sys.executable, "-m", "sentinelle.scalp.registre", "--tracer", str(out), test], cwd=ROOT,
-                              capture_output=True, text=True, timeout=TRACE_TIMEOUT)
+                              capture_output=True, text=True, timeout=TRACE_TIMEOUT, env={**os.environ, **SINGLE_THREAD})
         if not out.exists():
             return {"code_pytest": proc.returncode, "secondes": round(time.time() - t0, 1), "lignes": {}, "erreur": proc.stderr[-500:]}
         run = json.loads(out.read_text(encoding="utf-8"))
@@ -734,7 +737,8 @@ def measure_execution(registry: dict, workers: int = 4) -> dict:
     registry["mesure_execution"] = {
         "methode": "chaque fichier de test cité rejoué seul sous sys.monitoring (évènements LINE) ; une fonction est exécutée si une "
                    "ligne de son corps a tourné pendant un fichier de test réussi ; en-têtes, décorateurs, docstrings et niveau "
-                   "module exclus ; le code lancé dans un autre processus par un test n'est pas compté",
+                   "module exclus ; le code lancé dans un autre processus par un test n'est pas compté ; un fil de calcul "
+                   "mathématique par processus tracé (SINGLE_THREAD)",
         "commit": head_sha(), "date_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "python": platform.python_version(), "plateforme": f"{platform.system()} {platform.machine()}",
         "commande": "python -m sentinelle.scalp.registre --execution",
