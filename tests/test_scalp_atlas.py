@@ -1,7 +1,13 @@
 """OMEGA C — RADAR, ATLAS : fiche de couverture, dépendances, séries, coûts publiés."""
 
+import hashlib
+import json
+import os
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+import pytest
 
 from sentinelle.scalp import atlas, moteur
 
@@ -83,3 +89,49 @@ def test_correlation_stability_compares_consecutive_years_on_common_pairs():
     out = atlas.correlation_stability(c, pd.DataFrame(True, index=idx, columns=c.columns))
     assert set(out) >= {"2021→2022", "2022→2023"} and all(v["paires"] == 15 for v in out.values())
     assert np.mean([v["rang_spearman"] for v in out.values()]) > 0.5
+
+def test_published_output_and_journal_aliases_are_refused_before_loading(tmp_path, monkeypatch):
+    results = tmp_path / "research" / "scalp-v1"
+    results.mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(atlas.rejeu, "RESULTS", results)
+    archive = results / "omega-atlas-v1.json"
+    archive.write_bytes(b'{"published": true}')
+    alias = tmp_path / "other-name.jsonl"
+    os.link(archive, alias)
+    new = tmp_path / "fresh.json"
+    monkeypatch.setattr(atlas.httpx, "Client", lambda **kwargs: pytest.fail("accès avant validation"))
+    for path in (archive, alias):
+        with pytest.raises(FileExistsError):
+            atlas.main(["--out", str(path)])
+        with pytest.raises(ValueError, match="archive"):
+            atlas.main(["--out", str(new), "--trials", str(path)])
+    with pytest.raises(ValueError, match="distinctes"):
+        atlas.main(["--out", str(new), "--trials", str(new)])
+    assert archive.read_bytes() == b'{"published": true}' and not new.exists()
+
+
+def test_replay_identifies_inputs_dependency_and_never_replaces_an_existing_result(tmp_path):
+    manifest = {"symbol": "BTCUSDT", "files": [["2020-01", "a" * 64]]}
+    sources = atlas.rejeu.provenance("atlas", "historical-source", {"BTCUSDT": (None, manifest)}, ["signaux"])
+    assert sources["archives_crypto"]["BTCUSDT"] == manifest
+    assert sources["code_sha256"]["signaux"] == hashlib.sha256(Path(atlas.signaux.__file__).read_bytes()).hexdigest()
+    original = atlas.rejeu.RESULTS / sources["archive_v1"]["nom"]
+    assert sources["archive_v1"]["sha256"] == hashlib.sha256(original.read_bytes()).hexdigest()
+    output = tmp_path / "new.json"
+    digest = atlas.rejeu.write_result(output, {"provenance": sources})
+    assert json.loads(output.read_bytes())["provenance"] == sources
+    assert hashlib.sha256(output.read_bytes()).hexdigest() == digest
+    with pytest.raises(FileExistsError):
+        atlas.rejeu.write_result(output, {"second": True})
+    assert hashlib.sha256(output.read_bytes()).hexdigest() == digest
+
+
+def test_costs_fingerprint_is_taken_from_the_bytes_actually_parsed(tmp_path, monkeypatch):
+    monkeypatch.setattr(atlas, "RESULTS", tmp_path)
+    source = tmp_path / "frais-dates-v1.json"
+    source.write_bytes(b'{"bareme":{"fee":1}}')
+    hashes = {}
+    assert atlas.costs(hashes)["frais_dates"] == {"fee": 1}
+    assert hashes[source.name] == hashlib.sha256(source.read_bytes()).hexdigest()
+    assert hashes["ecart-ouverture-v1.json"] is None

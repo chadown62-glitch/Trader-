@@ -23,6 +23,7 @@ Lancement : python -m sentinelle.scalp.atlas
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -32,7 +33,7 @@ import httpx
 import numpy as np
 import pandas as pd
 
-from . import actifs, moteur, recherche, signaux
+from . import actifs, moteur, recherche, rejeu, signaux
 
 RESULTS = Path(__file__).resolve().parents[2] / "research" / "scalp-v1"
 TAIL_Q, TAIL_REPS, TAIL_SEED, MIN_PAIR_WEEKS = 0.10, 2000, 20261128, 10
@@ -152,14 +153,25 @@ def series_row(name: str, s: pd.Series) -> dict:
             "plus_long_trou_jours": int(gaps.max()) if len(gaps) else 0}
 
 
-def published(name: str) -> dict | None:
+def read_json(path, hashes):
+    raw = path.read_bytes()
+    if hashes is not None:
+        hashes[path.name] = hashlib.sha256(raw).hexdigest()
+    return json.loads(raw)
+
+
+def published(name: str, hashes=None) -> dict | None:
     path = RESULTS / name
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+    if path.exists():
+        return read_json(path, hashes)
+    if hashes is not None:
+        hashes[name] = None
+    return None
 
 
-def costs() -> dict:
+def costs(hashes=None) -> dict:
     """Coûts et faisabilité lus dans les résultats déjà publiés (aucun nouveau calcul)."""
-    frais, ouverture, fais = published("frais-dates-v1.json"), published("ecart-ouverture-v1.json"), published("faisabilite-petit-capital-v1.json")
+    frais, ouverture, fais = published("frais-dates-v1.json", hashes), published("ecart-ouverture-v1.json", hashes), published("faisabilite-petit-capital-v1.json", hashes)
     out = {}
     if frais:
         out["frais_dates"] = frais.get("bareme")
@@ -174,13 +186,16 @@ def costs() -> dict:
 def main(argv=None):
     ap = argparse.ArgumentParser(description="OMEGA C — inventaire de l'univers observable (simulation exclusive)")
     ap.add_argument("--cache", default="data/scalp-cache")
-    ap.add_argument("--out", default="research/scalp-v1/omega-atlas-v1.json")
+    ap.add_argument("--out", default="research/scalp-v1/omega-atlas-rejeu.json")
     ap.add_argument("--trials", default="research/scalp-v1/trials.jsonl")
     args = ap.parse_args(argv)
+    rejeu.check_paths(args.out, args.trials)
     t0 = time.time()
     with httpx.Client(timeout=60, follow_redirects=True, headers={"User-Agent": "sentinelle-simulation"}) as client:
         with ThreadPoolExecutor(8) as pool:
             loaded = dict(zip(recherche.CANDIDATES, pool.map(lambda s: signaux.load_bars(s, args.cache, client), recherche.CANDIDATES)))
+    sources = rejeu.provenance("atlas", "2aefdf2b1f8f1376bf50f835accb156209959e0d", loaded,
+                              ("atlas", "actifs", "signaux", "moteur", "recherche", "data"))
     p = signaux.panel(loaded)
     member = signaux.members(p)
     last_day = moteur._day(signaux.LAST)
@@ -188,17 +203,20 @@ def main(argv=None):
     quoted = [r for r in rows if r["cotee"]]
     memes = set(moteur.MEMECOINS)
     cache = Path(args.cache) / "etf"
-    funds = {t: series_row(t, actifs.parse(json.loads((cache / f"{t}.json").read_text(encoding="utf-8"))))
-             for t in actifs.UNIVERSE if (cache / f"{t}.json").exists()}
-    macro = {f.stem: series_row(f.stem, actifs.parse(json.loads(f.read_text(encoding="utf-8"))))
-             for f in sorted(cache.glob("*.json")) if f.stem not in actifs.UNIVERSE}
-    out = {"schema": "scalp-omega-atlas-v1", "status": "inventaire descriptif des sources déjà autorisées ; aucune nouvelle source ; aucune exposition ajoutée",
+    funds, macro = {}, {}
+    sources["series_cache_sha256"] = {}
+    for path in sorted(cache.glob("*.json")):
+        series = actifs.parse(read_json(path, sources["series_cache_sha256"]))
+        target = funds if path.stem in actifs.UNIVERSE else macro
+        target[path.stem] = series_row(path.stem, series)
+    sources["couts_publies_sha256"] = {}
+    out = {"schema": "scalp-omega-atlas-rejeu-v1", "provenance": sources, "status": "inventaire descriptif des sources déjà autorisées ; aucune nouvelle source ; aucune exposition ajoutée",
            "omega": ["RADAR", "ATLAS"], "capacites": ["C091", "C092", "C061", "C062", "C098", "C099"],
            "cryptos": {"candidates": len(rows), "cotees": len(quoted), "retirees": sum(r["retiree"] for r in quoted),
                        "coupees_a_une_recotation": sum(bool(r["coupee_a"]) for r in quoted), "memecoins": sorted(m for m in memes if m in loaded),
                        "membres_par_jour_median": float(member.loc[moteur._day(signaux.FIRST):].sum(axis=1).median()), "detail": rows},
            "dependances_hebdomadaires": dependence(p["c"].loc[moteur._day(signaux.FIRST):], member.loc[moteur._day(signaux.FIRST):]),
-           "fonds": funds, "series_macro": macro, "couts_et_faisabilite": costs()}
+           "fonds": funds, "series_macro": macro, "couts_et_faisabilite": costs(sources["couts_publies_sha256"])}
     since = moteur._day(signaux.FIRST)
     out["dependance_en_crise"] = crisis_dependence(p["c"].loc[since:], member.loc[since:])
     out["stabilite_des_correlations"] = correlation_stability(p["c"].loc[since:], member.loc[since:])
@@ -212,10 +230,10 @@ def main(argv=None):
     print("faisabilité :", json.dumps(out["couts_et_faisabilite"].get("part_des_entrees_faisables"), ensure_ascii=False))
     print("crise :", json.dumps(out["dependance_en_crise"], ensure_ascii=False))
     print("stabilité :", json.dumps(out["stabilite_des_correlations"], ensure_ascii=False))
-    Path(args.out).write_text(json.dumps(out, ensure_ascii=False, default=float) + "\n", encoding="utf-8")
+    result_sha = rejeu.write_result(args.out, out)
     if args.trials:
         with open(args.trials, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "omega-atlas-v1", "descriptif": True,
+            fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "omega-atlas-rejeu-v1", "resultat_sha256": result_sha, "descriptif": True,
                                  "cryptos": {k: c[k] for k in ("candidates", "cotees", "retirees", "coupees_a_une_recotation")},
                                  "dependances": out["dependances_hebdomadaires"], "dependance_en_crise": out["dependance_en_crise"],
                                  "stabilite_des_correlations": out["stabilite_des_correlations"]}, ensure_ascii=False, default=float) + "\n")
