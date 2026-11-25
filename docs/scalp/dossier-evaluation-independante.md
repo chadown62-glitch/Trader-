@@ -249,3 +249,65 @@ python -m sentinelle.scalp.moteur --trials ""
 
 - **Données** : le premier lancement télécharge environ 4 300 archives publiques vérifiées dans `data/scalp-cache` (quelques minutes). Les lancements suivants relisent le cache, revérifié à chaque lecture.
 - **Registre** : `--trials ""` évite d'écrire dans le registre.
+
+---
+
+## 11. Catalogue C001–C100 : mesures des 24 et 25 novembre 2026
+
+Chaque étude a été **préenregistrée et poussée avant calcul** (registre `research/scalp-v1/trials.jsonl`). Elle a ensuite été fusionnée après réussite des trois contrôles obligatoires : pytest Ubuntu, pytest Windows et Chromium.
+
+Toutes les mesures portent sur l'historique 2018-01-01 → 2026-11-22, **déjà consulté**. Les comparaisons utilisent l'outil d'ablation C095 :
+- mêmes jours, mêmes coûts et même univers ;
+- intervalle à 95 % par blocs de 4 semaines ;
+- correction de Holm sur chaque lot.
+
+| PR (fusion) | Préenregistrement | Capacités | Résultat principal |
+|---|---|---|---|
+| #149 (`1212727`) | `1cb0a1f` | C095, C097, C076, C077 | Outil d'ablation et stress de coûts. Aucune capacité n'améliore le rendement après Holm. Volatilité visée : pire baisse de 31 % à 13 %. |
+| #150 (`a14e3f1`) | `f19b1bc` | C062, C098 | À 30 €, 4 % des entrées de B1 et 73 % de celles de B0 sont faisables. Faisable à partir d'environ 1 000 €. Fonds UCITS NON MESURÉS. |
+| #151 (`c5af5ca`), #152 (`af64f41`) | — | registre, C092 | Exécution effective des tests cités distinguée du simple référencement. Empreintes vérifiées au commit du gel. |
+| #153 (`fd943be`) | `8f582a3` | C091 | 5 renommages officiels vérifiés à la minute près, 4 reliés, VEN → VET refusé. Effet non significatif. |
+| #154 (`bc69191`) | `7e71882` | C099 | Écart à l'ouverture simulée : 1 à 1,7 pb en moyenne la première minute, p95 de 20 à 24 pb. Écart achat-vente NON MESURÉ. |
+| #155 (`cb0cc47`) | `ab5df53` | C061 | Barème daté officiel : écart inférieur à 0,001 %/semaine. Sans BNB : −0,013 %/semaine sur B0. |
+| #156 (`14b328d`) | `f4e7d8f` | C021, C024, C026, C030 | A1 « BTC en range » : pire baisse de B0 de 60 % à 23 %, rendement −0,05 %/semaine géométrique (non significatif), mieux que son témoin. Candidat, non indépendant. |
+| #157 (`d0d744c`) | `00908bb` | C082, C083, C084 | Probabilités de l'IA principale moins bonnes que le taux appris : −3,3 % [−6,1 ; −0,5]. Recalage isotonique trop confiant. |
+| #158 (`c930c19`) | `e51a306` | C007, C001 | FOMC et CPI à l'heure officielle : variation du BTC ×2 à ×3,5 (Holm p < 0,001). Sens non prévisible sans la surprise (C006 bloquée). |
+| #159 (`a0eb040`) | `d5ed57a` | C079, C074, C067 | Pires semaines du BTC : B1 ≥ −4,9 %. Plafond par groupe corrélé rejeté. Stops avec écart : +0,055 R en moyenne. |
+| #160 (`4831790`) | `2198f9d` | C022, C023, C025, C031, C034, C038 | Aucune famille technique n'améliore B0 après Holm (verdict négatif). |
+
+**Inventaire après ces mesures** (registre `research/scalp-v1/registre-capacites.json`) :
+
+| Statut | Nombre |
+|---|---|
+| Existantes et testées | 42 |
+| Partielles | 34 |
+| Absentes | 8 |
+| Bloquées (données) | 2 |
+| Expériences rejetées | 14 |
+| Validées | **0** |
+
+**Couverture des tests.** On compte les capacités dont toutes les fonctions citées ont réellement tourné pendant un test réussi (contre 55 au premier inventaire). Le nombre exact, et la liste de celles qui restent « à confirmer », figurent dans la clé `mesure_execution` du registre.
+
+**Défauts de la section 6, mis à jour :**
+- **Identité des actifs** : traitée (#153), sauf deux cas. VEN → VET (1 pour 100) reprend 22,8 % au-dessus de l'équivalent et n'est pas relié. BCC → BCHABC est une scission, également non reliée. Le raccord est désactivé par défaut, ce qui laisse les résultats publiés reproductibles.
+- **Coût historique** : frais datés mesurés (#155). Glissement à l'ouverture mesuré (#154). Stress jusqu'à ×3 plus 0,10 % (#149).
+- **Glissement des sorties** : mesuré sur 7 624 stops minute (#159). La liquidité insuffisante à la sortie reste NON MESURÉE.
+- **Surapprentissage et essais multiples** : correction de Holm, Benjamini-Hochberg et DSR (#147), puis Holm dans chaque lot.
+- **Petit capital** : mesuré (#150). Les fonds UCITS et la fiscalité restent NON MESURÉS.
+
+**Points soumis au propriétaire et à GPT Work :**
+- **A1** remplit le critère préenregistré, mais elle reprend le filtre BTC des versions v10 sur un historique consulté. Elle n'est donc pas une preuve indépendante. Toute intégration attend une validation humaine et une observation prospective autorisée.
+- **Recalage des probabilités de l'IA principale** : le défaut est démontré, rien n'est modifié. Une correction devra être préenregistrée et validée.
+- **Flotte de 12 agents** : l'objectif est de 4 agents principaux actifs. Rien n'a été supprimé ni désactivé ; ce point est réservé à l'audit architectural.
+
+**Verdict global inchangé : négatif.** Aucune configuration n'atteint +1,30 %/semaine net géométrique sur 52 semaines avec une pire baisse de 10 %. Il ne reste aucune période aveugle.
+
+**Reproduction des études (Windows 11, Python 3.12)**
+
+```powershell
+python -m pytest tests/test_scalp_ablation.py tests/test_scalp_faisabilite.py tests/test_scalp_recherche.py tests/test_scalp_ouverture.py tests/test_scalp_frais.py tests/test_scalp_regimes.py tests/test_scalp_calibration.py tests/test_scalp_evenements.py tests/test_scalp_risques.py tests/test_scalp_techniques.py tests/test_scalp_registre.py -q
+python -m sentinelle.scalp.ablation --trials ""
+python -m sentinelle.scalp.regimes --trials ""
+python -m sentinelle.scalp.evenements --trials ""
+python -m sentinelle.scalp.registre
+```

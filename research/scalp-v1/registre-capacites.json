@@ -1,13 +1,13 @@
 {
  "schema": "sentinelle-registre-capacites-v1",
  "source": "dossier du propriétaire C001–C100 (24 novembre 2026), docs/scalp/catalogue-C001-C100.md",
- "main_audite": "e7be7af8f05c558dd2a46170dbb6975a25ccfc81",
+ "main_audite": "48317905004d416a81c0d6ddc6e06d77662f152d",
  "statuts": {
-  "EXISTANTE_ET_TESTÉE": 32,
-  "PARTIELLE": 43,
-  "ABSENTE": 17,
-  "BLOQUÉE_DONNÉES": 3,
-  "EXPÉRIMENT_REJETÉ": 5,
+  "EXISTANTE_ET_TESTÉE": 42,
+  "PARTIELLE": 34,
+  "ABSENTE": 8,
+  "BLOQUÉE_DONNÉES": 2,
+  "EXPÉRIMENT_REJETÉ": 14,
   "EXPÉRIMENT_VALIDÉ_PROVISOIRE": 0
  },
  "capacites": [
@@ -43,6 +43,9 @@
    "donnees": "8 sources publiques, archive SQLite en ajout seul depuis le 23 novembre 2026 ; veille bornée de 20 minutes publiée.",
    "verdict": "à mesurer",
    "note": "réception→marché absent ; archive trop jeune",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
+   "lot": "2 — actualités, régimes et abstention",
+   "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -109,6 +112,9 @@
    "donnees": "Titres et résumés des flux publics ; aucun échantillon annoté pour mesurer l'exactitude.",
    "verdict": "utilité technique",
    "note": "exactitude du classement non mesurée ; faux positif connu (ancien piratage Binance)",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -168,7 +174,8 @@
    ],
    "tests": [
     "tests/test_scalp_flash.py",
-    "tests/test_dmh_components.py"
+    "tests/test_dmh_components.py",
+    "tests/test_realtime.py"
    ],
    "dependances": [
     "C002"
@@ -177,9 +184,12 @@
    "donnees": "Symboles dans les titres ; identité réseau+adresse côté memecoins (dmh).",
    "verdict": "à mesurer",
    "note": "association par symbole seulement dans flash.py",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
+   "lot": "2 — actualités, régimes et abstention",
+   "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/scalp/flash.py",
@@ -191,7 +201,7 @@
       "fichier": "sentinelle/news/service.py",
       "symbole": "NewsService._allowed_assets",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      },
      {
       "fichier": "sentinelle/dmh/tokens.py",
@@ -201,7 +211,7 @@
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -232,6 +242,9 @@
    "donnees": "Fiabilité mesurée seulement pour les canaux Telegram en observation, pas pour les flux d'actualité.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -299,6 +312,9 @@
    "donnees": "flash.py ne déduplique qu'à l'intérieur d'une source (identifiant ou lien).",
    "verdict": "à mesurer",
    "note": "pas de déduplication inter-sources dans flash.py",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
+   "lot": "2 — actualités, régimes et abstention",
+   "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -373,6 +389,9 @@
    "donnees": "Calendrier public (consensus) et séries BLS officielles, en observation fantôme ; aucune mesure d'effet.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
+   "lot": "2 — actualités, régimes et abstention",
+   "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -406,46 +425,70 @@
    "domaine": "Actualités et événements",
    "premiere_preuve_exigee": "horodatage, source et effet mesuré après disponibilité effective",
    "priorite": "HAUTE",
-   "statut": "BLOQUÉE_DONNÉES",
+   "statut": "EXISTANTE_ET_TESTÉE",
    "preuves": [
     {
-     "fichier": "sentinelle/scalp/flash.py",
-     "symbole": "Archive",
-     "lignes": "127-175"
+     "fichier": "sentinelle/scalp/evenements.py",
+     "symbole": "reaction",
+     "lignes": "89-108"
     },
     {
-     "fichier": "sentinelle/news/shadow/store.py",
-     "symbole": "ShadowStore",
-     "lignes": "53-218"
+     "fichier": "sentinelle/scalp/evenements.py",
+     "symbole": "paired_test",
+     "lignes": "111-119"
+    },
+    {
+     "fichier": "sentinelle/scalp/evenements.py",
+     "symbole": "events",
+     "lignes": "127-139"
+    },
+    {
+     "fichier": "sentinelle/scalp/evenements.py",
+     "symbole": "release_utc",
+     "lignes": "75-78"
     }
    ],
    "tests": [
-    "tests/test_scalp_flash.py"
+    "tests/test_scalp_evenements.py"
    ],
    "dependances": [
     "C001",
-    "C003",
-    "C005"
+    "C020"
    ],
-   "hypothese": "Après une catégorie d'événement, le rendement anormal sur 1 h à 24 h diffère de zéro, avec intervalle et correction des essais.",
-   "donnees": "Aucun historique d'actualités ; l'archive existe depuis le 23 novembre 2026 : pas assez d'événements.",
-   "verdict": "non évaluable",
-   "note": "outil d'étude d'événements absent ; données insuffisantes",
+   "hypothese": "Après une publication programmée (FOMC, CPI), la variation du BTC dépasse celle du même instant une semaine plus tôt ; son sens n'est pas prévisible sans la surprise.",
+   "donnees": "Calendriers officiels FOMC (federalreserve.gov) et CPI (bls.gov) 2018-2026, heures vérifiées sur les communiqués ; bougies 1 minute BTCUSDT.",
+   "verdict": "utilité technique",
+   "note": "research/scalp-v1/evenements-macro-v1.json : variation ×2 à ×3,5 dans les 5 minutes, Holm p < 0,001 ; sens non significatif",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
+   "lot": "2 — actualités, régimes et abstention",
+   "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
-      "fichier": "sentinelle/scalp/flash.py",
-      "symbole": "Archive",
+      "fichier": "sentinelle/scalp/evenements.py",
+      "symbole": "reaction",
       "nature": "fonction",
       "executee": true
      },
      {
-      "fichier": "sentinelle/news/shadow/store.py",
-      "symbole": "ShadowStore",
+      "fichier": "sentinelle/scalp/evenements.py",
+      "symbole": "paired_test",
       "nature": "fonction",
-      "executee": false
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/evenements.py",
+      "symbole": "events",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/evenements.py",
+      "symbole": "release_utc",
+      "nature": "fonction",
+      "executee": true
      }
     ],
     "tests_en_echec": [],
@@ -486,6 +529,9 @@
    "donnees": "Fenêtres fixes de 24 h et 6 h datées à la publication ; aucune décroissance.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -548,6 +594,9 @@
    "donnees": "Classement par mots-clés et IA locale ; effet non mesuré.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -610,6 +659,9 @@
    "donnees": "Le bouclier bloque les nouvelles entrées pendant les à-coups ; pas d'attente explicite de réaction initiale.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -666,6 +718,9 @@
    "donnees": "Calendrier et BLS en observation fantôme.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -716,6 +771,9 @@
    "donnees": "Révisions non suivies.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -739,7 +797,7 @@
   },
   {
    "id": "C013",
-   "titre": "Décisions et communications banques centrales",
+   "titre": "Décisions et communications des banques centrales",
    "domaine": "Macroéconomie et inter-marchés",
    "premiere_preuve_exigee": "publication antérieure et référence comparée sans fuite",
    "priorite": "normale",
@@ -772,6 +830,9 @@
    "donnees": "Flux de communiqués de la Fed ; fenêtre de pause macro ; effet non mesuré.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -826,6 +887,9 @@
    "donnees": "Cours des fonds IEF et TLT (Yahoo) ; pas de série de rendements ni de signal.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -867,13 +931,17 @@
     }
    ],
    "tests": [
-    "tests/test_realtime.py"
+    "tests/test_realtime.py",
+    "tests/test_cockpit_routes.py"
    ],
    "dependances": [],
    "hypothese": "Un dollar en hausse (DXY) précède une faiblesse des cryptos.",
    "donnees": "DXY affiché (Yahoo), non utilisé ni mesuré.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "non constatée",
@@ -891,13 +959,15 @@
       "executee": false
      }
     ],
-    "tests_en_echec": [],
+    "tests_en_echec": [
+     "tests/test_cockpit_routes.py"
+    ],
     "a_confirmer": true
    }
   },
   {
    "id": "C016",
-   "titre": "Indicateurs de stress actions (VIX)",
+   "titre": "Indicateurs de stress actions, dont VIX",
    "domaine": "Macroéconomie et inter-marchés",
    "premiere_preuve_exigee": "publication antérieure et référence comparée sans fuite",
    "priorite": "normale",
@@ -915,13 +985,17 @@
     }
    ],
    "tests": [
-    "tests/test_realtime.py"
+    "tests/test_realtime.py",
+    "tests/test_cockpit_routes.py"
    ],
    "dependances": [],
    "hypothese": "Un VIX élevé ou en hausse précède des baisses des cryptos.",
    "donnees": "VIX affiché (Yahoo), non utilisé ni mesuré.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "non constatée",
@@ -939,7 +1013,9 @@
       "executee": false
      }
     ],
-    "tests_en_echec": [],
+    "tests_en_echec": [
+     "tests/test_cockpit_routes.py"
+    ],
     "a_confirmer": true
    }
   },
@@ -960,6 +1036,9 @@
    "donnees": "Aucune donnée sectorielle intégrée.",
    "verdict": "non évaluable",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "sans preuve",
@@ -982,6 +1061,9 @@
    "donnees": "Aucune source intégrée ; sources publiques à vérifier (licence, horodatage).",
    "verdict": "non évaluable",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "sans preuve",
@@ -1004,6 +1086,9 @@
    "donnees": "Aucune source publique horodatée et à licence claire identifiée.",
    "verdict": "non évaluable",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "sans preuve",
@@ -1043,16 +1128,20 @@
    ],
    "tests": [
     "tests/test_realtime.py",
-    "tests/test_risk_agent_backtest.py"
+    "tests/test_risk_agent_backtest.py",
+    "tests/test_new_features.py"
    ],
    "dependances": [],
    "hypothese": "Une pause autour des annonces majeures évite des pertes sans coût en rendement.",
    "donnees": "Calendrier public ; effet non mesuré.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/risk/macro.py",
@@ -1064,7 +1153,7 @@
       "fichier": "sentinelle/risk/macro.py",
       "symbole": "upcoming",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      },
      {
       "fichier": "sentinelle/market/context.py",
@@ -1080,7 +1169,7 @@
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -1089,56 +1178,46 @@
    "domaine": "Régimes de marché",
    "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
    "priorite": "HAUTE",
-   "statut": "PARTIELLE",
+   "statut": "EXISTANTE_ET_TESTÉE",
    "preuves": [
     {
-     "fichier": "sentinelle/scalp/core.py",
-     "symbole": "signals",
-     "lignes": "62-79"
+     "fichier": "sentinelle/scalp/regimes.py",
+     "symbole": "efficiency_ratio",
+     "lignes": "37-40"
     },
     {
-     "fichier": "sentinelle/scalp/signaux.py",
-     "symbole": "families",
-     "lignes": "130-164"
-    },
-    {
-     "fichier": "sentinelle/dmh/memecoin_simulator.py",
-     "symbole": "market_regime",
-     "lignes": "255-266"
+     "fichier": "sentinelle/scalp/regimes.py",
+     "symbole": "regimes",
+     "lignes": "68-76"
     }
    ],
    "tests": [
-    "tests/test_scalp_core.py",
-    "tests/test_scalp_signaux.py",
-    "tests/test_memecoin_regime.py"
+    "tests/test_scalp_regimes.py"
    ],
    "dependances": [
     "C023",
     "C024"
    ],
-   "hypothese": "Un classement tendance/range décidé hors échantillon améliore le rapport rendement/baisse en s'abstenant en range.",
-   "donnees": "Bougies journalières vérifiées ; les filtres de tendance testés (F2, F3, F10) n'ont pas d'avantage démontré.",
-   "verdict": "avantage historique non démontré",
-   "note": "pas de classificateur tendance/range explicite",
+   "hypothese": "Un classement tendance/range décidé sans regard en avant permet de s'abstenir en range.",
+   "donnees": "Efficacité de Kaufman du BTC sur 30 jours, seuil 0,3 fixé a priori.",
+   "verdict": "utilité technique",
+   "note": "research/scalp-v1/regimes-abstention-v1.json",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
+   "lot": "2 — actualités, régimes et abstention",
+   "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
     "symboles": [
      {
-      "fichier": "sentinelle/scalp/core.py",
-      "symbole": "signals",
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "efficiency_ratio",
       "nature": "fonction",
       "executee": true
      },
      {
-      "fichier": "sentinelle/scalp/signaux.py",
-      "symbole": "families",
-      "nature": "fonction",
-      "executee": true
-     },
-     {
-      "fichier": "sentinelle/dmh/memecoin_simulator.py",
-      "symbole": "market_regime",
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "regimes",
       "nature": "fonction",
       "executee": true
      }
@@ -1153,20 +1232,38 @@
    "domaine": "Régimes de marché",
    "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
    "priorite": "normale",
-   "statut": "ABSENTE",
-   "preuves": [],
-   "tests": [],
+   "statut": "EXPÉRIMENT_REJETÉ",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/techniques.py",
+     "symbole": "breadth",
+     "lignes": "67-71"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_techniques.py"
+   ],
    "dependances": [
     "C091"
    ],
-   "hypothese": "La part des altcoins en tendance (breadth) prédit le rendement de l'univers.",
-   "donnees": "Calculable sur l'univers à la date existant.",
-   "verdict": "à mesurer",
-   "note": "",
+   "hypothese": "La part des altcoins en tendance (breadth) améliore le momentum simple.",
+   "donnees": "Part des membres de l'univers à rendement 28 jours positif.",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/techniques-v2.json : −0,09 %/sem en filtre de B0, Holm 1",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "sans preuve",
-    "symboles": [],
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "breadth",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
     "tests_en_echec": [],
     "a_confirmer": false
    }
@@ -1177,29 +1274,32 @@
    "domaine": "Régimes de marché",
    "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
    "priorite": "normale",
-   "statut": "ABSENTE",
+   "statut": "EXPÉRIMENT_REJETÉ",
    "preuves": [
     {
-     "fichier": "sentinelle/ai/indicators.py",
-     "symbole": "atr",
-     "lignes": "41-43"
+     "fichier": "sentinelle/scalp/techniques.py",
+     "symbole": "adx",
+     "lignes": "48-57"
     }
    ],
    "tests": [
-    "tests/test_ai_core.py"
+    "tests/test_scalp_techniques.py"
    ],
    "dependances": [],
    "hypothese": "Un ADX élevé distingue les tendances exploitables.",
-   "donnees": "ADX non implémenté (ATR, RSI, MACD, EMA existent).",
-   "verdict": "à mesurer",
-   "note": "",
+   "donnees": "ADX de Wilder sur 14 jours ≥ 25.",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/techniques-v2.json : −0,31 %/sem en filtre de B0 ; baisse réduite par moindre exposition",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
     "symboles": [
      {
-      "fichier": "sentinelle/ai/indicators.py",
-      "symbole": "atr",
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "adx",
       "nature": "fonction",
       "executee": true
      }
@@ -1214,17 +1314,17 @@
    "domaine": "Régimes de marché",
    "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
    "priorite": "HAUTE",
-   "statut": "PARTIELLE",
+   "statut": "EXISTANTE_ET_TESTÉE",
    "preuves": [
     {
-     "fichier": "sentinelle/scalp/signaux.py",
-     "symbole": "families",
-     "lignes": "130-164"
+     "fichier": "sentinelle/scalp/regimes.py",
+     "symbole": "expanding_tercile",
+     "lignes": "43-56"
     },
     {
-     "fichier": "sentinelle/scalp/core.py",
-     "symbole": "run",
-     "lignes": "88-144"
+     "fichier": "sentinelle/scalp/regimes.py",
+     "symbole": "regimes",
+     "lignes": "68-76"
     },
     {
      "fichier": "sentinelle/risk/shield.py",
@@ -1233,28 +1333,30 @@
     }
    ],
    "tests": [
-    "tests/test_scalp_signaux.py",
-    "tests/test_scalp_core.py",
+    "tests/test_scalp_regimes.py",
     "tests/test_realtime.py"
    ],
    "dependances": [],
-   "hypothese": "Les régimes de volatilité changent le rendement par unité de risque ; s'adapter au régime réduit les baisses.",
-   "donnees": "F9 (volatilité calme) sans avantage ; ciblage de volatilité mesuré (baisse divisée par plus de 2).",
+   "hypothese": "S'abstenir dans le tercile de volatilité haut (connu à la date) réduit les baisses mieux qu'un calendrier quelconque.",
+   "donnees": "Terciles de la volatilité réalisée du BTC sur 20 jours, fenêtre croissante.",
    "verdict": "avantage historique non démontré",
-   "note": "",
+   "note": "research/scalp-v1/regimes-abstention-v1.json : A3 ne fait pas mieux que son témoin décalé",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
+   "lot": "2 — actualités, régimes et abstention",
+   "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
     "symboles": [
      {
-      "fichier": "sentinelle/scalp/signaux.py",
-      "symbole": "families",
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "expanding_tercile",
       "nature": "fonction",
       "executee": true
      },
      {
-      "fichier": "sentinelle/scalp/core.py",
-      "symbole": "run",
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "regimes",
       "nature": "fonction",
       "executee": true
      },
@@ -1275,21 +1377,50 @@
    "domaine": "Régimes de marché",
    "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
    "priorite": "normale",
-   "statut": "ABSENTE",
-   "preuves": [],
-   "tests": [],
+   "statut": "EXPÉRIMENT_REJETÉ",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/techniques.py",
+     "symbole": "regime_break",
+     "lignes": "74-78"
+    },
+    {
+     "fichier": "sentinelle/scalp/techniques.py",
+     "symbole": "recent",
+     "lignes": "81-83"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_techniques.py"
+   ],
    "dependances": [
     "C021",
     "C024"
    ],
    "hypothese": "Une rupture de régime détectée tôt réduit la perte du début de baisse.",
-   "donnees": "Aucun détecteur.",
-   "verdict": "à mesurer",
-   "note": "",
+   "donnees": "Moyennes de rendements du BTC sur 20 et 120 jours, seuil de 2 erreurs types.",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/techniques-v2.json : −0,44 %/sem [−0,81 ; −0,13], baisse 60 → 69 %",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "sans preuve",
-    "symboles": [],
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "regime_break",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "recent",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
     "tests_en_echec": [],
     "a_confirmer": false
    }
@@ -1300,41 +1431,44 @@
    "domaine": "Régimes de marché",
    "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
    "priorite": "HAUTE",
-   "statut": "PARTIELLE",
+   "statut": "EXISTANTE_ET_TESTÉE",
    "preuves": [
+    {
+     "fichier": "sentinelle/scalp/regimes.py",
+     "symbole": "btc_correlation",
+     "lignes": "59-65"
+    },
     {
      "fichier": "sentinelle/ai/knowledge.py",
      "symbole": "compute_profile",
      "lignes": "86-200"
-    },
-    {
-     "fichier": "sentinelle/scalp/features.py",
-     "symbole": "compute",
-     "lignes": "42-84"
     }
    ],
    "tests": [
-    "tests/test_learning.py",
-    "tests/test_scalp_watchers.py"
+    "tests/test_scalp_regimes.py",
+    "tests/test_learning.py"
    ],
    "dependances": [],
-   "hypothese": "Une corrélation BTC/altcoins qui monte annonce un risque commun ; plafonner l'exposition réduit les baisses.",
-   "donnees": "Lien avec le BTC sur tout l'historique (fiche) et contexte BTC court terme ; aucune corrélation glissante.",
-   "verdict": "à mesurer",
-   "note": "",
+   "hypothese": "Une corrélation BTC/altcoins haute avec un BTC en baisse annonce un risque commun.",
+   "donnees": "Corrélation moyenne sur 30 jours des membres avec le BTC, terciles connus à la date.",
+   "verdict": "avantage historique non démontré",
+   "note": "research/scalp-v1/regimes-abstention-v1.json : A4 sans effet sur B0 ni B1",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
+   "lot": "2 — actualités, régimes et abstention",
+   "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
     "symboles": [
      {
-      "fichier": "sentinelle/ai/knowledge.py",
-      "symbole": "compute_profile",
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "btc_correlation",
       "nature": "fonction",
       "executee": true
      },
      {
-      "fichier": "sentinelle/scalp/features.py",
-      "symbole": "compute",
+      "fichier": "sentinelle/ai/knowledge.py",
+      "symbole": "compute_profile",
       "nature": "fonction",
       "executee": true
      }
@@ -1345,7 +1479,7 @@
   },
   {
    "id": "C027",
-   "titre": "Funding rate en observation",
+   "titre": "Funding rate en observation uniquement",
    "domaine": "Régimes de marché",
    "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
    "priorite": "normale",
@@ -1363,16 +1497,20 @@
     }
    ],
    "tests": [
-    "tests/test_realtime.py"
+    "tests/test_realtime.py",
+    "tests/test_cockpit_routes.py"
    ],
    "dependances": [],
    "hypothese": "Un taux de financement extrême précède des retournements.",
    "donnees": "OKX public, observation seulement.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "non constatée",
+    "niveau": "partielle",
     "symboles": [
      {
       "fichier": "sentinelle/market/context.py",
@@ -1384,10 +1522,12 @@
       "fichier": "sentinelle/market/context.py",
       "symbole": "funding_comment",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
-    "tests_en_echec": [],
+    "tests_en_echec": [
+     "tests/test_cockpit_routes.py"
+    ],
     "a_confirmer": true
    }
   },
@@ -1418,6 +1558,9 @@
    "donnees": "Liquidations suivies ; open interest absent.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -1462,6 +1605,9 @@
    "donnees": "Heure dans les caractéristiques ; aucune étude calendaire.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -1483,73 +1629,75 @@
    "domaine": "Régimes de marché",
    "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
    "priorite": "HAUTE",
-   "statut": "PARTIELLE",
+   "statut": "EXISTANTE_ET_TESTÉE",
    "preuves": [
     {
-     "fichier": "sentinelle/scalp/core.py",
-     "symbole": "signals",
-     "lignes": "62-79"
+     "fichier": "sentinelle/scalp/regimes.py",
+     "symbole": "rules",
+     "lignes": "79-85"
     },
     {
-     "fichier": "sentinelle/scalp/brain.py",
-     "symbole": "PrincipalAI",
-     "lignes": "33-87"
+     "fichier": "sentinelle/scalp/regimes.py",
+     "symbole": "abstain",
+     "lignes": "93-95"
+    },
+    {
+     "fichier": "sentinelle/scalp/regimes.py",
+     "symbole": "shifted",
+     "lignes": "88-90"
     },
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "abstention",
-     "lignes": "359-368"
-    },
-    {
-     "fichier": "sentinelle/scalp/signaux.py",
-     "symbole": "timing_edge",
-     "lignes": "235-254"
+     "lignes": "373-382"
     }
    ],
    "tests": [
-    "tests/test_scalp_core.py",
-    "tests/test_scalp_signaux.py",
-    "tests/test_scalp_lab.py"
+    "tests/test_scalp_regimes.py",
+    "tests/test_scalp_signaux.py"
    ],
    "dependances": [
     "C021",
     "C024"
    ],
-   "hypothese": "S'abstenir dans un régime défavorable défini d'avance améliore le rapport rendement/baisse hors échantillon.",
-   "donnees": "Filtre BTC, marge d'abstention de l'IA et motifs d'abstention publiés ; diagnostic temporel de F7 non significatif.",
+   "hypothese": "S'abstenir dans un régime défavorable défini d'avance améliore le rapport rendement/baisse mieux qu'un calendrier quelconque.",
+   "donnees": "4 règles fixées a priori, témoin décalé d'un an.",
    "verdict": "avantage historique non démontré",
-   "note": "",
+   "note": "research/scalp-v1/regimes-abstention-v1.json : A1 (BTC en range) remplit le critère préenregistré (baisse de B0 60 → 23 %, −0,05 %/sem géométrique, non significatif, mieux que son témoin) ; historique déjà consulté et filtre proche de v10 : candidat soumis à validation humaine et prospective",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
+   "lot": "2 — actualités, régimes et abstention",
+   "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
-      "fichier": "sentinelle/scalp/core.py",
-      "symbole": "signals",
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "rules",
       "nature": "fonction",
       "executee": true
      },
      {
-      "fichier": "sentinelle/scalp/brain.py",
-      "symbole": "PrincipalAI",
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "abstain",
       "nature": "fonction",
-      "executee": false
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "shifted",
+      "nature": "fonction",
+      "executee": true
      },
      {
       "fichier": "sentinelle/scalp/signaux.py",
       "symbole": "abstention",
       "nature": "fonction",
       "executee": true
-     },
-     {
-      "fichier": "sentinelle/scalp/signaux.py",
-      "symbole": "timing_edge",
-      "nature": "fonction",
-      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -1558,18 +1706,36 @@
    "domaine": "Analyse technique",
    "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
    "priorite": "normale",
-   "statut": "ABSENTE",
-   "preuves": [],
-   "tests": [],
+   "statut": "EXPÉRIMENT_REJETÉ",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/techniques.py",
+     "symbole": "confirmed_pivot_high",
+     "lignes": "86-90"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_techniques.py"
+   ],
    "dependances": [],
-   "hypothese": "Des pivots confirmés après coup seulement (sans regard en avant) aident à placer les stops.",
-   "donnees": "Non implémenté.",
-   "verdict": "à mesurer",
-   "note": "",
+   "hypothese": "Une clôture au-dessus du dernier sommet confirmé améliore le momentum simple.",
+   "donnees": "Sommet de 7 jours confirmé 3 jours après.",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/techniques-v2.json : −0,32 %/sem ; baisse réduite par moindre exposition (16 % des jours)",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "sans preuve",
-    "symboles": [],
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "confirmed_pivot_high",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
     "tests_en_echec": [],
     "a_confirmer": false
    }
@@ -1585,7 +1751,7 @@
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "_trendline",
-     "lignes": "102-112"
+     "lignes": "116-126"
     }
    ],
    "tests": [
@@ -1596,6 +1762,9 @@
    "donnees": "signaux-v1 : écart +0,071 %/j, IC [−0,058 ; +0,206], non significatif.",
    "verdict": "rejet",
    "note": "research/scalp-v1/signaux-v1.json (F3)",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -1622,7 +1791,7 @@
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "families",
-     "lignes": "130-164"
+     "lignes": "144-178"
     }
    ],
    "tests": [
@@ -1635,6 +1804,9 @@
    "donnees": "signaux-v1 : F4 (résistance 20 j) et F5 (support EMA 20) sans avantage.",
    "verdict": "rejet",
    "note": "zones par regroupement de pivots non testées ; research/scalp-v1/signaux-v1.json (F4, F5)",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -1656,20 +1828,38 @@
    "domaine": "Analyse technique",
    "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
    "priorite": "normale",
-   "statut": "ABSENTE",
-   "preuves": [],
-   "tests": [],
+   "statut": "EXPÉRIMENT_REJETÉ",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/techniques.py",
+     "symbole": "retest",
+     "lignes": "93-101"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_techniques.py"
+   ],
    "dependances": [
     "C033"
    ],
-   "hypothese": "Entrer au retest d'une cassure plutôt qu'à la cassure améliore le rapport gain/perte.",
-   "donnees": "Non implémenté.",
-   "verdict": "à mesurer",
-   "note": "",
+   "hypothese": "Entrer après le retest d'une cassure améliore le momentum simple.",
+   "donnees": "Retest à 1 % dans les 5 jours, signal 10 jours.",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/techniques-v2.json : −0,42 %/sem",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "sans preuve",
-    "symboles": [],
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "retest",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
     "tests_en_echec": [],
     "a_confirmer": false
    }
@@ -1685,12 +1875,12 @@
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "_breakout_state",
-     "lignes": "115-127"
+     "lignes": "129-141"
     },
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "families",
-     "lignes": "130-164"
+     "lignes": "144-178"
     }
    ],
    "tests": [
@@ -1703,6 +1893,9 @@
    "donnees": "signaux-v1 : F11, écart +0,038 %/j, IC [−0,060 ; +0,140].",
    "verdict": "rejet",
    "note": "research/scalp-v1/signaux-v1.json (F11)",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -1747,6 +1940,9 @@
    "donnees": "Position et hauteur du range dans les caractéristiques courtes ; aucune étude.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -1778,7 +1974,7 @@
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "families",
-     "lignes": "130-164"
+     "lignes": "144-178"
     }
    ],
    "tests": [
@@ -1790,6 +1986,9 @@
    "donnees": "signaux-v1 : F9 sans avantage ; veilleur « squeeze » du court terme, perdant après frais.",
    "verdict": "rejet",
    "note": "research/scalp-v1/signaux-v1.json (F9)",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -1817,28 +2016,42 @@
    "domaine": "Analyse technique",
    "premiere_preuve_exigee": "indicateur causal et comparaison avec momentum simple",
    "priorite": "normale",
-   "statut": "ABSENTE",
+   "statut": "EXPÉRIMENT_REJETÉ",
    "preuves": [
     {
-     "fichier": "sentinelle/ai/indicators.py",
+     "fichier": "sentinelle/scalp/techniques.py",
+     "symbole": "bearish_divergence",
+     "lignes": "104-107"
+    },
+    {
+     "fichier": "sentinelle/scalp/techniques.py",
      "symbole": "rsi",
-     "lignes": "21-31"
+     "lignes": "60-64"
     }
    ],
    "tests": [
-    "tests/test_ai_core.py"
+    "tests/test_scalp_techniques.py"
    ],
    "dependances": [],
-   "hypothese": "Une divergence RSI/prix annonce un retournement.",
-   "donnees": "RSI disponible ; divergences non implémentées.",
-   "verdict": "à mesurer",
-   "note": "",
+   "hypothese": "Écarter les divergences RSI baissières améliore le momentum simple.",
+   "donnees": "RSI(14) de Wilder, fenêtre de 20 jours.",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/techniques-v2.json : −0,26 %/sem [−0,46 ; −0,07]",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
     "symboles": [
      {
-      "fichier": "sentinelle/ai/indicators.py",
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "bearish_divergence",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
       "symbole": "rsi",
       "nature": "fonction",
       "executee": true
@@ -1870,6 +2083,9 @@
    "donnees": "Veilleur « capitulation » du court terme, rejeté avec l'ensemble du court terme après frais.",
    "verdict": "avantage historique non démontré",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -1896,7 +2112,7 @@
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "families",
-     "lignes": "130-164"
+     "lignes": "144-178"
     }
    ],
    "tests": [
@@ -1907,6 +2123,9 @@
    "donnees": "signaux-v1 : F10, écart +0,023 %/j, IC [−0,057 ; +0,106].",
    "verdict": "rejet",
    "note": "research/scalp-v1/signaux-v1.json (F10)",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -1943,22 +2162,26 @@
    ],
    "tests": [
     "tests/test_costs_measure.py",
-    "tests/test_dmh_components.py"
+    "tests/test_dmh_components.py",
+    "tests/test_costs_engine.py"
    ],
    "dependances": [],
    "hypothese": "Le coût d'aller-retour mesuré dépasse l'hypothèse fixe des backtests pour certains marchés.",
    "donnees": "Carnets publics datés ; instantané du 23 novembre 2026 publié.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/costs/book.py",
       "symbole": "measure",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      },
      {
       "fichier": "sentinelle/dmh/observe.py",
@@ -1968,7 +2191,7 @@
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -1995,6 +2218,9 @@
    "donnees": "Carnets disponibles en direct ; aucun historique de carnet archivé.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -2021,7 +2247,7 @@
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "families",
-     "lignes": "130-164"
+     "lignes": "144-178"
     },
     {
      "fichier": "sentinelle/scalp/features.py",
@@ -2031,16 +2257,20 @@
    ],
    "tests": [
     "tests/test_scalp_signaux.py",
-    "tests/test_scalp_lab.py"
+    "tests/test_scalp_lab.py",
+    "tests/test_scalp_watchers.py"
    ],
    "dependances": [],
    "hypothese": "La part des achats au marché prédit le rendement suivant.",
    "donnees": "signaux-v1 F6 : p brute 0,0125, Holm 0,137 (#147) : non significatif après correction.",
    "verdict": "avantage historique non démontré",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
+   "lot": "3 — microstructure, maîtrise des pertes et risques",
+   "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/scalp/signaux.py",
@@ -2052,11 +2282,11 @@
       "fichier": "sentinelle/scalp/features.py",
       "symbole": "compute",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -2065,20 +2295,38 @@
    "domaine": "Microstructure et volumes",
    "premiere_preuve_exigee": "niveau de carnet, tailles et coûts réellement accessibles",
    "priorite": "normale",
-   "statut": "ABSENTE",
-   "preuves": [],
-   "tests": [],
+   "statut": "EXPÉRIMENT_REJETÉ",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/signaux.py",
+     "symbole": "families",
+     "lignes": "144-178"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_signaux.py"
+   ],
    "dependances": [
     "C043"
    ],
    "hypothese": "Le delta de volume cumulé ajoute à la pression acheteuse.",
-   "donnees": "Calculable sur les bougies (achats au marché).",
-   "verdict": "à mesurer",
-   "note": "",
+   "donnees": "Couvert par F6 (part des achats au marché sur 7 jours) : non redéveloppé.",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/signaux-v1.json et research/scalp-v1/ablation-v1.json : F6 non significative après correction, nuisible en filtre de B0",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "sans preuve",
-    "symboles": [],
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
     "tests_en_echec": [],
     "a_confirmer": false
    }
@@ -2099,6 +2347,9 @@
    "donnees": "Exige un flux de carnet en continu, non archivé.",
    "verdict": "non évaluable",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "sans preuve",
@@ -2134,7 +2385,8 @@
    "tests": [
     "tests/test_liquidity_simulation.py",
     "tests/test_costs_measure.py",
-    "tests/test_dmh_components.py"
+    "tests/test_dmh_components.py",
+    "tests/test_costs_engine.py"
    ],
    "dependances": [
     "C041"
@@ -2143,9 +2395,12 @@
    "donnees": "Carnets publics datés (sondes).",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
+   "lot": "3 — microstructure, maîtrise des pertes et risques",
+   "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/execution/liquidity.py",
@@ -2157,7 +2412,7 @@
       "fichier": "sentinelle/costs/book.py",
       "symbole": "measure",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      },
      {
       "fichier": "sentinelle/dmh/router.py",
@@ -2167,7 +2422,7 @@
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -2195,6 +2450,9 @@
    "donnees": "États de stress mesurés ; pas de modèle de glissement en fonction de la volatilité dans les backtests.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "non constatée",
@@ -2246,6 +2504,9 @@
    "donnees": "Devis Jupiter sans portefeuille ; carnets publics.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
+   "lot": "3 — microstructure, maîtrise des pertes et risques",
+   "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -2275,7 +2536,7 @@
   },
   {
    "id": "C049",
-   "titre": "Anomalies compatibles avec wash trading",
+   "titre": "Anomalies compatibles avec le wash trading",
    "domaine": "Microstructure et volumes",
    "premiere_preuve_exigee": "niveau de carnet, tailles et coûts réellement accessibles",
    "priorite": "normale",
@@ -2287,6 +2548,9 @@
    "donnees": "Non implémenté.",
    "verdict": "à mesurer",
    "note": "concerne directement l'univers à la date (C091)",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "sans preuve",
@@ -2323,6 +2587,9 @@
    "donnees": "Deuxième plateforme publique.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -2372,6 +2639,9 @@
    "donnees": "Instantané à la détection ; aucun historique.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -2426,6 +2696,9 @@
    "donnees": "Rugcheck, instantané ; aucun historique.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -2481,6 +2754,9 @@
    "donnees": "Verrous connus exclus du calcul ; aucune surveillance dans le temps.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -2530,6 +2806,9 @@
    "donnees": "Jupiter public.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -2557,7 +2836,7 @@
    "domaine": "On-chain et Memecoins",
    "premiere_preuve_exigee": "token et pool identifiés, veto inchangé et revente vérifiée",
    "priorite": "normale",
-   "statut": "EXISTANTE_ET_TESTÉE",
+   "statut": "PARTIELLE",
    "preuves": [
     {
      "fichier": "sentinelle/dmh/tokenrisk.py",
@@ -2582,7 +2861,10 @@
    "hypothese": "Les restrictions et frais de transfert signalent un piège.",
    "donnees": "GoPlus, Rugcheck ; Token-2022 refusé sauf métadonnées.",
    "verdict": "utilité technique",
-   "note": "",
+   "note": "chemin EVM (_goplus_evm) exécuté par aucun test de la suite (rejeu sous traceur)",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "partielle",
@@ -2640,6 +2922,9 @@
    "donnees": "Stratégie whale_tail en simulation memecoin.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -2690,6 +2975,9 @@
    "donnees": "Revente revérifiée ; aucun détecteur dédié aux retraits.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -2725,6 +3013,9 @@
    "donnees": "Non implémenté.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "sans preuve",
@@ -2762,6 +3053,9 @@
    "donnees": "Allers-retours WSOL clos, échantillons finalisés bornés.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -2811,6 +3105,9 @@
    "donnees": "Comparaison à une référence ; pas de suivi multi-pools.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -2838,52 +3135,55 @@
    "domaine": "Exécution et sorties fictives",
    "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
    "priorite": "HAUTE",
-   "statut": "PARTIELLE",
+   "statut": "EXISTANTE_ET_TESTÉE",
    "preuves": [
+    {
+     "fichier": "sentinelle/scalp/frais.py",
+     "symbole": "fee_table",
+     "lignes": "48-67"
+    },
+    {
+     "fichier": "sentinelle/scalp/frais.py",
+     "symbole": "replay",
+     "lignes": "70-80"
+    },
     {
      "fichier": "sentinelle/costs/venues.py",
      "symbole": "binance_spot_vip0",
      "lignes": "39-59"
-    },
-    {
-     "fichier": "sentinelle/costs/venues.py",
-     "symbole": "FeeSchedule",
-     "lignes": "23-36"
-    },
-    {
-     "fichier": "sentinelle/costs/evidence.py",
-     "symbole": "Value",
-     "lignes": "18-68"
     }
    ],
    "tests": [
-    "tests/test_costs_engine.py",
-    "tests/test_costs_protocol.py"
+    "tests/test_scalp_frais.py",
+    "tests/test_costs_engine.py"
    ],
    "dependances": [],
    "hypothese": "Des frais datés par instrument changent le classement des stratégies par rapport à un frais constant.",
-   "donnees": "Grille VIP 0 datée et sourcée ; les backtests du moteur court terme utilisent des frais constants (0,075 %).",
-   "verdict": "à mesurer",
-   "note": "",
+   "donnees": "Barème officiel binance.com : remise BNB 50 % puis 25 %, BTC/USDT sans frais 2022-2023 ; 2019-2021 non attesté.",
+   "verdict": "utilité technique",
+   "note": "research/scalp-v1/frais-dates-v1.json : écart < 0,001 %/sem ; sans BNB −0,013 %/sem sur B0 ; classement inchangé",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
+   "lot": "1 — fiabilité des mesures",
+   "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
     "symboles": [
      {
+      "fichier": "sentinelle/scalp/frais.py",
+      "symbole": "fee_table",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/frais.py",
+      "symbole": "replay",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
       "fichier": "sentinelle/costs/venues.py",
       "symbole": "binance_spot_vip0",
-      "nature": "fonction",
-      "executee": true
-     },
-     {
-      "fichier": "sentinelle/costs/venues.py",
-      "symbole": "FeeSchedule",
-      "nature": "fonction",
-      "executee": true
-     },
-     {
-      "fichier": "sentinelle/costs/evidence.py",
-      "symbole": "Value",
       "nature": "fonction",
       "executee": true
      }
@@ -2894,16 +3194,21 @@
   },
   {
    "id": "C062",
-   "titre": "Minimum de notional/lot/tick",
+   "titre": "Minimum de notional, lot et tick",
    "domaine": "Exécution et sorties fictives",
    "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
    "priorite": "HAUTE",
-   "statut": "PARTIELLE",
+   "statut": "EXISTANTE_ET_TESTÉE",
    "preuves": [
     {
-     "fichier": "sentinelle/costs/venues.py",
-     "symbole": "MarketFilters",
-     "lignes": "63-80"
+     "fichier": "sentinelle/scalp/faisabilite.py",
+     "symbole": "check_entry",
+     "lignes": "50-59"
+    },
+    {
+     "fichier": "sentinelle/scalp/faisabilite.py",
+     "symbole": "study",
+     "lignes": "62-77"
     },
     {
      "fichier": "sentinelle/costs/venues.py",
@@ -2922,23 +3227,33 @@
     }
    ],
    "tests": [
+    "tests/test_scalp_faisabilite.py",
     "tests/test_costs_engine.py",
-    "tests/test_principal_eur30.py"
+    "tests/test_execution_contract.py"
    ],
    "dependances": [],
    "hypothese": "Les minima de montant, de lot et de pas rendent certaines positions impossibles avec un petit capital.",
-   "donnees": "Règles de marché lues sur la plateforme ; les simulations du moteur court terme ne les appliquent pas.",
-   "verdict": "à mesurer",
-   "note": "",
+   "donnees": "Règles de marché publiques du jour appliquées à l'historique.",
+   "verdict": "utilité technique",
+   "note": "research/scalp-v1/faisabilite-petit-capital-v1.json : à 30 €, 4 % des entrées de B1 et 73 % de celles de B0 faisables",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
+   "lot": "1 — fiabilité des mesures",
+   "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
-      "fichier": "sentinelle/costs/venues.py",
-      "symbole": "MarketFilters",
+      "fichier": "sentinelle/scalp/faisabilite.py",
+      "symbole": "check_entry",
       "nature": "fonction",
-      "executee": false
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/faisabilite.py",
+      "symbole": "study",
+      "nature": "fonction",
+      "executee": true
      },
      {
       "fichier": "sentinelle/costs/venues.py",
@@ -2956,11 +3271,11 @@
       "fichier": "sentinelle/risk/manager.py",
       "symbole": "RiskManager._minimum_qty",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -2993,6 +3308,9 @@
    "donnees": "Ruban de transactions public.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -3016,7 +3334,7 @@
   },
   {
    "id": "C064",
-   "titre": "Modèles de latence et exécution",
+   "titre": "Modèles de latence et d'exécution",
    "domaine": "Exécution et sorties fictives",
    "premiere_preuve_exigee": "règles d'exécution identiques au simulateur causal",
    "priorite": "normale",
@@ -3042,6 +3360,9 @@
    "donnees": "Ruban public, latence simulée.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -3095,28 +3416,33 @@
    "tests": [
     "tests/test_memecoin_simulator.py",
     "tests/test_execution_contract.py",
-    "tests/test_scalp_signaux.py"
+    "tests/test_scalp_signaux.py",
+    "tests/test_memecoin_engine.py",
+    "tests/test_scalp_core.py"
    ],
    "dependances": [],
    "hypothese": "Une décision ne s'exécute jamais sur la cotation qui l'a déclenchée.",
    "donnees": "Cotations datées ; ouverture suivante dans les backtests.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/dmh/memecoin_simulator.py",
       "symbole": "_causal",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      },
      {
       "fichier": "sentinelle/dmh/memecoin_simulator.py",
       "symbole": "execution_check",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      },
      {
       "fichier": "sentinelle/execution/contract.py",
@@ -3128,11 +3454,11 @@
       "fichier": "sentinelle/scalp/core.py",
       "symbole": "run",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -3163,6 +3489,9 @@
    "donnees": "Âge de la cotation mesuré.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -3193,58 +3522,61 @@
    "statut": "PARTIELLE",
    "preuves": [
     {
-     "fichier": "sentinelle/execution/contract.py",
-     "symbole": "stop_fill",
-     "lignes": "62-66"
-    },
-    {
      "fichier": "sentinelle/scalp/trade.py",
      "symbole": "manage",
      "lignes": "26-66"
     },
     {
-     "fichier": "sentinelle/scalp/core.py",
-     "symbole": "run",
-     "lignes": "88-144"
+     "fichier": "sentinelle/scalp/risques.py",
+     "symbole": "stop_gaps",
+     "lignes": "94-104"
+    },
+    {
+     "fichier": "sentinelle/execution/contract.py",
+     "symbole": "stop_fill",
+     "lignes": "62-66"
     }
    ],
    "tests": [
-    "tests/test_execution_contract.py",
-    "tests/test_scalp_lab.py",
-    "tests/test_scalp_core.py"
+    "tests/test_scalp_risques.py",
+    "tests/test_scalp_watchers.py",
+    "tests/test_execution_contract.py"
    ],
    "dependances": [
     "C046"
    ],
    "hypothese": "Un stop franchi par un écart s'exécute à l'ouverture ; en krach, la liquidité insuffisante aggrave la perte.",
-   "donnees": "Écarts gérés ; le stop suiveur journalier du moteur est exécuté au prix du stop dans la journée, sans liquidité insuffisante simulée.",
-   "verdict": "à mesurer",
-   "note": "",
+   "donnees": "Stops minute du moteur court terme (7 624) ; volume de la minute de sortie non conservé.",
+   "verdict": "utilité technique",
+   "note": "research/scalp-v1/risques-extremes-v1.json : 7,6 % des stops avec écart, +0,055 R en moyenne ; liquidité insuffisante non mesurée",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
+   "lot": "3 — microstructure, maîtrise des pertes et risques",
+   "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
+     {
+      "fichier": "sentinelle/scalp/trade.py",
+      "symbole": "manage",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/risques.py",
+      "symbole": "stop_gaps",
+      "nature": "fonction",
+      "executee": true
+     },
      {
       "fichier": "sentinelle/execution/contract.py",
       "symbole": "stop_fill",
       "nature": "fonction",
       "executee": true
-     },
-     {
-      "fichier": "sentinelle/scalp/trade.py",
-      "symbole": "manage",
-      "nature": "fonction",
-      "executee": false
-     },
-     {
-      "fichier": "sentinelle/scalp/core.py",
-      "symbole": "run",
-      "nature": "fonction",
-      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -3275,6 +3607,9 @@
    "donnees": "Simulation memecoin calibrée hors ligne.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -3317,22 +3652,26 @@
    ],
    "tests": [
     "tests/test_scalp_lab.py",
-    "tests/test_memecoin_simulator.py"
+    "tests/test_memecoin_simulator.py",
+    "tests/test_scalp_watchers.py"
    ],
    "dependances": [],
    "hypothese": "Une durée maximale limite les positions immobilisées.",
    "donnees": "Règles de sortie.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/scalp/trade.py",
       "symbole": "manage",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      },
      {
       "fichier": "sentinelle/dmh/memecoin_simulator.py",
@@ -3342,7 +3681,7 @@
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -3372,16 +3711,21 @@
    "tests": [
     "tests/test_costs_engine.py",
     "tests/test_scalp_lab.py",
-    "tests/test_ai_core.py"
+    "tests/test_ai_core.py",
+    "tests/test_scalp_desk.py",
+    "tests/test_learning.py"
    ],
    "dependances": [],
    "hypothese": "N'entrer que si l'avantage espéré dépasse les coûts avec une marge améliore l'espérance nette.",
    "donnees": "Coûts mesurés et hypothèses datées.",
    "verdict": "avantage historique non démontré",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/costs/benefit.py",
@@ -3393,17 +3737,17 @@
       "fichier": "sentinelle/scalp/brain.py",
       "symbole": "PrincipalAI",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      },
      {
       "fichier": "sentinelle/ai/model.py",
       "symbole": "MetaModel.expected_r",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -3434,6 +3778,9 @@
    "donnees": "Journal fictif.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -3482,6 +3829,9 @@
    "donnees": "Journal fictif.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -3531,6 +3881,9 @@
    "donnees": "Positions maximales et budgets par stratégie memecoin ; pas de plafond par stratégie dans le moteur court terme.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -3558,20 +3911,49 @@
    "domaine": "Gestion des risques",
    "premiere_preuve_exigee": "invariants des plafonds de risque et scénarios extrêmes",
    "priorite": "HAUTE",
-   "statut": "ABSENTE",
-   "preuves": [],
-   "tests": [],
+   "statut": "EXPÉRIMENT_REJETÉ",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/risques.py",
+     "symbole": "cluster_cap",
+     "lignes": "57-84"
+    },
+    {
+     "fichier": "sentinelle/scalp/risques.py",
+     "symbole": "top_k",
+     "lignes": "87-91"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_risques.py"
+   ],
    "dependances": [
     "C026"
    ],
-   "hypothese": "Plafonner l'exposition aux actifs corrélés (même grappe) réduit les baisses sans réduire le rendement net.",
-   "donnees": "Corrélations calculables sur les bougies ; aucune grappe ni plafond.",
-   "verdict": "à mesurer",
-   "note": "le moteur court terme ne limite qu'à une position par crypto",
+   "hypothese": "Plafonner l'exposition aux actifs corrélés réduit les baisses sans réduire le rendement net.",
+   "donnees": "Au plus 3 positions corrélées à plus de 0,8 sur 60 jours, témoin à nombre de positions égal.",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/risques-extremes-v1.json : baisse de B0 60 → 66 %, pas mieux que son témoin",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
+   "lot": "3 — microstructure, maîtrise des pertes et risques",
+   "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "sans preuve",
-    "symboles": [],
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/risques.py",
+      "symbole": "cluster_cap",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/risques.py",
+      "symbole": "top_k",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
     "tests_en_echec": [],
     "a_confirmer": false
    }
@@ -3609,6 +3991,9 @@
    "donnees": "Kelly plafonné et confiance (memecoin) ; absent du moteur court terme.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -3652,7 +4037,7 @@
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "positions",
-     "lignes": "176-184"
+     "lignes": "190-198"
     }
    ],
    "tests": [
@@ -3664,9 +4049,12 @@
    "donnees": "signaux-v1 : baisse 48 % → 19 % (vote) ; essais multiples #147 : DSR 0,947 seule, 0,975 avec fonds.",
    "verdict": "avantage historique non démontré",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/scalp/core.py",
@@ -3678,11 +4066,11 @@
       "fichier": "sentinelle/scalp/signaux.py",
       "symbole": "positions",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -3713,6 +4101,9 @@
    "donnees": "recherche-v1 : frein présent dans la grille, choisi certaines années.",
    "verdict": "avantage historique non démontré",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -3764,6 +4155,9 @@
    "donnees": "Stress mesurés (coûts) et banc memecoin ; pas de stress de liquidité du moteur court terme.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "partielle",
@@ -3791,50 +4185,64 @@
    "domaine": "Gestion des risques",
    "premiere_preuve_exigee": "invariants des plafonds de risque et scénarios extrêmes",
    "priorite": "HAUTE",
-   "statut": "PARTIELLE",
+   "statut": "EXISTANTE_ET_TESTÉE",
    "preuves": [
+    {
+     "fichier": "sentinelle/scalp/risques.py",
+     "symbole": "worst_windows",
+     "lignes": "38-48"
+    },
+    {
+     "fichier": "sentinelle/scalp/risques.py",
+     "symbole": "window_return",
+     "lignes": "51-54"
+    },
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "stability",
-     "lignes": "257-299"
-    },
-    {
-     "fichier": "sentinelle/dmh/memecoin_calibrator.py",
-     "symbole": "MemecoinCalibrator",
-     "lignes": "851-1015"
+     "lignes": "271-313"
     }
    ],
    "tests": [
-    "tests/test_scalp_signaux.py",
-    "tests/test_paired_crash.py"
+    "tests/test_scalp_risques.py",
+    "tests/test_scalp_signaux.py"
    ],
    "dependances": [
     "C067",
     "C078"
    ],
-   "hypothese": "Les scénarios extrêmes (krach de 2018, 2022, LUNA, FTT) restent sous le plafond de perte.",
-   "donnees": "Rendement en marché baissier publié (BTC à plus de 30 % sous son plus haut) ; pas de scénarios dédiés au moteur court terme.",
-   "verdict": "à mesurer",
-   "note": "",
+   "hypothese": "Les scénarios extrêmes restent sous le plafond de perte.",
+   "donnees": "10 pires semaines du BTC 2018-2026 et choc instantané de −30 % ; invariant sans levier.",
+   "verdict": "utilité technique",
+   "note": "research/scalp-v1/risques-extremes-v1.json : B1 ≥ −4,9 % sur les 10 pires semaines ; choc : B0 −30 %, B1 −10,3 % au pire",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
+   "lot": "3 — microstructure, maîtrise des pertes et risques",
+   "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
+     {
+      "fichier": "sentinelle/scalp/risques.py",
+      "symbole": "worst_windows",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/risques.py",
+      "symbole": "window_return",
+      "nature": "fonction",
+      "executee": true
+     },
      {
       "fichier": "sentinelle/scalp/signaux.py",
       "symbole": "stability",
       "nature": "fonction",
       "executee": true
-     },
-     {
-      "fichier": "sentinelle/dmh/memecoin_calibrator.py",
-      "symbole": "MemecoinCalibrator",
-      "nature": "fonction",
-      "executee": false
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -3865,6 +4273,9 @@
    "donnees": "Réserve par profil memecoin ; le moteur court terme peut être investi à 100 %.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -3913,16 +4324,20 @@
    "tests": [
     "tests/test_ai_core.py",
     "tests/test_scalp_lab.py",
-    "tests/test_validation_leakage.py"
+    "tests/test_validation_leakage.py",
+    "tests/test_scalp_watchers.py"
    ],
    "dependances": [],
    "hypothese": "Étiquettes et caractéristiques n'utilisent que le passé (aucun regard en avant).",
    "donnees": "Bougies vérifiées.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/ai/labeling.py",
@@ -3940,11 +4355,11 @@
       "fichier": "sentinelle/scalp/features.py",
       "symbole": "compute",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -3953,7 +4368,7 @@
    "domaine": "Apprentissage et orchestration",
    "premiere_preuve_exigee": "calibration temporelle, robustesse et absence de promotion automatique",
    "priorite": "HAUTE",
-   "statut": "EXISTANTE_ET_TESTÉE",
+   "statut": "EXPÉRIMENT_REJETÉ",
    "preuves": [
     {
      "fichier": "sentinelle/ai/model.py",
@@ -3961,28 +4376,36 @@
      "lignes": "163-169"
     },
     {
-     "fichier": "sentinelle/ai/model.py",
-     "symbole": "MetaModel.calibrate",
-     "lignes": "171-173"
-    },
-    {
      "fichier": "sentinelle/scalp/brain.py",
      "symbole": "PrincipalAI",
      "lignes": "33-87"
+    },
+    {
+     "fichier": "sentinelle/scalp/calibration.py",
+     "symbole": "brier",
+     "lignes": "48-50"
+    },
+    {
+     "fichier": "sentinelle/scalp/calibration.py",
+     "symbole": "ece",
+     "lignes": "53-66"
     }
    ],
    "tests": [
-    "tests/test_holdout_boundary_audit.py",
-    "tests/test_learning.py",
-    "tests/test_scalp_desk.py"
+    "tests/test_scalp_calibration.py",
+    "tests/test_scalp_desk.py",
+    "tests/test_learning.py"
    ],
    "dependances": [
     "C093"
    ],
-   "hypothese": "Les probabilités calibrées hors échantillon sont fiables (diagramme de fiabilité, Brier).",
-   "donnees": "Calibration de Platt et isotonique ; fiabilité hors échantillon non publiée.",
-   "verdict": "à mesurer",
-   "note": "",
+   "hypothese": "Les probabilités calibrées hors échantillon sont plus fiables que le taux de gain appris.",
+   "donnees": "15 613 alertes jugées mois par mois (2024-01 → 2026-08).",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/calibration-v1.json : compétence −3,3 % [−6,1 ; −0,5] ; recalage isotonique trop confiant aux extrêmes ; correction soumise à préenregistrement et validation humaine",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
+   "lot": "2 — actualités, régimes et abstention",
+   "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -3994,14 +4417,20 @@
       "executee": true
      },
      {
-      "fichier": "sentinelle/ai/model.py",
-      "symbole": "MetaModel.calibrate",
+      "fichier": "sentinelle/scalp/brain.py",
+      "symbole": "PrincipalAI",
       "nature": "fonction",
       "executee": true
      },
      {
-      "fichier": "sentinelle/scalp/brain.py",
-      "symbole": "PrincipalAI",
+      "fichier": "sentinelle/scalp/calibration.py",
+      "symbole": "brier",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/calibration.py",
+      "symbole": "ece",
       "nature": "fonction",
       "executee": true
      }
@@ -4024,22 +4453,25 @@
      "lignes": "33-87"
     },
     {
-     "fichier": "sentinelle/ai/model.py",
-     "symbole": "MetaModel.predict",
-     "lignes": "182-187"
+     "fichier": "sentinelle/scalp/calibration.py",
+     "symbole": "abstention_gain",
+     "lignes": "116-119"
     }
    ],
    "tests": [
-    "tests/test_scalp_desk.py",
-    "tests/test_learning.py"
+    "tests/test_scalp_calibration.py",
+    "tests/test_scalp_desk.py"
    ],
    "dependances": [
     "C082"
    ],
-   "hypothese": "S'abstenir quand l'espérance calibrée ne dépasse pas le coût améliore l'espérance des trades pris.",
-   "donnees": "Marge d'abstention 0,10 R ; l'IA principale fait à peine mieux que le hasard (RESULTATS §10).",
+   "hypothese": "S'abstenir quand les deux modèles de l'IA divergent améliore l'espérance des trades pris.",
+   "donnees": "Désaccord |arbres − linéaire| > 0,20 fixé a priori.",
    "verdict": "avantage historique non démontré",
-   "note": "",
+   "note": "research/scalp-v1/calibration-v1.json : +0,017 R, non significatif",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
+   "lot": "2 — actualités, régimes et abstention",
+   "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -4051,8 +4483,8 @@
       "executee": true
      },
      {
-      "fichier": "sentinelle/ai/model.py",
-      "symbole": "MetaModel.predict",
+      "fichier": "sentinelle/scalp/calibration.py",
+      "symbole": "abstention_gain",
       "nature": "fonction",
       "executee": true
      }
@@ -4067,20 +4499,49 @@
    "domaine": "Apprentissage et orchestration",
    "premiere_preuve_exigee": "calibration temporelle, robustesse et absence de promotion automatique",
    "priorite": "HAUTE",
-   "statut": "ABSENTE",
-   "preuves": [],
-   "tests": [],
+   "statut": "EXISTANTE_ET_TESTÉE",
+   "preuves": [
+    {
+     "fichier": "sentinelle/scalp/calibration.py",
+     "symbole": "psi",
+     "lignes": "69-78"
+    },
+    {
+     "fichier": "sentinelle/scalp/calibration.py",
+     "symbole": "walk_forward",
+     "lignes": "81-102"
+    }
+   ],
+   "tests": [
+    "tests/test_scalp_calibration.py"
+   ],
    "dependances": [
     "C082"
    ],
-   "hypothese": "Une dérive des données détectée tôt évite d'appliquer un modèle hors de son domaine.",
-   "donnees": "Aucun détecteur (la dérive mesurée dans dmh concerne le prix à l'exécution).",
-   "verdict": "à mesurer",
-   "note": "",
+   "hypothese": "Une dérive des données détectée tôt signale les mois où le modèle se dégrade.",
+   "donnees": "PSI par caractéristique (déciles de l'apprentissage).",
+   "verdict": "utilité technique",
+   "note": "research/scalp-v1/calibration-v1.json : dérive dans les 32 mois (variables de régime) ; lien avec la dégradation du Brier non significatif",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
+   "lot": "2 — actualités, régimes et abstention",
+   "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "sans preuve",
-    "symboles": [],
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/calibration.py",
+      "symbole": "psi",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/calibration.py",
+      "symbole": "walk_forward",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
     "tests_en_echec": [],
     "a_confirmer": false
    }
@@ -4102,6 +4563,9 @@
    "donnees": "Non implémenté.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "sans preuve",
@@ -4124,6 +4588,9 @@
    "donnees": "Non implémenté.",
    "verdict": "à mesurer",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "sans preuve",
@@ -4160,6 +4627,9 @@
    "donnees": "Banc d'essai synthétique et historique.",
    "verdict": "avantage historique non démontré",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -4214,6 +4684,9 @@
    "donnees": "IA locale (Ollama), un seul modèle chargé.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -4269,6 +4742,9 @@
    "donnees": "Relevés en direct.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -4323,6 +4799,9 @@
    "donnees": "Prévisions appariées préenregistrées.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -4356,27 +4835,32 @@
    "domaine": "Preuves et exploitation",
    "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
    "priorite": "HAUTE",
-   "statut": "PARTIELLE",
+   "statut": "EXISTANTE_ET_TESTÉE",
    "preuves": [
     {
      "fichier": "sentinelle/scalp/recherche.py",
      "symbole": "point_in_time_members",
-     "lignes": "231-247"
+     "lignes": "353-369"
     },
     {
      "fichier": "sentinelle/scalp/recherche.py",
      "symbole": "cut_at_break",
-     "lignes": "193-202"
+     "lignes": "221-230"
     },
     {
      "fichier": "sentinelle/scalp/recherche.py",
-     "symbole": "published_range",
-     "lignes": "173-190"
+     "symbole": "splice",
+     "lignes": "237-288"
+    },
+    {
+     "fichier": "sentinelle/scalp/recherche.py",
+     "symbole": "link_chain",
+     "lignes": "291-310"
     },
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "members",
-     "lignes": "89-93"
+     "lignes": "103-107"
     }
    ],
    "tests": [
@@ -4385,12 +4869,15 @@
    ],
    "dependances": [],
    "hypothese": "Un univers défini à la date fait disparaître l'avantage des listes choisies après coup.",
-   "donnees": "42 candidates (disparues comprises), LUNA coupée (#145) ; restent : MATIC → POL non relié, liste de candidates dressée en 2026.",
+   "donnees": "42 candidates (disparues comprises), LUNA coupée (#145), 5 liens d'identité officiels vérifiés à la minute (#153) ; liste de candidates dressée en 2026.",
    "verdict": "utilité technique",
-   "note": "#144 : v10 passe de +0,94 % à +0,28 %/semaine",
+   "note": "#144 : v10 passe de +0,94 % à +0,28 %/semaine ; research/scalp-v1/continuite-actifs-v1.json : raccord non significatif",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
+   "lot": "1 — fiabilité des mesures",
+   "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/scalp/recherche.py",
@@ -4406,7 +4893,13 @@
      },
      {
       "fichier": "sentinelle/scalp/recherche.py",
-      "symbole": "published_range",
+      "symbole": "splice",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/recherche.py",
+      "symbole": "link_chain",
       "nature": "fonction",
       "executee": true
      },
@@ -4414,11 +4907,11 @@
       "fichier": "sentinelle/scalp/signaux.py",
       "symbole": "members",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -4432,7 +4925,7 @@
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "load_bars",
-     "lignes": "52-80"
+     "lignes": "52-94"
     },
     {
      "fichier": "sentinelle/scalp/data.py",
@@ -4442,16 +4935,20 @@
    ],
    "tests": [
     "tests/test_active_time_journal.py",
-    "tests/test_configurable_capital.py"
+    "tests/test_configurable_capital.py",
+    "tests/test_scalp_lab.py"
    ],
    "dependances": [],
    "hypothese": "Le registre des essais et les empreintes rendent chaque résultat rejouable et non modifiable.",
    "donnees": "trials.jsonl en ajout seul par convention (aucun test ne l'impose) ; empreintes SHA-256 des archives ; gel #54/#55 testé.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "non constatée",
+    "niveau": "partielle",
     "symboles": [
      {
       "fichier": "sentinelle/scalp/signaux.py",
@@ -4463,7 +4960,7 @@
       "fichier": "sentinelle/scalp/data.py",
       "symbole": "_fetch_verified",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
@@ -4497,16 +4994,20 @@
    "tests": [
     "tests/test_learning.py",
     "tests/test_scalp_recherche.py",
-    "tests/test_validation_leakage.py"
+    "tests/test_validation_leakage.py",
+    "tests/test_scalp_desk.py"
    ],
    "dependances": [],
    "hypothese": "La validation purgée avec embargo empêche toute fuite.",
    "donnees": "Fenêtres chronologiques purgées ; embargo d'un jour.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/ai/trainer.py",
@@ -4524,11 +5025,11 @@
       "fichier": "sentinelle/scalp/brain.py",
       "symbole": "PrincipalAI",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -4570,6 +5071,9 @@
    "donnees": "#147 : aucune des 11 familles significative à 5 % (Holm, BH) ; DSR publiés.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
+   "lot": "1 — fiabilité des mesures",
+   "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "constatée",
@@ -4609,55 +5113,68 @@
    "domaine": "Preuves et exploitation",
    "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
    "priorite": "HAUTE",
-   "statut": "PARTIELLE",
+   "statut": "EXISTANTE_ET_TESTÉE",
    "preuves": [
     {
-     "fichier": "sentinelle/scalp/signaux.py",
-     "symbole": "run",
-     "lignes": "386-461"
+     "fichier": "sentinelle/scalp/ablation.py",
+     "symbole": "compare",
+     "lignes": "56-69"
     },
     {
-     "fichier": "sentinelle/scalp/moteur.py",
-     "symbole": "unify",
-     "lignes": "177-211"
+     "fichier": "sentinelle/scalp/ablation.py",
+     "symbole": "adjust",
+     "lignes": "72-78"
+    },
+    {
+     "fichier": "sentinelle/scalp/ablation.py",
+     "symbole": "weekly_pairs",
+     "lignes": "37-44"
     }
    ],
    "tests": [
-    "tests/test_scalp_signaux.py",
-    "tests/test_scalp_moteur.py"
+    "tests/test_scalp_ablation.py"
    ],
    "dependances": [
     "C094",
     "C096"
    ],
    "hypothese": "Chaque capacité se compare avec et sans elle, à capital, univers, période et coûts identiques.",
-   "donnees": "Comparaisons ponctuelles (filtre de l'élan, transferts entre poches) ; aucun outil d'ablation générique.",
+   "donnees": "Outil d'ablation générique : mêmes jours exigés, intervalle par blocs de 4 semaines, Holm.",
    "verdict": "utilité technique",
-   "note": "",
+   "note": "research/scalp-v1/ablation-v1.json (#149)",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
+   "lot": "1 — fiabilité des mesures",
+   "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
-      "fichier": "sentinelle/scalp/signaux.py",
-      "symbole": "run",
+      "fichier": "sentinelle/scalp/ablation.py",
+      "symbole": "compare",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      },
      {
-      "fichier": "sentinelle/scalp/moteur.py",
-      "symbole": "unify",
+      "fichier": "sentinelle/scalp/ablation.py",
+      "symbole": "adjust",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/ablation.py",
+      "symbole": "weekly_pairs",
       "nature": "fonction",
       "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
    "id": "C096",
-   "titre": "IC robustes avec dépendance temporelle",
+   "titre": "Intervalles de confiance robustes avec dépendance temporelle",
    "domaine": "Preuves et exploitation",
    "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
    "priorite": "normale",
@@ -4666,7 +5183,7 @@
     {
      "fichier": "sentinelle/scalp/signaux.py",
      "symbole": "edge",
-     "lignes": "216-232"
+     "lignes": "230-246"
     },
     {
      "fichier": "sentinelle/scalp/essais.py",
@@ -4687,16 +5204,20 @@
    "tests": [
     "tests/test_scalp_signaux.py",
     "tests/test_scalp_essais.py",
-    "tests/test_costs_measure.py"
+    "tests/test_costs_measure.py",
+    "tests/test_ai_learning.py"
    ],
    "dependances": [],
    "hypothese": "Les intervalles par blocs tiennent compte de la dépendance temporelle.",
    "donnees": "Blocs circulaires de 20 jours ; grappes de dates.",
    "verdict": "utilité technique",
    "note": "",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/scalp/signaux.py",
@@ -4720,11 +5241,11 @@
       "fichier": "sentinelle/ai/metrics.py",
       "symbole": "lower_bound",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -4733,62 +5254,41 @@
    "domaine": "Preuves et exploitation",
    "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
    "priorite": "HAUTE",
-   "statut": "PARTIELLE",
+   "statut": "EXISTANTE_ET_TESTÉE",
    "preuves": [
     {
-     "fichier": "sentinelle/scalp/signaux.py",
-     "symbole": "run",
-     "lignes": "386-461"
-    },
-    {
-     "fichier": "sentinelle/scalp/reserve.py",
-     "symbole": "sensitivity",
-     "lignes": "76-82"
-    },
-    {
-     "fichier": "sentinelle/costs/measure.py",
-     "symbole": "stress_states",
-     "lignes": "159-195"
+     "fichier": "sentinelle/scalp/ablation.py",
+     "symbole": "stress",
+     "lignes": "81-91"
     }
    ],
    "tests": [
-    "tests/test_scalp_signaux.py",
-    "tests/test_scalp_reserve.py",
-    "tests/test_costs_measure.py"
+    "tests/test_scalp_ablation.py"
    ],
    "dependances": [
     "C041",
     "C061"
    ],
    "hypothese": "Le classement des stratégies résiste au doublement des frais, de l'écart et du glissement.",
-   "donnees": "Stress à 0,25 % par côté publié ; pas de grille de stress générique.",
+   "donnees": "Niveaux × 1, × 2, × 3, × 3 + écart de 0,10 %.",
    "verdict": "utilité technique",
-   "note": "",
+   "note": "research/scalp-v1/ablation-v1.json : B0 bat l'univers à chaque niveau ; B1 perd son avantage sur les fonds à × 3 + écart",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
+   "lot": "1 — fiabilité des mesures",
+   "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "non constatée",
+    "niveau": "constatée",
     "symboles": [
      {
-      "fichier": "sentinelle/scalp/signaux.py",
-      "symbole": "run",
+      "fichier": "sentinelle/scalp/ablation.py",
+      "symbole": "stress",
       "nature": "fonction",
-      "executee": false
-     },
-     {
-      "fichier": "sentinelle/scalp/reserve.py",
-      "symbole": "sensitivity",
-      "nature": "fonction",
-      "executee": false
-     },
-     {
-      "fichier": "sentinelle/costs/measure.py",
-      "symbole": "stress_states",
-      "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -4799,6 +5299,11 @@
    "priorite": "normale",
    "statut": "PARTIELLE",
    "preuves": [
+    {
+     "fichier": "sentinelle/scalp/faisabilite.py",
+     "symbole": "study",
+     "lignes": "62-77"
+    },
     {
      "fichier": "sentinelle/costs/inventory.py",
      "symbole": "round_trip",
@@ -4811,20 +5316,29 @@
     }
    ],
    "tests": [
-    "tests/test_principal_eur30.py",
-    "tests/test_costs_engine.py"
+    "tests/test_scalp_faisabilite.py",
+    "tests/test_dmh_components.py"
    ],
    "dependances": [
     "C062"
    ],
    "hypothese": "Avec 30 € fictifs, les minima d'ordre et les frais fixes rendent la stratégie faisable ou non ; idem avec des fonds UCITS.",
-   "donnees": "Portefeuille de 30 € et minima pour le hub ; aucun équivalent UCITS testé.",
-   "verdict": "à mesurer",
-   "note": "",
+   "donnees": "Capitaux de 30 € à 10 000 € convertis au cours EUR/USDT du jour.",
+   "verdict": "utilité technique",
+   "note": "research/scalp-v1/faisabilite-petit-capital-v1.json : faisable à partir d'environ 1 000 € ; fonds UCITS NON MESURÉ",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
+     {
+      "fichier": "sentinelle/scalp/faisabilite.py",
+      "symbole": "study",
+      "nature": "fonction",
+      "executee": true
+     },
      {
       "fichier": "sentinelle/costs/inventory.py",
       "symbole": "round_trip",
@@ -4835,11 +5349,11 @@
       "fichier": "sentinelle/dmh/ledger.py",
       "symbole": "Ledger",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -4851,9 +5365,14 @@
    "statut": "PARTIELLE",
    "preuves": [
     {
-     "fichier": "sentinelle/costs/measure.py",
-     "symbole": "bar_touch_optimism",
-     "lignes": "224-254"
+     "fichier": "sentinelle/scalp/ouverture.py",
+     "symbole": "adverse_gap",
+     "lignes": "50-55"
+    },
+    {
+     "fichier": "sentinelle/scalp/ouverture.py",
+     "symbole": "draw",
+     "lignes": "68-74"
     },
     {
      "fichier": "sentinelle/scalp/reserve.py",
@@ -4862,25 +5381,34 @@
     }
    ],
    "tests": [
-    "tests/test_costs_measure.py",
+    "tests/test_scalp_ouverture.py",
     "tests/test_scalp_reserve.py"
    ],
    "dependances": [
     "C041"
    ],
-   "hypothese": "Le prix simulé (ouverture de la bougie) s'écarte du prix accessible au carnet d'un montant mesurable.",
-   "donnees": "Un seul instantané de carnet (23 novembre 2026) ; optimisme des contacts de bougie mesuré pour le plan de coûts.",
-   "verdict": "à mesurer",
-   "note": "",
+   "hypothese": "Le prix simulé (ouverture de la bougie) s'écarte du prix accessible d'un montant mesurable.",
+   "donnees": "250 exécutions par stratégie, archives minute ; aucun carnet historique.",
+   "verdict": "utilité technique",
+   "note": "research/scalp-v1/ecart-ouverture-v1.json : 1 à 1,7 pb en moyenne la 1re minute, p95 20 à 24 pb ; écart achat-vente NON MESURÉ",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
+   "lot": "1 — fiabilité des mesures",
+   "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
-      "fichier": "sentinelle/costs/measure.py",
-      "symbole": "bar_touch_optimism",
+      "fichier": "sentinelle/scalp/ouverture.py",
+      "symbole": "adverse_gap",
       "nature": "fonction",
-      "executee": false
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/ouverture.py",
+      "symbole": "draw",
+      "nature": "fonction",
+      "executee": true
      },
      {
       "fichier": "sentinelle/scalp/reserve.py",
@@ -4890,12 +5418,12 @@
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
    "id": "C100",
-   "titre": "Observation prospective figée sur 52 semaines",
+   "titre": "Observation prospective figée sur 52 semaines, dont le démarrage exige une autorisation distincte",
    "domaine": "Preuves et exploitation",
    "premiere_preuve_exigee": "reproductibilité SHA et mesure statistique indépendante",
    "priorite": "HAUTE",
@@ -4910,6 +5438,9 @@
    "donnees": "Exige l'autorisation du propriétaire ; aucune observation démarrée.",
    "verdict": "non évaluable",
    "note": "décision du propriétaire",
+   "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
+   "lot": "suivants (dépendances et valeur marginale)",
+   "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
     "niveau": "sans preuve",
@@ -4998,191 +5529,211 @@
  },
  "mesure_execution": {
   "methode": "chaque fichier de test cité rejoué seul sous sys.monitoring (évènements LINE) ; une fonction est exécutée si une ligne de son corps a tourné pendant un fichier de test réussi ; en-têtes, décorateurs, docstrings et niveau module exclus ; le code lancé dans un autre processus par un test n'est pas compté",
-  "commit": "dd5c52c15ab5315b55881a8aeb6264fcf594f0ba",
-  "date_utc": "2026-11-24T19:12:06Z",
+  "commit": "48317905004d416a81c0d6ddc6e06d77662f152d",
+  "date_utc": "2026-11-25T09:48:56Z",
   "python": "3.12.3",
   "plateforme": "Linux x86_64",
   "commande": "python -m sentinelle.scalp.registre --execution",
   "tests": {
    "tests/test_active_time_journal.py": {
     "code_pytest": 0,
-    "secondes": 0.8
+    "secondes": 0.5
    },
    "tests/test_ai_core.py": {
     "code_pytest": 0,
-    "secondes": 1.9
+    "secondes": 2.1
+   },
+   "tests/test_ai_learning.py": {
+    "code_pytest": 0,
+    "secondes": 1309.1
    },
    "tests/test_champion_integration.py": {
     "code_pytest": 0,
-    "secondes": 97.5
+    "secondes": 96.0
+   },
+   "tests/test_cockpit_routes.py": {
+    "code_pytest": 1,
+    "secondes": 31.3
    },
    "tests/test_configurable_capital.py": {
     "code_pytest": 0,
-    "secondes": 8.4
+    "secondes": 6.9
    },
    "tests/test_costs_engine.py": {
     "code_pytest": 0,
-    "secondes": 1.1
+    "secondes": 2.0
    },
    "tests/test_costs_measure.py": {
     "code_pytest": 0,
-    "secondes": 9.3
-   },
-   "tests/test_costs_protocol.py": {
-    "code_pytest": 0,
-    "secondes": 0.9
+    "secondes": 20.1
    },
    "tests/test_dmh_components.py": {
     "code_pytest": 0,
-    "secondes": 3.5
+    "secondes": 5.6
    },
    "tests/test_dmh_scanner.py": {
     "code_pytest": 0,
-    "secondes": 5.7
+    "secondes": 6.6
    },
    "tests/test_execution_contract.py": {
     "code_pytest": 0,
-    "secondes": 147.6
-   },
-   "tests/test_holdout_boundary_audit.py": {
-    "code_pytest": 0,
-    "secondes": 188.9
+    "secondes": 155.2
    },
    "tests/test_learning.py": {
     "code_pytest": 0,
-    "secondes": 756.3
+    "secondes": 1376.4
    },
    "tests/test_liquidity_simulation.py": {
     "code_pytest": 0,
-    "secondes": 1.3
+    "secondes": 1.2
    },
    "tests/test_macro_shadow.py": {
     "code_pytest": 0,
-    "secondes": 8.2
+    "secondes": 10.0
    },
    "tests/test_memecoin_calibrator.py": {
     "code_pytest": 0,
-    "secondes": 87.9
+    "secondes": 99.3
    },
    "tests/test_memecoin_calibrator_kelly.py": {
     "code_pytest": 0,
-    "secondes": 160.9
+    "secondes": 216.2
    },
    "tests/test_memecoin_calibrator_stop.py": {
     "code_pytest": 0,
-    "secondes": 49.4
+    "secondes": 72.7
    },
    "tests/test_memecoin_engine.py": {
     "code_pytest": 0,
-    "secondes": 7.9
+    "secondes": 10.0
    },
    "tests/test_memecoin_journal_whale.py": {
     "code_pytest": 0,
-    "secondes": 7.4
+    "secondes": 7.9
    },
    "tests/test_memecoin_profiles.py": {
     "code_pytest": 0,
-    "secondes": 7.1
+    "secondes": 9.5
    },
    "tests/test_memecoin_quote_time.py": {
     "code_pytest": 0,
-    "secondes": 5.3
-   },
-   "tests/test_memecoin_regime.py": {
-    "code_pytest": 0,
-    "secondes": 4.9
+    "secondes": 7.9
    },
    "tests/test_memecoin_routing.py": {
     "code_pytest": 0,
-    "secondes": 6.4
+    "secondes": 8.9
    },
    "tests/test_memecoin_sellability.py": {
     "code_pytest": 0,
-    "secondes": 6.2
+    "secondes": 7.9
    },
    "tests/test_memecoin_signals.py": {
     "code_pytest": 0,
-    "secondes": 6.2
+    "secondes": 9.8
    },
    "tests/test_memecoin_simulator.py": {
     "code_pytest": 0,
-    "secondes": 5.7
+    "secondes": 6.9
    },
    "tests/test_memecoin_valuation.py": {
     "code_pytest": 0,
-    "secondes": 5.9
+    "secondes": 8.0
    },
    "tests/test_new_features.py": {
     "code_pytest": 0,
-    "secondes": 4.4
+    "secondes": 6.1
    },
    "tests/test_news_telegram.py": {
     "code_pytest": 0,
-    "secondes": 6.6
-   },
-   "tests/test_paired_crash.py": {
-    "code_pytest": 0,
-    "secondes": 34.2
-   },
-   "tests/test_principal_eur30.py": {
-    "code_pytest": 0,
-    "secondes": 10.9
+    "secondes": 8.7
    },
    "tests/test_production_evidence.py": {
     "code_pytest": 0,
-    "secondes": 474.4
+    "secondes": 1016.8
    },
    "tests/test_realtime.py": {
     "code_pytest": 0,
-    "secondes": 9.2
+    "secondes": 13.6
    },
    "tests/test_risk_agent_backtest.py": {
     "code_pytest": 0,
-    "secondes": 21.9
+    "secondes": 32.1
+   },
+   "tests/test_scalp_ablation.py": {
+    "code_pytest": 0,
+    "secondes": 8.7
    },
    "tests/test_scalp_actifs.py": {
     "code_pytest": 0,
-    "secondes": 5.6
+    "secondes": 10.0
+   },
+   "tests/test_scalp_calibration.py": {
+    "code_pytest": 0,
+    "secondes": 271.8
    },
    "tests/test_scalp_core.py": {
     "code_pytest": 0,
-    "secondes": 6.3
+    "secondes": 8.9
    },
    "tests/test_scalp_desk.py": {
     "code_pytest": 0,
-    "secondes": 148.1
+    "secondes": 473.7
    },
    "tests/test_scalp_essais.py": {
     "code_pytest": 0,
-    "secondes": 7.3
+    "secondes": 8.6
+   },
+   "tests/test_scalp_evenements.py": {
+    "code_pytest": 0,
+    "secondes": 8.3
+   },
+   "tests/test_scalp_faisabilite.py": {
+    "code_pytest": 0,
+    "secondes": 7.0
    },
    "tests/test_scalp_flash.py": {
     "code_pytest": 0,
-    "secondes": 7.3
+    "secondes": 7.7
+   },
+   "tests/test_scalp_frais.py": {
+    "code_pytest": 0,
+    "secondes": 8.0
    },
    "tests/test_scalp_lab.py": {
     "code_pytest": 0,
-    "secondes": 3.5
+    "secondes": 3.6
    },
-   "tests/test_scalp_moteur.py": {
+   "tests/test_scalp_ouverture.py": {
     "code_pytest": 0,
-    "secondes": 10.0
+    "secondes": 7.6
    },
    "tests/test_scalp_recherche.py": {
     "code_pytest": 0,
-    "secondes": 8.1
+    "secondes": 8.3
+   },
+   "tests/test_scalp_regimes.py": {
+    "code_pytest": 0,
+    "secondes": 8.0
    },
    "tests/test_scalp_reserve.py": {
     "code_pytest": 0,
-    "secondes": 7.9
+    "secondes": 8.7
+   },
+   "tests/test_scalp_risques.py": {
+    "code_pytest": 0,
+    "secondes": 8.2
    },
    "tests/test_scalp_signaux.py": {
     "code_pytest": 0,
-    "secondes": 7.7
+    "secondes": 6.3
+   },
+   "tests/test_scalp_techniques.py": {
+    "code_pytest": 0,
+    "secondes": 6.0
    },
    "tests/test_scalp_watchers.py": {
     "code_pytest": 0,
-    "secondes": 3.6
+    "secondes": 2.8
    },
    "tests/test_validation_leakage.py": {
     "code_pytest": 0,
@@ -5190,41 +5741,20 @@
    }
   },
   "niveaux": {
-   "constatée": 55,
-   "partielle": 23,
-   "non constatée": 6,
+   "constatée": 84,
+   "partielle": 4,
+   "non constatée": 3,
    "référencement seul": 0,
-   "sans preuve": 16
+   "sans preuve": 9
   },
   "statuts_a_couverture_a_confirmer": [
-   "C003",
    "C015",
    "C016",
-   "C020",
    "C027",
-   "C030",
-   "C041",
-   "C043",
-   "C046",
    "C047",
    "C055",
-   "C062",
-   "C065",
-   "C067",
-   "C069",
-   "C070",
-   "C076",
    "C078",
-   "C079",
-   "C081",
-   "C091",
-   "C092",
-   "C093",
-   "C095",
-   "C096",
-   "C097",
-   "C098",
-   "C099"
+   "C092"
   ]
  }
 }

@@ -52,6 +52,40 @@ DOMAINES = {
     "preuves": ("Preuves et exploitation", "reproductibilité SHA et mesure statistique indépendante"),
 }
 
+# Second envoi du propriétaire (24 novembre 2026) : critère de preuve par famille, méthode commune, lots et objectifs.
+CRITERES = {
+    "actualites": "provenance, horodatages et réaction mesurée après disponibilité effective",
+    "macro": "données disponibles à la date, sans révision rétrospective utilisée abusivement",
+    "regimes": "classification et abstention hors échantillon",
+    "technique": "causalité et comparaison au momentum simple",
+    "microstructure": "profondeur et coûts effectivement accessibles",
+    "onchain": "identité du token et du pool, revendabilité et maintien des vetos",
+    "execution": "mêmes règles que le simulateur causal",
+    "risque": "invariants de sécurité et scénarios extrêmes",
+    "apprentissage": "calibration, robustesse et validation humaine",
+    "preuves": "reproductibilité par SHA et mesure statistique indépendante",
+}
+METHODE = ("hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; "
+           "référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de "
+           "confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés")
+# Valeur ajoutée ATTENDUE (objectif de recherche, jamais un avantage démontré).
+VALEUR = {
+    "actualites": "qualité des entrées et vetos d'événements",
+    "macro": "contexte et vetos autour des publications à risque",
+    "regimes": "régularité et abstention dans les régimes défavorables",
+    "technique": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147)",
+    "microstructure": "coûts et liquidité de sortie réellement accessibles",
+    "onchain": "sécurité des memecoins : identité, revendabilité, vetos",
+    "execution": "réalisme des exécutions et des sorties fictives",
+    "risque": "réduction des pertes extrêmes et de la pire baisse",
+    "apprentissage": "fiabilité des décisions, sans promotion automatique",
+    "preuves": "fiabilité des mesures et reproductibilité",
+}
+LOTS = {**{c: "1 — fiabilité des mesures" for c in ("C091", "C094", "C095", "C061", "C062", "C097", "C099")},
+        **{c: "2 — actualités, régimes et abstention" for c in ("C001", "C003", "C005", "C006", "C007", "C021", "C024", "C026", "C030",
+                                                               "C082", "C083", "C084")},
+        **{c: "3 — microstructure, maîtrise des pertes et risques" for c in ("C043", "C046", "C048", "C067", "C074", "C079")}}
+
 # (identifiant, titre, domaine, priorité) — tel que transmis par le propriétaire.
 CATALOGUE = [
     ("C001", "Mesure des délais publication→réception→marché", "actualites", "HAUTE"),
@@ -66,10 +100,10 @@ CATALOGUE = [
     ("C010", "Attente d'une réaction initiale et contrôle de liquidité", "actualites", "normale"),
     ("C011", "Surprises d'inflation", "macro", "normale"),
     ("C012", "Surprises emploi et révisions", "macro", "normale"),
-    ("C013", "Décisions et communications banques centrales", "macro", "normale"),
+    ("C013", "Décisions et communications des banques centrales", "macro", "normale"),
     ("C014", "Mouvements des rendements obligataires", "macro", "normale"),
     ("C015", "Contexte de force du dollar", "macro", "normale"),
-    ("C016", "Indicateurs de stress actions (VIX)", "macro", "normale"),
+    ("C016", "Indicateurs de stress actions, dont VIX", "macro", "normale"),
     ("C017", "Propagation sectorielle actions→crypto", "macro", "normale"),
     ("C018", "Flux publics de stablecoins", "macro", "normale"),
     ("C019", "Flux ETF horodatés", "macro", "normale"),
@@ -80,7 +114,7 @@ CATALOGUE = [
     ("C024", "Régimes de volatilité", "regimes", "HAUTE"),
     ("C025", "Détection des ruptures de régime", "regimes", "normale"),
     ("C026", "Corrélations dynamiques BTC/altcoins", "regimes", "HAUTE"),
-    ("C027", "Funding rate en observation", "regimes", "normale"),
+    ("C027", "Funding rate en observation uniquement", "regimes", "normale"),
     ("C028", "Open interest et liquidations en observation", "regimes", "normale"),
     ("C029", "Effets horaires et calendaires", "regimes", "normale"),
     ("C030", "Régime d'abstention", "regimes", "HAUTE"),
@@ -102,7 +136,7 @@ CATALOGUE = [
     ("C046", "Impact du notional sur l'exécution", "microstructure", "HAUTE"),
     ("C047", "Glissement conditionnel à la volatilité", "microstructure", "normale"),
     ("C048", "Profondeur de revente exploitable", "microstructure", "HAUTE"),
-    ("C049", "Anomalies compatibles avec wash trading", "microstructure", "normale"),
+    ("C049", "Anomalies compatibles avec le wash trading", "microstructure", "normale"),
     ("C050", "Contrôle de cohérence inter-plateformes", "microstructure", "normale"),
     ("C051", "Historique âge et activité du pool", "onchain", "normale"),
     ("C052", "Historique de concentration des détenteurs", "onchain", "normale"),
@@ -115,9 +149,9 @@ CATALOGUE = [
     ("C059", "Performance point-in-time des smart wallets", "onchain", "normale"),
     ("C060", "Cohérence de prix et liquidité multi-pools", "onchain", "normale"),
     ("C061", "Frais point-in-time par instrument", "execution", "HAUTE"),
-    ("C062", "Minimum de notional/lot/tick", "execution", "HAUTE"),
+    ("C062", "Minimum de notional, lot et tick", "execution", "HAUTE"),
     ("C063", "Exécutions partielles simulées", "execution", "normale"),
-    ("C064", "Modèles de latence et exécution", "execution", "normale"),
+    ("C064", "Modèles de latence et d'exécution", "execution", "normale"),
     ("C065", "Causalité stricte décision→cotation ultérieure", "execution", "normale"),
     ("C066", "Refus des cotations périmées", "execution", "normale"),
     ("C067", "Stops avec gaps et liquidité insuffisante", "execution", "HAUTE"),
@@ -149,17 +183,19 @@ CATALOGUE = [
     ("C093", "Validation temporelle purgée avec embargo", "preuves", "normale"),
     ("C094", "Correction des essais multiples", "preuves", "HAUTE"),
     ("C095", "Tests d'ablation par capacité", "preuves", "HAUTE"),
-    ("C096", "IC robustes avec dépendance temporelle", "preuves", "normale"),
+    ("C096", "Intervalles de confiance robustes avec dépendance temporelle", "preuves", "normale"),
     ("C097", "Stress frais/spread/glissement", "preuves", "HAUTE"),
     ("C098", "Faisabilité avec capital fictif de 30 € et produits UE", "preuves", "normale"),
     ("C099", "Écart entre simulation et cotation accessible", "preuves", "HAUTE"),
-    ("C100", "Observation prospective figée sur 52 semaines", "preuves", "HAUTE"),
+    ("C100", "Observation prospective figée sur 52 semaines, dont le démarrage exige une autorisation distincte", "preuves", "HAUTE"),
 ]
 
 S = "sentinelle/"
 FLASH, NEWS, PARS, RISK, SHIELD = S + "scalp/flash.py", S + "news/service.py", S + "news/shadow/parsers.py", S + "risk/manager.py", S + "risk/shield.py"
 SIG, CORE, RECH, ESS, MOT = S + "scalp/signaux.py", S + "scalp/core.py", S + "scalp/recherche.py", S + "scalp/essais.py", S + "scalp/moteur.py"
 SIM, STRAT = S + "dmh/memecoin_simulator.py", S + "dmh/memecoin_strategies.py"
+REG, CAL, EVT, RSK, TEC = S + "scalp/regimes.py", S + "scalp/calibration.py", S + "scalp/evenements.py", S + "scalp/risques.py", S + "scalp/techniques.py"
+FRA, FAI, OUV, ABL = S + "scalp/frais.py", S + "scalp/faisabilite.py", S + "scalp/ouverture.py", S + "scalp/ablation.py"
 
 # Audit : statut, preuves [(fichier, symbole)], tests, dépendances, hypothèse falsifiable, données, verdict, note.
 E = {}
@@ -181,7 +217,7 @@ entry("C002", "EXISTANTE_ET_TESTÉE", [(FLASH, "classify"), (FLASH, "RULES"), (N
       "Titres et résumés des flux publics ; aucun échantillon annoté pour mesurer l'exactitude.", "utilité technique",
       "exactitude du classement non mesurée ; faux positif connu (ancien piratage Binance)")
 entry("C003", "PARTIELLE", [(FLASH, "classify"), (NEWS, "NewsService._allowed_assets"), (S + "dmh/tokens.py", "TokenRegistry")],
-      ["tests/test_scalp_flash.py", "tests/test_dmh_components.py"], ["C002"],
+      ["tests/test_scalp_flash.py", "tests/test_dmh_components.py", "tests/test_realtime.py"], ["C002"],
       "L'association par symbole confond des actifs (BTC cité dans une dépêche Binance) ; une association par identité vérifiée réduit les vetos erronés.",
       "Symboles dans les titres ; identité réseau+adresse côté memecoins (dmh).", "à mesurer", "association par symbole seulement dans flash.py")
 entry("C004", "PARTIELLE", [(S + "news/signals.py", "SignalWatcher"), (S + "news/signals.py", "simulate_signal")],
@@ -195,10 +231,10 @@ entry("C005", "PARTIELLE", [(NEWS, "similarity"), (NEWS, "NewsService._copy_from
 entry("C006", "PARTIELLE", [(PARS, "surprise_at"), (PARS, "bls_series"), (PARS, "difference")], ["tests/test_macro_shadow.py"], ["C011", "C012"],
       "La surprise (publié − consensus connu avant publication) explique la réaction du marché mieux que la valeur publiée seule.",
       "Calendrier public (consensus) et séries BLS officielles, en observation fantôme ; aucune mesure d'effet.", "à mesurer")
-entry("C007", "BLOQUÉE_DONNÉES", [(FLASH, "Archive"), (S + "news/shadow/store.py", "ShadowStore")], ["tests/test_scalp_flash.py"], ["C001", "C003", "C005"],
-      "Après une catégorie d'événement, le rendement anormal sur 1 h à 24 h diffère de zéro, avec intervalle et correction des essais.",
-      "Aucun historique d'actualités ; l'archive existe depuis le 23 novembre 2026 : pas assez d'événements.", "non évaluable",
-      "outil d'étude d'événements absent ; données insuffisantes")
+entry("C007", "EXISTANTE_ET_TESTÉE", [(EVT, "reaction"), (EVT, "paired_test"), (EVT, "events"), (EVT, "release_utc")], ["tests/test_scalp_evenements.py"], ["C001", "C020"],
+      "Après une publication programmée (FOMC, CPI), la variation du BTC dépasse celle du même instant une semaine plus tôt ; son sens n'est pas prévisible sans la surprise.",
+      "Calendriers officiels FOMC (federalreserve.gov) et CPI (bls.gov) 2018-2026, heures vérifiées sur les communiqués ; bougies 1 minute BTCUSDT.", "utilité technique",
+      "research/scalp-v1/evenements-macro-v1.json : variation ×2 à ×3,5 dans les 5 minutes, Holm p < 0,001 ; sens non significatif")
 entry("C008", "PARTIELLE", [(FLASH, "VETO_ASSET_MS"), (FLASH, "VETO_MARKET_MS"), (FLASH, "Archive.vetoes")], ["tests/test_scalp_flash.py"], ["C007"],
       "Un veto qui s'éteint progressivement fait moins d'entrées manquées qu'une fenêtre fixe, sans plus de pertes.",
       "Fenêtres fixes de 24 h et 6 h datées à la publication ; aucune décroissance.", "à mesurer")
@@ -222,9 +258,9 @@ entry("C013", "PARTIELLE", [(FLASH, "SOURCES"), (S + "risk/macro.py", "events"),
 entry("C014", "PARTIELLE", [(S + "scalp/actifs.py", "UNIVERSE"), (S + "scalp/actifs.py", "month_end_signals")], ["tests/test_scalp_actifs.py"], [],
       "Une hausse rapide des rendements obligataires précède une baisse des actifs risqués.",
       "Cours des fonds IEF et TLT (Yahoo) ; pas de série de rendements ni de signal.", "à mesurer")
-entry("C015", "PARTIELLE", [(S + "market/context.py", "INDICES"), (S + "market/context.py", "fetch_index")], ["tests/test_realtime.py"], [],
+entry("C015", "PARTIELLE", [(S + "market/context.py", "INDICES"), (S + "market/context.py", "fetch_index")], ["tests/test_realtime.py", "tests/test_cockpit_routes.py"], [],
       "Un dollar en hausse (DXY) précède une faiblesse des cryptos.", "DXY affiché (Yahoo), non utilisé ni mesuré.", "à mesurer")
-entry("C016", "PARTIELLE", [(S + "market/context.py", "INDICES"), (S + "market/context.py", "fetch_index")], ["tests/test_realtime.py"], [],
+entry("C016", "PARTIELLE", [(S + "market/context.py", "INDICES"), (S + "market/context.py", "fetch_index")], ["tests/test_realtime.py", "tests/test_cockpit_routes.py"], [],
       "Un VIX élevé ou en hausse précède des baisses des cryptos.", "VIX affiché (Yahoo), non utilisé ni mesuré.", "à mesurer")
 entry("C017", "ABSENTE", [], [], ["C014", "C016"], "Les secteurs actions liés (semi-conducteurs, valeurs crypto) mènent les cryptos.",
       "Aucune donnée sectorielle intégrée.", "non évaluable")
@@ -233,45 +269,49 @@ entry("C018", "ABSENTE", [], [], [], "Les créations et destructions de stableco
 entry("C019", "BLOQUÉE_DONNÉES", [], [], [], "Les flux des ETF bitcoin précèdent le cours.",
       "Aucune source publique horodatée et à licence claire identifiée.", "non évaluable")
 entry("C020", "EXISTANTE_ET_TESTÉE", [(S + "risk/macro.py", "blackout"), (S + "risk/macro.py", "upcoming"), (S + "market/context.py", "fetch_calendar"), (RISK, "RiskManager.evaluate_entry")],
-      ["tests/test_realtime.py", "tests/test_risk_agent_backtest.py"], [],
+      ["tests/test_realtime.py", "tests/test_risk_agent_backtest.py", "tests/test_new_features.py"], [],
       "Une pause autour des annonces majeures évite des pertes sans coût en rendement.", "Calendrier public ; effet non mesuré.", "utilité technique")
 # --- Régimes de marché ---------------------------------------------------------------------------------------------------
-entry("C021", "PARTIELLE", [(CORE, "signals"), (SIG, "families"), (SIM, "market_regime")],
-      ["tests/test_scalp_core.py", "tests/test_scalp_signaux.py", "tests/test_memecoin_regime.py"], ["C023", "C024"],
-      "Un classement tendance/range décidé hors échantillon améliore le rapport rendement/baisse en s'abstenant en range.",
-      "Bougies journalières vérifiées ; les filtres de tendance testés (F2, F3, F10) n'ont pas d'avantage démontré.", "avantage historique non démontré",
-      "pas de classificateur tendance/range explicite")
-entry("C022", "ABSENTE", [], [], ["C091"], "La part des altcoins en tendance (breadth) prédit le rendement de l'univers.",
-      "Calculable sur l'univers à la date existant.", "à mesurer")
-entry("C023", "ABSENTE", [(S + "ai/indicators.py", "atr")], ["tests/test_ai_core.py"], [], "Un ADX élevé distingue les tendances exploitables.",
-      "ADX non implémenté (ATR, RSI, MACD, EMA existent).", "à mesurer")
-entry("C024", "PARTIELLE", [(SIG, "families"), (CORE, "run"), (SHIELD, "Shield._evaluate_volatility")],
-      ["tests/test_scalp_signaux.py", "tests/test_scalp_core.py", "tests/test_realtime.py"], [],
-      "Les régimes de volatilité changent le rendement par unité de risque ; s'adapter au régime réduit les baisses.",
-      "F9 (volatilité calme) sans avantage ; ciblage de volatilité mesuré (baisse divisée par plus de 2).", "avantage historique non démontré")
-entry("C025", "ABSENTE", [], [], ["C021", "C024"], "Une rupture de régime détectée tôt réduit la perte du début de baisse.", "Aucun détecteur.", "à mesurer")
-entry("C026", "PARTIELLE", [(S + "ai/knowledge.py", "compute_profile"), (S + "scalp/features.py", "compute")], ["tests/test_learning.py", "tests/test_scalp_watchers.py"], [],
-      "Une corrélation BTC/altcoins qui monte annonce un risque commun ; plafonner l'exposition réduit les baisses.",
-      "Lien avec le BTC sur tout l'historique (fiche) et contexte BTC court terme ; aucune corrélation glissante.", "à mesurer")
+entry("C021", "EXISTANTE_ET_TESTÉE", [(REG, "efficiency_ratio"), (REG, "regimes")], ["tests/test_scalp_regimes.py"], ["C023", "C024"],
+      "Un classement tendance/range décidé sans regard en avant permet de s'abstenir en range.",
+      "Efficacité de Kaufman du BTC sur 30 jours, seuil 0,3 fixé a priori.", "utilité technique", "research/scalp-v1/regimes-abstention-v1.json")
+entry("C022", "EXPÉRIMENT_REJETÉ", [(TEC, "breadth")], ["tests/test_scalp_techniques.py"], ["C091"], "La part des altcoins en tendance (breadth) améliore le momentum simple.",
+      "Part des membres de l'univers à rendement 28 jours positif.", "rejet", "research/scalp-v1/techniques-v2.json : −0,09 %/sem en filtre de B0, Holm 1")
+entry("C023", "EXPÉRIMENT_REJETÉ", [(TEC, "adx")], ["tests/test_scalp_techniques.py"], [], "Un ADX élevé distingue les tendances exploitables.",
+      "ADX de Wilder sur 14 jours ≥ 25.", "rejet", "research/scalp-v1/techniques-v2.json : −0,31 %/sem en filtre de B0 ; baisse réduite par moindre exposition")
+entry("C024", "EXISTANTE_ET_TESTÉE", [(REG, "expanding_tercile"), (REG, "regimes"), (SHIELD, "Shield._evaluate_volatility")],
+      ["tests/test_scalp_regimes.py", "tests/test_realtime.py"], [],
+      "S'abstenir dans le tercile de volatilité haut (connu à la date) réduit les baisses mieux qu'un calendrier quelconque.",
+      "Terciles de la volatilité réalisée du BTC sur 20 jours, fenêtre croissante.", "avantage historique non démontré",
+      "research/scalp-v1/regimes-abstention-v1.json : A3 ne fait pas mieux que son témoin décalé")
+entry("C025", "EXPÉRIMENT_REJETÉ", [(TEC, "regime_break"), (TEC, "recent")], ["tests/test_scalp_techniques.py"], ["C021", "C024"],
+      "Une rupture de régime détectée tôt réduit la perte du début de baisse.", "Moyennes de rendements du BTC sur 20 et 120 jours, seuil de 2 erreurs types.", "rejet",
+      "research/scalp-v1/techniques-v2.json : −0,44 %/sem [−0,81 ; −0,13], baisse 60 → 69 %")
+entry("C026", "EXISTANTE_ET_TESTÉE", [(REG, "btc_correlation"), (S + "ai/knowledge.py", "compute_profile")], ["tests/test_scalp_regimes.py", "tests/test_learning.py"], [],
+      "Une corrélation BTC/altcoins haute avec un BTC en baisse annonce un risque commun.", "Corrélation moyenne sur 30 jours des membres avec le BTC, terciles connus à la date.",
+      "avantage historique non démontré", "research/scalp-v1/regimes-abstention-v1.json : A4 sans effet sur B0 ni B1")
 entry("C027", "EXISTANTE_ET_TESTÉE", [(S + "market/context.py", "fetch_funding"), (S + "market/context.py", "funding_comment")],
-      ["tests/test_realtime.py"], [], "Un taux de financement extrême précède des retournements.", "OKX public, observation seulement.", "utilité technique")
+      ["tests/test_realtime.py", "tests/test_cockpit_routes.py"], [], "Un taux de financement extrême précède des retournements.", "OKX public, observation seulement.", "utilité technique")
 entry("C028", "PARTIELLE", [(SHIELD, "Shield.poll_liquidations"), (SHIELD, "Shield._evaluate_cascade")], ["tests/test_realtime.py"], [],
       "Une cascade de liquidations précède un excès de mouvement.", "Liquidations suivies ; open interest absent.", "à mesurer")
 entry("C029", "PARTIELLE", [(S + "scalp/features.py", "compute")], ["tests/test_scalp_watchers.py", "tests/test_scalp_desk.py"], [],
       "Certaines heures ou jours ont un rendement ou un coût différent.", "Heure dans les caractéristiques ; aucune étude calendaire.", "à mesurer")
-entry("C030", "PARTIELLE", [(CORE, "signals"), (S + "scalp/brain.py", "PrincipalAI"), (SIG, "abstention"), (SIG, "timing_edge")],
-      ["tests/test_scalp_core.py", "tests/test_scalp_signaux.py", "tests/test_scalp_lab.py"], ["C021", "C024"],
-      "S'abstenir dans un régime défavorable défini d'avance améliore le rapport rendement/baisse hors échantillon.",
-      "Filtre BTC, marge d'abstention de l'IA et motifs d'abstention publiés ; diagnostic temporel de F7 non significatif.", "avantage historique non démontré")
+entry("C030", "EXISTANTE_ET_TESTÉE", [(REG, "rules"), (REG, "abstain"), (REG, "shifted"), (SIG, "abstention")],
+      ["tests/test_scalp_regimes.py", "tests/test_scalp_signaux.py"], ["C021", "C024"],
+      "S'abstenir dans un régime défavorable défini d'avance améliore le rapport rendement/baisse mieux qu'un calendrier quelconque.",
+      "4 règles fixées a priori, témoin décalé d'un an.", "avantage historique non démontré",
+      "research/scalp-v1/regimes-abstention-v1.json : A1 (BTC en range) remplit le critère préenregistré (baisse de B0 60 → 23 %, −0,05 %/sem géométrique, non significatif, mieux que son témoin) ; historique déjà consulté et filtre proche de v10 : candidat soumis à validation humaine et prospective")
 # --- Analyse technique ---------------------------------------------------------------------------------------------------
-entry("C031", "ABSENTE", [], [], [], "Des pivots confirmés après coup seulement (sans regard en avant) aident à placer les stops.", "Non implémenté.", "à mesurer")
+entry("C031", "EXPÉRIMENT_REJETÉ", [(TEC, "confirmed_pivot_high")], ["tests/test_scalp_techniques.py"], [], "Une clôture au-dessus du dernier sommet confirmé améliore le momentum simple.",
+      "Sommet de 7 jours confirmé 3 jours après.", "rejet", "research/scalp-v1/techniques-v2.json : −0,32 %/sem ; baisse réduite par moindre exposition (16 % des jours)")
 entry("C032", "EXPÉRIMENT_REJETÉ", [(SIG, "_trendline")], ["tests/test_scalp_signaux.py"], [],
       "Une ligne de tendance bien ajustée (pente > 0, R² ≥ 0,6) bat le momentum simple.",
       "signaux-v1 : écart +0,071 %/j, IC [−0,058 ; +0,206], non significatif.", "rejet", "research/scalp-v1/signaux-v1.json (F3)")
 entry("C033", "EXPÉRIMENT_REJETÉ", [(SIG, "families")], ["tests/test_scalp_signaux.py"], ["C031"],
       "Les zones support/résistance améliorent les entrées.", "signaux-v1 : F4 (résistance 20 j) et F5 (support EMA 20) sans avantage.", "rejet",
       "zones par regroupement de pivots non testées ; research/scalp-v1/signaux-v1.json (F4, F5)")
-entry("C034", "ABSENTE", [], [], ["C033"], "Entrer au retest d'une cassure plutôt qu'à la cassure améliore le rapport gain/perte.", "Non implémenté.", "à mesurer")
+entry("C034", "EXPÉRIMENT_REJETÉ", [(TEC, "retest")], ["tests/test_scalp_techniques.py"], ["C033"], "Entrer après le retest d'une cassure améliore le momentum simple.",
+      "Retest à 1 % dans les 5 jours, signal 10 jours.", "rejet", "research/scalp-v1/techniques-v2.json : −0,42 %/sem")
 entry("C035", "EXPÉRIMENT_REJETÉ", [(SIG, "_breakout_state"), (SIG, "families")], ["tests/test_scalp_signaux.py"], ["C043"],
       "Filtrer les cassures par le volume élimine les fausses cassures.", "signaux-v1 : F11, écart +0,038 %/j, IC [−0,060 ; +0,140].", "rejet",
       "research/scalp-v1/signaux-v1.json (F11)")
@@ -280,8 +320,8 @@ entry("C036", "PARTIELLE", [(S + "scalp/features.py", "compute")], ["tests/test_
 entry("C037", "EXPÉRIMENT_REJETÉ", [(S + "scalp/watchers.py", "detect"), (SIG, "families")], ["tests/test_scalp_watchers.py", "tests/test_scalp_signaux.py"], [],
       "Une compression de volatilité précède une expansion exploitable.", "signaux-v1 : F9 sans avantage ; veilleur « squeeze » du court terme, perdant après frais.", "rejet",
       "research/scalp-v1/signaux-v1.json (F9)")
-entry("C038", "ABSENTE", [(S + "ai/indicators.py", "rsi")], ["tests/test_ai_core.py"], [], "Une divergence RSI/prix annonce un retournement.",
-      "RSI disponible ; divergences non implémentées.", "à mesurer")
+entry("C038", "EXPÉRIMENT_REJETÉ", [(TEC, "bearish_divergence"), (TEC, "rsi")], ["tests/test_scalp_techniques.py"], [], "Écarter les divergences RSI baissières améliore le momentum simple.",
+      "RSI(14) de Wilder, fenêtre de 20 jours.", "rejet", "research/scalp-v1/techniques-v2.json : −0,26 %/sem [−0,46 ; −0,07]")
 entry("C039", "PARTIELLE", [(S + "scalp/watchers.py", "detect")], ["tests/test_scalp_watchers.py"], [],
       "Un mouvement à bout de souffle (capitulation) se retourne.", "Veilleur « capitulation » du court terme, rejeté avec l'ensemble du court terme après frais.", "avantage historique non démontré")
 entry("C040", "EXPÉRIMENT_REJETÉ", [(SIG, "families")], ["tests/test_scalp_signaux.py"], [],
@@ -289,17 +329,19 @@ entry("C040", "EXPÉRIMENT_REJETÉ", [(SIG, "families")], ["tests/test_scalp_sig
       "research/scalp-v1/signaux-v1.json (F10)")
 # --- Microstructure et volumes -------------------------------------------------------------------------------------------
 entry("C041", "EXISTANTE_ET_TESTÉE", [(S + "costs/book.py", "measure"), (S + "dmh/observe.py", "Book.half_spread_bps")],
-      ["tests/test_costs_measure.py", "tests/test_dmh_components.py"], [], "Le coût d'aller-retour mesuré dépasse l'hypothèse fixe des backtests pour certains marchés.",
+      ["tests/test_costs_measure.py", "tests/test_dmh_components.py", "tests/test_costs_engine.py"], [], "Le coût d'aller-retour mesuré dépasse l'hypothèse fixe des backtests pour certains marchés.",
       "Carnets publics datés ; instantané du 23 novembre 2026 publié.", "utilité technique")
 entry("C042", "ABSENTE", [(S + "dmh/observe.py", "Book")], ["tests/test_dmh_components.py"], ["C041"], "Le déséquilibre du carnet sur plusieurs niveaux prédit le mouvement à très court terme.",
       "Carnets disponibles en direct ; aucun historique de carnet archivé.", "à mesurer")
-entry("C043", "PARTIELLE", [(SIG, "families"), (S + "scalp/features.py", "compute")], ["tests/test_scalp_signaux.py", "tests/test_scalp_lab.py"], [],
+entry("C043", "PARTIELLE", [(SIG, "families"), (S + "scalp/features.py", "compute")], ["tests/test_scalp_signaux.py", "tests/test_scalp_lab.py", "tests/test_scalp_watchers.py"], [],
       "La part des achats au marché prédit le rendement suivant.",
       "signaux-v1 F6 : p brute 0,0125, Holm 0,137 (#147) : non significatif après correction.", "avantage historique non démontré")
-entry("C044", "ABSENTE", [], [], ["C043"], "Le delta de volume cumulé ajoute à la pression acheteuse.", "Calculable sur les bougies (achats au marché).", "à mesurer")
+entry("C044", "EXPÉRIMENT_REJETÉ", [(SIG, "families")], ["tests/test_scalp_signaux.py"], ["C043"], "Le delta de volume cumulé ajoute à la pression acheteuse.",
+      "Couvert par F6 (part des achats au marché sur 7 jours) : non redéveloppé.", "rejet",
+      "research/scalp-v1/signaux-v1.json et research/scalp-v1/ablation-v1.json : F6 non significative après correction, nuisible en filtre de B0")
 entry("C045", "BLOQUÉE_DONNÉES", [], [], ["C042"], "Les ordres affichés qui disparaissent signalent un faux carnet.", "Exige un flux de carnet en continu, non archivé.", "non évaluable")
 entry("C046", "EXISTANTE_ET_TESTÉE", [(S + "execution/liquidity.py", "simulate_taker"), (S + "costs/book.py", "measure"), (S + "dmh/router.py", "walk")],
-      ["tests/test_liquidity_simulation.py", "tests/test_costs_measure.py", "tests/test_dmh_components.py"], ["C041"],
+      ["tests/test_liquidity_simulation.py", "tests/test_costs_measure.py", "tests/test_dmh_components.py", "tests/test_costs_engine.py"], ["C041"],
       "Le coût d'un ordre croît avec sa taille selon la profondeur du carnet.", "Carnets publics datés (sondes).", "utilité technique")
 entry("C047", "PARTIELLE", [(S + "costs/measure.py", "stress_states")], ["tests/test_costs_measure.py"], ["C041", "C024"],
       "Le glissement augmente avec la volatilité.", "États de stress mesurés ; pas de modèle de glissement en fonction de la volatilité dans les backtests.", "à mesurer")
@@ -319,8 +361,9 @@ entry("C053", "PARTIELLE", [(S + "dmh/tokenrisk.py", "_rugcheck"), (S + "dmh/sol
       "Un verrou de liquidité expirant augmente le risque de retrait.", "Verrous connus exclus du calcul ; aucune surveillance dans le temps.", "utilité technique")
 entry("C054", "EXISTANTE_ET_TESTÉE", [(S + "dmh/established_pools.py", "round_trip"), (S + "dmh/dex.py", "jupiter_quote")],
       ["tests/test_memecoin_sellability.py", "tests/test_memecoin_routing.py"], [], "Une route de revente vérifiée évite les pièges.", "Jupiter public.", "utilité technique")
-entry("C055", "EXISTANTE_ET_TESTÉE", [(S + "dmh/tokenrisk.py", "_goplus_evm"), (S + "dmh/tokenrisk.py", "assess_candidate"), (S + "dmh/solana_scanner.py", "scan_once")],
-      ["tests/test_dmh_scanner.py"], [], "Les restrictions et frais de transfert signalent un piège.", "GoPlus, Rugcheck ; Token-2022 refusé sauf métadonnées.", "utilité technique")
+entry("C055", "PARTIELLE", [(S + "dmh/tokenrisk.py", "_goplus_evm"), (S + "dmh/tokenrisk.py", "assess_candidate"), (S + "dmh/solana_scanner.py", "scan_once")],
+      ["tests/test_dmh_scanner.py"], [], "Les restrictions et frais de transfert signalent un piège.", "GoPlus, Rugcheck ; Token-2022 refusé sauf métadonnées.", "utilité technique",
+      "chemin EVM (_goplus_evm) exécuté par aucun test de la suite (rejeu sous traceur)")
 entry("C056", "PARTIELLE", [(STRAT, "entry_signals"), (STRAT, "NAMES")], ["tests/test_memecoin_signals.py", "tests/test_memecoin_journal_whale.py"], ["C059"],
       "Les achats des grands détenteurs précèdent une hausse.", "Stratégie whale_tail en simulation memecoin.", "à mesurer")
 entry("C057", "PARTIELLE", [(SIM, "valuation"), (SIM, "refresh_round_trip")], ["tests/test_memecoin_valuation.py"], ["C054"],
@@ -331,33 +374,36 @@ entry("C059", "EXISTANTE_ET_TESTÉE", [(S + "dmh/smart_wallets.py", "recency_wei
 entry("C060", "PARTIELLE", [(S + "dmh/observe.py", "dex_vs_reference"), (S + "dmh/router.py", "build_routes")],
       ["tests/test_dmh_components.py", "tests/test_memecoin_routing.py"], [], "Un écart de prix entre pools signale une liquidité fragile.", "Comparaison à une référence ; pas de suivi multi-pools.", "à mesurer")
 # --- Exécution et sorties fictives ---------------------------------------------------------------------------------------
-entry("C061", "PARTIELLE", [(S + "costs/venues.py", "binance_spot_vip0"), (S + "costs/venues.py", "FeeSchedule"), (S + "costs/evidence.py", "Value")],
-      ["tests/test_costs_engine.py", "tests/test_costs_protocol.py"], [],
+entry("C061", "EXISTANTE_ET_TESTÉE", [(FRA, "fee_table"), (FRA, "replay"), (S + "costs/venues.py", "binance_spot_vip0")],
+      ["tests/test_scalp_frais.py", "tests/test_costs_engine.py"], [],
       "Des frais datés par instrument changent le classement des stratégies par rapport à un frais constant.",
-      "Grille VIP 0 datée et sourcée ; les backtests du moteur court terme utilisent des frais constants (0,075 %).", "à mesurer")
-entry("C062", "PARTIELLE", [(S + "costs/venues.py", "MarketFilters"), (S + "costs/venues.py", "parse_exchange_info"), (S + "costs/inventory.py", "round_trip"), (RISK, "RiskManager._minimum_qty")],
-      ["tests/test_costs_engine.py", "tests/test_principal_eur30.py"], [],
+      "Barème officiel binance.com : remise BNB 50 % puis 25 %, BTC/USDT sans frais 2022-2023 ; 2019-2021 non attesté.", "utilité technique",
+      "research/scalp-v1/frais-dates-v1.json : écart < 0,001 %/sem ; sans BNB −0,013 %/sem sur B0 ; classement inchangé")
+entry("C062", "EXISTANTE_ET_TESTÉE", [(FAI, "check_entry"), (FAI, "study"), (S + "costs/venues.py", "parse_exchange_info"), (S + "costs/inventory.py", "round_trip"),
+                                      (RISK, "RiskManager._minimum_qty")], ["tests/test_scalp_faisabilite.py", "tests/test_costs_engine.py", "tests/test_execution_contract.py"], [],
       "Les minima de montant, de lot et de pas rendent certaines positions impossibles avec un petit capital.",
-      "Règles de marché lues sur la plateforme ; les simulations du moteur court terme ne les appliquent pas.", "à mesurer")
+      "Règles de marché publiques du jour appliquées à l'historique.", "utilité technique",
+      "research/scalp-v1/faisabilite-petit-capital-v1.json : à 30 €, 4 % des entrées de B1 et 73 % de celles de B0 faisables")
 entry("C063", "EXISTANTE_ET_TESTÉE", [(S + "costs/execution.py", "evaluate_sample"), (S + "execution/liquidity.py", "simulate_taker")],
       ["tests/test_costs_engine.py", "tests/test_liquidity_simulation.py"], ["C046"], "Les exécutions partielles réduisent le gain réalisable.", "Ruban de transactions public.", "utilité technique")
 entry("C064", "EXISTANTE_ET_TESTÉE", [(S + "costs/execution.py", "evaluate_sample"), (S + "dmh/observe.py", "Book.build")],
       ["tests/test_costs_engine.py", "tests/test_dmh_components.py"], [], "La latence dégrade le prix d'exécution.", "Ruban public, latence simulée.", "utilité technique")
 entry("C065", "EXISTANTE_ET_TESTÉE", [(SIM, "_causal"), (SIM, "execution_check"), (S + "execution/contract.py", "signal_time"), (CORE, "run")],
-      ["tests/test_memecoin_simulator.py", "tests/test_execution_contract.py", "tests/test_scalp_signaux.py"], [],
+      ["tests/test_memecoin_simulator.py", "tests/test_execution_contract.py", "tests/test_scalp_signaux.py", "tests/test_memecoin_engine.py", "tests/test_scalp_core.py"], [],
       "Une décision ne s'exécute jamais sur la cotation qui l'a déclenchée.", "Cotations datées ; ouverture suivante dans les backtests.", "utilité technique")
 entry("C066", "EXISTANTE_ET_TESTÉE", [(S + "dmh/observe.py", "MAX_AGE_MS"), (S + "dmh/observe.py", "Book.fresh")],
       ["tests/test_dmh_components.py", "tests/test_memecoin_quote_time.py"], [], "Refuser une cotation trop ancienne évite des exécutions irréalistes.", "Âge de la cotation mesuré.", "utilité technique")
-entry("C067", "PARTIELLE", [(S + "execution/contract.py", "stop_fill"), (S + "scalp/trade.py", "manage"), (CORE, "run")],
-      ["tests/test_execution_contract.py", "tests/test_scalp_lab.py", "tests/test_scalp_core.py"], ["C046"],
+entry("C067", "PARTIELLE", [(S + "scalp/trade.py", "manage"), (RSK, "stop_gaps"), (S + "execution/contract.py", "stop_fill")],
+      ["tests/test_scalp_risques.py", "tests/test_scalp_watchers.py", "tests/test_execution_contract.py"], ["C046"],
       "Un stop franchi par un écart s'exécute à l'ouverture ; en krach, la liquidité insuffisante aggrave la perte.",
-      "Écarts gérés ; le stop suiveur journalier du moteur est exécuté au prix du stop dans la journée, sans liquidité insuffisante simulée.", "à mesurer")
+      "Stops minute du moteur court terme (7 624) ; volume de la minute de sortie non conservé.", "utilité technique",
+      "research/scalp-v1/risques-extremes-v1.json : 7,6 % des stops avec écart, +0,055 R en moyenne ; liquidité insuffisante non mesurée")
 entry("C068", "EXISTANTE_ET_TESTÉE", [(STRAT, "ExitPolicy"), (STRAT, "exit_decision")], ["tests/test_memecoin_calibrator_stop.py", "tests/test_memecoin_simulator.py"], [],
       "Vendre une part à 1,25× puis par paliers améliore le rendement net.", "Simulation memecoin calibrée hors ligne.", "utilité technique")
-entry("C069", "EXISTANTE_ET_TESTÉE", [(S + "scalp/trade.py", "manage"), (SIM, "time_exit")], ["tests/test_scalp_lab.py", "tests/test_memecoin_simulator.py"], [],
+entry("C069", "EXISTANTE_ET_TESTÉE", [(S + "scalp/trade.py", "manage"), (SIM, "time_exit")], ["tests/test_scalp_lab.py", "tests/test_memecoin_simulator.py", "tests/test_scalp_watchers.py"], [],
       "Une durée maximale limite les positions immobilisées.", "Règles de sortie.", "utilité technique")
 entry("C070", "EXISTANTE_ET_TESTÉE", [(S + "costs/benefit.py", "net_edge"), (S + "scalp/brain.py", "PrincipalAI"), (S + "ai/model.py", "MetaModel.expected_r")],
-      ["tests/test_costs_engine.py", "tests/test_scalp_lab.py", "tests/test_ai_core.py"], [],
+      ["tests/test_costs_engine.py", "tests/test_scalp_lab.py", "tests/test_ai_core.py", "tests/test_scalp_desk.py", "tests/test_learning.py"], [],
       "N'entrer que si l'avantage espéré dépasse les coûts avec une marge améliore l'espérance nette.", "Coûts mesurés et hypothèses datées.", "avantage historique non démontré")
 # --- Gestion des risques -------------------------------------------------------------------------------------------------
 entry("C071", "EXISTANTE_ET_TESTÉE", [(RISK, "RiskManager.evaluate_entry"), (S + "scalp/desk.py", "run")], ["tests/test_risk_agent_backtest.py", "tests/test_scalp_desk.py"], [],
@@ -366,8 +412,10 @@ entry("C072", "EXISTANTE_ET_TESTÉE", [(RISK, "RiskManager.evaluate_entry"), (RI
       "Le frein hebdomadaire (7 jours) n'est jamais dépassé.", "Journal fictif.", "utilité technique")
 entry("C073", "PARTIELLE", [(RISK, "RiskManager.evaluate_entry"), (STRAT, "RiskProfile")], ["tests/test_risk_agent_backtest.py", "tests/test_memecoin_profiles.py"], [],
       "Un plafond par stratégie limite la concentration du risque.", "Positions maximales et budgets par stratégie memecoin ; pas de plafond par stratégie dans le moteur court terme.", "utilité technique")
-entry("C074", "ABSENTE", [], [], ["C026"], "Plafonner l'exposition aux actifs corrélés (même grappe) réduit les baisses sans réduire le rendement net.",
-      "Corrélations calculables sur les bougies ; aucune grappe ni plafond.", "à mesurer", "le moteur court terme ne limite qu'à une position par crypto")
+entry("C074", "EXPÉRIMENT_REJETÉ", [(RSK, "cluster_cap"), (RSK, "top_k")], ["tests/test_scalp_risques.py"], ["C026"],
+      "Plafonner l'exposition aux actifs corrélés réduit les baisses sans réduire le rendement net.",
+      "Au plus 3 positions corrélées à plus de 0,8 sur 60 jours, témoin à nombre de positions égal.", "rejet",
+      "research/scalp-v1/risques-extremes-v1.json : baisse de B0 60 → 66 %, pas mieux que son témoin")
 entry("C075", "PARTIELLE", [(STRAT, "kelly"), (STRAT, "confidence"), (S + "costs/benefit.py", "net_edge")], ["tests/test_memecoin_calibrator_kelly.py", "tests/test_costs_engine.py"], [],
       "Une mise réduite quand l'incertitude est grande réduit les baisses.", "Kelly plafonné et confiance (memecoin) ; absent du moteur court terme.", "à mesurer")
 entry("C076", "EXISTANTE_ET_TESTÉE", [(CORE, "run"), (SIG, "positions")], ["tests/test_scalp_core.py", "tests/test_scalp_signaux.py"], [],
@@ -378,23 +426,28 @@ entry("C077", "EXISTANTE_ET_TESTÉE", [(RECH, "brake_returns"), (RISK, "RiskMana
 entry("C078", "PARTIELLE", [(S + "costs/measure.py", "stress_states"), (S + "dmh/memecoin_calibrator.py", "MemecoinCalibrator")],
       ["tests/test_costs_measure.py", "tests/test_memecoin_calibrator.py"], ["C046"], "Une liquidité dégradée augmente le coût de sortie au-delà du plafond de risque.",
       "Stress mesurés (coûts) et banc memecoin ; pas de stress de liquidité du moteur court terme.", "à mesurer")
-entry("C079", "PARTIELLE", [(SIG, "stability"), (S + "dmh/memecoin_calibrator.py", "MemecoinCalibrator")], ["tests/test_scalp_signaux.py", "tests/test_paired_crash.py"], ["C067", "C078"],
-      "Les scénarios extrêmes (krach de 2018, 2022, LUNA, FTT) restent sous le plafond de perte.",
-      "Rendement en marché baissier publié (BTC à plus de 30 % sous son plus haut) ; pas de scénarios dédiés au moteur court terme.", "à mesurer")
+entry("C079", "EXISTANTE_ET_TESTÉE", [(RSK, "worst_windows"), (RSK, "window_return"), (SIG, "stability")], ["tests/test_scalp_risques.py", "tests/test_scalp_signaux.py"],
+      ["C067", "C078"], "Les scénarios extrêmes restent sous le plafond de perte.",
+      "10 pires semaines du BTC 2018-2026 et choc instantané de −30 % ; invariant sans levier.", "utilité technique",
+      "research/scalp-v1/risques-extremes-v1.json : B1 ≥ −4,9 % sur les 10 pires semaines ; choc : B0 −30 %, B1 −10,3 % au pire")
 entry("C080", "PARTIELLE", [(SIM, "_buy"), (STRAT, "RiskProfile")], ["tests/test_memecoin_profiles.py", "tests/test_memecoin_simulator.py"], [],
       "Une réserve minimale de liquidités n'est jamais entamée.", "Réserve par profil memecoin ; le moteur court terme peut être investi à 100 %.", "utilité technique")
 # --- Apprentissage et orchestration --------------------------------------------------------------------------------------
 entry("C081", "EXISTANTE_ET_TESTÉE", [(S + "ai/labeling.py", "label_candidates"), (S + "scalp/barriers.py", "simulate"), (S + "scalp/features.py", "compute")],
-      ["tests/test_ai_core.py", "tests/test_scalp_lab.py", "tests/test_validation_leakage.py"], [],
+      ["tests/test_ai_core.py", "tests/test_scalp_lab.py", "tests/test_validation_leakage.py", "tests/test_scalp_watchers.py"], [],
       "Étiquettes et caractéristiques n'utilisent que le passé (aucun regard en avant).", "Bougies vérifiées.", "utilité technique")
-entry("C082", "EXISTANTE_ET_TESTÉE", [(S + "ai/model.py", "MetaModel.fit_calibration"), (S + "ai/model.py", "MetaModel.calibrate"), (S + "scalp/brain.py", "PrincipalAI")],
-      ["tests/test_holdout_boundary_audit.py", "tests/test_learning.py", "tests/test_scalp_desk.py"], ["C093"], "Les probabilités calibrées hors échantillon sont fiables (diagramme de fiabilité, Brier).",
-      "Calibration de Platt et isotonique ; fiabilité hors échantillon non publiée.", "à mesurer")
-entry("C083", "EXISTANTE_ET_TESTÉE", [(S + "scalp/brain.py", "PrincipalAI"), (S + "ai/model.py", "MetaModel.predict")], ["tests/test_scalp_desk.py", "tests/test_learning.py"], ["C082"],
-      "S'abstenir quand l'espérance calibrée ne dépasse pas le coût améliore l'espérance des trades pris.",
-      "Marge d'abstention 0,10 R ; l'IA principale fait à peine mieux que le hasard (RESULTATS §10).", "avantage historique non démontré")
-entry("C084", "ABSENTE", [], [], ["C082"], "Une dérive des données détectée tôt évite d'appliquer un modèle hors de son domaine.",
-      "Aucun détecteur (la dérive mesurée dans dmh concerne le prix à l'exécution).", "à mesurer")
+entry("C082", "EXPÉRIMENT_REJETÉ", [(S + "ai/model.py", "MetaModel.fit_calibration"), (S + "scalp/brain.py", "PrincipalAI"), (CAL, "brier"), (CAL, "ece")],
+      ["tests/test_scalp_calibration.py", "tests/test_scalp_desk.py", "tests/test_learning.py"], ["C093"],
+      "Les probabilités calibrées hors échantillon sont plus fiables que le taux de gain appris.",
+      "15 613 alertes jugées mois par mois (2024-01 → 2026-08).", "rejet",
+      "research/scalp-v1/calibration-v1.json : compétence −3,3 % [−6,1 ; −0,5] ; recalage isotonique trop confiant aux extrêmes ; correction soumise à préenregistrement et validation humaine")
+entry("C083", "EXISTANTE_ET_TESTÉE", [(S + "scalp/brain.py", "PrincipalAI"), (CAL, "abstention_gain")], ["tests/test_scalp_calibration.py", "tests/test_scalp_desk.py"], ["C082"],
+      "S'abstenir quand les deux modèles de l'IA divergent améliore l'espérance des trades pris.",
+      "Désaccord |arbres − linéaire| > 0,20 fixé a priori.", "avantage historique non démontré", "research/scalp-v1/calibration-v1.json : +0,017 R, non significatif")
+entry("C084", "EXISTANTE_ET_TESTÉE", [(CAL, "psi"), (CAL, "walk_forward")], ["tests/test_scalp_calibration.py"], ["C082"],
+      "Une dérive des données détectée tôt signale les mois où le modèle se dégrade.",
+      "PSI par caractéristique (déciles de l'apprentissage).", "utilité technique",
+      "research/scalp-v1/calibration-v1.json : dérive dans les 32 mois (variables de régime) ; lien avec la dégradation du Brier non significatif")
 entry("C085", "ABSENTE", [], [], ["C021", "C024"], "Des spécialistes légers par régime battent un modèle unique.", "Non implémenté.", "à mesurer")
 entry("C086", "ABSENTE", [], [], [], "Retirer les caractéristiques redondantes stabilise le modèle.", "Non implémenté.", "à mesurer")
 entry("C087", "EXISTANTE_ET_TESTÉE", [(S + "scalp/brain.py", "PrincipalAI"), (S + "ai/bench.py", "run_bench")], ["tests/test_scalp_desk.py", "tests/test_learning.py"], [],
@@ -407,35 +460,38 @@ entry("C090", "EXISTANTE_ET_TESTÉE", [(S + "services/champion.py", "register_pa
       ["tests/test_champion_integration.py", "tests/test_production_evidence.py"], [],
       "La comparaison champion/challenger préenregistrée reste en simulation, sans promotion automatique.", "Prévisions appariées préenregistrées.", "utilité technique")
 # --- Preuves et exploitation ---------------------------------------------------------------------------------------------
-entry("C091", "PARTIELLE", [(RECH, "point_in_time_members"), (RECH, "cut_at_break"), (RECH, "published_range"), (SIG, "members")],
+entry("C091", "EXISTANTE_ET_TESTÉE", [(RECH, "point_in_time_members"), (RECH, "cut_at_break"), (RECH, "splice"), (RECH, "link_chain"), (SIG, "members")],
       ["tests/test_scalp_recherche.py", "tests/test_scalp_signaux.py"], [],
       "Un univers défini à la date fait disparaître l'avantage des listes choisies après coup.",
-      "42 candidates (disparues comprises), LUNA coupée (#145) ; restent : MATIC → POL non relié, liste de candidates dressée en 2026.", "utilité technique",
-      "#144 : v10 passe de +0,94 % à +0,28 %/semaine")
-entry("C092", "PARTIELLE", [(SIG, "load_bars"), (S + "scalp/data.py", "_fetch_verified")], ["tests/test_active_time_journal.py", "tests/test_configurable_capital.py"], [],
+      "42 candidates (disparues comprises), LUNA coupée (#145), 5 liens d'identité officiels vérifiés à la minute (#153) ; liste de candidates dressée en 2026.", "utilité technique",
+      "#144 : v10 passe de +0,94 % à +0,28 %/semaine ; research/scalp-v1/continuite-actifs-v1.json : raccord non significatif")
+entry("C092", "PARTIELLE", [(SIG, "load_bars"), (S + "scalp/data.py", "_fetch_verified")], ["tests/test_active_time_journal.py", "tests/test_configurable_capital.py", "tests/test_scalp_lab.py"], [],
       "Le registre des essais et les empreintes rendent chaque résultat rejouable et non modifiable.",
       "trials.jsonl en ajout seul par convention (aucun test ne l'impose) ; empreintes SHA-256 des archives ; gel #54/#55 testé.", "utilité technique")
 entry("C093", "EXISTANTE_ET_TESTÉE", [(S + "ai/trainer.py", "train_walk_forward"), (RECH, "walk_forward"), (S + "scalp/brain.py", "PrincipalAI")],
-      ["tests/test_learning.py", "tests/test_scalp_recherche.py", "tests/test_validation_leakage.py"], [], "La validation purgée avec embargo empêche toute fuite.",
+      ["tests/test_learning.py", "tests/test_scalp_recherche.py", "tests/test_validation_leakage.py", "tests/test_scalp_desk.py"], [], "La validation purgée avec embargo empêche toute fuite.",
       "Fenêtres chronologiques purgées ; embargo d'un jour.", "utilité technique")
 entry("C094", "EXISTANTE_ET_TESTÉE", [(ESS, "holm"), (ESS, "benjamini_hochberg"), (ESS, "deflated_sharpe"), (ESS, "bootstrap_pvalue")],
       ["tests/test_scalp_essais.py"], ["C096"], "Après correction des essais multiples, l'avantage apparent disparaît-il ?",
       "#147 : aucune des 11 familles significative à 5 % (Holm, BH) ; DSR publiés.", "utilité technique")
-entry("C095", "PARTIELLE", [(SIG, "run"), (MOT, "unify")], ["tests/test_scalp_signaux.py", "tests/test_scalp_moteur.py"], ["C094", "C096"],
+entry("C095", "EXISTANTE_ET_TESTÉE", [(ABL, "compare"), (ABL, "adjust"), (ABL, "weekly_pairs")], ["tests/test_scalp_ablation.py"], ["C094", "C096"],
       "Chaque capacité se compare avec et sans elle, à capital, univers, période et coûts identiques.",
-      "Comparaisons ponctuelles (filtre de l'élan, transferts entre poches) ; aucun outil d'ablation générique.", "utilité technique")
+      "Outil d'ablation générique : mêmes jours exigés, intervalle par blocs de 4 semaines, Holm.", "utilité technique", "research/scalp-v1/ablation-v1.json (#149)")
 entry("C096", "EXISTANTE_ET_TESTÉE", [(SIG, "edge"), (ESS, "bootstrap_pvalue"), (S + "costs/stats.py", "cluster_bootstrap"), (S + "ai/metrics.py", "lower_bound")],
-      ["tests/test_scalp_signaux.py", "tests/test_scalp_essais.py", "tests/test_costs_measure.py"], [], "Les intervalles par blocs tiennent compte de la dépendance temporelle.",
+      ["tests/test_scalp_signaux.py", "tests/test_scalp_essais.py", "tests/test_costs_measure.py", "tests/test_ai_learning.py"], [], "Les intervalles par blocs tiennent compte de la dépendance temporelle.",
       "Blocs circulaires de 20 jours ; grappes de dates.", "utilité technique")
-entry("C097", "PARTIELLE", [(SIG, "run"), (S + "scalp/reserve.py", "sensitivity"), (S + "costs/measure.py", "stress_states")],
-      ["tests/test_scalp_signaux.py", "tests/test_scalp_reserve.py", "tests/test_costs_measure.py"], ["C041", "C061"],
-      "Le classement des stratégies résiste au doublement des frais, de l'écart et du glissement.", "Stress à 0,25 % par côté publié ; pas de grille de stress générique.", "utilité technique")
-entry("C098", "PARTIELLE", [(S + "costs/inventory.py", "round_trip"), (S + "dmh/ledger.py", "Ledger")], ["tests/test_principal_eur30.py", "tests/test_costs_engine.py"], ["C062"],
+entry("C097", "EXISTANTE_ET_TESTÉE", [(ABL, "stress")], ["tests/test_scalp_ablation.py"], ["C041", "C061"],
+      "Le classement des stratégies résiste au doublement des frais, de l'écart et du glissement.", "Niveaux × 1, × 2, × 3, × 3 + écart de 0,10 %.", "utilité technique",
+      "research/scalp-v1/ablation-v1.json : B0 bat l'univers à chaque niveau ; B1 perd son avantage sur les fonds à × 3 + écart")
+entry("C098", "PARTIELLE", [(FAI, "study"), (S + "costs/inventory.py", "round_trip"), (S + "dmh/ledger.py", "Ledger")],
+      ["tests/test_scalp_faisabilite.py", "tests/test_dmh_components.py"], ["C062"],
       "Avec 30 € fictifs, les minima d'ordre et les frais fixes rendent la stratégie faisable ou non ; idem avec des fonds UCITS.",
-      "Portefeuille de 30 € et minima pour le hub ; aucun équivalent UCITS testé.", "à mesurer")
-entry("C099", "PARTIELLE", [(S + "costs/measure.py", "bar_touch_optimism"), (S + "scalp/reserve.py", "measured_slippage")], ["tests/test_costs_measure.py", "tests/test_scalp_reserve.py"], ["C041"],
-      "Le prix simulé (ouverture de la bougie) s'écarte du prix accessible au carnet d'un montant mesurable.",
-      "Un seul instantané de carnet (23 novembre 2026) ; optimisme des contacts de bougie mesuré pour le plan de coûts.", "à mesurer")
+      "Capitaux de 30 € à 10 000 € convertis au cours EUR/USDT du jour.", "utilité technique",
+      "research/scalp-v1/faisabilite-petit-capital-v1.json : faisable à partir d'environ 1 000 € ; fonds UCITS NON MESURÉ")
+entry("C099", "PARTIELLE", [(OUV, "adverse_gap"), (OUV, "draw"), (S + "scalp/reserve.py", "measured_slippage")], ["tests/test_scalp_ouverture.py", "tests/test_scalp_reserve.py"], ["C041"],
+      "Le prix simulé (ouverture de la bougie) s'écarte du prix accessible d'un montant mesurable.",
+      "250 exécutions par stratégie, archives minute ; aucun carnet historique.", "utilité technique",
+      "research/scalp-v1/ecart-ouverture-v1.json : 1 à 1,7 pb en moyenne la 1re minute, p95 20 à 24 pb ; écart achat-vente NON MESURÉ")
 entry("C100", "ABSENTE", [], [], ["C092", "C095"], "Une configuration figée garde son avantage sur 52 semaines d'observation fictive.",
       "Exige l'autorisation du propriétaire ; aucune observation démarrée.", "non évaluable", "décision du propriétaire")
 
@@ -503,6 +559,8 @@ def build() -> dict:
         items.append({"id": cid, "titre": titre, "domaine": DOMAINES[dom][0], "premiere_preuve_exigee": DOMAINES[dom][1], "priorite": prio,
                       "statut": e["statut"], "preuves": preuves, "tests": e["tests"], "dependances": e["dependances"],
                       "hypothese": e["hypothese"], "donnees": e["donnees"], "verdict": e["verdict"], "note": e["note"],
+                      "methode_validation": f"{METHODE} ; critère de preuve : {CRITERES[dom]}", "lot": LOTS.get(cid, "suivants (dépendances et valeur marginale)"),
+                      "valeur_ajoutee_attendue": f"{VALEUR[dom]} — attendue, non démontrée",
                       "integration_decision": "aucune sans approbation humaine"})
     counts = {s: sum(1 for i in items if i["statut"] == s) for s in STATUTS}
     return {"schema": "sentinelle-registre-capacites-v1", "source": "dossier du propriétaire C001–C100 (24 novembre 2026), docs/scalp/catalogue-C001-C100.md",
@@ -729,14 +787,17 @@ def baseline() -> dict:
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Registre de couverture des capacités C001–C100")
     ap.add_argument("--ecrire", action="store_true", help="réécrit research/scalp-v1/registre-capacites.json sur le code courant")
+    ap.add_argument("--nouveau-baseline", action="store_true", help="refige le baseline au commit courant (décision explicite)")
     ap.add_argument("--execution", action="store_true", help="rejoue les tests cités sous traceur et écrit la couverture effective")
     ap.add_argument("--tracer", nargs="+", metavar=("SORTIE", "TEST"), help=argparse.SUPPRESS)  # usage interne de trace()
     args = ap.parse_args(argv)
     if args.tracer:
         return _trace_run(args.tracer[0], args.tracer[1:])
     if args.ecrire:
+        previous = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else {}
         registry = build()
-        registry["baseline"] = baseline()
+        # Le baseline reste figé (SHA, empreintes, références) : seul « --nouveau-baseline » le refige, par décision explicite.
+        registry["baseline"] = baseline() if args.nouveau_baseline or "baseline" not in previous else previous["baseline"]
         OUT.write_text(json.dumps(registry, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     if args.execution:
         registry = measure_execution(json.loads(OUT.read_text(encoding="utf-8")))
