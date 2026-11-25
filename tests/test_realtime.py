@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from sentinelle.config import DEFAULT_SETTINGS, apply_update
-from sentinelle.market.context import ContextService, fetch_calendar
+from sentinelle.market.context import ContextService, fetch_calendar, funding_comment
 from sentinelle.market.sources import SyntheticSource
 from sentinelle.news.service import NewsService, similarity, tokens
 from sentinelle.risk.shield import Shield
@@ -354,3 +354,9 @@ def test_existing_settings_receive_official_feeds_once(tmp_path):
         assert feeds[:2] == ["https://cointelegraph.com/rss", "https://mon-flux.example/rss"]  # vos flux sont gardés
         assert feeds[2:] == OFFICIAL_FEEDS and len(feeds) == len(set(feeds))
         app.db.close()
+
+
+def test_funding_comment_reads_the_rate_thresholds():
+    assert funding_comment(0.0004) == "euphorie (beaucoup d'acheteurs à levier)"
+    assert funding_comment(-0.0002) == "pessimisme (beaucoup de vendeurs à levier)"
+    assert funding_comment(0.0001) == funding_comment(0.0003) == funding_comment(-0.0001) == "équilibré"  # bornes incluses

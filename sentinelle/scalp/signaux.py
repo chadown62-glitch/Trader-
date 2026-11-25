@@ -28,7 +28,7 @@ import httpx
 import numpy as np
 import pandas as pd
 
-from . import actifs, moteur, recherche
+from . import actifs, data, moteur, recherche
 from .data import months, read_month
 
 DAY_MS = moteur.DAY_MS
@@ -49,9 +49,10 @@ BOOT_BLOCK, BOOT_DRAWS = 20, 2000
 
 # --- Données ------------------------------------------------------------------------------------------------------------
 
-def load_bars(symbol: str, cache_dir, client) -> tuple[pd.DataFrame, dict]:
+def load_bars(symbol: str, cache_dir, client, continuity: bool = False) -> tuple[pd.DataFrame, dict]:
     """Bougies journalières complètes (o, h, l, c, v, achats au marché), cryptos retirées comprises, coupées à une
-    recotation ; avec l'empreinte publiée de chaque archive lue."""
+    recotation ; avec l'empreinte publiée de chaque archive lue. « continuity » relie une paire renommée à ses
+    prédécesseurs et successeurs déclarés (C091, recherche.RENAMES) ; désactivé par défaut (résultats publiés inchangés)."""
     prev = (pd.Timestamp(LAST).replace(day=1) - pd.Timedelta(days=1)).strftime("%Y-%m")
     span = recherche.published_range(symbol, prev, client)
     if span is None:
@@ -74,8 +75,21 @@ def load_bars(symbol: str, cache_dir, client) -> tuple[pd.DataFrame, dict]:
     raw = pd.concat(frames, ignore_index=True)
     raw = raw.assign(day=raw["t"].astype("int64") // DAY_MS).drop_duplicates("day").set_index("day").sort_index()
     bars = raw.reindex(np.arange(raw.index[0], raw.index[-1] + 1))[["o", "h", "l", "c", "v", "taker_buy"]].astype(float)
+    links = []
+    if continuity:
+        reports = {}
+
+        def raw(sym):
+            b, reports[sym] = load_bars(sym, cache_dir, client)
+            return b
+
+        bars, links = recherche.link_chain(symbol, bars, raw)
+        for x in links:
+            other = x["ancienne"] if x["sens"] == "prédécesseur" else x["nouvelle"]
+            if x["statut"] == "relié":
+                files += [[f"{other} {p}", sha] for p, sha in reports[other]["files"]]
     bars, cut = recherche.cut_at_break(bars)
-    return bars, {"symbol": symbol, "listed": first, "last_month": last, "missing_periods": missing,
+    return bars, {"symbol": symbol, "listed": first, "last_month": last, "missing_periods": missing, "raccords": links,
                   "days_without_quote": int(bars["c"].isna().sum()), "files": files,
                   "cut_at": str(pd.to_datetime(cut * DAY_MS, unit="ms").date()) if cut else None}
 
@@ -461,13 +475,90 @@ def run(p: dict, prices: pd.DataFrame) -> dict:
     return out
 
 
+def minute_check(old: str, rename: dict, cache_dir, client) -> dict:
+    """Arrêt et ouverture annoncés confrontés aux archives minute publiées (empreintes vérifiées) : dernière minute
+    échangée de l'ancienne paire avant l'arrêt, première minute de la nouvelle à l'ouverture, cours au ratio annoncé."""
+    stop, start = pd.Timestamp(rename["arret_utc"]), pd.Timestamp(rename["ouverture_utc"])
+    a = read_month(data.download_day(old, str(stop.date()), cache_dir, client=client))
+    b = read_month(data.download_day(rename["nouvelle"], str(start.date()), cache_dir, client=client))
+    a = a[a["v"] > 0]
+    last, first = int(a["t"].iloc[-1]), int(b["t"].iloc[0])
+    stop_ms, start_ms = stop.value // 1_000_000, start.value // 1_000_000
+    return {"derniere_minute_ancienne_utc": str(pd.to_datetime(last, unit="ms")), "premiere_minute_nouvelle_utc": str(pd.to_datetime(first, unit="ms")),
+            "arret_annonce_utc": rename["arret_utc"], "ouverture_annoncee_utc": rename["ouverture_utc"],
+            "conforme": bool(stop_ms - 5 * data.MINUTE_MS <= last < stop_ms and first == start_ms),
+            "ecart_prix_minute": round(float(b["o"].iloc[0] / (a["c"].iloc[-1] / rename["ratio"]) - 1), 6),
+            "heures_sans_cotation": round((first - last - data.MINUTE_MS) / 3_600_000, 2)}
+
+
+def continuity_study(cache_dir, client) -> dict:
+    """C091 : liens d'identité déclarés (recherche.RENAMES) vérifiés à la minute, puis effet du raccord sur B0 et B1 à
+    conditions identiques (mêmes jours, coûts et règles), mesuré avec l'outil d'ablation (C095)."""
+    from . import ablation
+
+    checks = {old: minute_check(old, r, Path(cache_dir) / "1m-bornes", client) for old, r in recherche.RENAMES.items()}
+    involved = [c for c in recherche.CANDIDATES if c in recherche.RENAMES or c in recherche.PREDECESSORS]
+    prices = moteur.etf_prices(cache_dir, LAST)
+    runs = {}
+    for flag in (False, True):
+        with ThreadPoolExecutor(8) as pool:
+            loaded = dict(zip(recherche.CANDIDATES, pool.map(lambda s, flag=flag: load_bars(s, cache_dir, client, flag), recherche.CANDIDATES)))
+        p = panel(loaded)
+        member, r, fam = members(p), asset_returns(p), families(p)
+        first = moteur._day(FIRST)
+        grid = p["c"].index
+        vote = pd.DataFrame(np.stack([fam[n].to_numpy() for n in ("F1_momentum", "F6_volume_pression", "F8_momentum_ajuste")]).sum(axis=0) >= 2,
+                            index=grid, columns=p["c"].columns)
+        rg = etf_returns(prices, grid).loc[first:]
+        month = pd.to_datetime(member.loc[first:].index.to_numpy() * DAY_MS, unit="ms").strftime("%Y-%m")
+        runs[flag] = {"b0": net(fam["F1_momentum"], member, p, r, COST)[0].loc[first:],
+                      "b1": mix(net(vote, member, p, r, COST, 0.30)[0].loc[first:], rg), "btc": p["c"]["BTCUSDT"],
+                      "mois": {s: int(member.loc[first:, s].groupby(month).any().sum()) for s in involved},
+                      "raccords": {s: loaded[s][1]["raccords"] for s in involved}}
+    rows = ablation.adjust([
+        ablation.compare(runs[False]["b0"], runs[True]["b0"], label="C091 raccord des paires renommées, B0 (momentum simple)", costs="0,125 %/côté",
+                         btc_close=runs[True]["btc"]),
+        ablation.compare(runs[False]["b1"], runs[True]["b1"], label="C091 raccord des paires renommées, B1 (vote, volatilité visée, fonds)",
+                         costs="0,125 %/côté ; fonds 0,10 %", btc_close=runs[True]["btc"])])
+    return {"schema": "scalp-continuite-actifs-v1", "status": "mesure sur historique déjà consulté ; protocole préenregistré ; raccord désactivé par défaut",
+            "capacites": ["C091"], "liens_declares": recherche.RENAMES, "verification_minute": checks, "non_relies": recherche.NOT_SPLICED,
+            "raccords": runs[True]["raccords"], "mois_dans_l_univers_sans_raccord": runs[False]["mois"],
+            "mois_dans_l_univers_avec_raccord": runs[True]["mois"], "ablations": rows,
+            "traitement_de_l_interruption": "pendant l'arrêt de cotation, une position détenue est soldée au dernier cours de l'ancienne paire "
+                                            "(frais de sortie et de réentrée payés) ; un détenteur réel aurait reçu la nouvelle paire au ratio "
+                                            "annoncé, sans frais : traitement prudent"}
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Étude des familles de signaux (simulation exclusive)")
     ap.add_argument("--cache", default="data/scalp-cache")
     ap.add_argument("--out", default="research/scalp-v1/signaux-v1.json")
     ap.add_argument("--trials", default="research/scalp-v1/trials.jsonl")
+    ap.add_argument("--continuite", action="store_true", help="C091 : effet du raccord des paires renommées (MATIC → POL, EOS → A)")
     args = ap.parse_args(argv)
     t0 = time.time()
+    if args.continuite:
+        with httpx.Client(timeout=60, follow_redirects=True, headers={"User-Agent": "sentinelle-simulation"}) as client:
+            out = continuity_study(args.cache, client)
+        out["seconds"] = round(time.time() - t0)
+        for x in out["ablations"]:
+            print(f"{x['ablation']:70} écart {x['ecart_hebdo_moyen_pct']:+.4f} %/sem IC [{x['ic95_pct'][0]:+.4f} ; {x['ic95_pct'][1]:+.4f}] "
+                  f"Holm {x['p_holm']:.3f} | baisse {x['sans']['max_drawdown_pct']:.1f} → {x['avec']['max_drawdown_pct']:.1f} %")
+        for old, chk in out["verification_minute"].items():
+            print(f"{old} → {recherche.RENAMES[old]['nouvelle']} : conforme {chk['conforme']}, dernière minute {chk['derniere_minute_ancienne_utc']}, "
+                  f"première {chk['premiere_minute_nouvelle_utc']}, écart de prix {chk['ecart_prix_minute']:+.4f}")
+        for sym, links in out["raccords"].items():
+            print(sym, [(x["ancienne"], x["nouvelle"], x["statut"], x.get("raisons")) for x in links])
+        print("mois dans l'univers :", out["mois_dans_l_univers_sans_raccord"], "→", out["mois_dans_l_univers_avec_raccord"])
+        path = Path(args.out).with_name("continuite-actifs-v1.json")
+        path.write_text(json.dumps(out, ensure_ascii=False, default=float) + "\n", encoding="utf-8")
+        if args.trials:
+            with open(args.trials, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "continuite-actifs-v1",
+                                     "ablations": {x["ablation"]: {"ecart_hebdo_moyen_pct": x["ecart_hebdo_moyen_pct"], "ic95_pct": x["ic95_pct"],
+                                                                   "p_holm": x["p_holm"]} for x in out["ablations"]}},
+                                    ensure_ascii=False, default=float) + "\n")
+        return out
     with httpx.Client(timeout=60, follow_redirects=True, headers={"User-Agent": "sentinelle-simulation"}) as client:
         with ThreadPoolExecutor(8) as pool:
             loaded = dict(zip(recherche.CANDIDATES, pool.map(lambda s: load_bars(s, args.cache, client), recherche.CANDIDATES)))

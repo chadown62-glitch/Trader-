@@ -43,7 +43,32 @@
    "donnees": "8 sources publiques, archive SQLite en ajout seul depuis le 23 novembre 2026 ; veille bornée de 20 minutes publiée.",
    "verdict": "à mesurer",
    "note": "réception→marché absent ; archive trop jeune",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "Archive.latency",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "poll",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "Archive.add",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C002",
@@ -84,7 +109,38 @@
    "donnees": "Titres et résumés des flux publics ; aucun échantillon annoté pour mesurer l'exactitude.",
    "verdict": "utilité technique",
    "note": "exactitude du classement non mesurée ; faux positif connu (ancien piratage Binance)",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "classify",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "RULES",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/news/service.py",
+      "symbole": "validate_analysis",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "event_type",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C003",
@@ -121,7 +177,32 @@
    "donnees": "Symboles dans les titres ; identité réseau+adresse côté memecoins (dmh).",
    "verdict": "à mesurer",
    "note": "association par symbole seulement dans flash.py",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "classify",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/service.py",
+      "symbole": "NewsService._allowed_assets",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/dmh/tokens.py",
+      "symbole": "TokenRegistry",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C004",
@@ -151,7 +232,26 @@
    "donnees": "Fiabilité mesurée seulement pour les canaux Telegram en observation, pas pour les flux d'actualité.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/news/signals.py",
+      "symbole": "SignalWatcher",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/signals.py",
+      "symbole": "simulate_signal",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C005",
@@ -199,7 +299,44 @@
    "donnees": "flash.py ne déduplique qu'à l'intérieur d'une source (identifiant ou lien).",
    "verdict": "à mesurer",
    "note": "pas de déduplication inter-sources dans flash.py",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/news/service.py",
+      "symbole": "similarity",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/service.py",
+      "symbole": "NewsService._copy_from_cluster",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "cluster_key",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "dependent",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "Archive.add",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C006",
@@ -236,7 +373,32 @@
    "donnees": "Calendrier public (consensus) et séries BLS officielles, en observation fantôme ; aucune mesure d'effet.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "surprise_at",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "bls_series",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "difference",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C007",
@@ -269,7 +431,26 @@
    "donnees": "Aucun historique d'actualités ; l'archive existe depuis le 23 novembre 2026 : pas assez d'événements.",
    "verdict": "non évaluable",
    "note": "outil d'étude d'événements absent ; données insuffisantes",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "Archive",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/store.py",
+      "symbole": "ShadowStore",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C008",
@@ -305,7 +486,32 @@
    "donnees": "Fenêtres fixes de 24 h et 6 h datées à la publication ; aucune décroissance.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "VETO_ASSET_MS",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "VETO_MARKET_MS",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "Archive.vetoes",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C009",
@@ -342,7 +548,32 @@
    "donnees": "Classement par mots-clés et IA locale ; effet non mesuré.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "classify",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "Archive.vetoes",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield._major_news",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C010",
@@ -379,7 +610,32 @@
    "donnees": "Le bouclier bloque les nouvelles entrées pendant les à-coups ; pas d'attente explicite de réaction initiale.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield.check_entry",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield.microstructure",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/macro.py",
+      "symbole": "blackout",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C011",
@@ -410,7 +666,26 @@
    "donnees": "Calendrier et BLS en observation fantôme.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "surprise_at",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "bls_series",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C012",
@@ -441,7 +716,26 @@
    "donnees": "Révisions non suivies.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "surprise_at",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "bls_series",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C013",
@@ -478,7 +772,32 @@
    "donnees": "Flux de communiqués de la Fed ; fenêtre de pause macro ; effet non mesuré.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "SOURCES",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/risk/macro.py",
+      "symbole": "events",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/macro.py",
+      "symbole": "blackout",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C014",
@@ -507,7 +826,26 @@
    "donnees": "Cours des fonds IEF et TLT (Yahoo) ; pas de série de rendements ni de signal.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/actifs.py",
+      "symbole": "UNIVERSE",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/scalp/actifs.py",
+      "symbole": "month_end_signals",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C015",
@@ -536,7 +874,26 @@
    "donnees": "DXY affiché (Yahoo), non utilisé ni mesuré.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "non constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/market/context.py",
+      "symbole": "INDICES",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/market/context.py",
+      "symbole": "fetch_index",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C016",
@@ -565,7 +922,26 @@
    "donnees": "VIX affiché (Yahoo), non utilisé ni mesuré.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "non constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/market/context.py",
+      "symbole": "INDICES",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/market/context.py",
+      "symbole": "fetch_index",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C017",
@@ -584,7 +960,13 @@
    "donnees": "Aucune donnée sectorielle intégrée.",
    "verdict": "non évaluable",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C018",
@@ -600,7 +982,13 @@
    "donnees": "Aucune source intégrée ; sources publiques à vérifier (licence, horodatage).",
    "verdict": "non évaluable",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C019",
@@ -616,7 +1004,13 @@
    "donnees": "Aucune source publique horodatée et à licence claire identifiée.",
    "verdict": "non évaluable",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C020",
@@ -656,7 +1050,38 @@
    "donnees": "Calendrier public ; effet non mesuré.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/macro.py",
+      "symbole": "blackout",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/macro.py",
+      "symbole": "upcoming",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/market/context.py",
+      "symbole": "fetch_calendar",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager.evaluate_entry",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C021",
@@ -695,7 +1120,32 @@
    "donnees": "Bougies journalières vérifiées ; les filtres de tendance testés (F2, F3, F10) n'ont pas d'avantage démontré.",
    "verdict": "avantage historique non démontré",
    "note": "pas de classificateur tendance/range explicite",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/core.py",
+      "symbole": "signals",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "market_regime",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C022",
@@ -713,7 +1163,13 @@
    "donnees": "Calculable sur l'univers à la date existant.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C023",
@@ -737,7 +1193,20 @@
    "donnees": "ADX non implémenté (ATR, RSI, MACD, EMA existent).",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/ai/indicators.py",
+      "symbole": "atr",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C024",
@@ -773,7 +1242,32 @@
    "donnees": "F9 (volatilité calme) sans avantage ; ciblage de volatilité mesuré (baisse divisée par plus de 2).",
    "verdict": "avantage historique non démontré",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/core.py",
+      "symbole": "run",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield._evaluate_volatility",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C025",
@@ -792,7 +1286,13 @@
    "donnees": "Aucun détecteur.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C026",
@@ -822,7 +1322,26 @@
    "donnees": "Lien avec le BTC sur tout l'historique (fiche) et contexte BTC court terme ; aucune corrélation glissante.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/ai/knowledge.py",
+      "symbole": "compute_profile",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/features.py",
+      "symbole": "compute",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C027",
@@ -851,7 +1370,26 @@
    "donnees": "OKX public, observation seulement.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "non constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/market/context.py",
+      "symbole": "fetch_funding",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/market/context.py",
+      "symbole": "funding_comment",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C028",
@@ -880,7 +1418,26 @@
    "donnees": "Liquidations suivies ; open interest absent.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield.poll_liquidations",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield._evaluate_cascade",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C029",
@@ -905,7 +1462,20 @@
    "donnees": "Heure dans les caractéristiques ; aucune étude calendaire.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/features.py",
+      "symbole": "compute",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C030",
@@ -949,7 +1519,38 @@
    "donnees": "Filtre BTC, marge d'abstention de l'IA et motifs d'abstention publiés ; diagnostic temporel de F7 non significatif.",
    "verdict": "avantage historique non démontré",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/core.py",
+      "symbole": "signals",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/brain.py",
+      "symbole": "PrincipalAI",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "abstention",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "timing_edge",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C031",
@@ -965,7 +1566,13 @@
    "donnees": "Non implémenté.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C032",
@@ -989,7 +1596,20 @@
    "donnees": "signaux-v1 : écart +0,071 %/j, IC [−0,058 ; +0,206], non significatif.",
    "verdict": "rejet",
    "note": "research/scalp-v1/signaux-v1.json (F3)",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "_trendline",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C033",
@@ -1015,7 +1635,20 @@
    "donnees": "signaux-v1 : F4 (résistance 20 j) et F5 (support EMA 20) sans avantage.",
    "verdict": "rejet",
    "note": "zones par regroupement de pivots non testées ; research/scalp-v1/signaux-v1.json (F4, F5)",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C034",
@@ -1033,7 +1666,13 @@
    "donnees": "Non implémenté.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C035",
@@ -1064,7 +1703,26 @@
    "donnees": "signaux-v1 : F11, écart +0,038 %/j, IC [−0,060 ; +0,140].",
    "verdict": "rejet",
    "note": "research/scalp-v1/signaux-v1.json (F11)",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "_breakout_state",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C036",
@@ -1089,7 +1747,20 @@
    "donnees": "Position et hauteur du range dans les caractéristiques courtes ; aucune étude.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/features.py",
+      "symbole": "compute",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C037",
@@ -1119,7 +1790,26 @@
    "donnees": "signaux-v1 : F9 sans avantage ; veilleur « squeeze » du court terme, perdant après frais.",
    "verdict": "rejet",
    "note": "research/scalp-v1/signaux-v1.json (F9)",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/watchers.py",
+      "symbole": "detect",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C038",
@@ -1143,7 +1833,20 @@
    "donnees": "RSI disponible ; divergences non implémentées.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/ai/indicators.py",
+      "symbole": "rsi",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C039",
@@ -1167,7 +1870,20 @@
    "donnees": "Veilleur « capitulation » du court terme, rejeté avec l'ensemble du court terme après frais.",
    "verdict": "avantage historique non démontré",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/watchers.py",
+      "symbole": "detect",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C040",
@@ -1191,7 +1907,20 @@
    "donnees": "signaux-v1 : F10, écart +0,023 %/j, IC [−0,057 ; +0,106].",
    "verdict": "rejet",
    "note": "research/scalp-v1/signaux-v1.json (F10)",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C041",
@@ -1221,7 +1950,26 @@
    "donnees": "Carnets publics datés ; instantané du 23 novembre 2026 publié.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/book.py",
+      "symbole": "measure",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "Book.half_spread_bps",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C042",
@@ -1247,7 +1995,20 @@
    "donnees": "Carnets disponibles en direct ; aucun historique de carnet archivé.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "Book",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C043",
@@ -1277,7 +2038,26 @@
    "donnees": "signaux-v1 F6 : p brute 0,0125, Holm 0,137 (#147) : non significatif après correction.",
    "verdict": "avantage historique non démontré",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/features.py",
+      "symbole": "compute",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C044",
@@ -1295,7 +2075,13 @@
    "donnees": "Calculable sur les bougies (achats au marché).",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C045",
@@ -1313,7 +2099,13 @@
    "donnees": "Exige un flux de carnet en continu, non archivé.",
    "verdict": "non évaluable",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C046",
@@ -1351,7 +2143,32 @@
    "donnees": "Carnets publics datés (sondes).",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/execution/liquidity.py",
+      "symbole": "simulate_taker",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/book.py",
+      "symbole": "measure",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/dmh/router.py",
+      "symbole": "walk",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C047",
@@ -1378,7 +2195,20 @@
    "donnees": "États de stress mesurés ; pas de modèle de glissement en fonction de la volatilité dans les backtests.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "non constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/measure.py",
+      "symbole": "stress_states",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C048",
@@ -1416,7 +2246,32 @@
    "donnees": "Devis Jupiter sans portefeuille ; carnets publics.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/established_pools.py",
+      "symbole": "round_trip",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/inventory.py",
+      "symbole": "round_trip",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/execution/liquidity.py",
+      "symbole": "simulate_taker",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C049",
@@ -1432,7 +2287,13 @@
    "donnees": "Non implémenté.",
    "verdict": "à mesurer",
    "note": "concerne directement l'univers à la date (C091)",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C050",
@@ -1462,7 +2323,26 @@
    "donnees": "Deuxième plateforme publique.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/market/crosscheck.py",
+      "symbole": "CrossChecker.check",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "consensus",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C051",
@@ -1492,7 +2372,26 @@
    "donnees": "Instantané à la détection ; aucun historique.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/established_pools.py",
+      "symbole": "MIN_AGE_MINUTES",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/dmh/established_pools.py",
+      "symbole": "prefilter",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C052",
@@ -1527,7 +2426,32 @@
    "donnees": "Rugcheck, instantané ; aucun historique.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/tokenrisk.py",
+      "symbole": "_rugcheck_holders",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/tokenrisk.py",
+      "symbole": "BENEFICIAL_MAX_TOP10",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/dmh/solana_scanner.py",
+      "symbole": "scan_once",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C053",
@@ -1557,7 +2481,26 @@
    "donnees": "Verrous connus exclus du calcul ; aucune surveillance dans le temps.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/tokenrisk.py",
+      "symbole": "_rugcheck",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/solana_scanner.py",
+      "symbole": "scan_once",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C054",
@@ -1587,7 +2530,26 @@
    "donnees": "Jupiter public.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/established_pools.py",
+      "symbole": "round_trip",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/dex.py",
+      "symbole": "jupiter_quote",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C055",
@@ -1621,7 +2583,32 @@
    "donnees": "GoPlus, Rugcheck ; Token-2022 refusé sauf métadonnées.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/tokenrisk.py",
+      "symbole": "_goplus_evm",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/dmh/tokenrisk.py",
+      "symbole": "assess_candidate",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/solana_scanner.py",
+      "symbole": "scan_once",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C056",
@@ -1653,7 +2640,26 @@
    "donnees": "Stratégie whale_tail en simulation memecoin.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "entry_signals",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "NAMES",
+      "nature": "définition",
+      "executee": null
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C057",
@@ -1684,7 +2690,26 @@
    "donnees": "Revente revérifiée ; aucun détecteur dédié aux retraits.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "valuation",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "refresh_round_trip",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C058",
@@ -1700,7 +2725,13 @@
    "donnees": "Non implémenté.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C059",
@@ -1731,7 +2762,26 @@
    "donnees": "Allers-retours WSOL clos, échantillons finalisés bornés.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/smart_wallets.py",
+      "symbole": "recency_weight",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/smart_wallets.py",
+      "symbole": "HALF_LIFE_S",
+      "nature": "définition",
+      "executee": null
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C060",
@@ -1761,7 +2811,26 @@
    "donnees": "Comparaison à une référence ; pas de suivi multi-pools.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "dex_vs_reference",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/router.py",
+      "symbole": "build_routes",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C061",
@@ -1796,7 +2865,32 @@
    "donnees": "Grille VIP 0 datée et sourcée ; les backtests du moteur court terme utilisent des frais constants (0,075 %).",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/venues.py",
+      "symbole": "binance_spot_vip0",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/venues.py",
+      "symbole": "FeeSchedule",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/evidence.py",
+      "symbole": "Value",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C062",
@@ -1836,7 +2930,38 @@
    "donnees": "Règles de marché lues sur la plateforme ; les simulations du moteur court terme ne les appliquent pas.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/venues.py",
+      "symbole": "MarketFilters",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/costs/venues.py",
+      "symbole": "parse_exchange_info",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/inventory.py",
+      "symbole": "round_trip",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager._minimum_qty",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C063",
@@ -1868,7 +2993,26 @@
    "donnees": "Ruban de transactions public.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/execution.py",
+      "symbole": "evaluate_sample",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/execution/liquidity.py",
+      "symbole": "simulate_taker",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C064",
@@ -1898,7 +3042,26 @@
    "donnees": "Ruban public, latence simulée.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/execution.py",
+      "symbole": "evaluate_sample",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "Book.build",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C065",
@@ -1939,7 +3102,38 @@
    "donnees": "Cotations datées ; ouverture suivante dans les backtests.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "_causal",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "execution_check",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/execution/contract.py",
+      "symbole": "signal_time",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/core.py",
+      "symbole": "run",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C066",
@@ -1969,7 +3163,26 @@
    "donnees": "Âge de la cotation mesuré.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "MAX_AGE_MS",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "Book.fresh",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C067",
@@ -2007,7 +3220,32 @@
    "donnees": "Écarts gérés ; le stop suiveur journalier du moteur est exécuté au prix du stop dans la journée, sans liquidité insuffisante simulée.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/execution/contract.py",
+      "symbole": "stop_fill",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/trade.py",
+      "symbole": "manage",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/scalp/core.py",
+      "symbole": "run",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C068",
@@ -2037,7 +3275,26 @@
    "donnees": "Simulation memecoin calibrée hors ligne.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "ExitPolicy",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "exit_decision",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C069",
@@ -2067,7 +3324,26 @@
    "donnees": "Règles de sortie.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/trade.py",
+      "symbole": "manage",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "time_exit",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C070",
@@ -2103,7 +3379,32 @@
    "donnees": "Coûts mesurés et hypothèses datées.",
    "verdict": "avantage historique non démontré",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/benefit.py",
+      "symbole": "net_edge",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/brain.py",
+      "symbole": "PrincipalAI",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/ai/model.py",
+      "symbole": "MetaModel.expected_r",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C071",
@@ -2133,7 +3434,26 @@
    "donnees": "Journal fictif.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager.evaluate_entry",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/desk.py",
+      "symbole": "run",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C072",
@@ -2162,7 +3482,26 @@
    "donnees": "Journal fictif.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager.evaluate_entry",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager.state",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C073",
@@ -2192,7 +3531,26 @@
    "donnees": "Positions maximales et budgets par stratégie memecoin ; pas de plafond par stratégie dans le moteur court terme.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager.evaluate_entry",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "RiskProfile",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C074",
@@ -2210,7 +3568,13 @@
    "donnees": "Corrélations calculables sur les bougies ; aucune grappe ni plafond.",
    "verdict": "à mesurer",
    "note": "le moteur court terme ne limite qu'à une position par crypto",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C075",
@@ -2245,7 +3609,32 @@
    "donnees": "Kelly plafonné et confiance (memecoin) ; absent du moteur court terme.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "kelly",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "confidence",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/benefit.py",
+      "symbole": "net_edge",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C076",
@@ -2275,7 +3664,26 @@
    "donnees": "signaux-v1 : baisse 48 % → 19 % (vote) ; essais multiples #147 : DSR 0,947 seule, 0,975 avec fonds.",
    "verdict": "avantage historique non démontré",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/core.py",
+      "symbole": "run",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "positions",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C077",
@@ -2305,7 +3713,26 @@
    "donnees": "recherche-v1 : frein présent dans la grille, choisi certaines années.",
    "verdict": "avantage historique non démontré",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/recherche.py",
+      "symbole": "brake_returns",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager.evaluate_entry",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C078",
@@ -2337,7 +3764,26 @@
    "donnees": "Stress mesurés (coûts) et banc memecoin ; pas de stress de liquidité du moteur court terme.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/measure.py",
+      "symbole": "stress_states",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_calibrator.py",
+      "symbole": "MemecoinCalibrator",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C079",
@@ -2370,7 +3816,26 @@
    "donnees": "Rendement en marché baissier publié (BTC à plus de 30 % sous son plus haut) ; pas de scénarios dédiés au moteur court terme.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "stability",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_calibrator.py",
+      "symbole": "MemecoinCalibrator",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C080",
@@ -2400,7 +3865,26 @@
    "donnees": "Réserve par profil memecoin ; le moteur court terme peut être investi à 100 %.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "_buy",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "RiskProfile",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C081",
@@ -2436,7 +3920,32 @@
    "donnees": "Bougies vérifiées.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/ai/labeling.py",
+      "symbole": "label_candidates",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/barriers.py",
+      "symbole": "simulate",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/features.py",
+      "symbole": "compute",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C082",
@@ -2474,7 +3983,32 @@
    "donnees": "Calibration de Platt et isotonique ; fiabilité hors échantillon non publiée.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/ai/model.py",
+      "symbole": "MetaModel.fit_calibration",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/ai/model.py",
+      "symbole": "MetaModel.calibrate",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/brain.py",
+      "symbole": "PrincipalAI",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C083",
@@ -2506,7 +4040,26 @@
    "donnees": "Marge d'abstention 0,10 R ; l'IA principale fait à peine mieux que le hasard (RESULTATS §10).",
    "verdict": "avantage historique non démontré",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/brain.py",
+      "symbole": "PrincipalAI",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/ai/model.py",
+      "symbole": "MetaModel.predict",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C084",
@@ -2524,7 +4077,13 @@
    "donnees": "Aucun détecteur (la dérive mesurée dans dmh concerne le prix à l'exécution).",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C085",
@@ -2543,7 +4102,13 @@
    "donnees": "Non implémenté.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C086",
@@ -2559,7 +4124,13 @@
    "donnees": "Non implémenté.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C087",
@@ -2589,7 +4160,26 @@
    "donnees": "Banc d'essai synthétique et historique.",
    "verdict": "avantage historique non démontré",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/brain.py",
+      "symbole": "PrincipalAI",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/ai/bench.py",
+      "symbole": "run_bench",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C088",
@@ -2624,7 +4214,32 @@
    "donnees": "IA locale (Ollama), un seul modèle chargé.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/news/service.py",
+      "symbole": "OllamaClient",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/llm.py",
+      "symbole": "draft_strategy",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/llm.py",
+      "symbole": "is_loopback_url",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C089",
@@ -2654,7 +4269,26 @@
    "donnees": "Relevés en direct.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield.check_entry",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/market/crosscheck.py",
+      "symbole": "CrossChecker.check",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C090",
@@ -2689,7 +4323,32 @@
    "donnees": "Prévisions appariées préenregistrées.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/services/champion.py",
+      "symbole": "register_pair",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/services/champion.py",
+      "symbole": "RegisteredComparison",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/services/models.py",
+      "symbole": "ModelStore.promote",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C091",
@@ -2729,7 +4388,38 @@
    "donnees": "42 candidates (disparues comprises), LUNA coupée (#145) ; restent : MATIC → POL non relié, liste de candidates dressée en 2026.",
    "verdict": "utilité technique",
    "note": "#144 : v10 passe de +0,94 % à +0,28 %/semaine",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/recherche.py",
+      "symbole": "point_in_time_members",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/recherche.py",
+      "symbole": "cut_at_break",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/recherche.py",
+      "symbole": "published_range",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "members",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C092",
@@ -2759,7 +4449,26 @@
    "donnees": "trials.jsonl en ajout seul par convention (aucun test ne l'impose) ; empreintes SHA-256 des archives ; gel #54/#55 testé.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "non constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "load_bars",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/scalp/data.py",
+      "symbole": "_fetch_verified",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C093",
@@ -2795,7 +4504,32 @@
    "donnees": "Fenêtres chronologiques purgées ; embargo d'un jour.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/ai/trainer.py",
+      "symbole": "train_walk_forward",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/recherche.py",
+      "symbole": "walk_forward",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/brain.py",
+      "symbole": "PrincipalAI",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C094",
@@ -2836,7 +4570,38 @@
    "donnees": "#147 : aucune des 11 familles significative à 5 % (Holm, BH) ; DSR publiés.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/essais.py",
+      "symbole": "holm",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/essais.py",
+      "symbole": "benjamini_hochberg",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/essais.py",
+      "symbole": "deflated_sharpe",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/essais.py",
+      "symbole": "bootstrap_pvalue",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C095",
@@ -2869,7 +4634,26 @@
    "donnees": "Comparaisons ponctuelles (filtre de l'élan, transferts entre poches) ; aucun outil d'ablation générique.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "run",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/scalp/moteur.py",
+      "symbole": "unify",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C096",
@@ -2910,7 +4694,38 @@
    "donnees": "Blocs circulaires de 20 jours ; grappes de dates.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "edge",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/essais.py",
+      "symbole": "bootstrap_pvalue",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/stats.py",
+      "symbole": "cluster_bootstrap",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/ai/metrics.py",
+      "symbole": "lower_bound",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C097",
@@ -2949,7 +4764,32 @@
    "donnees": "Stress à 0,25 % par côté publié ; pas de grille de stress générique.",
    "verdict": "utilité technique",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "non constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "run",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/scalp/reserve.py",
+      "symbole": "sensitivity",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/costs/measure.py",
+      "symbole": "stress_states",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C098",
@@ -2981,7 +4821,26 @@
    "donnees": "Portefeuille de 30 € et minima pour le hub ; aucun équivalent UCITS testé.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/inventory.py",
+      "symbole": "round_trip",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/ledger.py",
+      "symbole": "Ledger",
+      "nature": "fonction",
+      "executee": false
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C099",
@@ -3013,7 +4872,26 @@
    "donnees": "Un seul instantané de carnet (23 novembre 2026) ; optimisme des contacts de bougie mesuré pour le plan de coûts.",
    "verdict": "à mesurer",
    "note": "",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/measure.py",
+      "symbole": "bar_touch_optimism",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/scalp/reserve.py",
+      "symbole": "measured_slippage",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C100",
@@ -3032,7 +4910,13 @@
    "donnees": "Exige l'autorisation du propriétaire ; aucune observation démarrée.",
    "verdict": "non évaluable",
    "note": "décision du propriétaire",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   }
  ],
  "baseline": {
@@ -3111,5 +4995,236 @@
    "#147 aucune famille significative à 5 % après correction"
   ],
   "note": "aucune date d'achèvement des 100 capacités n'est fixée ; aucune période historique aveugle ne reste"
+ },
+ "mesure_execution": {
+  "methode": "chaque fichier de test cité rejoué seul sous sys.monitoring (évènements LINE) ; une fonction est exécutée si une ligne de son corps a tourné pendant un fichier de test réussi ; en-têtes, décorateurs, docstrings et niveau module exclus ; le code lancé dans un autre processus par un test n'est pas compté",
+  "commit": "dd5c52c15ab5315b55881a8aeb6264fcf594f0ba",
+  "date_utc": "2026-11-24T19:12:06Z",
+  "python": "3.12.3",
+  "plateforme": "Linux x86_64",
+  "commande": "python -m sentinelle.scalp.registre --execution",
+  "tests": {
+   "tests/test_active_time_journal.py": {
+    "code_pytest": 0,
+    "secondes": 0.8
+   },
+   "tests/test_ai_core.py": {
+    "code_pytest": 0,
+    "secondes": 1.9
+   },
+   "tests/test_champion_integration.py": {
+    "code_pytest": 0,
+    "secondes": 97.5
+   },
+   "tests/test_configurable_capital.py": {
+    "code_pytest": 0,
+    "secondes": 8.4
+   },
+   "tests/test_costs_engine.py": {
+    "code_pytest": 0,
+    "secondes": 1.1
+   },
+   "tests/test_costs_measure.py": {
+    "code_pytest": 0,
+    "secondes": 9.3
+   },
+   "tests/test_costs_protocol.py": {
+    "code_pytest": 0,
+    "secondes": 0.9
+   },
+   "tests/test_dmh_components.py": {
+    "code_pytest": 0,
+    "secondes": 3.5
+   },
+   "tests/test_dmh_scanner.py": {
+    "code_pytest": 0,
+    "secondes": 5.7
+   },
+   "tests/test_execution_contract.py": {
+    "code_pytest": 0,
+    "secondes": 147.6
+   },
+   "tests/test_holdout_boundary_audit.py": {
+    "code_pytest": 0,
+    "secondes": 188.9
+   },
+   "tests/test_learning.py": {
+    "code_pytest": 0,
+    "secondes": 756.3
+   },
+   "tests/test_liquidity_simulation.py": {
+    "code_pytest": 0,
+    "secondes": 1.3
+   },
+   "tests/test_macro_shadow.py": {
+    "code_pytest": 0,
+    "secondes": 8.2
+   },
+   "tests/test_memecoin_calibrator.py": {
+    "code_pytest": 0,
+    "secondes": 87.9
+   },
+   "tests/test_memecoin_calibrator_kelly.py": {
+    "code_pytest": 0,
+    "secondes": 160.9
+   },
+   "tests/test_memecoin_calibrator_stop.py": {
+    "code_pytest": 0,
+    "secondes": 49.4
+   },
+   "tests/test_memecoin_engine.py": {
+    "code_pytest": 0,
+    "secondes": 7.9
+   },
+   "tests/test_memecoin_journal_whale.py": {
+    "code_pytest": 0,
+    "secondes": 7.4
+   },
+   "tests/test_memecoin_profiles.py": {
+    "code_pytest": 0,
+    "secondes": 7.1
+   },
+   "tests/test_memecoin_quote_time.py": {
+    "code_pytest": 0,
+    "secondes": 5.3
+   },
+   "tests/test_memecoin_regime.py": {
+    "code_pytest": 0,
+    "secondes": 4.9
+   },
+   "tests/test_memecoin_routing.py": {
+    "code_pytest": 0,
+    "secondes": 6.4
+   },
+   "tests/test_memecoin_sellability.py": {
+    "code_pytest": 0,
+    "secondes": 6.2
+   },
+   "tests/test_memecoin_signals.py": {
+    "code_pytest": 0,
+    "secondes": 6.2
+   },
+   "tests/test_memecoin_simulator.py": {
+    "code_pytest": 0,
+    "secondes": 5.7
+   },
+   "tests/test_memecoin_valuation.py": {
+    "code_pytest": 0,
+    "secondes": 5.9
+   },
+   "tests/test_new_features.py": {
+    "code_pytest": 0,
+    "secondes": 4.4
+   },
+   "tests/test_news_telegram.py": {
+    "code_pytest": 0,
+    "secondes": 6.6
+   },
+   "tests/test_paired_crash.py": {
+    "code_pytest": 0,
+    "secondes": 34.2
+   },
+   "tests/test_principal_eur30.py": {
+    "code_pytest": 0,
+    "secondes": 10.9
+   },
+   "tests/test_production_evidence.py": {
+    "code_pytest": 0,
+    "secondes": 474.4
+   },
+   "tests/test_realtime.py": {
+    "code_pytest": 0,
+    "secondes": 9.2
+   },
+   "tests/test_risk_agent_backtest.py": {
+    "code_pytest": 0,
+    "secondes": 21.9
+   },
+   "tests/test_scalp_actifs.py": {
+    "code_pytest": 0,
+    "secondes": 5.6
+   },
+   "tests/test_scalp_core.py": {
+    "code_pytest": 0,
+    "secondes": 6.3
+   },
+   "tests/test_scalp_desk.py": {
+    "code_pytest": 0,
+    "secondes": 148.1
+   },
+   "tests/test_scalp_essais.py": {
+    "code_pytest": 0,
+    "secondes": 7.3
+   },
+   "tests/test_scalp_flash.py": {
+    "code_pytest": 0,
+    "secondes": 7.3
+   },
+   "tests/test_scalp_lab.py": {
+    "code_pytest": 0,
+    "secondes": 3.5
+   },
+   "tests/test_scalp_moteur.py": {
+    "code_pytest": 0,
+    "secondes": 10.0
+   },
+   "tests/test_scalp_recherche.py": {
+    "code_pytest": 0,
+    "secondes": 8.1
+   },
+   "tests/test_scalp_reserve.py": {
+    "code_pytest": 0,
+    "secondes": 7.9
+   },
+   "tests/test_scalp_signaux.py": {
+    "code_pytest": 0,
+    "secondes": 7.7
+   },
+   "tests/test_scalp_watchers.py": {
+    "code_pytest": 0,
+    "secondes": 3.6
+   },
+   "tests/test_validation_leakage.py": {
+    "code_pytest": 0,
+    "secondes": 1.0
+   }
+  },
+  "niveaux": {
+   "constatée": 55,
+   "partielle": 23,
+   "non constatée": 6,
+   "référencement seul": 0,
+   "sans preuve": 16
+  },
+  "statuts_a_couverture_a_confirmer": [
+   "C003",
+   "C015",
+   "C016",
+   "C020",
+   "C027",
+   "C030",
+   "C041",
+   "C043",
+   "C046",
+   "C047",
+   "C055",
+   "C062",
+   "C065",
+   "C067",
+   "C069",
+   "C070",
+   "C076",
+   "C078",
+   "C079",
+   "C081",
+   "C091",
+   "C092",
+   "C093",
+   "C095",
+   "C096",
+   "C097",
+   "C098",
+   "C099"
+  ]
  }
 }
