@@ -317,10 +317,17 @@ class App(LiveMixin, PortfolioMixin, PerformanceMixin, ChampionMixin, JournalMix
         def fresh_price(symbol):
             return self.hub.price(symbol) if self.hub.is_fresh(symbol, 180) else None
 
+        def single_book_entry(order):
+            # Only the cockpit AI checks the independent quote at order admission.
+            return (order["agent"] in AGENTS and order["origin"] == "ai"
+                    and order["side"] == "buy" and order["purpose"] == "entry"
+                    and self.source.name != "synthetic" and self.settings["market"]["cross_check"])
+
         broker = PaperBroker(self.db, acc["id"], acc["quote"], self.hub.market, fresh_price, p["fee_rate"], p["slippage_bps"], clock,
                              fx_fn=self._fx_quote if acc["role"] == "main" else None,
                              fx_cost_bps=self.settings["portfolio"]["fx_cost_bps"] if cross else 0.0,
-                             trade_quote=trade_quote, spread_fn=self._half_spread, book_fn=book_fn)
+                             trade_quote=trade_quote, spread_fn=self._half_spread, book_fn=book_fn,
+                             single_book_entry=single_book_entry)
         if not self.db.scalar("SELECT COUNT(*) FROM ledger WHERE account_id = ?", (acc["id"],), 0):
             # compte créé avant le grand livre : ses soldes y sont repris tels quels (rien n'est modifié)
             for row in self.db.query("SELECT asset, total FROM balances WHERE account_id = ?", (acc["id"],)):
