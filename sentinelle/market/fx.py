@@ -246,17 +246,32 @@ class FxService:
             q.executable(self.clock())
         return q
 
+    def historical_inventory(self, currency):
+        """Bornes des observations archivées ; deux bornes ne prouvent pas la continuité."""
+        if self.db is None:
+            return {"count": 0, "first": None, "last": None}
+        return self.db.one("SELECT COUNT(*) AS count, MIN(ts) AS first, MAX(ts) AS last FROM fx_snapshots "
+                           "WHERE base=? AND quote=?", (self.base, currency))
+
     def historical(self, currency, at):
         """Never consult the current source or most recently cached quote during a replay."""
         from ..storage.db import loads
         if self.base == currency:
             return identity(currency, at)
-        row = self.db.one("SELECT snapshot FROM fx_snapshots WHERE base=? AND quote=? AND ts<=? "
+        row = self.db.one("SELECT ts,source,snapshot FROM fx_snapshots WHERE base=? AND quote=? AND ts<=? "
                           "ORDER BY ts DESC, source LIMIT 1", (self.base, currency, at)) if self.db else None
         if not row:
             raise FxUnavailable(f"Aucun carnet historique {self.base}/{currency} à {at}")
-        quote = FxQuote(**loads(row["snapshot"], {}))
-        quote.executable(at)
+        try:
+            quote = FxQuote(**loads(row["snapshot"], {}))
+            if (quote.base, quote.quote, quote.ts, quote.source) != (self.base, currency, row["ts"], row["source"]):
+                raise FxUnavailable("Métadonnées du carnet de change incohérentes")
+            book = quote.executable(at)
+            expected = float(book.convert(1, currency, self.base, now=at, max_age=quote.max_age)["amount"])
+            if isinstance(quote.rate, bool) or not math.isfinite(quote.rate) or quote.rate <= 0 or quote.rate != expected:
+                raise FxUnavailable("Taux de valorisation différent du carnet de change archivé")
+        except (TypeError, ValueError, ArithmeticError) as exc:
+            raise FxUnavailable("Carnet de change archivé illisible ou invalide") from exc
         return quote
 
     def status(self, currencies) -> dict:
