@@ -156,8 +156,9 @@ class Archive:
         """Entrées bloquées à l'instant « now » : par actif, et pour tout le marché crypto."""
         # La fenêtre part de l'heure de publication : une dépêche ancienne lue tardivement ne bloque rien.
         rows = self.db.execute("SELECT title, COALESCE(published_ms, received_ms) AS t, assets, market_wide FROM items "
-                               "WHERE severity='grave' AND direction<0 AND COALESCE(published_ms, received_ms) BETWEEN ? AND ?",
-                               (now_ms - VETO_ASSET_MS, now_ms)).fetchall()
+                               "WHERE severity='grave' AND direction<0 AND received_ms <= ? "
+                               "AND COALESCE(published_ms, received_ms) BETWEEN ? AND ?",
+                               (now_ms, now_ms - VETO_ASSET_MS, now_ms)).fetchall()
         assets, market = {}, []
         for title, published, raw, wide in rows:
             if wide and published >= now_ms - VETO_MARKET_MS:
