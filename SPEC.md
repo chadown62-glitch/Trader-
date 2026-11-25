@@ -391,8 +391,7 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
   - **Lots suivants** : selon les dépendances et la valeur marginale démontrée, sans multiplier les PR ni intégrer cent filtres dans le moteur.
 - **Règle d'arrêt.** Un indicateur dont le gain net est non significatif, instable ou issu d'une période déjà optimisée n'est pas activé dans la décision. Une capacité de sécurité peut être conservée malgré un rendement inférieur. Une capacité rejetée peut être abandonnée comme filtre.
 - **Répartition.**
-  - Claude Code : audit, inventaire, cadrage, registre, tests techniques et corrections mesurables autorisées.
-  - GPT Work : audit indépendant, disponible le mercredi 25 novembre 2026. Fichiers réservés, non modifiés : `tools/evaluation/`, `tests/test_memecoin_evaluation*.py`, `docs/evaluation/`.
+  - La répartition OMEGA ci-dessous s'applique au développement et à la revue du Sprint 5. Les engagements et résultats historiques restent consignés à leur date.
   - Le propriétaire décide de toute observation prospective, de toute promotion et de toute extension des sources.
 - **Rapport d'acceptation de chaque PR.**
   - Numéro, SHA, au plus six fichiers, et les trois contrôles CI verts sur le dernier commit (Ubuntu, Windows, Chromium).
@@ -406,8 +405,9 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
 - **Autorisation.**
   - Le propriétaire autorise la phase de recherche OMEGA dans le Sprint 5, seul sprint en cours.
   - Elle ne crée ni sprint ni succession de missions autonomes.
-  - Claude Code dispose d'une autonomie technique sur la recherche quantitative, l'architecture, les modèles statistiques, les expériences et le moteur fictif, dans les limites de ce cadrage.
-  - GPT Work est temporairement indisponible ; les travaux autorisés ne l'attendent pas. Ses fichiers réservés restent intouchés jusqu'à modification explicite du cadrage : `tools/evaluation/`, `tests/test_memecoin_evaluation*.py`, `docs/evaluation/`.
+  - **Direction technique.** GPT Work est l’ingénieur principal du programme moteur OMEGA du Sprint 5, sans échéance au retour de Claude. La répartition indicative du développement est de 75 % pour GPT Work et 25 % pour Claude Code. À son retour, Claude intervient en complément technique sur des lots aux interfaces et fichiers convenus. Chaque auteur fait examiner ses modifications par l’autre ingénieur ou un réviseur indépendant. Un succès CI ne vaut pas revue indépendante.
+  - **Corrections autorisées après fusion de ce cadrage.** GPT Work traite d’abord la promotion de modèles (éligibilité statistique distincte d’un consentement humain explicite, traçable et lié à la version), puis les cotations (VERIFIED, INCONSISTENT, UNVERIFIED, STALE et conséquences sur les entrées). Viennent ensuite HIVE #172 (capital initial, drawdown, univers point-in-time et résultats futurs indisponibles), les horloges PULSE et FLASH, l’intégrité du cache des carnets et l’échec Windows de #177. Les recalculs ont un nouvel identifiant et conservent les résultats antérieurs. La consolidation respecte les bases réelles et l’ordre des dépendances. La réconciliation PHANTOM conserve les scripts et empreintes divergents avant la reprise du programme OMEGA existant.
+  - **Preuves et continuité.** GPT Work conserve ses outils et rapports dans `tools/evaluation/`, `tests/test_memecoin_evaluation*.py` et `docs/evaluation/`. Les journaux scientifiques sont en ajout seul. Avant chaque interruption de quota, l’auteur consigne HEAD, diff, essais réellement exécutés, CI restante et prochaine opération. Les trois contrôles obligatoires et la limite de six fichiers par PR s’appliquent à chaque nouveau HEAD. C100 requiert une autorisation distincte.
 - **Nature des 25 concepts OMEGA.**
   - HIVE, GENOME, RADAR, ATLAS, PHANTOM, ORACLE, NEMESIS, CORTEX, CHRONOS, MEMORY, PULSE, IMMUNITY, EVOLUTION, TITAN, TRUTH, BORDER, ECHO, QUARANTINE, TIMELOCK, REPLAY, LINEAGE, BLINDSPOT, MIRROR, COMPASS et PROVENANCE.
   - Ce sont des propositions de composants ou de méthodes expérimentales, pas des agents : au plus quatre agents restent actifs dans le moteur.
