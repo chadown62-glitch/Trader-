@@ -69,3 +69,19 @@ def test_two_sided_p_value_separates_a_signal_from_noise():
     rng = np.random.default_rng(8)
     assert epuisement.two_sided(rng.normal(0.5, 1.0, 600)) < 0.01
     assert epuisement.two_sided(rng.normal(0.0, 1.0, 600)) > 0.05
+
+
+def test_amplitude_study_compares_both_predictors_on_the_same_days():
+    rng = np.random.default_rng(12)
+    n, k = 400, 12
+    idx = pd.RangeIndex(0, n)
+    cols = [f"S{j}USDT" for j in range(k)]
+    sigma = np.linspace(0.005, 0.06, k)  # volatilité propre à chaque actif : l'ampleur future se prévoit
+    c = pd.DataFrame(100 * np.exp(np.cumsum(rng.normal(0, 1, (n, k)) * sigma, axis=0)), index=idx, columns=cols)
+    p = {"c": c, "h": c * (1 + sigma / 2), "l": c * (1 - sigma / 2)}
+    member = pd.DataFrame(True, index=idx, columns=cols)
+    out = epuisement.amplitude_study(p, member, first=0)
+    assert out["jours"] == n - epuisement.VOL_DAYS - epuisement.AHEAD  # volatilité connue après 20 rendements
+    assert out["correlation_volatilite"] > 0.5 and out["correlation_amplitude"] > 0.5
+    assert 0.0 <= out["p_ecart"] <= 1.0 and out["ecart_amplitude_moins_volatilite"] == pytest.approx(
+        out["correlation_amplitude"] - out["correlation_volatilite"])

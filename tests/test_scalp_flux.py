@@ -62,3 +62,17 @@ def test_mean_gap_finds_a_planted_weekday_effect_and_nothing_elsewhere():
     assert monday["ecart_moyen_pct"] > 0.7 and monday["p_bilaterale"] < 0.01
     cal = flux.calendar(100 * np.exp(r.cumsum()))
     assert cal["lundi"]["p_holm"] < 0.05 and set(cal) == set(flux.WEEKDAYS) | {"tournant de mois"}
+
+
+def test_supply_lead_sees_a_supply_change_that_leads_btc_and_ignores_one_that_lags_it():
+    rng = np.random.default_rng(11)
+    days = pd.RangeIndex(_day("2020-01-01"), _day("2020-01-01") + 900)
+    btc = pd.Series(30000 * np.exp(np.cumsum(rng.normal(0, 0.03, len(days)))), index=days)
+    ahead = np.log(btc).shift(-flux.LEAD_DAYS) - np.log(btc)  # rendement du BTC sur les 7 jours suivants
+    noise = pd.Series(rng.normal(0, 0.002, len(days)), index=days)
+    leading = pd.Series(1e11 * np.exp((ahead.fillna(0.0) + noise).cumsum() / flux.LEAD_DAYS), index=days)
+    lead = flux.supply_lead(leading, btc)
+    lagging = pd.Series(1e11 * np.exp(0.01 * np.log(btc / btc.iloc[0])), index=days)  # suit le passé du BTC
+    lag = flux.supply_lead(lagging.shift(30), btc)
+    assert lead["n"] > 800 and lead["spearman"] > 0.3 and lead["p_bilaterale"] < 0.01
+    assert abs(lag["spearman"]) < 0.2
