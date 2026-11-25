@@ -4,7 +4,7 @@ Données : archives journalières publiques « metrics » des contrats à terme 
 relevés toutes les 5 minutes depuis le 01/09/2020, chacune vérifiée par sa somme de contrôle publiée (data._fetch_verified).
 L'archive des liquidations n'est pas publiée sur cette période : les cascades ne sont approchées que par les fortes
 baisses d'open interest (désendettement), sans mesure directe des liquidations.
-Causalité : l'open interest du jour d est le dernier relevé du jour (23:55 UTC), connu avant la clôture crypto de d ;
+Causalité : l'open interest du jour d est le dernier relevé valide du jour (23:55 UTC en général), connu avant la clôture crypto de d ;
 il décide de la position à l'ouverture de d + 1. Quantité en BTC (sum_open_interest), pour ne pas mêler l'effet du prix.
 Règle et mesures fixées a priori :
 - O1 : variation de l'open interest sur 7 jours dans le tercile haut de son historique connu (au moins 365 jours) alors
@@ -12,6 +12,9 @@ Règle et mesures fixées a priori :
   et B1 sans abstention (outil d'ablation C095, Holm sur les 2) et au même masque décalé d'un an ;
 - O2 : jours de désendettement (open interest en baisse d'au moins 10 % sur le jour) : rendement du BTC le lendemain et
   sur les 3 jours suivants contre les autres jours, bilatéral, par blocs de 20 jours, Holm sur les 2.
+Écart au protocole préenregistré (f2303eb), décidé après la mesure telle qu'enregistrée (levier-v1.json) : la source publie un
+open interest nul, champs voisins vides, à partir de 15:30 UTC le 07/03/2022 et le 10/07/2024 ; ces relevés sont des lacunes et
+sont ignorés (version v1b). Les deux résultats sont publiés.
 Mesure seulement : rien n'entre dans une décision sans approbation humaine.
 
 Lancement : python -m sentinelle.scalp.levier
@@ -45,14 +48,15 @@ def archive(day: str, cache_dir, client) -> Path:
 
 
 def last_reading(path: Path, day: str) -> tuple[int, float] | None:
-    """Dernier relevé du jour « day » (avant minuit UTC) : (numéro du jour, open interest en BTC) ; None sans relevé."""
+    """Dernier relevé valide du jour « day » (avant minuit UTC) : (numéro du jour, open interest en BTC) ; None sans relevé.
+    Un open interest nul est une lacune de la source (champs voisins vides), jamais une valeur : il est ignoré."""
     with zipfile.ZipFile(path) as z:
         d = pd.read_csv(io.BytesIO(z.read(z.namelist()[0])))
     if d.empty:
         return None
     t = pd.to_datetime(d["create_time"], utc=True)
     start = pd.Timestamp(day, tz="UTC")
-    inside = (t >= start) & (t < start + pd.Timedelta(days=1))
+    inside = (t >= start) & (t < start + pd.Timedelta(days=1)) & (pd.to_numeric(d["sum_open_interest"], errors="coerce") > 0)
     if not inside.any():
         return None
     i = t.where(inside).idxmax()
@@ -95,7 +99,7 @@ def after_deleveraging(oi: pd.Series, btc: pd.Series) -> dict:
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Open interest des perpétuels BTC (simulation exclusive)")
     ap.add_argument("--cache", default="data/scalp-cache")
-    ap.add_argument("--out", default="research/scalp-v1/levier-v1.json")
+    ap.add_argument("--out", default="research/scalp-v1/levier-v1b.json")
     ap.add_argument("--trials", default="research/scalp-v1/trials.jsonl")
     args = ap.parse_args(argv)
     t0 = time.time()
@@ -141,7 +145,8 @@ def main(argv=None):
     rows = ablation.adjust(rows)
     o2 = after_deleveraging(oi, btc)
     known = oi.notna()
-    out = {"schema": "scalp-levier-v1", "status": "mesure sur historique déjà consulté ; règles fixées a priori ; aucune intégration",
+    out = {"schema": "scalp-levier-v1b", "status": "mesure sur historique déjà consulté ; règles fixées a priori ; aucune intégration",
+           "ecart_au_protocole": "relevés d'open interest nuls (lacunes de la source) ignorés ; résultat tel que préenregistré : levier-v1.json",
            "capacites": ["C028"], "source": URL, "symbole": SYMBOL,
            "limites": ["liquidations non publiées en archive : cascades approchées par les baisses d'open interest",
                        f"open interest disponible depuis le {FIRST_DAY} seulement"],
@@ -159,7 +164,7 @@ def main(argv=None):
     Path(args.out).write_text(json.dumps(out, ensure_ascii=False, default=float) + "\n", encoding="utf-8")
     if args.trials:
         with open(args.trials, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "levier-v1",
+            fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "levier-v1b", "ecart_au_protocole": "relevés nuls ignorés",
                                  "ablations": {x["ablation"]: {"ecart_hebdo_moyen_pct": x["ecart_hebdo_moyen_pct"], "ic95_pct": x["ic95_pct"],
                                                                "p_holm": x["p_holm"], "pire_baisse": [x["sans"]["max_drawdown_pct"], x["avec"]["max_drawdown_pct"]]}
                                                for x in rows},

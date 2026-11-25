@@ -79,3 +79,12 @@ def test_archives_are_verified_against_their_published_checksum(tmp_path):
     with httpx.Client(transport=httpx.MockTransport(serve)) as client, pytest.raises(data.DataIntegrityError):
         levier.archive("2023-06-01", tmp_path, client)
     assert not (tmp_path / "metrics" / "BTCUSDT" / "BTCUSDT-metrics-2023-06-01.zip").exists()
+
+
+def test_a_zero_open_interest_is_a_gap_of_the_source_not_a_value(tmp_path):
+    path = tmp_path / "m.zip"
+    path.write_bytes(_zip('2022-03-07 15:25:00,BTCUSDT,94000.5,1,1,1,1,1\n2022-03-07 15:30:00,BTCUSDT,0E-8,0E-8,"","",1.77,""\n'
+                          '2022-03-07 23:55:00,BTCUSDT,0E-8,0E-8,"","",2.14,""\n'))
+    assert levier.last_reading(path, "2022-03-07") == (moteur._day("2022-03-07"), 94000.5)  # dernier relevé valide
+    path.write_bytes(_zip('2022-03-07 23:55:00,BTCUSDT,0E-8,0E-8,"","",2.14,""\n'))
+    assert levier.last_reading(path, "2022-03-07") is None  # aucun relevé valide : jour absent, pas de faux désendettement
