@@ -260,10 +260,10 @@ entry("C014", "EXPÉRIMENT_REJETÉ", [(MAC, "session_rules"), (MAC, "to_crypto_d
       "Une hausse rapide des rendements obligataires précède une baisse des actifs risqués.",
       "Rendement à 10 ans américain (^TNX, Yahoo, séance d → ligne crypto d) ; variation sur 20 séances, terciles connus à la date.", "rejet",
       "research/scalp-v1/macro-contexte-v1.json : M1 −0,10 %/sem sur B0, Holm 1 ; baisse 60 → 39 % comme son témoin décalé (42 %)")
-entry("C015", "EXPÉRIMENT_REJETÉ", [(MAC, "session_rules"), (S + "market/context.py", "fetch_index")], ["tests/test_scalp_macro.py", "tests/test_realtime.py"], [],
+entry("C015", "EXPÉRIMENT_REJETÉ", [(MAC, "session_rules"), (S + "market/context.py", "fetch_index")], ["tests/test_scalp_macro.py", "tests/test_realtime.py", "tests/test_cockpit_routes.py"], [],
       "Un dollar en hausse (DXY) précède une faiblesse des cryptos.", "Indice du dollar (DX-Y.NYB, Yahoo, horodaté à minuit de New York) ; rendement sur 20 séances.", "rejet",
       "research/scalp-v1/macro-contexte-v1.json : M2 −0,22 %/sem sur B0, Holm 1")
-entry("C016", "EXPÉRIMENT_REJETÉ", [(MAC, "session_rules"), (S + "market/context.py", "fetch_index")], ["tests/test_scalp_macro.py", "tests/test_realtime.py"], [],
+entry("C016", "EXPÉRIMENT_REJETÉ", [(MAC, "session_rules"), (S + "market/context.py", "fetch_index")], ["tests/test_scalp_macro.py", "tests/test_realtime.py", "tests/test_cockpit_routes.py"], [],
       "Un VIX élevé ou en hausse précède des baisses des cryptos.", "VIX (Yahoo) : niveau et variation sur 5 séances, terciles connus à la date.", "rejet",
       "research/scalp-v1/macro-contexte-v1.json : M3 −0,41 %/sem [−0,85 ; −0,03], M4 −0,19 %/sem sur B0, Holm 1")
 entry("C017", "EXPÉRIMENT_REJETÉ", [(MAC, "lead_lag"), (MAC, "day_numbers")], ["tests/test_scalp_macro.py"], ["C014", "C016"],

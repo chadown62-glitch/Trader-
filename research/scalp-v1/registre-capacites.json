@@ -1,7 +1,7 @@
 {
  "schema": "sentinelle-registre-capacites-v1",
  "source": "dossier du propriétaire C001–C100 (24 novembre 2026), docs/scalp/catalogue-C001-C100.md",
- "main_audite": "fd051d2bff3f108d8f96920ef0e04fbbc3e6ea32",
+ "main_audite": "fb3fd523f06071086a154ebbc43b660ddffcf4cf",
  "statuts": {
   "EXISTANTE_ET_TESTÉE": 43,
   "PARTIELLE": 29,
@@ -588,7 +588,8 @@
    ],
    "tests": [
     "tests/test_scalp_macro.py",
-    "tests/test_realtime.py"
+    "tests/test_realtime.py",
+    "tests/test_cockpit_routes.py"
    ],
    "dependances": [],
    "hypothese": "Un dollar en hausse (DXY) précède une faiblesse des cryptos.",
@@ -621,7 +622,8 @@
    ],
    "tests": [
     "tests/test_scalp_macro.py",
-    "tests/test_realtime.py"
+    "tests/test_realtime.py",
+    "tests/test_cockpit_routes.py"
    ],
    "dependances": [],
    "hypothese": "Un VIX élevé ou en hausse précède des baisses des cryptos.",
