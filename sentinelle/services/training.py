@@ -11,6 +11,7 @@ from ..ai.trainer import build_dataset, train_walk_forward
 from ..backtest.engine import run_backtest
 from ..config import timeframe_ms
 from ..execution.base import OrderError
+from ..market.sources import SyntheticSource
 from ..market.history import last_continuous
 from ..storage.db import dumps
 from .common import UserError
@@ -165,12 +166,13 @@ class TrainingMixin:
             return {"initial": float(capital or self.settings["paper"]["initial_balance"]), "extra_cost": 0.0, "currency": quote,
                     "capital": float(capital or self.settings["paper"]["initial_balance"]), "fx": None}
         cfg = self.settings["portfolio"]
+        synthetic = self.settings["market"]["source"] == "synthetic" and isinstance(self.source, SyntheticSource)
         main = self.main_account()
         amount = float(capital or (main["initial_balance"] if main else cfg["initial"]))
         if not (10 <= amount <= 10_000_000):
             raise UserError("Capital simulé entre 10 et 10 000 000")
         return {"initial": amount, "extra_cost": cfg["fx_cost_bps"] / 10_000, "currency": cfg["currency"],
-                "capital": amount, "fx": ({"source": "carnet synthétique daté" if self.settings["market"]["source"] == "synthetic" else "carnets archivés",
+                "capital": amount, "fx": ({"source": "carnet synthétique daté" if synthetic else "carnets archivés",
                                      "mode": "historical"} if quote != cfg["currency"] else None)}
 
     def start_backtest(self, days: int, use_model: bool, capital: float | None = None) -> dict:
@@ -181,6 +183,12 @@ class TrainingMixin:
             cond = self.backtest_conditions(capital)
         except OrderError as exc:
             raise UserError(exc.message) from None
+
+        quote = settings["general"]["quote"]
+        synthetic = settings["market"]["source"] == "synthetic" and isinstance(self.source, SyntheticSource)
+        if cond["currency"] != quote and not synthetic and self.fx.historical_inventory(quote)["count"] == 0:
+            raise UserError(f"Simulation de {days} jours indisponible : aucun carnet historique "
+                            f"{cond['currency']}/{quote} archivé. Il faut des carnets datés sur la période demandée.")
 
         def job(progress):
             warm = 210 if tf != "4h" else 230
