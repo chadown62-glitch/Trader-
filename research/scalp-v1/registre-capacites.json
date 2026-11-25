@@ -1,13 +1,13 @@
 {
  "schema": "sentinelle-registre-capacites-v1",
  "source": "dossier du propriétaire C001–C100 (24 novembre 2026), docs/scalp/catalogue-C001-C100.md",
- "main_audite": "8ff2247b501380e864c3fc664b5426ea0035644f",
+ "main_audite": "2c6ce1e5a6517742b7e4974f41c533561b6590f2",
  "statuts": {
   "EXISTANTE_ET_TESTÉE": 43,
-  "PARTIELLE": 29,
+  "PARTIELLE": 28,
   "ABSENTE": 4,
   "BLOQUÉE_DONNÉES": 2,
-  "EXPÉRIMENT_REJETÉ": 22,
+  "EXPÉRIMENT_REJETÉ": 23,
   "EXPÉRIMENT_VALIDÉ_PROVISOIRE": 0
  },
  "capacites": [
@@ -1619,27 +1619,38 @@
    "domaine": "Régimes de marché",
    "premiere_preuve_exigee": "classement de régime et abstention hors échantillon",
    "priorite": "normale",
-   "statut": "PARTIELLE",
+   "statut": "EXPÉRIMENT_REJETÉ",
    "preuves": [
+    {
+     "fichier": "sentinelle/scalp/levier.py",
+     "symbole": "last_reading",
+     "lignes": "50-63"
+    },
+    {
+     "fichier": "sentinelle/scalp/levier.py",
+     "symbole": "leverage_rule",
+     "lignes": "73-78"
+    },
+    {
+     "fichier": "sentinelle/scalp/levier.py",
+     "symbole": "after_deleveraging",
+     "lignes": "86-96"
+    },
     {
      "fichier": "sentinelle/risk/shield.py",
      "symbole": "Shield.poll_liquidations",
      "lignes": "172-200"
-    },
-    {
-     "fichier": "sentinelle/risk/shield.py",
-     "symbole": "Shield._evaluate_cascade",
-     "lignes": "202-222"
     }
    ],
    "tests": [
+    "tests/test_scalp_levier.py",
     "tests/test_realtime.py"
    ],
    "dependances": [],
    "hypothese": "Une cascade de liquidations précède un excès de mouvement.",
-   "donnees": "Liquidations suivies ; open interest absent.",
-   "verdict": "à mesurer",
-   "note": "",
+   "donnees": "Open interest des perpétuels BTCUSDT (archives metrics vérifiées, depuis le 01/09/2020) ; liquidations non archivées, approchées par les baisses d'open interest.",
+   "verdict": "rejet",
+   "note": "research/scalp-v1/levier-v1.json et levier-v1b.json (relevés nuls ignorés, écart publié) : O1 −0,06 %/sem sur B0, Holm 1 ; rebond le lendemain d'un désendettement +1,3 pt (n 33), Holm 0,09",
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
@@ -1648,14 +1659,26 @@
     "niveau": "constatée",
     "symboles": [
      {
-      "fichier": "sentinelle/risk/shield.py",
-      "symbole": "Shield.poll_liquidations",
+      "fichier": "sentinelle/scalp/levier.py",
+      "symbole": "last_reading",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/levier.py",
+      "symbole": "leverage_rule",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/levier.py",
+      "symbole": "after_deleveraging",
       "nature": "fonction",
       "executee": true
      },
      {
       "fichier": "sentinelle/risk/shield.py",
-      "symbole": "Shield._evaluate_cascade",
+      "symbole": "Shield.poll_liquidations",
       "nature": "fonction",
       "executee": true
      }
@@ -5787,8 +5810,8 @@
  },
  "mesure_execution": {
   "methode": "chaque fichier de test cité rejoué seul sous sys.monitoring (évènements LINE) ; une fonction est exécutée si une ligne de son corps a tourné pendant un fichier de test réussi ; en-têtes, décorateurs, docstrings et niveau module exclus ; le code lancé dans un autre processus par un test n'est pas compté ; un fil de calcul mathématique par processus tracé (SINGLE_THREAD)",
-  "commit": "97126c004f737dc8669e5d306425ffbcae26860a",
-  "date_utc": "2026-11-25T15:10:53Z",
+  "commit": "1caef9090a8ea04c15d33b8e1752f56b1a6ff5b2",
+  "date_utc": "2026-11-25T17:17:42Z",
   "python": "3.12.3",
   "plateforme": "Linux x86_64",
   "commande": "python -m sentinelle.scalp.registre --execution",
@@ -5799,11 +5822,11 @@
    },
    "tests/test_ai_core.py": {
     "code_pytest": 0,
-    "secondes": 1.2
+    "secondes": 1.7
    },
    "tests/test_ai_learning.py": {
     "code_pytest": 0,
-    "secondes": 14.1
+    "secondes": 14.5
    },
    "tests/test_champion_integration.py": {
     "code_pytest": 0,
@@ -5811,35 +5834,35 @@
    },
    "tests/test_cockpit_routes.py": {
     "code_pytest": 0,
-    "secondes": 6.2
+    "secondes": 6.4
    },
    "tests/test_configurable_capital.py": {
     "code_pytest": 0,
-    "secondes": 4.6
+    "secondes": 4.4
    },
    "tests/test_costs_engine.py": {
     "code_pytest": 0,
-    "secondes": 1.2
+    "secondes": 0.9
    },
    "tests/test_costs_measure.py": {
     "code_pytest": 0,
-    "secondes": 8.8
+    "secondes": 7.2
    },
    "tests/test_dmh_components.py": {
     "code_pytest": 0,
-    "secondes": 2.5
+    "secondes": 1.9
    },
    "tests/test_dmh_scanner.py": {
     "code_pytest": 0,
-    "secondes": 4.3
+    "secondes": 3.7
    },
    "tests/test_execution_contract.py": {
     "code_pytest": 0,
-    "secondes": 64.2
+    "secondes": 54.4
    },
    "tests/test_learning.py": {
     "code_pytest": 0,
-    "secondes": 35.5
+    "secondes": 32.8
    },
    "tests/test_liquidity_simulation.py": {
     "code_pytest": 0,
@@ -5847,19 +5870,19 @@
    },
    "tests/test_macro_shadow.py": {
     "code_pytest": 0,
-    "secondes": 4.5
+    "secondes": 3.5
    },
    "tests/test_memecoin_calibrator.py": {
     "code_pytest": 0,
-    "secondes": 40.7
+    "secondes": 37.8
    },
    "tests/test_memecoin_calibrator_kelly.py": {
     "code_pytest": 0,
-    "secondes": 96.1
+    "secondes": 85.4
    },
    "tests/test_memecoin_calibrator_stop.py": {
     "code_pytest": 0,
-    "secondes": 34.1
+    "secondes": 30.1
    },
    "tests/test_memecoin_engine.py": {
     "code_pytest": 0,
@@ -5867,35 +5890,35 @@
    },
    "tests/test_memecoin_journal_whale.py": {
     "code_pytest": 0,
-    "secondes": 3.6
+    "secondes": 3.3
    },
    "tests/test_memecoin_profiles.py": {
     "code_pytest": 0,
-    "secondes": 4.3
+    "secondes": 4.0
    },
    "tests/test_memecoin_quote_time.py": {
     "code_pytest": 0,
-    "secondes": 3.9
+    "secondes": 3.5
    },
    "tests/test_memecoin_routing.py": {
     "code_pytest": 0,
-    "secondes": 4.1
+    "secondes": 3.1
    },
    "tests/test_memecoin_sellability.py": {
     "code_pytest": 0,
-    "secondes": 4.6
+    "secondes": 3.5
    },
    "tests/test_memecoin_signals.py": {
     "code_pytest": 0,
-    "secondes": 3.8
+    "secondes": 3.7
    },
    "tests/test_memecoin_simulator.py": {
     "code_pytest": 0,
-    "secondes": 3.5
+    "secondes": 3.3
    },
    "tests/test_memecoin_valuation.py": {
     "code_pytest": 0,
-    "secondes": 3.3
+    "secondes": 3.5
    },
    "tests/test_new_features.py": {
     "code_pytest": 0,
@@ -5903,91 +5926,95 @@
    },
    "tests/test_news_telegram.py": {
     "code_pytest": 0,
-    "secondes": 3.4
+    "secondes": 3.1
    },
    "tests/test_production_evidence.py": {
     "code_pytest": 0,
-    "secondes": 9.0
+    "secondes": 8.1
    },
    "tests/test_realtime.py": {
     "code_pytest": 0,
-    "secondes": 4.5
+    "secondes": 3.7
    },
    "tests/test_risk_agent_backtest.py": {
     "code_pytest": 0,
-    "secondes": 10.5
+    "secondes": 8.9
    },
    "tests/test_scalp_ablation.py": {
     "code_pytest": 0,
-    "secondes": 3.1
+    "secondes": 2.4
    },
    "tests/test_scalp_actifs.py": {
     "code_pytest": 0,
-    "secondes": 3.2
+    "secondes": 2.4
    },
    "tests/test_scalp_apprentissage.py": {
     "code_pytest": 0,
-    "secondes": 5.2
+    "secondes": 5.1
    },
    "tests/test_scalp_calibration.py": {
     "code_pytest": 0,
-    "secondes": 2.9
+    "secondes": 3.2
    },
    "tests/test_scalp_core.py": {
     "code_pytest": 0,
-    "secondes": 3.1
+    "secondes": 2.3
    },
    "tests/test_scalp_desk.py": {
     "code_pytest": 0,
-    "secondes": 3.2
+    "secondes": 3.0
    },
    "tests/test_scalp_epuisement.py": {
     "code_pytest": 0,
-    "secondes": 3.0
+    "secondes": 2.3
    },
    "tests/test_scalp_essais.py": {
     "code_pytest": 0,
-    "secondes": 2.7
+    "secondes": 2.5
    },
    "tests/test_scalp_evenements.py": {
     "code_pytest": 0,
-    "secondes": 2.5
+    "secondes": 2.3
    },
    "tests/test_scalp_faisabilite.py": {
     "code_pytest": 0,
-    "secondes": 3.2
+    "secondes": 2.4
    },
    "tests/test_scalp_flash.py": {
     "code_pytest": 0,
-    "secondes": 2.9
+    "secondes": 2.4
    },
    "tests/test_scalp_flux.py": {
     "code_pytest": 0,
-    "secondes": 3.4
+    "secondes": 2.7
    },
    "tests/test_scalp_frais.py": {
     "code_pytest": 0,
-    "secondes": 2.8
+    "secondes": 2.3
    },
    "tests/test_scalp_lab.py": {
     "code_pytest": 0,
-    "secondes": 1.3
+    "secondes": 1.0
+   },
+   "tests/test_scalp_levier.py": {
+    "code_pytest": 0,
+    "secondes": 2.6
    },
    "tests/test_scalp_macro.py": {
     "code_pytest": 0,
-    "secondes": 3.5
+    "secondes": 2.9
    },
    "tests/test_scalp_ouverture.py": {
     "code_pytest": 0,
-    "secondes": 2.8
+    "secondes": 2.1
    },
    "tests/test_scalp_recherche.py": {
     "code_pytest": 0,
-    "secondes": 2.7
+    "secondes": 2.3
    },
    "tests/test_scalp_regimes.py": {
     "code_pytest": 0,
-    "secondes": 2.5
+    "secondes": 2.6
    },
    "tests/test_scalp_reserve.py": {
     "code_pytest": 0,
@@ -5995,11 +6022,11 @@
    },
    "tests/test_scalp_risques.py": {
     "code_pytest": 0,
-    "secondes": 3.2
+    "secondes": 2.3
    },
    "tests/test_scalp_signaux.py": {
     "code_pytest": 0,
-    "secondes": 2.6
+    "secondes": 2.7
    },
    "tests/test_scalp_techniques.py": {
     "code_pytest": 0,
@@ -6011,7 +6038,7 @@
    },
    "tests/test_validation_leakage.py": {
     "code_pytest": 0,
-    "secondes": 0.4
+    "secondes": 0.3
    }
   },
   "niveaux": {

@@ -278,19 +278,20 @@ Toutes les mesures portent sur l'historique 2018-01-01 → 2026-11-22, **déjà 
 | #162 (`a3a5247`) | `3512fab` | C018, C029 | Offre de stablecoins (série non point-in-time, borne optimiste) : aucun effet. Liquidités le week-end : −0,67 %/semaine sur B0. Aucun jour distinct après Holm. |
 | #163 (`7295149`) | `1fd27f7` | C036, C039 | Amplitude du range : moins bonne que la volatilité réalisée pour prévoir l'ampleur. Capitulations : aucun gain, pire baisse de B0 portée à 66 %. |
 | #164 (`c797ec4`) | `d392974` | C085, C086 | IA principale : spécialistes par régime et retrait des redondances sans gain significatif ; les probabilités restent moins bonnes que le taux appris. |
+| #169 (`2c6ce1e`) | `f2303eb` (écart `eda98ad`) | C028 | Open interest des perpétuels BTC : abstention quand le levier monte sans gain (Holm 1) ; rebond le lendemain d'un désendettement (+1,3 pt, n 33) non significatif après Holm. Relevés nuls de la source ignorés après coup : écart enregistré avant le nouveau calcul, deux résultats publiés. |
 
 **Inventaire après ces mesures** (registre `research/scalp-v1/registre-capacites.json`) :
 
 | Statut | Nombre |
 |---|---|
 | Existantes et testées | 43 |
-| Partielles | 29 |
+| Partielles | 28 |
 | Absentes | 4 |
 | Bloquées (données) | 2 |
-| Expériences rejetées | 22 |
+| Expériences rejetées | 23 |
 | Validées | **0** |
 
-**Couverture des tests.** 95 capacités ont une couverture « constatée » : toutes leurs fonctions citées ont réellement tourné pendant un test réussi, rejoué seul sous traceur avec un fil de calcul mathématique par processus (contre 55 au premier inventaire). Aucune n'est partielle ni non constatée ; 5 sont sans preuve (C019 et C045 bloquées ; C049, C058 et C100 absentes). Plus aucune capacité n'est « à confirmer » (détail : clé `mesure_execution`, Python 3.12.3, commit `97126c0`). Les derniers chemins non exécutés ont reçu un test : `flux.supply_lead`, `epuisement.amplitude_study` (#166), `costs.measure.stress_states`, le chemin EVM `_goplus_evm` (#167) et `signaux.load_bars` sur réseau simulé, avec la correction de `data.read_month` sous pandas 3.
+**Couverture des tests.** 95 capacités ont une couverture « constatée » : toutes leurs fonctions citées ont réellement tourné pendant un test réussi, rejoué seul sous traceur avec un fil de calcul mathématique par processus (contre 55 au premier inventaire). Aucune n'est partielle ni non constatée ; 5 sont sans preuve (C019 et C045 bloquées ; C049, C058 et C100 absentes). Plus aucune capacité n'est « à confirmer » (détail : clé `mesure_execution`, Python 3.12.3, commit `1caef90`). Les derniers chemins non exécutés ont reçu un test : `flux.supply_lead`, `epuisement.amplitude_study` (#166), `costs.measure.stress_states`, le chemin EVM `_goplus_evm` (#167) et `signaux.load_bars` sur réseau simulé, avec la correction de `data.read_month` sous pandas 3.
 
 **Défauts de la section 6, mis à jour :**
 - **Identité des actifs** : traitée (#153), sauf deux cas. VEN → VET (1 pour 100) reprend 22,8 % au-dessus de l'équivalent et n'est pas relié. BCC → BCHABC est une scission, également non reliée. Le raccord est désactivé par défaut, ce qui laisse les résultats publiés reproductibles.
@@ -311,12 +312,13 @@ Toutes les mesures portent sur l'historique 2018-01-01 → 2026-11-22, **déjà 
 **Reproduction des études (Windows 11, Python 3.12)**
 
 ```powershell
-python -m pytest tests/test_scalp_ablation.py tests/test_scalp_faisabilite.py tests/test_scalp_recherche.py tests/test_scalp_ouverture.py tests/test_scalp_frais.py tests/test_scalp_regimes.py tests/test_scalp_calibration.py tests/test_scalp_evenements.py tests/test_scalp_risques.py tests/test_scalp_techniques.py tests/test_scalp_macro.py tests/test_scalp_flux.py tests/test_scalp_epuisement.py tests/test_scalp_apprentissage.py tests/test_scalp_registre.py -q
+python -m pytest tests/test_scalp_ablation.py tests/test_scalp_faisabilite.py tests/test_scalp_recherche.py tests/test_scalp_ouverture.py tests/test_scalp_frais.py tests/test_scalp_regimes.py tests/test_scalp_calibration.py tests/test_scalp_evenements.py tests/test_scalp_risques.py tests/test_scalp_techniques.py tests/test_scalp_macro.py tests/test_scalp_flux.py tests/test_scalp_epuisement.py tests/test_scalp_apprentissage.py tests/test_scalp_levier.py tests/test_scalp_registre.py -q
 python -m sentinelle.scalp.ablation --trials ""
 python -m sentinelle.scalp.regimes --trials ""
 python -m sentinelle.scalp.evenements --trials ""
 python -m sentinelle.scalp.macro --trials ""
 python -m sentinelle.scalp.flux --trials ""
 python -m sentinelle.scalp.epuisement --trials ""
+python -m sentinelle.scalp.levier --trials ""
 python -m sentinelle.scalp.registre
 ```
