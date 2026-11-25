@@ -72,7 +72,11 @@ export default {
     };
     const train = async () => { await safe(api.post('/api/ai/train', { days: trainDays.value }), 'Entraînement lancé : il peut prendre quelques minutes'); };
     const backtest = async () => { btResult.value = null; await safe(api.post('/api/ai/backtest', { days: btDays.value, use_model: btUseModel.value, capital: Number(btCapital.value) || null }), 'Simulation lancée'); };
-    const promote = async (m) => { if (await safe(api.post(`/api/ai/models/${encodeURIComponent(m.version)}/promote`), 'Modèle activé')) loadModels(); };
+    const promote = async (m) => {
+      if (!window.confirm(`Approuver la version ${m.version} pour les décisions fictives ?\nSHA-256 : ${m.sha256}`)) return;
+      const consent = { action: 'approve_paper_model', confirmed_version: m.version, sha256: m.sha256 };
+      if (await safe(api.post(`/api/ai/models/${encodeURIComponent(m.version)}/promote`, consent), 'Activation approuvée')) await loadModels();
+    };
     const retire = async (m) => { if (await safe(api.post(`/api/ai/models/${encodeURIComponent(m.version)}/retire`), 'Modèle retiré')) loadModels(); };
 
     const holdoutCurves = computed(() => {
@@ -214,9 +218,9 @@ export default {
             <tbody><tr v-for="m in models" :key="m.version" :style="m.version===reportVersion ? 'background:rgba(59,130,246,.08)' : ''">
               <td class="mono small">{{ m.version }}</td><td class="nowrap">{{ dt(m.created_at) }}</td>
               <td>{{ m.metrics?.verdict }}</td><td class="num" :class="cls(m.metrics?.holdout_mean_r)">{{ rr(m.metrics?.holdout_mean_r) }}</td>
-              <td><span class="badge" :class="(STATUS[m.status]||[])[1]">{{ (STATUS[m.status]||[m.status])[0] }}</span></td>
+              <td><span class="badge" :class="(STATUS[m.status]||[])[1]">{{ m.human_approved ? 'Approuvé et actif' : m.status==='champion' ? 'Ancienne activation à réexaminer' : m.status==='challenger' && m.statistically_eligible ? 'Éligible · approbation requise' : (STATUS[m.status]||[m.status])[0] }}</span></td>
               <td class="nowrap"><button class="small" @click="openReport(m.version)">Rapport</button>
-                <button v-if="m.status!=='champion' && m.metrics?.verdict==='validé'" class="small" @click="promote(m)">Activer</button>
+                <button v-if="m.status==='challenger' && m.statistically_eligible && m.sha256" class="small" @click="promote(m)">Activer</button>
                 <button v-if="m.status==='champion' || m.status==='trial'" class="small ghost" @click="retire(m)">Retirer</button></td></tr>
               <tr v-if="!models.length"><td colspan="6" class="empty">Aucun entraînement pour l'instant.</td></tr></tbody>
           </table></div>

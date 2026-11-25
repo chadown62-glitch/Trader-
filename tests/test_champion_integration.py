@@ -96,18 +96,27 @@ def test_cache_cannot_hide_modified_or_unreadable_model(registry, base_model, ra
 
 def test_promotion_requires_evidence_and_reference_and_is_idempotent(registry, base_model):
     db, store = registry
-    store.register(result(base_model, "a"), {})
+    from sentinelle.api.auth import Auth
+    token = Auth(db).new_session()
+    row = store.register(result(base_model, "a"), {})
+    confirmation = dict(confirmed_version="a", sha256=row["sha256"], session_token=token)
     with pytest.raises(ValueError, match="Validation appariée"):
-        store.promote("a")
+        store.promote("a", **confirmation)
     store.reserve_evaluation("a", "4h", 100, 200, "all_signals")
     store.record_evaluation("a", {"verdict": "MODÈLE APPROUVÉ POUR PAPER TRADING"})
-    store.promote("a"); store.promote("a")
+    with pytest.raises(ValueError, match="Confirmation explicite"):
+        store.promote("a")
+    store.promote("a", **confirmation)
+    store.promote("a", **confirmation)
+    receipt = next(e for e in store.history() if e["event"] == "promu")
+    assert receipt["data"]["sha256"] == row["sha256"] and token not in str(receipt)
+    assert store.list()[0]["human_approved"]
     assert len([e for e in store.history() if e["event"] == "promu"]) == 1
     store.register(result(base_model, "b"), {})
     store.reserve_evaluation("b", "4h", 200, 300, "changed-reference")
     store.record_evaluation("b", {"verdict": "MODÈLE APPROUVÉ POUR PAPER TRADING"})
     with pytest.raises(ValueError, match="référence modifié"):
-        store.promote("b")
+        store.promote("b", confirmed_version="b", sha256=store.get("b")["sha256"], session_token=token)
     assert store.champion("4h").version == "a"
     with pytest.raises(ValueError, match="déjà utilisée"):
         store.record_evaluation("b", {"verdict": "TESTS INCOMPLETS"})
@@ -137,7 +146,8 @@ def test_legacy_migration_preserves_models_accounts_and_unverified_bytes(tmp_pat
         db = Database(path)
         store = ModelStore(db, tmp_path)
         assert store.get("legacy")["sha256"] is None
-        assert store.champion("4h").version == "legacy" and artifact.read_bytes() == original
+        assert store.champion("4h") is None and artifact.read_bytes() == original
+        assert store.get("legacy")["status"] == "champion"  # preserve historical evidence
         assert db.scalar("SELECT COUNT(*) FROM models") == 1
         if not db.scalar("SELECT COUNT(*) FROM accounts"):
             for n in (1, 2):
