@@ -392,10 +392,7 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
 - **Règle d'arrêt.** Un indicateur dont le gain net est non significatif, instable ou issu d'une période déjà optimisée n'est pas activé dans la décision. Une capacité de sécurité peut être conservée malgré un rendement inférieur. Une capacité rejetée peut être abandonnée comme filtre.
 - **Répartition.**
   - Claude Code : audit, inventaire, cadrage, registre, tests techniques et corrections mesurables autorisées.
-  - GPT Work : audit indépendant, disponible le mercredi 25 novembre 2026. Fichiers réservés, non modifiés : `tools/evaluation/`, `tests/test_memecoin_evaluation*.py`, `docs/evaluation/`.
-  - **Passation temporaire OMEGA V11 (25–26 novembre 2026).** Jusqu’au jeudi 26 novembre à 21 h, heure de Paris (20 h UTC), GPT Work prend en charge la consolidation des PR #171–#180 (25 % de l’effort indicatif), l’audit scientifique indépendant (25 %), le rejeu des huit expériences V11 postérieures à V3 (25 %), les audits de sécurité (15 %) et le profilage TITAN (10 %). Le cadrage thématique OMEGA de #171 reste distinct. La passation prend effet après intégration du cadrage applicable sur `main`.
-  - Les preuves de Work vont dans ses chemins d’évaluation réservés. Les journaux scientifiques sont en ajout seul. Chaque anomalie reçoit une reproduction, un témoin et un périmètre de correction. Toute modification d’un composant opérationnel hors périmètre demande un cadrage dédié. Claude reprend sur les SHA et preuves consignés ; une correction de Work doit être auditée indépendamment. Bilan de recherche le 1er décembre, bilan scientifique le 5 décembre. Seul le travail actif mesuré est comptabilisé.
-  - Simulation exclusive, quatre rôles actifs maximum, vetos et archives #54/#55 intacts. Aucun démarrage C100, service permanent ou promotion de modèle. Les cibles de +1,30 % net par semaine et 10 % de drawdown restent expérimentales. Chaque PR compte au plus six fichiers et passe les trois contrôles avant fusion.
+  - GPT Work : audit indépendant. La passation OMEGA ci-dessous précise son rôle temporaire et ses chemins réservés : `tools/evaluation/`, `tests/test_memecoin_evaluation*.py`, `docs/evaluation/`.
   - Le propriétaire décide de toute observation prospective, de toute promotion et de toute extension des sources.
 - **Rapport d'acceptation de chaque PR.**
   - Numéro, SHA, au plus six fichiers, et les trois contrôles CI verts sur le dernier commit (Ubuntu, Windows, Chromium).
@@ -403,3 +400,90 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
   - Protocoles préenregistrés et résultats négatifs conservés.
   - Gel #54/#55 et invariants vérifiés : simulation exclusive, Guardian, Risk Commander, causalité.
   - Rendement, intervalles de confiance, pire baisse, coûts, actifs, périodes et seuils d'abstention, ou la mention NON MESURÉ.
+
+## Extension du Sprint 5 — phase de recherche OMEGA (décision du propriétaire du 25 novembre 2026)
+
+- **Autorisation.**
+  - Le propriétaire autorise la phase de recherche OMEGA dans le Sprint 5, seul sprint en cours.
+  - Elle ne crée ni sprint ni succession de missions autonomes.
+  - Claude Code dispose d'une autonomie technique sur la recherche quantitative, l'architecture, les modèles statistiques, les expériences et le moteur fictif, dans les limites de ce cadrage.
+  - **Passation temporaire OMEGA V11.** Jusqu’au jeudi 26 novembre 2026 à 21 h à Paris (20 h UTC), GPT Work assure la consolidation des PR #171–#180 (25 % de l’effort indicatif), l’audit scientifique indépendant (25 %), le rejeu des huit expériences complémentaires V11 (25 %), les audits de sécurité (15 %) et le profilage TITAN (10 %). Ces pourcentages concernent la passation du 25–26 novembre.
+  - GPT Work dépose ses reproductions et preuves dans `tools/evaluation/`, `tests/test_memecoin_evaluation*.py` et `docs/evaluation/`. Une correction opérationnelle en dehors du périmètre attribué fait l’objet d’un cadrage explicite. Les travaux de Work font l’objet d’une revue indépendante. Les journaux sont en ajout seul.
+  - À son retour, Claude reprend sur les SHA, préenregistrements, contre-exemples, résultats négatifs et temps réellement documentés. Les huit expériences V11 sont reliées au catalogue existant. Le protocole C100 reste soumis à une autorisation distincte.
+- **Nature des 25 concepts OMEGA.**
+  - HIVE, GENOME, RADAR, ATLAS, PHANTOM, ORACLE, NEMESIS, CORTEX, CHRONOS, MEMORY, PULSE, IMMUNITY, EVOLUTION, TITAN, TRUTH, BORDER, ECHO, QUARANTINE, TIMELOCK, REPLAY, LINEAGE, BLINDSPOT, MIRROR, COMPASS et PROVENANCE.
+  - Ce sont des propositions de composants ou de méthodes expérimentales, pas des agents : au plus quatre agents restent actifs dans le moteur.
+  - Chaque concept est rattaché aux capacités C001–C100 avant toute implémentation : `docs/scalp/omega-cadrage.md`.
+  - Le registre SENTINELLE OMEGA V3 (25 novembre 2026), transmis par le propriétaire en cours de séance, est versé au dépôt en copie conforme : `docs/scalp/omega-registre-v3.md` (SHA-256 `2310472d4d986c52be6da5ec0a89d69cbe7f9c7f15ae33b278d71627538ac0e3`).
+    - Il fait foi pour la fonction et le test proposé de chaque concept. La correspondance de `docs/scalp/omega-cadrage.md` en tient compte.
+    - Il reste un registre de **propositions de recherche** : il ne crée aucune mission et ne valide aucune fonctionnalité.
+    - Ses trois expériences synthétiques (HIVE/BORDER, CORTEX/ECHO, PULSE/QUARANTINE) sont à reproduire dans le dépôt, à partir de leur code et de leur description, comme bibliothèque de ruptures synthétiques (REPLAY).
+    - Les contrôles synthétiques reconstruits avant sa réception (#172 à #174) restent publiés et signalés comme tels.
+- **Cibles expérimentales**, jamais des fonctions à optimiser sur les données d'évaluation :
+  - +1,30 % par semaine en moyenne géométrique, net de frais ;
+  - pire baisse de 10 % au plus ;
+  - au moins 60 % de semaines positives ;
+  - un avantage prédictif reproductible ;
+  - une compatibilité avec des capitaux fictifs de 30, 100, 1 000 et 10 000 €.
+- **Échéances.**
+  - Premier bilan : 1er décembre 2026.
+  - Bilan scientifique consolidé : 5 décembre 2026.
+  - Elles ne justifient ni hausse du risque ni baisse des exigences de validation. Le 5 décembre est un bilan scientifique, pas une autorisation d'engager de l'argent réel.
+- **Programme et part de l'effort.**
+  - **A — HIVE, GENOME, BORDER (35 %)** : apprentissage mutualisé entre actifs contre spécialisation individuelle.
+    - Trois références : individuelle, collective et hybride.
+    - Mesures : erreurs prédictives, généralisation dans le temps, généralisation à des actifs exclus de l'apprentissage, transfert négatif.
+    - Le bénéfice de la mutualisation observé en synthétique n'est pas tenu pour démontré sur les marchés.
+  - **B — CORTEX, ECHO (25 %)** : complémentarité effective des modèles.
+    - Mesures : corrélation des erreurs, biais communs, dépendances informationnelles.
+    - Recherche distincte de C086 (redondance des caractéristiques, #164) et de C087 (ensemble léger).
+    - Toujours comparée à des références simples ; aucun modèle ajouté sans contribution mesurée.
+  - **C — RADAR, ATLAS (15 %)** : élargissement de l'univers observé (cryptos, memecoins, actions, fonds).
+    - Inventaire : couverture, historiques, qualité, dépendances, coûts et liquidité.
+    - Univers défini à la date, actifs disparus inclus quand les données existent.
+    - Observer plus d'actifs n'augmente jamais automatiquement l'exposition. Toute nouvelle source attend l'autorisation du propriétaire.
+    - D'après le registre V3 :
+      - RADAR mesure la couverture, la qualité des données et l'apport marginal ;
+      - ATLAS mesure la stabilité des corrélations, les regroupements et la dépendance en crise.
+  - **D — PULSE, QUARANTINE (15 %)** : dégradation des modèles, y compris à entrées d'apparence normale.
+    - Distinguer la dérive des entrées, le biais des prédictions et la hausse des erreurs.
+    - Synthétique d'abord, puis ruptures moins marquées, progressives et dépendantes.
+    - Mesures : délai de détection, fausses alertes, situations non détectées.
+    - Tous les vetos déterministes sont conservés.
+    - QUARANTINE, d'après le registre V3 : signaler explicitement un actif ou un régime hors distribution.
+      - États distincts : diagnostic inconnu, données périmées, erreur confirmée.
+      - Une alerte n'autorise ni changement automatique de modèle ni modification des vetos.
+  - **E — intégrité scientifique (10 %)** : principes transversaux.
+    - TRUTH : essais multiples, biais, témoins et réutilisation de l'historique contrôlés ; résultats négatifs conservés.
+    - TIMELOCK : dates de publication, de réception, de disponibilité et de correction des sources vérifiées ; préenregistrement poussé avant calcul.
+    - MIRROR : contrôles négatifs et signaux artificiels sans information, auxquels le laboratoire ne doit attribuer aucune capacité prédictive.
+    - MEMORY : mémoire des essais, des hypothèses rejetées, des versions et des causes d'échec, en ajout seul.
+    - PROVENANCE : identifiants des jeux de données, fenêtres et empreintes associés à chaque prédiction expérimentale.
+    - Les essais multiples sont corrigés, et les résultats sont reproductibles pour l'audit de GPT Work.
+- **Méthode.**
+  - Hypothèses falsifiables, préenregistrées dans `research/scalp-v1/trials.jsonl` et poussées avant tout calcul.
+  - Références simples, modèles légers (`scikit-learn`, 16 Go de RAM, 8 Go de VRAM), données et calculs mutualisés, durée réelle mesurée.
+  - Aucun historique déjà consulté présenté comme aveugle.
+  - PR ciblées de six fichiers au plus, fusionnées après les trois contrôles obligatoires.
+  - En cas de blocage de GitHub, les travaux locaux autorisés continuent, sans contourner aucune protection.
+- **Mémoire et passation.** Le dossier `docs/scalp/dossier-evaluation-independante.md` et le registre des capacités sont tenus à jour :
+  - hypothèses, résultats chiffrés, rejets et leurs raisons ;
+  - fichiers, PR et SHA, tests et CI ;
+  - temps actif, prochaines étapes et points soumis à l'audit indépendant.
+
+  GPT Work doit pouvoir reprendre sans reconstruire le contexte.
+- **Recherches autorisées après les premiers résultats** (décision du propriétaire du 25 novembre 2026, soir). Toutes sont menées exclusivement en simulation. Les informations réellement nouvelles passent avant la multiplication de modèles sur les mêmes données.
+  - **C042, carnets d'ordres.** Étude des archives publiques de carnets d'ordres. Elle vérifie leur intégrité (sommes de contrôle publiées), leur couverture et leur disponibilité dans le temps. C'est une nouvelle source autorisée.
+  - **Archives d'actualités.** Inventaire des sources publiques, puis étude historique hors ligne. Aucune collecte prospective n'est autorisée.
+  - **Calibration de l'IA principale (C082).** Correction expérimentale, préenregistrée, jugée hors échantillon. Aucune intégration sans validation humaine.
+  - **PULSE.** Étalonnage des seuils sur un protocole séparé, préenregistré, avec des scénarios indépendants de ceux de l'étalonnage.
+  - **Consolidation des 12 agents en quatre rôles actifs.** Préparation architecturale seulement. Aucune protection n'est supprimée.
+  - **A1** reste une candidate expérimentale.
+  - **C100.** Le protocole d'observation prospective est préparé et figé. L'observation elle-même ne démarre pas sans une autorisation distincte.
+  - Les fusions déjà préparées sont terminées. Tous les résultats négatifs sont conservés, et la compatibilité avec Windows 11 est maintenue.
+- **Garde-fous inchangés.**
+  - Simulation exclusive : aucun ordre réel, aucune clé privée, aucun levier, aucune vente à découvert, aucune promotion automatique.
+  - Guardian, Risk Commander et protections scientifiques jamais assouplis.
+  - #54 et #55 intégralement gelées.
+  - Au plus quatre agents actifs.
+  - Aucun service permanent ni nouvelle observation prospective sans autorisation distincte.
