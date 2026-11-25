@@ -196,6 +196,7 @@ SIG, CORE, RECH, ESS, MOT = S + "scalp/signaux.py", S + "scalp/core.py", S + "sc
 SIM, STRAT = S + "dmh/memecoin_simulator.py", S + "dmh/memecoin_strategies.py"
 REG, CAL, EVT, RSK, TEC = S + "scalp/regimes.py", S + "scalp/calibration.py", S + "scalp/evenements.py", S + "scalp/risques.py", S + "scalp/techniques.py"
 MAC, FLX, EPU, APP = S + "scalp/macro.py", S + "scalp/flux.py", S + "scalp/epuisement.py", S + "scalp/apprentissage.py"
+LEV = S + "scalp/levier.py"
 FRA, FAI, OUV, ABL = S + "scalp/frais.py", S + "scalp/faisabilite.py", S + "scalp/ouverture.py", S + "scalp/ablation.py"
 
 # Audit : statut, preuves [(fichier, symbole)], tests, dépendances, hypothèse falsifiable, données, verdict, note.
@@ -300,8 +301,10 @@ entry("C026", "EXISTANTE_ET_TESTÉE", [(REG, "btc_correlation"), (S + "ai/knowle
       "avantage historique non démontré", "research/scalp-v1/regimes-abstention-v1.json : A4 sans effet sur B0 ni B1")
 entry("C027", "EXISTANTE_ET_TESTÉE", [(S + "market/context.py", "fetch_funding"), (S + "market/context.py", "funding_comment")],
       ["tests/test_realtime.py", "tests/test_cockpit_routes.py"], [], "Un taux de financement extrême précède des retournements.", "OKX public, observation seulement.", "utilité technique")
-entry("C028", "PARTIELLE", [(SHIELD, "Shield.poll_liquidations"), (SHIELD, "Shield._evaluate_cascade")], ["tests/test_realtime.py"], [],
-      "Une cascade de liquidations précède un excès de mouvement.", "Liquidations suivies ; open interest absent.", "à mesurer")
+entry("C028", "EXPÉRIMENT_REJETÉ", [(LEV, "last_reading"), (LEV, "leverage_rule"), (LEV, "after_deleveraging"), (SHIELD, "Shield.poll_liquidations")],
+      ["tests/test_scalp_levier.py", "tests/test_realtime.py"], [], "Une cascade de liquidations précède un excès de mouvement.",
+      "Open interest des perpétuels BTCUSDT (archives metrics vérifiées, depuis le 01/09/2020) ; liquidations non archivées, approchées par les baisses d'open interest.",
+      "rejet", "research/scalp-v1/levier-v1.json et levier-v1b.json (relevés nuls ignorés, écart publié) : O1 −0,06 %/sem sur B0, Holm 1 ; rebond le lendemain d'un désendettement +1,3 pt (n 33), Holm 0,09")
 entry("C029", "PARTIELLE", [(FLX, "weekday"), (FLX, "month_turn"), (FLX, "weekend_rule"), (FLX, "mean_gap"), (FLX, "calendar"), (S + "scalp/features.py", "compute")],
       ["tests/test_scalp_flux.py", "tests/test_scalp_watchers.py"], [], "Certaines heures ou jours ont un rendement ou un coût différent.",
       "Jours de la semaine et tournant de mois du BTC (journalier) ; heures et coûts horaires NON MESURÉS (aucun carnet historique horodaté).",
