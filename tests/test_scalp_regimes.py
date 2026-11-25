@@ -61,3 +61,16 @@ def test_the_control_keeps_the_share_and_lengths_of_abstention():
     assert ctl.sum() == mask.sum() and not ctl.equals(mask)
     runs = np.diff(np.flatnonzero(np.diff(np.r_[0, ctl.to_numpy().astype(int), 0])))[::2]
     assert runs.tolist() == [30]
+
+
+def test_market_regimes_are_built_from_closes_known_at_each_date():
+    rng = np.random.default_rng(3)
+    idx = pd.RangeIndex(0, 500)
+    c = pd.DataFrame({k: 100 * np.exp(np.cumsum(rng.normal(0, 0.03, len(idx)))) for k in ("BTCUSDT", "AUSDT", "BUSDT")}, index=idx)
+    member = pd.DataFrame(True, index=idx, columns=c.columns)
+    g = regimes.regimes(c, member)
+    assert set(g.columns) == {"efficacite", "tendance", "hausse", "volatilite", "tercile_volatilite", "correlation", "tercile_correlation"}
+    assert g["tercile_volatilite"].iloc[: regimes.MIN_HISTORY_DAYS].isna().all() and g["tercile_volatilite"].iloc[-1] in (0.0, 1.0, 2.0)
+    later = c.copy()
+    later.loc[400:] *= 2.0
+    pd.testing.assert_frame_equal(g.loc[:399], regimes.regimes(later, member).loc[:399])  # aucune valeur future
