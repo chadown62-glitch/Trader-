@@ -70,8 +70,12 @@ def public_client(*,fail=None,crash=False):
     return httpx.Client(transport=httpx.MockTransport(transport))
 
 
-def setup(root,*,real_model=False):
+def setup(root,*,real_model=False,cross_check=False):
     cfg=json.loads((ROOT/'research/prospective-v2/settings.json').read_bytes())
+    if not real_model:
+        # Isolated execution and recovery fixtures can exercise fills with one venue.
+        # The frozen settings stay byte-for-byte intact; test the required veto separately.
+        cfg["market"]["cross_check"] = cross_check
     app=App(root/'app',start=False,source=SyntheticSource(SYMBOLS,days=2),settings_override=cfg)
     app.db.close()
     if real_model:
@@ -119,6 +123,69 @@ def test_full_get_archive_model_paper_journal_report_and_repeat(tmp_path):
     assert db.scalar('SELECT COUNT(*) FROM fills')==n
     assert db.query('SELECT id,event FROM event_outbox')==payloads
     db.close()
+
+
+def test_single_venue_capture_blocks_entries_offline_and_records_why(tmp_path, monkeypatch):
+    from sentinelle.market.crosscheck import CrossChecker
+    from tools.prospective import MISSING_REFERENCE
+
+    protocol = setup(tmp_path, cross_check=True)
+    capture(tmp_path)
+    def unexpected_network(*args):
+        pytest.fail("Une cotation courante ne peut compléter un rejeu")
+    monkeypatch.setattr(CrossChecker, "_reference", unexpected_network)
+    with patch("tools.prospective.datetime", FrozenDate):
+        report = step(tmp_path/"app", protocol, tmp_path/"capture", execute=True, clock=lambda: NOW)
+    assert report["ready"] and report["steps_complete"]
+    assert report["entry_crosscheck_veto"] == MISSING_REFERENCE
+    db = Database(tmp_path/"app/sentinelle.db")
+    try:
+        assert db.scalar("SELECT COUNT(*) FROM fills") == 0
+        assert db.scalar("SELECT COUNT(*) FROM candidates WHERE decision='refusé' AND decision_reason LIKE ?",
+                         ("%UNVERIFIED%",)) > 0
+    finally:
+        db.close()
+
+
+def test_missing_reference_cancels_only_residual_buy_and_keeps_protective_stop(tmp_path):
+    from tools.observe import protect
+    from tools.public_capture import CaptureSource
+
+    protocol = setup(tmp_path, cross_check=True)
+    manifest = capture(tmp_path)
+    symbol = "BTC/EUR"
+    book = manifest["books"][symbol]
+    # Model a pre-existing, partially filled paper entry under the former code.
+    last = float(book["asks"][0][0])
+    book["asks"][0][1] = 0.05
+    source = CaptureSource(manifest, {}, lambda: NOW)
+    app = App(tmp_path/"app", start=False, source=source)
+    try:
+        app.hub.load_markets()
+        app.hub.prices[symbol] = last
+        app.hub.price_ts[symbol] = app.hub.price_source_ts[symbol] = NOW
+        rt = app.runtime(app.main_account()["id"])
+        pos = rt.positions.open(symbol, 0.1, origin="ai", agent="prospective-frozen", stop=last * 0.95)
+        assert pos["qty"] == pytest.approx(0.05)
+        old_buy = next(o for o in rt.broker.open_orders(symbol) if o["side"] == "buy")
+        assert old_buy["status"] == "partially_filled"
+    finally:
+        app.close()
+    # The next primary book crosses the stop and offers sufficient volume for the residual buy.
+    for current in manifest["books"].values():
+        current.update(received_at=NOW + 1, timestamp=(NOW + 1) * 1000)
+    book.update(bids=[[last * 0.90, 1]], asks=[[last * 0.91, 1]])
+    result = protect(tmp_path/"app", protocol, manifest, clock=lambda: NOW + 1)
+    assert result["maintenance_only"]
+    db = Database(tmp_path/"app/sentinelle.db")
+    try:
+        order = db.one("SELECT status, filled, error FROM orders WHERE id=?", (old_buy["id"],))
+        assert order["status"] == "cancelled" and order["filled"] == pytest.approx(0.05)
+        assert "UNVERIFIED" in order["error"]
+        assert db.one("SELECT status FROM positions WHERE id=?", (pos["id"],))["status"] == "closed"
+        assert db.scalar("SELECT COUNT(*) FROM fills WHERE side='sell'") == 1
+    finally:
+        db.close()
 
 
 def test_real_v2_artifact_and_features_traverse_bounded_observer(tmp_path):
