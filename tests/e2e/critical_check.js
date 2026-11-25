@@ -42,10 +42,17 @@ const near = (a, b, tol) => Math.abs(Number(a) - Number(b)) <= tol;
   const open = async () => (await positions()).filter(p => p.status === 'open');
 
   // 1. Ticket d'achat.
+  const detailRoute = '**/api/accounts/' + account.id;
+  let releaseDetail;
+  const holdDetail = new Promise(resolve => { releaseDetail = resolve; });
+  await page.route(detailRoute, async route => { await holdDetail; await route.continue(); });
   await page.goto(BASE + '/#/trade');
   const ticket = page.locator('.ticket');
   await ticket.waitFor();
-  await sleep(1000);
+  const quarterButton = ticket.getByRole('button', { name: '25 %', exact: true });
+  check(await quarterButton.isDisabled(), 'le raccourci de montant attend le solde du compte');
+  releaseDetail();
+  await ticket.locator('.pill-row button:enabled').filter({ hasText: '25 %' }).waitFor();
   const amount = ticket.locator('.field:has-text("Montant") input').first();
   await ticket.locator('.pill-row button:has-text("25 %")').click();
   const quarter = Number(await amount.inputValue());
