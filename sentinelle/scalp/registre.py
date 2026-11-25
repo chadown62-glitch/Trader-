@@ -481,9 +481,9 @@ entry("C091", "EXISTANTE_ET_TESTÉE", [(RECH, "point_in_time_members"), (RECH, "
       "Un univers défini à la date fait disparaître l'avantage des listes choisies après coup.",
       "42 candidates (disparues comprises), LUNA coupée (#145), 5 liens d'identité officiels vérifiés à la minute (#153) ; liste de candidates dressée en 2026.", "utilité technique",
       "#144 : v10 passe de +0,94 % à +0,28 %/semaine ; research/scalp-v1/continuite-actifs-v1.json : raccord non significatif")
-entry("C092", "PARTIELLE", [(SIG, "load_bars"), (S + "scalp/data.py", "_fetch_verified")], ["tests/test_active_time_journal.py", "tests/test_configurable_capital.py", "tests/test_scalp_lab.py"], [],
+entry("C092", "PARTIELLE", [(SIG, "load_bars"), (S + "scalp/data.py", "_fetch_verified")], ["tests/test_active_time_journal.py", "tests/test_configurable_capital.py", "tests/test_scalp_lab.py", "tests/test_scalp_signaux.py"], [],
       "Le registre des essais et les empreintes rendent chaque résultat rejouable et non modifiable.",
-      "trials.jsonl en ajout seul par convention (aucun test ne l'impose) ; empreintes SHA-256 des archives ; gel #54/#55 testé.", "utilité technique")
+      "trials.jsonl en ajout seul par convention (aucun test ne l'impose) ; empreintes SHA-256 des archives, revérifiées à chaque lecture (testé sur réseau simulé) ; gel #54/#55 testé.", "utilité technique")
 entry("C093", "EXISTANTE_ET_TESTÉE", [(S + "ai/trainer.py", "train_walk_forward"), (RECH, "walk_forward"), (S + "scalp/brain.py", "PrincipalAI")],
       ["tests/test_learning.py", "tests/test_scalp_recherche.py", "tests/test_validation_leakage.py", "tests/test_scalp_desk.py"], [], "La validation purgée avec embargo empêche toute fuite.",
       "Fenêtres chronologiques purgées ; embargo d'un jour.", "utilité technique")

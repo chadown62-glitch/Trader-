@@ -170,3 +170,73 @@ def test_members_need_volume_known_before_the_month_and_sixty_days_of_history():
     assert not m.at[moteur._day("2021-04-15"), "S11USDT"]  # avril : volume d'avril encore inconnu au 1er avril
     may = m.loc[moteur._day("2021-05-15")]
     assert may["S11USDT"] and not may["S9USDT"] and int(may.sum()) == 10
+
+
+def _kline_zip(name, days, price=100.0):
+    import io
+    import zipfile
+
+    rows = "".join(f"{d * signaux.DAY_MS},{price},{price * 1.01},{price * 0.99},{price},10,{d * signaux.DAY_MS + 86_399_999},1000,5,4,400,0\n"
+                   for d in days)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr(name.replace(".zip", ".csv"), rows)
+    return buf.getvalue()
+
+
+def test_load_bars_reads_only_verified_archives_and_records_their_checksums(tmp_path):
+    import hashlib
+
+    import httpx
+
+    from sentinelle.scalp import data, moteur
+
+    sym = "TESTUSDT"
+    day = moteur._day
+    periods = {"2026-09": range(day("2026-09-01"), day("2026-10-01")), "2026-10": range(day("2026-10-01"), day("2026-11-01"))}
+    periods |= {f"2026-11-{k:02d}": [day(f"2026-11-{k:02d}")] for k in range(1, 23) if k != 10}  # le 10 novembre n'est pas publié
+    files = {f"{sym}-1d-{p}.zip": _kline_zip(f"{sym}-1d-{p}.zip", d) for p, d in periods.items()}
+    gets = []
+
+    def serve(request):
+        name = request.url.path.rsplit("/", 1)[-1]
+        body = files.get(name.removesuffix(".CHECKSUM"))
+        if body is None:
+            return httpx.Response(404)
+        if request.method == "GET":
+            gets.append(name)
+        if name.endswith(".CHECKSUM"):
+            return httpx.Response(200, text=f"{hashlib.sha256(body).hexdigest()}  {name.removesuffix('.CHECKSUM')}")
+        return httpx.Response(200, content=body)
+
+    with httpx.Client(transport=httpx.MockTransport(serve)) as client:
+        bars, report = signaux.load_bars(sym, tmp_path, client)
+    assert report["listed"] == "2026-09" and report["last_month"] == "2026-10" and report["missing_periods"] == ["2026-11-10"]
+    assert bars.index[0] == day("2026-09-01") and bars.index[-1] == day("2026-11-22") and report["days_without_quote"] == 1
+    assert {p: sha for p, sha in report["files"]} == {p: hashlib.sha256(files[f"{sym}-1d-{p}.zip"]).hexdigest() for p in periods}
+    n = len(gets)
+    with httpx.Client(transport=httpx.MockTransport(serve)) as client:
+        again, _ = signaux.load_bars(sym, tmp_path, client)  # relu depuis le cache, revérifié, sans nouveau téléchargement réussi
+    pd.testing.assert_frame_equal(bars, again)
+    assert len(gets) == n
+    cached = tmp_path / "1d" / sym / f"{sym}-1d-2026-09.zip"
+    cached.write_bytes(_kline_zip(cached.name, periods["2026-09"], price=101.0))  # archive du cache modifiée
+    with httpx.Client(transport=httpx.MockTransport(serve)) as client, pytest.raises(data.DataIntegrityError):
+        signaux.load_bars(sym, tmp_path, client)
+
+
+def test_read_month_skips_a_header_line_whatever_the_pandas_version(tmp_path):
+    import io
+    import zipfile
+
+    from sentinelle.scalp import data
+
+    path = tmp_path / "X-1m-2026-01.zip"
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("X.csv", "open_time,open,high,low,close,volume,close_time,quote_volume,count,taker_buy_volume,taker_buy_quote_volume,ignore\n"
+                            "1767225600000000,1,2,0.5,1.5,10,1767225659999999,15,3,4,6,0\n")
+    path.write_bytes(buf.getvalue())
+    d = data.read_month(path)
+    assert list(d.columns) == data.COLUMNS and len(d) == 1
+    assert int(d["t"].iloc[0]) == 1767225600000 and float(d["c"].iloc[0]) == 1.5  # microsecondes ramenées en millisecondes
