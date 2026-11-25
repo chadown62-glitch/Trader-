@@ -118,7 +118,7 @@ def read_month(path) -> pd.DataFrame:
     with zipfile.ZipFile(path) as z:
         raw = z.read(z.namelist()[0])
     d = pd.read_csv(io.BytesIO(raw), header=None, usecols=[0, 1, 2, 3, 4, 5, 9])
-    if not d.empty and not np.issubdtype(d[0].dtype, np.number):  # ligne d'en-tête éventuelle
+    if not d.empty and not pd.api.types.is_numeric_dtype(d[0]):  # ligne d'en-tête éventuelle (texte, quelle que soit la version de pandas)
         d = d.iloc[1:].astype(float)
     d.columns = COLUMNS
     t = d["t"].astype("int64")
