@@ -46,7 +46,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
    "lot": "2 — actualités, régimes et abstention",
    "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "Archive.latency",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "poll",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "Archive.add",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C002",
@@ -90,7 +115,38 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "classify",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "RULES",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/news/service.py",
+      "symbole": "validate_analysis",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "event_type",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C003",
@@ -131,7 +187,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
    "lot": "2 — actualités, régimes et abstention",
    "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "classify",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/service.py",
+      "symbole": "NewsService._allowed_assets",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/tokens.py",
+      "symbole": "TokenRegistry",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C004",
@@ -164,7 +245,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/news/signals.py",
+      "symbole": "SignalWatcher",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/signals.py",
+      "symbole": "simulate_signal",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C005",
@@ -215,7 +315,44 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
    "lot": "2 — actualités, régimes et abstention",
    "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/news/service.py",
+      "symbole": "similarity",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/service.py",
+      "symbole": "NewsService._copy_from_cluster",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "cluster_key",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "dependent",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "Archive.add",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C006",
@@ -255,7 +392,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
    "lot": "2 — actualités, régimes et abstention",
    "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "surprise_at",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "bls_series",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "difference",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C007",
@@ -300,7 +462,38 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
    "lot": "2 — actualités, régimes et abstention",
    "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/evenements.py",
+      "symbole": "reaction",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/evenements.py",
+      "symbole": "paired_test",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/evenements.py",
+      "symbole": "events",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/evenements.py",
+      "symbole": "release_utc",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C008",
@@ -339,7 +532,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "VETO_ASSET_MS",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "VETO_MARKET_MS",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "Archive.vetoes",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C009",
@@ -379,7 +597,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "classify",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "Archive.vetoes",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield._major_news",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C010",
@@ -419,7 +662,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : provenance, horodatages et réaction mesurée après disponibilité effective",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées et vetos d'événements — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield.check_entry",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield.microstructure",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/macro.py",
+      "symbole": "blackout",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C011",
@@ -453,7 +721,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "surprise_at",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "bls_series",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C012",
@@ -487,7 +774,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "surprise_at",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/news/shadow/parsers.py",
+      "symbole": "bls_series",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C013",
@@ -527,7 +833,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flash.py",
+      "symbole": "SOURCES",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/risk/macro.py",
+      "symbole": "events",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/macro.py",
+      "symbole": "blackout",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C014",
@@ -565,7 +896,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/macro.py",
+      "symbole": "session_rules",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/macro.py",
+      "symbole": "to_crypto_days",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/actifs.py",
+      "symbole": "parse",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C015",
@@ -599,7 +955,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/macro.py",
+      "symbole": "session_rules",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/market/context.py",
+      "symbole": "fetch_index",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C016",
@@ -633,7 +1008,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/macro.py",
+      "symbole": "session_rules",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/market/context.py",
+      "symbole": "fetch_index",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C017",
@@ -668,7 +1062,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/macro.py",
+      "symbole": "lead_lag",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/macro.py",
+      "symbole": "day_numbers",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C018",
@@ -710,7 +1123,38 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flux.py",
+      "symbole": "parse_supply",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flux.py",
+      "symbole": "usable",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flux.py",
+      "symbole": "supply_rule",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flux.py",
+      "symbole": "supply_lead",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C019",
@@ -729,7 +1173,13 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C020",
@@ -773,7 +1223,38 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : données disponibles à la date, sans révision rétrospective utilisée abusivement",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "contexte et vetos autour des publications à risque — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/macro.py",
+      "symbole": "blackout",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/macro.py",
+      "symbole": "upcoming",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/market/context.py",
+      "symbole": "fetch_calendar",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager.evaluate_entry",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C021",
@@ -808,7 +1289,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
    "lot": "2 — actualités, régimes et abstention",
    "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "efficiency_ratio",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "regimes",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C022",
@@ -837,7 +1337,20 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "breadth",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C023",
@@ -864,7 +1377,20 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "adx",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C024",
@@ -902,7 +1428,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
    "lot": "2 — actualités, régimes et abstention",
    "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "expanding_tercile",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "regimes",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield._evaluate_volatility",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C025",
@@ -937,7 +1488,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "regime_break",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "recent",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C026",
@@ -970,7 +1540,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
    "lot": "2 — actualités, régimes et abstention",
    "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "btc_correlation",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/ai/knowledge.py",
+      "symbole": "compute_profile",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C027",
@@ -1003,7 +1592,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/market/context.py",
+      "symbole": "fetch_funding",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/market/context.py",
+      "symbole": "funding_comment",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C028",
@@ -1035,7 +1643,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield.poll_liquidations",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield._evaluate_cascade",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C029",
@@ -1088,7 +1715,50 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/flux.py",
+      "symbole": "weekday",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flux.py",
+      "symbole": "month_turn",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flux.py",
+      "symbole": "weekend_rule",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flux.py",
+      "symbole": "mean_gap",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/flux.py",
+      "symbole": "calendar",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/features.py",
+      "symbole": "compute",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C030",
@@ -1134,7 +1804,38 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : classification et abstention hors échantillon",
    "lot": "2 — actualités, régimes et abstention",
    "valeur_ajoutee_attendue": "régularité et abstention dans les régimes défavorables — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "rules",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "abstain",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/regimes.py",
+      "symbole": "shifted",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "abstention",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C031",
@@ -1161,7 +1862,20 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "confirmed_pivot_high",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C032",
@@ -1188,7 +1902,20 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "_trendline",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C033",
@@ -1217,7 +1944,20 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C034",
@@ -1246,7 +1986,20 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "retest",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C035",
@@ -1280,7 +2033,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "_breakout_state",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C036",
@@ -1319,7 +2091,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/epuisement.py",
+      "symbole": "predictors",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/epuisement.py",
+      "symbole": "daily_rank_ic",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/epuisement.py",
+      "symbole": "amplitude_study",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C037",
@@ -1352,7 +2149,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/watchers.py",
+      "symbole": "detect",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C038",
@@ -1384,7 +2200,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "bearish_divergence",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/techniques.py",
+      "symbole": "rsi",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C039",
@@ -1422,7 +2257,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/epuisement.py",
+      "symbole": "capitulation",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/epuisement.py",
+      "symbole": "hold",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/watchers.py",
+      "symbole": "detect",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C040",
@@ -1449,7 +2309,20 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : causalité et comparaison au momentum simple",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "qualité des entrées par rapport au momentum simple (aucun avantage démontré par #146 et #147) — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C041",
@@ -1483,7 +2356,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/book.py",
+      "symbole": "measure",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "Book.half_spread_bps",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C042",
@@ -1512,7 +2404,20 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "Book",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C043",
@@ -1546,7 +2451,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
    "lot": "3 — microstructure, maîtrise des pertes et risques",
    "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/features.py",
+      "symbole": "compute",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C044",
@@ -1575,7 +2499,20 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "families",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C045",
@@ -1596,7 +2533,13 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C046",
@@ -1638,7 +2581,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
    "lot": "3 — microstructure, maîtrise des pertes et risques",
    "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/execution/liquidity.py",
+      "symbole": "simulate_taker",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/book.py",
+      "symbole": "measure",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/router.py",
+      "symbole": "walk",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C047",
@@ -1668,7 +2636,20 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/measure.py",
+      "symbole": "stress_states",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C048",
@@ -1709,7 +2690,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
    "lot": "3 — microstructure, maîtrise des pertes et risques",
    "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/established_pools.py",
+      "symbole": "round_trip",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/inventory.py",
+      "symbole": "round_trip",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/execution/liquidity.py",
+      "symbole": "simulate_taker",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C049",
@@ -1728,7 +2734,13 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C050",
@@ -1761,7 +2773,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : profondeur et coûts effectivement accessibles",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/market/crosscheck.py",
+      "symbole": "CrossChecker.check",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "consensus",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C051",
@@ -1794,7 +2825,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/established_pools.py",
+      "symbole": "MIN_AGE_MINUTES",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/dmh/established_pools.py",
+      "symbole": "prefilter",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C052",
@@ -1832,7 +2882,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/tokenrisk.py",
+      "symbole": "_rugcheck_holders",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/tokenrisk.py",
+      "symbole": "BENEFICIAL_MAX_TOP10",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/dmh/solana_scanner.py",
+      "symbole": "scan_once",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C053",
@@ -1865,7 +2940,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/tokenrisk.py",
+      "symbole": "_rugcheck",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/solana_scanner.py",
+      "symbole": "scan_once",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C054",
@@ -1898,7 +2992,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/established_pools.py",
+      "symbole": "round_trip",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/dex.py",
+      "symbole": "jupiter_quote",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C055",
@@ -1935,7 +3048,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/tokenrisk.py",
+      "symbole": "_goplus_evm",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/tokenrisk.py",
+      "symbole": "assess_candidate",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/solana_scanner.py",
+      "symbole": "scan_once",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C056",
@@ -1970,7 +3108,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "entry_signals",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "NAMES",
+      "nature": "définition",
+      "executee": null
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C057",
@@ -2004,7 +3161,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "valuation",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "refresh_round_trip",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C058",
@@ -2023,7 +3199,13 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C059",
@@ -2057,7 +3239,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/smart_wallets.py",
+      "symbole": "recency_weight",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/smart_wallets.py",
+      "symbole": "HALF_LIFE_S",
+      "nature": "définition",
+      "executee": null
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C060",
@@ -2090,7 +3291,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "dex_vs_reference",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/router.py",
+      "symbole": "build_routes",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C061",
@@ -2128,7 +3348,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
    "lot": "1 — fiabilité des mesures",
    "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/frais.py",
+      "symbole": "fee_table",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/frais.py",
+      "symbole": "replay",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/venues.py",
+      "symbole": "binance_spot_vip0",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C062",
@@ -2177,7 +3422,44 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
    "lot": "1 — fiabilité des mesures",
    "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/faisabilite.py",
+      "symbole": "check_entry",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/faisabilite.py",
+      "symbole": "study",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/venues.py",
+      "symbole": "parse_exchange_info",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/inventory.py",
+      "symbole": "round_trip",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager._minimum_qty",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C063",
@@ -2212,7 +3494,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/execution.py",
+      "symbole": "evaluate_sample",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/execution/liquidity.py",
+      "symbole": "simulate_taker",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C064",
@@ -2245,7 +3546,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/execution.py",
+      "symbole": "evaluate_sample",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "Book.build",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C065",
@@ -2291,7 +3611,38 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "_causal",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "execution_check",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/execution/contract.py",
+      "symbole": "signal_time",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/core.py",
+      "symbole": "run",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C066",
@@ -2324,7 +3675,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "MAX_AGE_MS",
+      "nature": "définition",
+      "executee": null
+     },
+     {
+      "fichier": "sentinelle/dmh/observe.py",
+      "symbole": "Book.fresh",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C067",
@@ -2365,7 +3735,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
    "lot": "3 — microstructure, maîtrise des pertes et risques",
    "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/trade.py",
+      "symbole": "manage",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/risques.py",
+      "symbole": "stop_gaps",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/execution/contract.py",
+      "symbole": "stop_fill",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C068",
@@ -2398,7 +3793,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "ExitPolicy",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "exit_decision",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C069",
@@ -2432,7 +3846,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/trade.py",
+      "symbole": "manage",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "time_exit",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C070",
@@ -2473,7 +3906,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : mêmes règles que le simulateur causal",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réalisme des exécutions et des sorties fictives — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/benefit.py",
+      "symbole": "net_edge",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/brain.py",
+      "symbole": "PrincipalAI",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/ai/model.py",
+      "symbole": "MetaModel.expected_r",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C071",
@@ -2506,7 +3964,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager.evaluate_entry",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/desk.py",
+      "symbole": "run",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C072",
@@ -2538,7 +4015,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager.evaluate_entry",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager.state",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C073",
@@ -2571,7 +4067,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager.evaluate_entry",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "RiskProfile",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C074",
@@ -2605,7 +4120,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
    "lot": "3 — microstructure, maîtrise des pertes et risques",
    "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/risques.py",
+      "symbole": "cluster_cap",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/risques.py",
+      "symbole": "top_k",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C075",
@@ -2643,7 +4177,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "kelly",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "confidence",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/benefit.py",
+      "symbole": "net_edge",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C076",
@@ -2676,7 +4235,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/core.py",
+      "symbole": "run",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "positions",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C077",
@@ -2709,7 +4287,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/recherche.py",
+      "symbole": "brake_returns",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/risk/manager.py",
+      "symbole": "RiskManager.evaluate_entry",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C078",
@@ -2744,7 +4341,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/costs/measure.py",
+      "symbole": "stress_states",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_calibrator.py",
+      "symbole": "MemecoinCalibrator",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C079",
@@ -2785,7 +4401,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
    "lot": "3 — microstructure, maîtrise des pertes et risques",
    "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/risques.py",
+      "symbole": "worst_windows",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/risques.py",
+      "symbole": "window_return",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "stability",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C080",
@@ -2818,7 +4459,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : invariants de sécurité et scénarios extrêmes",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/dmh/memecoin_simulator.py",
+      "symbole": "_buy",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/memecoin_strategies.py",
+      "symbole": "RiskProfile",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C081",
@@ -2858,7 +4518,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/ai/labeling.py",
+      "symbole": "label_candidates",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/barriers.py",
+      "symbole": "simulate",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/features.py",
+      "symbole": "compute",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C082",
@@ -2904,7 +4589,38 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
    "lot": "2 — actualités, régimes et abstention",
    "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/ai/model.py",
+      "symbole": "MetaModel.fit_calibration",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/brain.py",
+      "symbole": "PrincipalAI",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/calibration.py",
+      "symbole": "brier",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/calibration.py",
+      "symbole": "ece",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C083",
@@ -2939,7 +4655,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
    "lot": "2 — actualités, régimes et abstention",
    "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/brain.py",
+      "symbole": "PrincipalAI",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/calibration.py",
+      "symbole": "abstention_gain",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C084",
@@ -2973,7 +4708,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
    "lot": "2 — actualités, régimes et abstention",
    "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/calibration.py",
+      "symbole": "psi",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/calibration.py",
+      "symbole": "walk_forward",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C085",
@@ -3013,7 +4767,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/apprentissage.py",
+      "symbole": "judge_month",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/apprentissage.py",
+      "symbole": "trend_of_previous_day",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/apprentissage.py",
+      "symbole": "paired",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C086",
@@ -3050,7 +4829,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/apprentissage.py",
+      "symbole": "dedup_columns",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/apprentissage.py",
+      "symbole": "masked",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/apprentissage.py",
+      "symbole": "paired",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C087",
@@ -3083,7 +4887,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/brain.py",
+      "symbole": "PrincipalAI",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/ai/bench.py",
+      "symbole": "run_bench",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C088",
@@ -3121,7 +4944,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/news/service.py",
+      "symbole": "OllamaClient",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/llm.py",
+      "symbole": "draft_strategy",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/llm.py",
+      "symbole": "is_loopback_url",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C089",
@@ -3154,7 +5002,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/risk/shield.py",
+      "symbole": "Shield.check_entry",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/market/crosscheck.py",
+      "symbole": "CrossChecker.check",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C090",
@@ -3192,7 +5059,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : calibration, robustesse et validation humaine",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "fiabilité des décisions, sans promotion automatique — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/services/champion.py",
+      "symbole": "register_pair",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/services/champion.py",
+      "symbole": "RegisteredComparison",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/services/models.py",
+      "symbole": "ModelStore.promote",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C091",
@@ -3240,7 +5132,44 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
    "lot": "1 — fiabilité des mesures",
    "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/recherche.py",
+      "symbole": "point_in_time_members",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/recherche.py",
+      "symbole": "cut_at_break",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/recherche.py",
+      "symbole": "splice",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/recherche.py",
+      "symbole": "link_chain",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "members",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C092",
@@ -3274,7 +5203,26 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "partielle",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "load_bars",
+      "nature": "fonction",
+      "executee": false
+     },
+     {
+      "fichier": "sentinelle/scalp/data.py",
+      "symbole": "_fetch_verified",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": true
+   }
   },
   {
    "id": "C093",
@@ -3314,7 +5262,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/ai/trainer.py",
+      "symbole": "train_walk_forward",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/recherche.py",
+      "symbole": "walk_forward",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/brain.py",
+      "symbole": "PrincipalAI",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C094",
@@ -3358,7 +5331,38 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
    "lot": "1 — fiabilité des mesures",
    "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/essais.py",
+      "symbole": "holm",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/essais.py",
+      "symbole": "benjamini_hochberg",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/essais.py",
+      "symbole": "deflated_sharpe",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/essais.py",
+      "symbole": "bootstrap_pvalue",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C095",
@@ -3398,7 +5402,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
    "lot": "1 — fiabilité des mesures",
    "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/ablation.py",
+      "symbole": "compare",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/ablation.py",
+      "symbole": "adjust",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/ablation.py",
+      "symbole": "weekly_pairs",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C096",
@@ -3443,7 +5472,38 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/signaux.py",
+      "symbole": "edge",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/essais.py",
+      "symbole": "bootstrap_pvalue",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/stats.py",
+      "symbole": "cluster_bootstrap",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/ai/metrics.py",
+      "symbole": "lower_bound",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C097",
@@ -3473,7 +5533,20 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
    "lot": "1 — fiabilité des mesures",
    "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/ablation.py",
+      "symbole": "stress",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C098",
@@ -3513,7 +5586,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/faisabilite.py",
+      "symbole": "study",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/costs/inventory.py",
+      "symbole": "round_trip",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/dmh/ledger.py",
+      "symbole": "Ledger",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C099",
@@ -3553,7 +5651,32 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
    "lot": "1 — fiabilité des mesures",
    "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "constatée",
+    "symboles": [
+     {
+      "fichier": "sentinelle/scalp/ouverture.py",
+      "symbole": "adverse_gap",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/ouverture.py",
+      "symbole": "draw",
+      "nature": "fonction",
+      "executee": true
+     },
+     {
+      "fichier": "sentinelle/scalp/reserve.py",
+      "symbole": "measured_slippage",
+      "nature": "fonction",
+      "executee": true
+     }
+    ],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   },
   {
    "id": "C100",
@@ -3575,7 +5698,13 @@
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : reproductibilité par SHA et mesure statistique indépendante",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "fiabilité des mesures et reproductibilité — attendue, non démontrée",
-   "integration_decision": "aucune sans approbation humaine"
+   "integration_decision": "aucune sans approbation humaine",
+   "couverture_effective": {
+    "niveau": "sans preuve",
+    "symboles": [],
+    "tests_en_echec": [],
+    "a_confirmer": false
+   }
   }
  ],
  "baseline": {
@@ -3654,5 +5783,245 @@
    "#147 aucune famille significative à 5 % après correction"
   ],
   "note": "aucune date d'achèvement des 100 capacités n'est fixée ; aucune période historique aveugle ne reste"
+ },
+ "mesure_execution": {
+  "methode": "chaque fichier de test cité rejoué seul sous sys.monitoring (évènements LINE) ; une fonction est exécutée si une ligne de son corps a tourné pendant un fichier de test réussi ; en-têtes, décorateurs, docstrings et niveau module exclus ; le code lancé dans un autre processus par un test n'est pas compté ; un fil de calcul mathématique par processus tracé (SINGLE_THREAD)",
+  "commit": "bf7fb804212ec72060fea3416d22230a7bae6057",
+  "date_utc": "2026-11-25T14:31:40Z",
+  "python": "3.12.3",
+  "plateforme": "Linux x86_64",
+  "commande": "python -m sentinelle.scalp.registre --execution",
+  "tests": {
+   "tests/test_active_time_journal.py": {
+    "code_pytest": 0,
+    "secondes": 0.4
+   },
+   "tests/test_ai_core.py": {
+    "code_pytest": 0,
+    "secondes": 1.3
+   },
+   "tests/test_ai_learning.py": {
+    "code_pytest": 0,
+    "secondes": 15.2
+   },
+   "tests/test_champion_integration.py": {
+    "code_pytest": 0,
+    "secondes": 6.9
+   },
+   "tests/test_cockpit_routes.py": {
+    "code_pytest": 0,
+    "secondes": 6.2
+   },
+   "tests/test_configurable_capital.py": {
+    "code_pytest": 0,
+    "secondes": 4.5
+   },
+   "tests/test_costs_engine.py": {
+    "code_pytest": 0,
+    "secondes": 0.9
+   },
+   "tests/test_costs_measure.py": {
+    "code_pytest": 0,
+    "secondes": 7.5
+   },
+   "tests/test_dmh_components.py": {
+    "code_pytest": 0,
+    "secondes": 1.9
+   },
+   "tests/test_dmh_scanner.py": {
+    "code_pytest": 0,
+    "secondes": 4.1
+   },
+   "tests/test_execution_contract.py": {
+    "code_pytest": 0,
+    "secondes": 55.6
+   },
+   "tests/test_learning.py": {
+    "code_pytest": 0,
+    "secondes": 34.5
+   },
+   "tests/test_liquidity_simulation.py": {
+    "code_pytest": 0,
+    "secondes": 0.4
+   },
+   "tests/test_macro_shadow.py": {
+    "code_pytest": 0,
+    "secondes": 4.0
+   },
+   "tests/test_memecoin_calibrator.py": {
+    "code_pytest": 0,
+    "secondes": 38.2
+   },
+   "tests/test_memecoin_calibrator_kelly.py": {
+    "code_pytest": 0,
+    "secondes": 88.5
+   },
+   "tests/test_memecoin_calibrator_stop.py": {
+    "code_pytest": 0,
+    "secondes": 31.5
+   },
+   "tests/test_memecoin_engine.py": {
+    "code_pytest": 0,
+    "secondes": 4.4
+   },
+   "tests/test_memecoin_journal_whale.py": {
+    "code_pytest": 0,
+    "secondes": 3.6
+   },
+   "tests/test_memecoin_profiles.py": {
+    "code_pytest": 0,
+    "secondes": 3.9
+   },
+   "tests/test_memecoin_quote_time.py": {
+    "code_pytest": 0,
+    "secondes": 3.3
+   },
+   "tests/test_memecoin_routing.py": {
+    "code_pytest": 0,
+    "secondes": 3.5
+   },
+   "tests/test_memecoin_sellability.py": {
+    "code_pytest": 0,
+    "secondes": 3.0
+   },
+   "tests/test_memecoin_signals.py": {
+    "code_pytest": 0,
+    "secondes": 3.3
+   },
+   "tests/test_memecoin_simulator.py": {
+    "code_pytest": 0,
+    "secondes": 3.2
+   },
+   "tests/test_memecoin_valuation.py": {
+    "code_pytest": 0,
+    "secondes": 3.4
+   },
+   "tests/test_new_features.py": {
+    "code_pytest": 0,
+    "secondes": 2.8
+   },
+   "tests/test_news_telegram.py": {
+    "code_pytest": 0,
+    "secondes": 3.2
+   },
+   "tests/test_production_evidence.py": {
+    "code_pytest": 0,
+    "secondes": 8.1
+   },
+   "tests/test_realtime.py": {
+    "code_pytest": 0,
+    "secondes": 3.9
+   },
+   "tests/test_risk_agent_backtest.py": {
+    "code_pytest": 0,
+    "secondes": 9.6
+   },
+   "tests/test_scalp_ablation.py": {
+    "code_pytest": 0,
+    "secondes": 2.4
+   },
+   "tests/test_scalp_actifs.py": {
+    "code_pytest": 0,
+    "secondes": 2.4
+   },
+   "tests/test_scalp_apprentissage.py": {
+    "code_pytest": 0,
+    "secondes": 4.9
+   },
+   "tests/test_scalp_calibration.py": {
+    "code_pytest": 0,
+    "secondes": 2.6
+   },
+   "tests/test_scalp_core.py": {
+    "code_pytest": 0,
+    "secondes": 2.3
+   },
+   "tests/test_scalp_desk.py": {
+    "code_pytest": 0,
+    "secondes": 3.0
+   },
+   "tests/test_scalp_epuisement.py": {
+    "code_pytest": 0,
+    "secondes": 2.3
+   },
+   "tests/test_scalp_essais.py": {
+    "code_pytest": 0,
+    "secondes": 2.5
+   },
+   "tests/test_scalp_evenements.py": {
+    "code_pytest": 0,
+    "secondes": 2.4
+   },
+   "tests/test_scalp_faisabilite.py": {
+    "code_pytest": 0,
+    "secondes": 2.3
+   },
+   "tests/test_scalp_flash.py": {
+    "code_pytest": 0,
+    "secondes": 2.4
+   },
+   "tests/test_scalp_flux.py": {
+    "code_pytest": 0,
+    "secondes": 3.0
+   },
+   "tests/test_scalp_frais.py": {
+    "code_pytest": 0,
+    "secondes": 2.2
+   },
+   "tests/test_scalp_lab.py": {
+    "code_pytest": 0,
+    "secondes": 1.2
+   },
+   "tests/test_scalp_macro.py": {
+    "code_pytest": 0,
+    "secondes": 2.8
+   },
+   "tests/test_scalp_ouverture.py": {
+    "code_pytest": 0,
+    "secondes": 2.5
+   },
+   "tests/test_scalp_recherche.py": {
+    "code_pytest": 0,
+    "secondes": 2.6
+   },
+   "tests/test_scalp_regimes.py": {
+    "code_pytest": 0,
+    "secondes": 2.4
+   },
+   "tests/test_scalp_reserve.py": {
+    "code_pytest": 0,
+    "secondes": 2.3
+   },
+   "tests/test_scalp_risques.py": {
+    "code_pytest": 0,
+    "secondes": 2.5
+   },
+   "tests/test_scalp_signaux.py": {
+    "code_pytest": 0,
+    "secondes": 2.3
+   },
+   "tests/test_scalp_techniques.py": {
+    "code_pytest": 0,
+    "secondes": 2.2
+   },
+   "tests/test_scalp_watchers.py": {
+    "code_pytest": 0,
+    "secondes": 1.2
+   },
+   "tests/test_validation_leakage.py": {
+    "code_pytest": 0,
+    "secondes": 0.3
+   }
+  },
+  "niveaux": {
+   "constatée": 94,
+   "partielle": 1,
+   "non constatée": 0,
+   "référencement seul": 0,
+   "sans preuve": 5
+  },
+  "statuts_a_couverture_a_confirmer": [
+   "C092"
+  ]
  }
 }
