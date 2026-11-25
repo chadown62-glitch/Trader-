@@ -16,7 +16,7 @@ et 5 % du prix ; le niveau ±0,2 % n'apparaît qu'entre décembre 2025 et mars 2
 Fenêtre : 2023-01-01 → 2026-08-31. La période réservée (2026-09-01 → 2026-11-22) reste refusée par `data.guard`, comme pour
 toutes les données à la minute. Aucune règle de trading, aucun ordre, aucun levier : mesure seulement.
 
-Lancement : python -m sentinelle.scalp.carnet
+Lancement : python -m sentinelle.scalp.carnet --out nouveau-resultat.json
 """
 
 from __future__ import annotations
@@ -26,6 +26,10 @@ import hashlib
 import io
 import json
 import math
+import os
+import re
+import tempfile
+from calendar import monthrange
 import time
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
@@ -139,45 +143,77 @@ def parse_klines(frame: pd.DataFrame) -> pd.Series:
     return pd.Series(frame["close"].astype(float).to_numpy(), index=pd.Index(t // 1000 + 60, name="t")).sort_index()
 
 
+def _read_grid(path: Path, url: str):
+    """Read exactly the checked bytes; legacy CSV/JSON pairs are never trusted."""
+    try:
+        with zipfile.ZipFile(path) as archive:
+            meta = json.loads(archive.read("meta.json"))
+            if meta["source_url"] != url:
+                raise IntegrityError(f"Cache associé à une autre source : {path}")
+            names = sorted(archive.namelist())
+            if meta["publiee"] is False and names == ["meta.json"]:
+                return None, meta
+            if (meta["publiee"] is not True or names != ["grid.csv", "meta.json"]
+                    or not re.fullmatch(r"[0-9a-f]{64}", str(meta.get("sha256", "")))):
+                raise IntegrityError(f"Provenance de l'archive incohérente : {path}")
+            raw = archive.read("grid.csv")
+            if hashlib.sha256(raw).hexdigest() != meta["csv_sha256"]:
+                raise IntegrityError(f"Empreinte CSV invalide : {path}")
+            return pd.read_csv(io.BytesIO(raw), index_col="t"), meta
+    except (KeyError, ValueError, zipfile.BadZipFile) as exc:
+        raise IntegrityError(f"Cache illisible ou incomplet : {path}") from exc
+
+
+def _write_grid(path: Path, url: str, values, meta: dict):
+    meta["source_url"] = url
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=path.parent) as tmp:
+        staged = Path(tmp) / "grid.zip"
+        with zipfile.ZipFile(staged, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            if values is not None:
+                raw = values.to_csv().encode("utf-8")
+                meta["csv_sha256"] = hashlib.sha256(raw).hexdigest()
+                archive.writestr("grid.csv", raw)
+            archive.writestr("meta.json", json.dumps(meta, ensure_ascii=False))
+        os.replace(staged, path)
+
+
 def book_day(client: httpx.Client, symbol: str, day: str, cache: Path) -> tuple[pd.DataFrame | None, dict]:
     start = day_ms(day)
     data.guard(start, start + DAY_S * 1000 - 1)  # période réservée refusée, comme pour toute donnée à la minute
-    path = cache / symbol / f"{day}.csv"
-    meta_path = path.with_suffix(".json")
-    if meta_path.exists():
-        meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        if not meta.get("publiee"):
-            return None, meta  # absence déjà constatée
-        if path.exists():
-            return pd.read_csv(path, index_col="t"), meta
-    body, meta = fetch(client, f"{BOOK_URL}/{symbol}/{symbol}-bookDepth-{day}.zip")
+    path = cache / "verified-v2" / symbol / f"{day}.zip"
+    url = f"{BOOK_URL}/{symbol}/{symbol}-bookDepth-{day}.zip"
+    if path.exists():
+        return _read_grid(path, url)
+    body, meta = fetch(client, url)
     meta["jour"] = day
     if body is None:
-        meta_path.parent.mkdir(parents=True, exist_ok=True)
-        meta_path.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+        _write_grid(path, url, None, meta)
         return None, meta
     book = parse_book(read_zip_csv(body))
     snaps = wide(book)
     meta["qualite"] = quality(book, snaps)
     grid = on_grid(snaps, start // 1000)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    grid.to_csv(path)
-    meta_path.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+    _write_grid(path, url, grid, meta)
     return grid, meta
 
 
 def kline_month(client: httpx.Client, symbol: str, month: str, cache: Path) -> tuple[pd.Series, dict]:
-    path = cache / symbol / f"klines-{month}.csv"
-    meta_path = path.with_suffix(".json")
-    if path.exists() and meta_path.exists():
-        return pd.read_csv(path, index_col="t")["close"], json.loads(meta_path.read_text(encoding="utf-8"))
-    body, meta = fetch(client, f"{KLINE_URL}/{symbol}/1m/{symbol}-1m-{month}.zip")
+    first = datetime.strptime(month, "%Y-%m").replace(tzinfo=timezone.utc)
+    start = int(first.timestamp() * 1000)
+    data.guard(start, start + monthrange(first.year, first.month)[1] * DAY_S * 1000 - 1)
+    path = cache / "verified-v2" / symbol / f"klines-{month}.zip"
+    url = f"{KLINE_URL}/{symbol}/1m/{symbol}-1m-{month}.zip"
+    if path.exists():
+        grid, meta = _read_grid(path, url)
+        if grid is None:
+            raise IntegrityError(f"bougies {symbol} {month} absentes")
+        return grid["close"], meta
+    body, meta = fetch(client, url)
     if body is None:
         raise IntegrityError(f"bougies {symbol} {month} absentes")
     close = parse_klines(read_zip_csv(body))
-    path.parent.mkdir(parents=True, exist_ok=True)
-    close.rename("close").to_csv(path)
-    meta_path.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+    _write_grid(path, url, close.rename("close"), meta)
     return close, meta
 
 
@@ -335,9 +371,11 @@ def main(argv=None):
     ap.add_argument("--cache", default="data/scalp-cache/carnet")
     ap.add_argument("--first", default=FIRST_DAY)
     ap.add_argument("--last", default=LAST_DAY)
-    ap.add_argument("--out", default="research/scalp-v1/carnet-c042-v1.json")
+    ap.add_argument("--out", required=True, help="Nouveau chemin de résultat pour ce rejeu")
     ap.add_argument("--trials", default="research/scalp-v1/trials.jsonl")
     args = ap.parse_args(argv)
+    if Path(args.out).exists():
+        raise FileExistsError(args.out)
     t0 = time.time()
     cache = Path(args.cache)
     wanted = days(args.first, args.last)
@@ -358,7 +396,7 @@ def main(argv=None):
                          "provenance": {"carnet": {m["jour"]: m.get("sha256") for _, m in books}, "bougies": {m: k["sha256"] for m, (_, k) in zip(months, klines)}}}
     tests = study(grids, closes)
     checks = robustness_report(grids, closes)
-    out = {"schema": "scalp-carnet-c042-v1", "status": "archives publiques vérifiées ; mesure sur historique jamais étudié par le projet ; aucune règle de trading",
+    out = {"schema": "scalp-carnet-c042-v1", "status": "archives publiques vérifiées ; rejeu sur historique déjà consulté ; aucune règle de trading",
            "capacites": ["C042"], "source": {"carnet": BOOK_URL, "bougies": KLINE_URL, "marche": "contrats perpétuels USDⓈ-M (aucune archive au comptant)"},
            "fenetre": {"de": args.first, "a": args.last, "periode_reservee_exclue": [data.RESERVED_FROM, data.RESERVED_TO]},
            "niveaux_pct": list(LEVELS), "niveaux_testes_pct": list(TESTED), "horizons_min": list(HORIZONS_MIN) + [1440], "inventaire": report, "tests": tests, "controles_a_posteriori": checks, "seconds": round(time.time() - t0)}
@@ -368,7 +406,8 @@ def main(argv=None):
               "alignement :", report[s]["alignement_pb"])
     for name, r in tests.items():
         print(name, {k: (round(v, 4) if isinstance(v, float) else v) for k, v in r.items()})
-    Path(args.out).write_text(json.dumps(out, ensure_ascii=False) + "\n", encoding="utf-8")
+    with Path(args.out).open("x", encoding="utf-8") as output:
+        output.write(json.dumps(out, ensure_ascii=False) + "\n")
     if args.trials:
         with open(args.trials, "a", encoding="utf-8") as fh:
             fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "carnet-c042-v1",

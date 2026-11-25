@@ -2,6 +2,7 @@
 
 import hashlib
 import io
+import json
 import zipfile
 
 import httpx
@@ -132,4 +133,49 @@ def test_robustness_separates_own_book_information_from_price_reversal(tmp_path)
     with httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(404))) as client:
         assert carnet.book_day(client, "BTCUSDT", "2024-01-01", tmp_path)[0] is None
     with httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(500))) as client:
-        assert carnet.book_day(client, "BTCUSDT", "2024-01-01", tmp_path) == (None, {"publiee": False, "jour": "2024-01-01"})  # absence relue du cache
+        grid, meta = carnet.book_day(client, "BTCUSDT", "2024-01-01", tmp_path)
+        assert grid is None and meta["publiee"] is False and meta["jour"] == "2024-01-01"
+
+@pytest.mark.parametrize("kind", ["book", "klines"])
+def test_corrupt_derived_csv_is_rejected_even_with_valid_zip_crc(tmp_path, kind):
+    if kind == "book":
+        csv = pd.DataFrame(_book_rows("2024-01-01 00:00:00", 100.)).to_csv(index=False)
+        read = lambda client: carnet.book_day(client, "BTCUSDT", "2024-01-01", tmp_path)
+    else:
+        csv = "open_time,open,high,low,close\n1704067200000,1,1,1,1\n"
+        read = lambda client: carnet.kline_month(client, "BTCUSDT", "2024-01", tmp_path)
+    source = _zip(csv)
+    digest = hashlib.sha256(source).hexdigest()
+    def handler(request):
+        if request.url.path.endswith(".CHECKSUM"):
+            return httpx.Response(200, text=digest)
+        return httpx.Response(200, content=source)
+    with httpx.Client(transport=httpx.MockTransport(handler)) as online:
+        original, meta = read(online)
+        assert meta["sha256"] == digest
+    with httpx.Client(transport=httpx.MockTransport(lambda _: pytest.fail("unexpected fetch"))) as offline:
+        cached, meta = read(offline)
+        np.testing.assert_allclose(original, cached, equal_nan=True)
+        path, = tmp_path.rglob("*.zip")
+        with zipfile.ZipFile(path) as archive:
+            raw = archive.read("grid.csv")
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr("grid.csv", raw + b"\n")
+            archive.writestr("meta.json", json.dumps(meta))
+        with pytest.raises(carnet.IntegrityError, match="Empreinte CSV"):
+            read(offline)
+
+@pytest.mark.parametrize("meta_update", [{"publiee": False}, {"sha256": None}, {"sha256": "b"*63}])
+def test_csv_cannot_be_used_without_a_published_source_digest(tmp_path, meta_update):
+    path = tmp_path / "book.zip"
+    frame = pd.DataFrame({"close": [2.]}, index=pd.Index([1], name="t"))
+    url = "https://example.test/book"
+    carnet._write_grid(path, url, frame, {"publiee": True, "sha256": "a"*64})
+    with zipfile.ZipFile(path) as archive:
+        raw = archive.read("grid.csv")
+        meta = json.loads(archive.read("meta.json"))
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("meta.json", json.dumps({**meta, **meta_update}))
+        archive.writestr("grid.csv", raw)
+    with pytest.raises(carnet.IntegrityError, match="Provenance"):
+        carnet._read_grid(path, url)
