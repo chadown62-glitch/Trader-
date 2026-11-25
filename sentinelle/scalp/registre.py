@@ -195,6 +195,7 @@ FLASH, NEWS, PARS, RISK, SHIELD = S + "scalp/flash.py", S + "news/service.py", S
 SIG, CORE, RECH, ESS, MOT = S + "scalp/signaux.py", S + "scalp/core.py", S + "scalp/recherche.py", S + "scalp/essais.py", S + "scalp/moteur.py"
 SIM, STRAT = S + "dmh/memecoin_simulator.py", S + "dmh/memecoin_strategies.py"
 REG, CAL, EVT, RSK, TEC = S + "scalp/regimes.py", S + "scalp/calibration.py", S + "scalp/evenements.py", S + "scalp/risques.py", S + "scalp/techniques.py"
+MAC, FLX, EPU, APP = S + "scalp/macro.py", S + "scalp/flux.py", S + "scalp/epuisement.py", S + "scalp/apprentissage.py"
 FRA, FAI, OUV, ABL = S + "scalp/frais.py", S + "scalp/faisabilite.py", S + "scalp/ouverture.py", S + "scalp/ablation.py"
 
 # Audit : statut, preuves [(fichier, symbole)], tests, dépendances, hypothèse falsifiable, données, verdict, note.
@@ -255,17 +256,24 @@ entry("C013", "PARTIELLE", [(FLASH, "SOURCES"), (S + "risk/macro.py", "events"),
       ["tests/test_scalp_flash.py", "tests/test_realtime.py"], ["C020"],
       "Les décisions et communiqués des banques centrales augmentent la volatilité ; une pause autour réduit les pertes.",
       "Flux de communiqués de la Fed ; fenêtre de pause macro ; effet non mesuré.", "à mesurer")
-entry("C014", "PARTIELLE", [(S + "scalp/actifs.py", "UNIVERSE"), (S + "scalp/actifs.py", "month_end_signals")], ["tests/test_scalp_actifs.py"], [],
+entry("C014", "EXPÉRIMENT_REJETÉ", [(MAC, "session_rules"), (MAC, "to_crypto_days"), (S + "scalp/actifs.py", "parse")], ["tests/test_scalp_macro.py", "tests/test_scalp_actifs.py"], [],
       "Une hausse rapide des rendements obligataires précède une baisse des actifs risqués.",
-      "Cours des fonds IEF et TLT (Yahoo) ; pas de série de rendements ni de signal.", "à mesurer")
-entry("C015", "PARTIELLE", [(S + "market/context.py", "INDICES"), (S + "market/context.py", "fetch_index")], ["tests/test_realtime.py", "tests/test_cockpit_routes.py"], [],
-      "Un dollar en hausse (DXY) précède une faiblesse des cryptos.", "DXY affiché (Yahoo), non utilisé ni mesuré.", "à mesurer")
-entry("C016", "PARTIELLE", [(S + "market/context.py", "INDICES"), (S + "market/context.py", "fetch_index")], ["tests/test_realtime.py", "tests/test_cockpit_routes.py"], [],
-      "Un VIX élevé ou en hausse précède des baisses des cryptos.", "VIX affiché (Yahoo), non utilisé ni mesuré.", "à mesurer")
-entry("C017", "ABSENTE", [], [], ["C014", "C016"], "Les secteurs actions liés (semi-conducteurs, valeurs crypto) mènent les cryptos.",
-      "Aucune donnée sectorielle intégrée.", "non évaluable")
-entry("C018", "ABSENTE", [], [], [], "Les créations et destructions de stablecoins précèdent les flux vers les cryptos.",
-      "Aucune source intégrée ; sources publiques à vérifier (licence, horodatage).", "non évaluable")
+      "Rendement à 10 ans américain (^TNX, Yahoo, séance d → ligne crypto d) ; variation sur 20 séances, terciles connus à la date.", "rejet",
+      "research/scalp-v1/macro-contexte-v1.json : M1 −0,10 %/sem sur B0, Holm 1 ; baisse 60 → 39 % comme son témoin décalé (42 %)")
+entry("C015", "EXPÉRIMENT_REJETÉ", [(MAC, "session_rules"), (S + "market/context.py", "fetch_index")], ["tests/test_scalp_macro.py", "tests/test_realtime.py"], [],
+      "Un dollar en hausse (DXY) précède une faiblesse des cryptos.", "Indice du dollar (DX-Y.NYB, Yahoo, horodaté à minuit de New York) ; rendement sur 20 séances.", "rejet",
+      "research/scalp-v1/macro-contexte-v1.json : M2 −0,22 %/sem sur B0, Holm 1")
+entry("C016", "EXPÉRIMENT_REJETÉ", [(MAC, "session_rules"), (S + "market/context.py", "fetch_index")], ["tests/test_scalp_macro.py", "tests/test_realtime.py"], [],
+      "Un VIX élevé ou en hausse précède des baisses des cryptos.", "VIX (Yahoo) : niveau et variation sur 5 séances, terciles connus à la date.", "rejet",
+      "research/scalp-v1/macro-contexte-v1.json : M3 −0,41 %/sem [−0,85 ; −0,03], M4 −0,19 %/sem sur B0, Holm 1")
+entry("C017", "EXPÉRIMENT_REJETÉ", [(MAC, "lead_lag"), (MAC, "day_numbers")], ["tests/test_scalp_macro.py"], ["C014", "C016"],
+      "Les secteurs actions liés (semi-conducteurs, valeurs crypto) mènent les cryptos.",
+      "QQQ, SMH, MSTR (depuis le 11/08/2020), COIN (depuis le 14/04/2021) ; séance d contre BTC du jour d + 1.", "rejet",
+      "research/scalp-v1/macro-contexte-v1.json : hypothèse contredite ; seul lien après Holm : légère inversion après le Nasdaq-100 (rang −0,056, Holm 0,032), non testée comme règle ; M5 −0,005 %/sem")
+entry("C018", "EXPÉRIMENT_REJETÉ", [(FLX, "parse_supply"), (FLX, "usable"), (FLX, "supply_rule"), (FLX, "supply_lead")], ["tests/test_scalp_flux.py"], [],
+      "Les créations et destructions de stablecoins précèdent les flux vers les cryptos.",
+      "DefiLlama, offre en circulation indexée sur le dollar, NON point-in-time (borne optimiste) ; relevé utilisé le lendemain.", "rejet",
+      "research/scalp-v1/flux-calendrier-v1.json : S1 −0,16 %/sem sur B0, Holm 1 ; offre sur 7 jours → BTC sur 7 jours : rang +0,06, p 0,13")
 entry("C019", "BLOQUÉE_DONNÉES", [], [], [], "Les flux des ETF bitcoin précèdent le cours.",
       "Aucune source publique horodatée et à licence claire identifiée.", "non évaluable")
 entry("C020", "EXISTANTE_ET_TESTÉE", [(S + "risk/macro.py", "blackout"), (S + "risk/macro.py", "upcoming"), (S + "market/context.py", "fetch_calendar"), (RISK, "RiskManager.evaluate_entry")],
@@ -294,8 +302,10 @@ entry("C027", "EXISTANTE_ET_TESTÉE", [(S + "market/context.py", "fetch_funding"
       ["tests/test_realtime.py", "tests/test_cockpit_routes.py"], [], "Un taux de financement extrême précède des retournements.", "OKX public, observation seulement.", "utilité technique")
 entry("C028", "PARTIELLE", [(SHIELD, "Shield.poll_liquidations"), (SHIELD, "Shield._evaluate_cascade")], ["tests/test_realtime.py"], [],
       "Une cascade de liquidations précède un excès de mouvement.", "Liquidations suivies ; open interest absent.", "à mesurer")
-entry("C029", "PARTIELLE", [(S + "scalp/features.py", "compute")], ["tests/test_scalp_watchers.py", "tests/test_scalp_desk.py"], [],
-      "Certaines heures ou jours ont un rendement ou un coût différent.", "Heure dans les caractéristiques ; aucune étude calendaire.", "à mesurer")
+entry("C029", "PARTIELLE", [(FLX, "weekday"), (FLX, "month_turn"), (FLX, "weekend_rule"), (FLX, "mean_gap"), (FLX, "calendar"), (S + "scalp/features.py", "compute")],
+      ["tests/test_scalp_flux.py", "tests/test_scalp_watchers.py"], [], "Certaines heures ou jours ont un rendement ou un coût différent.",
+      "Jours de la semaine et tournant de mois du BTC (journalier) ; heures et coûts horaires NON MESURÉS (aucun carnet historique horodaté).",
+      "rejet", "research/scalp-v1/flux-calendrier-v1.json : volet journalier seul ; aucun jour distinct après Holm (jeudi −0,53 pt, Holm 0,08) ; liquidités le week-end −0,67 %/sem sur B0")
 entry("C030", "EXISTANTE_ET_TESTÉE", [(REG, "rules"), (REG, "abstain"), (REG, "shifted"), (SIG, "abstention")],
       ["tests/test_scalp_regimes.py", "tests/test_scalp_signaux.py"], ["C021", "C024"],
       "S'abstenir dans un régime défavorable défini d'avance améliore le rapport rendement/baisse mieux qu'un calendrier quelconque.",
@@ -315,15 +325,17 @@ entry("C034", "EXPÉRIMENT_REJETÉ", [(TEC, "retest")], ["tests/test_scalp_techn
 entry("C035", "EXPÉRIMENT_REJETÉ", [(SIG, "_breakout_state"), (SIG, "families")], ["tests/test_scalp_signaux.py"], ["C043"],
       "Filtrer les cassures par le volume élimine les fausses cassures.", "signaux-v1 : F11, écart +0,038 %/j, IC [−0,060 ; +0,140].", "rejet",
       "research/scalp-v1/signaux-v1.json (F11)")
-entry("C036", "PARTIELLE", [(S + "scalp/features.py", "compute")], ["tests/test_scalp_watchers.py", "tests/test_scalp_desk.py"], [],
-      "L'amplitude du range prédit l'ampleur du mouvement suivant.", "Position et hauteur du range dans les caractéristiques courtes ; aucune étude.", "à mesurer")
+entry("C036", "EXISTANTE_ET_TESTÉE", [(EPU, "predictors"), (EPU, "daily_rank_ic"), (EPU, "amplitude_study")], ["tests/test_scalp_epuisement.py"], ["C024"],
+      "L'amplitude du range prédit l'ampleur du mouvement suivant.", "Amplitude sur 20 jours contre volatilité réalisée sur 20 jours, rangs transversaux quotidiens des membres.",
+      "utilité technique", "research/scalp-v1/epuisement-v1.json : aucune valeur ajoutée ; rang +0,265 contre +0,289 pour la volatilité réalisée, écart −0,024 (p 0,001)")
 entry("C037", "EXPÉRIMENT_REJETÉ", [(S + "scalp/watchers.py", "detect"), (SIG, "families")], ["tests/test_scalp_watchers.py", "tests/test_scalp_signaux.py"], [],
       "Une compression de volatilité précède une expansion exploitable.", "signaux-v1 : F9 sans avantage ; veilleur « squeeze » du court terme, perdant après frais.", "rejet",
       "research/scalp-v1/signaux-v1.json (F9)")
 entry("C038", "EXPÉRIMENT_REJETÉ", [(TEC, "bearish_divergence"), (TEC, "rsi")], ["tests/test_scalp_techniques.py"], [], "Écarter les divergences RSI baissières améliore le momentum simple.",
       "RSI(14) de Wilder, fenêtre de 20 jours.", "rejet", "research/scalp-v1/techniques-v2.json : −0,26 %/sem [−0,46 ; −0,07]")
-entry("C039", "PARTIELLE", [(S + "scalp/watchers.py", "detect")], ["tests/test_scalp_watchers.py"], [],
-      "Un mouvement à bout de souffle (capitulation) se retourne.", "Veilleur « capitulation » du court terme, rejeté avec l'ensemble du court terme après frais.", "avantage historique non démontré")
+entry("C039", "EXPÉRIMENT_REJETÉ", [(EPU, "capitulation"), (EPU, "hold"), (S + "scalp/watchers.py", "detect")], ["tests/test_scalp_epuisement.py", "tests/test_scalp_watchers.py"], [],
+      "Un mouvement à bout de souffle (capitulation) se retourne.", "Chute ≤ −3 écarts types sur 5 jours et volume ≥ 2 × médiane, tenue 5 jours ; veilleur « capitulation » du court terme.", "rejet",
+      "research/scalp-v1/epuisement-v1.json : E1 +0,016 %/sem, Holm 0,83, baisse 60 → 66 % ; E2 seule −0,010 %/sem géométrique, baisse 27 %")
 entry("C040", "EXPÉRIMENT_REJETÉ", [(SIG, "families")], ["tests/test_scalp_signaux.py"], [],
       "L'accord des tendances hebdomadaire et journalière bat le momentum simple.", "signaux-v1 : F10, écart +0,023 %/j, IC [−0,057 ; +0,106].", "rejet",
       "research/scalp-v1/signaux-v1.json (F10)")
@@ -448,8 +460,12 @@ entry("C084", "EXISTANTE_ET_TESTÉE", [(CAL, "psi"), (CAL, "walk_forward")], ["t
       "Une dérive des données détectée tôt signale les mois où le modèle se dégrade.",
       "PSI par caractéristique (déciles de l'apprentissage).", "utilité technique",
       "research/scalp-v1/calibration-v1.json : dérive dans les 32 mois (variables de régime) ; lien avec la dégradation du Brier non significatif")
-entry("C085", "ABSENTE", [], [], ["C021", "C024"], "Des spécialistes légers par régime battent un modèle unique.", "Non implémenté.", "à mesurer")
-entry("C086", "ABSENTE", [], [], [], "Retirer les caractéristiques redondantes stabilise le modèle.", "Non implémenté.", "à mesurer")
+entry("C085", "EXPÉRIMENT_REJETÉ", [(APP, "judge_month"), (APP, "trend_of_previous_day"), (APP, "paired")], ["tests/test_scalp_apprentissage.py"], ["C021", "C024"],
+      "Des spécialistes légers par régime battent un modèle unique.", "IA principale v4, spécialistes tendance/range (veille), repli sur le modèle unique fixé a priori.", "rejet",
+      "research/scalp-v1/apprentissage-v1.json : Brier −0,0013 [−0,0071 ; +0,0038], Holm 0,39 ; compétence toujours négative")
+entry("C086", "EXPÉRIMENT_REJETÉ", [(APP, "dedup_columns"), (APP, "masked"), (APP, "paired")], ["tests/test_scalp_apprentissage.py"], [],
+      "Retirer les caractéristiques redondantes stabilise le modèle.", "Retrait glouton au-delà de 0,90 de corrélation de rang, sur l'apprentissage du mois seul.", "rejet",
+      "research/scalp-v1/apprentissage-v1.json : Brier −0,0024 [−0,0059 ; +0,0002], Holm 0,12 ; stabilité mensuelle inchangée")
 entry("C087", "EXISTANTE_ET_TESTÉE", [(S + "scalp/brain.py", "PrincipalAI"), (S + "ai/bench.py", "run_bench")], ["tests/test_scalp_desk.py", "tests/test_learning.py"], [],
       "Un ensemble léger bat le meilleur modèle seul et les règles simples.", "Banc d'essai synthétique et historique.", "avantage historique non démontré")
 entry("C088", "EXISTANTE_ET_TESTÉE", [(NEWS, "OllamaClient"), (S + "dmh/llm.py", "draft_strategy"), (S + "dmh/llm.py", "is_loopback_url")], ["tests/test_news_telegram.py", "tests/test_dmh_components.py"], [],
