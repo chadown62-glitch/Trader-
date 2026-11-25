@@ -19,15 +19,13 @@ from __future__ import annotations
 import argparse
 import json
 import time
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import httpx
 import numpy as np
 import pandas as pd
 
-from . import hive, moteur, pulse, recherche, signaux
+from . import hive, moteur, pulse, signaux
 
 GRID = (5.0, 6.0, 7.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0)
 TARGET_FALSE_ALARMS = 0.10
@@ -127,50 +125,38 @@ def evaluate(gen: Generator, seed: int, thresholds: dict, reps: int = EVAL_REPS)
     return out
 
 
-def real(frame: pd.DataFrame, h: float, lam: float) -> dict:
-    out = {}
-    for year in hive.TEST_YEARS:
-        train, test = hive.split(frame, year)
-        if test.empty:
-            continue
-        model = hive.Logit().fit(train[hive.FEATURES].to_numpy(), train["y"].to_numpy())
-        ptr = model.proba(train[hive.FEATURES].to_numpy())
-        res_w = (train["y"] - ptr).groupby(train["day"]).mean()
-        loss_w = pd.Series(hive.logloss(ptr, train["y"]), index=train.index).groupby(train["day"]).mean()
-        pt = model.proba(test[hive.FEATURES].to_numpy())
-        weeks = sorted(test["day"].unique())
-        g = test.assign(l=hive.logloss(pt, test["y"]), r=test["y"] - pt).groupby("day")
-        bias, loss = g["r"].mean().reindex(weeks).to_numpy(), g["l"].mean().reindex(weeks).to_numpy()
-        out[year] = {"alerte_biais": pulse.week_date(weeks, pulse.cusum(bias, float(res_w.std()), h=h)),
-                     "alerte_erreurs": pulse.week_date(weeks, pulse.page_hinkley(loss, float(loss_w.mean()), float(loss_w.std()), lam=lam))}
-    return out
+def real(frame: pd.DataFrame, h: float, lam: float, *, as_of_day: int, historical: bool = False) -> dict:
+    """Mêmes cohortes et mêmes horloges que PULSE, avec les deux seuils étalonnés."""
+    rows = pulse.real(frame, h=h, lam=lam, as_of_day=as_of_day, historical=historical)
+    return {year: {k: v for k, v in row.items() if k.endswith(("biais", "erreurs")) or k == "semaines_resultats"}
+            for year, row in rows.items()}
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="OMEGA D — étalonnage de PULSE sur scénarios indépendants (simulation exclusive)")
     ap.add_argument("--cache", default="data/scalp-cache")
-    ap.add_argument("--out", default="research/scalp-v1/pulse-etalonnage-v1.json")
+    ap.add_argument("--out", default="research/scalp-v1/pulse-etalonnage-v2.json")
     ap.add_argument("--trials", default="research/scalp-v1/trials.jsonl")
     args = ap.parse_args(argv)
+    if Path(args.out).exists():
+        raise FileExistsError(f"Résultat déjà présent : {args.out}. Choisir un autre --out pour le rejeu.")
     t0 = time.time()
     cal = calibrate()
     h, lam = cal["seuils"]["biais"], cal["seuils"]["erreurs"]
     thresholds = {"a_priori": (pulse.CUSUM_H, pulse.PH_LAMBDA), "etalonnes": (h, lam)}
     ev = {"generateur_de_174_graine_B": evaluate(G1, SEED_B, thresholds), "generateur_independant_graine_C": evaluate(G2, SEED_C, thresholds)}
     t_synth = round(time.time() - t0)
-    with httpx.Client(timeout=60, follow_redirects=True, headers={"User-Agent": "sentinelle-simulation"}) as client:
-        with ThreadPoolExecutor(8) as pool:
-            loaded = dict(zip(recherche.CANDIDATES, pool.map(lambda s: signaux.load_bars(s, args.cache, client), recherche.CANDIDATES)))
-    p = signaux.panel(loaded)
-    frame = hive.samples(p, signaux.members(p), hive.features(p), moteur._day(signaux.FIRST))
-    reel = real(frame, h, lam)
+    p, manifest_sha = hive.frozen_panel(Path(args.cache))
+    frame = hive.decision_samples(p, signaux.members(p), hive.features(p), moteur._day(signaux.FIRST))
+    reel = real(frame, h, lam, as_of_day=hive.quoted_days(p["c"]).max(), historical=True)
     checks = {}
     for name, e in ev.items():
         fa = max(e["aucune"]["etalonnes"]["biais"]["fausses_alertes"], e["aucune"]["etalonnes"]["erreurs"]["fausses_alertes"])
         checks[name] = {"h1_fausses_alertes_au_plus_15pct": bool(fa <= 0.15), "fausses_alertes_max": fa,
                         "h2_rupture_nette_detectee_au_moins_70pct": bool(e["nette"]["etalonnes"]["erreurs"]["detections"] >= 0.70),
                         "detection_nette_erreurs": e["nette"]["etalonnes"]["erreurs"]["detections"]}
-    out = {"schema": "scalp-pulse-etalonnage-v1", "status": "étalonnage synthétique puis jugement sur scénarios indépendants ; réel descriptif ; aucune quarantaine",
+    out = {"schema": "scalp-pulse-etalonnage-v2", "manifeste_sha256": manifest_sha,
+           "horloge_reelle": "Bornes théoriques à la clôture UTC ; réception historique inconnue", "status": "étalonnage synthétique puis jugement sur scénarios indépendants ; réel descriptif ; aucune quarantaine",
            "omega": ["PULSE", "QUARANTINE", "REPLAY"], "capacites": ["C084", "C079"], "grille": list(GRID), "cible_fausses_alertes": TARGET_FALSE_ALARMS,
            "graines": {"etalonnage": SEED_A, "jugement_meme_generateur": SEED_B, "jugement_generateur_independant": SEED_C},
            "generateurs": {g.name: {"caracteristiques": g.k, "par_semaine": g.per_week, "coefficients": list(g.beta), "rupture_semaine": g.break_at} for g in (G1, G2)},
@@ -181,10 +167,12 @@ def main(argv=None):
             print(name, sc, json.dumps(row, ensure_ascii=False))
     print(json.dumps(checks, ensure_ascii=False))
     print(json.dumps(reel, ensure_ascii=False))
-    Path(args.out).write_text(json.dumps(out, ensure_ascii=False, default=float) + "\n", encoding="utf-8")
+    out["comparaison_v1"] = pulse.compare_archive(out, "reel_seuils_etalonnes", "pulse-etalonnage-v1.json")
+    with Path(args.out).open("x", encoding="utf-8") as target:
+        target.write(json.dumps(out, ensure_ascii=False, default=float, allow_nan=False) + "\n")
     if args.trials:
         with open(args.trials, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "pulse-etalonnage-v1", "seuils": cal["seuils"],
+            fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "pulse-etalonnage-v2", "seuils": cal["seuils"],
                                  "hypotheses": checks, "reel": reel}, ensure_ascii=False, default=float) + "\n")
     return out
 

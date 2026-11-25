@@ -50,3 +50,35 @@ def test_simulated_breaks_are_seen_by_the_matching_detector():
     assert pulse.summarize([r["entrees"] for r in sharp], degraded=True)["detections"] <= 0.2  # entrées inchangées : PSI muet
     inputs = [pulse.simulate("entrees_seules", rng) for _ in range(15)]
     assert np.mean([r["entrees"] is not None and r["entrees"] >= pulse.BREAK_AT for r in inputs]) >= 0.8  # le PSI voit la dérive
+
+
+def test_real_waits_for_last_receipt_of_a_week_and_uses_the_input_clock_separately(monkeypatch):
+    import pandas as pd
+    from sentinelle.scalp import hive, moteur
+
+    start = moteur._day("2020-01-05")
+    rows = []
+    for week in range(-12, 2):
+        d = start + 7 * week
+        for n in (0, 1):
+            rows.append({"day": d, "asset": str(n), "ret": 0.1 if n else -0.1, "y": n,
+                         **{f: n / 2 for f in hive.FEATURES}, "features_received_day": d,
+                         "label_received_day": d + hive.HORIZON + (4 if week == 0 and n == 1 else 0)})
+    frame = pd.DataFrame(rows)
+    # Contrôler uniquement les deux horloges, avec des détecteurs qui réagissent au premier échantillon.
+    monkeypatch.setattr(pulse, "cusum", lambda x, *_a, **_kw: 0 if len(x) else None)
+    monkeypatch.setattr(pulse, "page_hinkley", lambda x, *_a, **_kw: 0 if len(x) else None)
+    monkeypatch.setattr(pulse, "psi_alarm", lambda _train, xs: 0 if xs else None)
+    at_signal = pulse.real(frame, as_of_day=start)[2020]
+    assert at_signal["alerte_entrees"] == "2020-01-05" and at_signal["alerte_biais"] is None
+    at_maturity = pulse.real(frame, as_of_day=start + 7)[2020]
+    assert at_maturity["alerte_erreurs"] is None and at_maturity["semaines_resultats"] == 0
+    at_receipt = pulse.real(frame, as_of_day=start + 11)[2020]
+    assert at_receipt["alerte_biais"] == at_receipt["alerte_erreurs"] == "2020-01-16"
+    cutoff = frame.copy()
+    cutoff.loc[cutoff.label_received_day > start + 7, "y"] = np.nan
+    assert pulse.real(cutoff, as_of_day=start + 7)[2020] == at_maturity
+    no_receipts = frame.drop(columns=["features_received_day", "label_received_day"])
+    assert not pulse.real(no_receipts, as_of_day=start + 7)
+    theoretical = pulse.real(no_receipts, as_of_day=start + 7, historical=True)[2020]
+    assert theoretical["borne_cloture_biais"] == "2020-01-12" and "alerte_biais" not in theoretical

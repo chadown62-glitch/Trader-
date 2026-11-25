@@ -34,3 +34,17 @@ def test_higher_thresholds_trade_false_alarms_for_delay():
     assert out["aucune"]["haut"]["erreurs"]["fausses_alertes"] <= out["aucune"]["bas"]["erreurs"]["fausses_alertes"]
     assert out["nette"]["bas"]["erreurs"]["detections"] >= 0.5  # rupture nette vue par les erreurs
     assert etalonnage.summarize([None, 80, 10], True, 76)["fausses_alertes"] == 1 / 3
+
+
+def test_calibrated_real_uses_received_cohorts_with_the_frozen_thresholds(monkeypatch):
+    calls = []
+    def monitor(frame, **kwargs):
+        calls.append((frame, kwargs))
+        return {2020: {"alerte_entrees": "2020-01-05", "alerte_biais": None,
+                       "alerte_erreurs": "2020-01-20", "semaines_resultats": 1}}
+
+    monkeypatch.setattr(pulse, "real", monitor)
+    source = object()
+    assert etalonnage.real(source, 7, 8, as_of_day=18281) == {
+        2020: {"alerte_biais": None, "alerte_erreurs": "2020-01-20", "semaines_resultats": 1}}
+    assert calls == [(source, {"as_of_day": 18281, "historical": False, "h": 7, "lam": 8})]
