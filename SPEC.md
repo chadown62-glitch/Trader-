@@ -470,6 +470,15 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
   - temps actif, prochaines étapes et points soumis à l'audit indépendant.
 
   GPT Work doit pouvoir reprendre sans reconstruire le contexte.
+- **Recherches autorisées après les premiers résultats** (décision du propriétaire du 25 novembre 2026, soir). Toutes sont menées exclusivement en simulation. Les informations réellement nouvelles passent avant la multiplication de modèles sur les mêmes données.
+  - **C042, carnets d'ordres.** Étude des archives publiques de carnets d'ordres. Elle vérifie leur intégrité (sommes de contrôle publiées), leur couverture et leur disponibilité dans le temps. C'est une nouvelle source autorisée.
+  - **Archives d'actualités.** Inventaire des sources publiques, puis étude historique hors ligne. Aucune collecte prospective n'est autorisée.
+  - **Calibration de l'IA principale (C082).** Correction expérimentale, préenregistrée, jugée hors échantillon. Aucune intégration sans validation humaine.
+  - **PULSE.** Étalonnage des seuils sur un protocole séparé, préenregistré, avec des scénarios indépendants de ceux de l'étalonnage.
+  - **Consolidation des 12 agents en quatre rôles actifs.** Préparation architecturale seulement. Aucune protection n'est supprimée.
+  - **A1** reste une candidate expérimentale.
+  - **C100.** Le protocole d'observation prospective est préparé et figé. L'observation elle-même ne démarre pas sans une autorisation distincte.
+  - Les fusions déjà préparées sont terminées. Tous les résultats négatifs sont conservés, et la compatibilité avec Windows 11 est maintenue.
 - **Garde-fous inchangés.**
   - Simulation exclusive : aucun ordre réel, aucune clé privée, aucun levier, aucune vente à découvert, aucune promotion automatique.
   - Guardian, Risk Commander et protections scientifiques jamais assouplis.
