@@ -66,3 +66,14 @@ Décision du propriétaire du 25 novembre 2026, extension du Sprint 5 (`SPEC.md`
 3. **C — RADAR, ATLAS.** Inventaire chiffré de l'univers observable, sans nouvelle source sans autorisation.
 4. **D — PULSE, QUARANTINE.** Détecteurs de dérive des entrées, des biais et des erreurs, étudiés sur des ruptures synthétiques nettes, faibles, progressives et dépendantes, puis sur l'IA principale. Mesures : délais, fausses alertes et non-détections.
 5. **Registre V3.** Ses trois expériences synthétiques sont reproduites à l'identique dans le dépôt (graines 20261125, 20261126 et 20261127), comme première pièce de la bibliothèque REPLAY. Elles sont ensuite comparées aux contrôles reconstruits avant sa réception.
+
+## Recherches autorisées le 25 novembre au soir : rattachement aux concepts
+
+| Recherche | Concepts | Capacités | Ce qui est mesuré |
+|---|---|---|---|
+| Archives publiques de carnets d'ordres | RADAR, IMMUNITY, TIMELOCK | C042, C092 | Intégrité par somme de contrôle, couverture, délai de publication, alignement horaire, déséquilibre du carnet contre rendement futur |
+| Archives d'actualités | TIMELOCK, RADAR, PROVENANCE | C001, C002, C005, C006 | Inventaire des sources publiques (couverture, horodatage, licence), puis étude historique hors ligne |
+| Calibration de l'IA principale | ORACLE, COMPASS | C082, C083 | Correction préenregistrée jugée hors échantillon contre l'isotonique et le taux appris |
+| Étalonnage de PULSE | PULSE, REPLAY, NEMESIS | C084, C079 | Seuils fixés sur des scénarios d'étalonnage, jugés sur des scénarios indépendants |
+| Consolidation des 12 agents en quatre rôles | EVOLUTION, TRUTH | C090 | Préparation architecturale seulement, sans supprimer aucune protection |
+| Protocole C100 | EVOLUTION, PHANTOM, COMPASS | C100, C090, C095 | Protocole figé ; l'observation ne démarre pas sans autorisation distincte |
