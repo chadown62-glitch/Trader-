@@ -1,5 +1,7 @@
 # SENTINELLE AI — Catalogue des capacités C001–C100 (dossier du propriétaire, reçu en quatre parties le 24 novembre 2026, transcrit sans modification de fond)
 
+> Second envoi du catalogue par le propriétaire (24 novembre 2026, « Catalogue C001–C100 et reprise du Sprint 5 ») : mêmes 100 identifiants ; huit libellés précisés et repris ici (C013, C016, C027, C049, C062, C064, C096, C100) ; l'inventaire ajoute la méthode de validation, la valeur ajoutée attendue et le lot de chaque capacité.
+
 ## PARTIE 1/4
 
 Contexte : dépôt chadown62-glitch/Trader- ; Sprint 5 ; PR #147 fusionnée : e7be7af8f05c558dd2a46170dbb6975a25ccfc81.
@@ -44,10 +46,10 @@ Catalogue (priorité normale sauf HAUTE) :
 ### Macroéconomie et inter-marchés — première preuve : publication antérieure et référence comparée sans fuite
 - C011 — Surprises d'inflation.
 - C012 — Surprises emploi et révisions.
-- C013 — Décisions et communications banques centrales.
+- C013 — Décisions et communications des banques centrales.
 - C014 — Mouvements des rendements obligataires.
 - C015 — Contexte de force du dollar.
-- C016 — Indicateurs de stress actions (VIX).
+- C016 — Indicateurs de stress actions, dont VIX.
 - C017 — Propagation sectorielle actions→crypto.
 - C018 — Flux publics de stablecoins.
 - C019 — Flux ETF horodatés.
@@ -66,7 +68,7 @@ FIN PARTIE 1/4 : 25 capacités transmises.
 
 ### Régimes de marché — suite — première preuve : classement de régime et abstention hors échantillon
 - C026 — Corrélations dynamiques BTC/altcoins. [HAUTE]
-- C027 — Funding rate en observation.
+- C027 — Funding rate en observation uniquement.
 - C028 — Open interest et liquidations en observation.
 - C029 — Effets horaires et calendaires.
 - C030 — Régime d'abstention. [HAUTE]
@@ -92,7 +94,7 @@ FIN PARTIE 1/4 : 25 capacités transmises.
 - C046 — Impact du notional sur l'exécution. [HAUTE]
 - C047 — Glissement conditionnel à la volatilité.
 - C048 — Profondeur de revente exploitable. [HAUTE]
-- C049 — Anomalies compatibles avec wash trading.
+- C049 — Anomalies compatibles avec le wash trading.
 - C050 — Contrôle de cohérence inter-plateformes.
 
 FIN PARTIE 2/4 : total cumulé 50 capacités.
@@ -113,9 +115,9 @@ FIN PARTIE 2/4 : total cumulé 50 capacités.
 
 ### Exécution et sorties fictives — première preuve : règles d'exécution identiques au simulateur causal
 - C061 — Frais point-in-time par instrument. [HAUTE]
-- C062 — Minimum de notional/lot/tick. [HAUTE]
+- C062 — Minimum de notional, lot et tick. [HAUTE]
 - C063 — Exécutions partielles simulées.
-- C064 — Modèles de latence et exécution.
+- C064 — Modèles de latence et d’exécution.
 - C065 — Causalité stricte décision→cotation ultérieure.
 - C066 — Refus des cotations périmées.
 - C067 — Stops avec gaps et liquidité insuffisante. [HAUTE]
@@ -159,11 +161,11 @@ FIN PARTIE 3/4 : total cumulé 75 capacités.
 - C093 — Validation temporelle purgée avec embargo.
 - C094 — Correction des essais multiples. [HAUTE]
 - C095 — Tests d'ablation par capacité. [HAUTE]
-- C096 — IC robustes avec dépendance temporelle.
+- C096 — Intervalles de confiance robustes avec dépendance temporelle.
 - C097 — Stress frais/spread/glissement. [HAUTE]
 - C098 — Faisabilité avec capital fictif de 30 € et produits UE.
 - C099 — Écart entre simulation et cotation accessible. [HAUTE]
-- C100 — Observation prospective figée sur 52 semaines. [HAUTE]
+- C100 — Observation prospective figée sur 52 semaines, dont le démarrage exige une autorisation distincte. [HAUTE]
 
 ### État de départ à vérifier (audit initial sur main 1bb22879950b3d9183f84b714d40dbdf66cd7c86 ; lignes à actualiser sur le HEAD courant)
 - sentinelle/scalp/flash.py:1-16,34-66,69-84 : huit flux, horodatage publication/réception, classification déterministe, vetos. Archive trop jeune pour prouver son apport financier.

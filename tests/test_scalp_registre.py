@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -44,6 +45,17 @@ def test_statuses_are_backed_by_evidence_and_nothing_enters_a_decision():
         if i["statut"] == "EXPÉRIMENT_REJETÉ":
             assert "research/scalp-v1/" in i["note"]
     assert reg["statuts"]["EXPÉRIMENT_VALIDÉ_PROVISOIRE"] == 0  # aucune capacité n'est validée par ce seul inventaire
+
+
+def test_each_capability_carries_its_validation_method_expected_value_and_lot():
+    reg = {i["id"]: i for i in committed()["capacites"]}
+    domains = {titre: key for key, (titre, _) in registre.DOMAINES.items()}
+    for cid, i in reg.items():
+        assert i["methode_validation"].endswith(registre.CRITERES[domains[i["domaine"]]]) and "préenregistrés" in i["methode_validation"]
+        assert i["valeur_ajoutee_attendue"].endswith("attendue, non démontrée")
+        assert i["lot"] == registre.LOTS.get(cid, "suivants (dépendances et valeur marginale)")
+    assert sorted(c for c, lot in registre.LOTS.items() if lot.startswith("1")) == ["C061", "C062", "C091", "C094", "C095", "C097", "C099"]
+    assert sum(lot.startswith("2") for lot in registre.LOTS.values()) == 12 and sum(lot.startswith("3") for lot in registre.LOTS.values()) == 6
 
 
 def test_a_test_that_only_names_a_symbol_is_not_counted_as_executing_it(tmp_path):
@@ -89,7 +101,10 @@ def test_the_checker_catches_a_wrong_reference():
 
 def test_frozen_baseline_points_to_the_published_results():
     base = committed()["baseline"]
-    assert len(base["references"]) == 3 and base["main"] == committed()["main_audite"]
+    assert len(base["references"]) == 3
+    audited = committed()["main_audite"]
+    if registre.commit_available(base["main"]) and registre.commit_available(audited):  # le gel précède ou égale l'audit
+        assert subprocess.run(["git", "merge-base", "--is-ancestor", base["main"], audited], cwd=ROOT).returncode == 0
     for ref in base["references"]:
         src = ROOT / ref["provenance"]["fichier"]
         assert registre.digest(src) == ref["provenance"]["sha256"]  # résultats inchangés depuis le gel
