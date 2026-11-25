@@ -34,12 +34,13 @@ Lancement : python -m sentinelle.scalp.hive
 from __future__ import annotations
 
 import argparse
+import hashlib
+import io
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-import httpx
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
@@ -73,23 +74,43 @@ def features(p: dict) -> dict[str, pd.DataFrame]:
             "btc7": spread(btc - btc.shift(7)), "btc28": spread(btc - btc.shift(28))}
 
 
-def samples(p: dict, member: pd.DataFrame, feats: dict[str, pd.DataFrame], first: int) -> pd.DataFrame:
-    """Une ligne par dimanche et par membre : caractéristiques, rendement des 7 jours suivants, cible."""
+def quoted_days(closes: pd.DataFrame) -> pd.Index:
+    """Jours avec au moins une vraie clôture ; le calendrier réindexé peut se prolonger au-delà."""
+    return closes.index[(np.isfinite(closes) & (closes > 0)).any(axis=1)]
+
+
+def decision_samples(p: dict, member: pd.DataFrame, feats: dict[str, pd.DataFrame], first: int) -> pd.DataFrame:
+    """Prédictions possibles à la clôture de d ; le label à J+7 est annoté séparément."""
     c = p["c"]
-    ahead = np.log(c.shift(-HORIZON) / c)
-    days = [d for d in c.index if d >= first and flux.weekday([d])[0] == 6]
+    target_prices = c.reindex(c.index + HORIZON)
+    target_prices.index = c.index
+    observed = quoted_days(c)
+    last_close = observed.max() if len(observed) else first - 1
+    days = [d for d in observed if d >= first and flux.weekday([d])[0] == 6]
     rows = []
     for d in days:
-        for s in c.columns:
-            if not member.at[d, s]:
+        for symbol in c.columns:
+            current = c.at[d, symbol]
+            x = [feats[f].at[d, symbol] for f in FEATURES]
+            if not member.at[d, symbol] or not np.isfinite(current) or current <= 0 or not np.all(np.isfinite(x)):
                 continue
-            x = [feats[f].at[d, s] for f in FEATURES]
-            y = ahead.at[d, s]
-            if np.all(np.isfinite(x)) and np.isfinite(y):
-                rows.append([d, s, *x, y])
-    out = pd.DataFrame(rows, columns=["day", "asset", *FEATURES, "ret"])
-    out["y"] = (out["ret"] > 0).astype(int)
-    return out
+            future = target_prices.at[d, symbol]
+            ret = np.nan
+            if d + HORIZON > last_close:
+                label = "immature"
+            elif not np.isfinite(future) or future <= 0:
+                label = "missing"
+            else:
+                ret = np.log(future) - np.log(current)
+                label = "resolved"
+            rows.append([d, symbol, *x, ret, float(ret > 0) if label == "resolved" else np.nan, label])
+    return pd.DataFrame(rows, columns=["day", "asset", *FEATURES, "ret", "y", "label_status"])
+
+
+def samples(p: dict, member: pd.DataFrame, feats: dict[str, pd.DataFrame], first: int) -> pd.DataFrame:
+    """Échantillon à labels résolus des études v1 (CORTEX et PULSE historiques)."""
+    resolved = decision_samples(p, member, feats, first).dropna(subset=["y"]).drop(columns="label_status")
+    return resolved.astype({"y": int}).reset_index(drop=True)
 
 
 def year_of(day) -> np.ndarray:
@@ -99,7 +120,7 @@ def year_of(day) -> np.ndarray:
 def split(frame: pd.DataFrame, year: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Apprentissage : semaines dont la cible est connue avant l'année (embargo) ; jugement : semaines de l'année."""
     start = moteur._day(f"{year}-01-01")
-    train = frame[frame["day"] + EMBARGO <= start - 1]
+    train = frame[(frame["day"] + EMBARGO <= start - 1) & frame["y"].notna()]
     test = frame[year_of(frame["day"]) == year]
     return train, test
 
@@ -211,21 +232,39 @@ def divergence_of(p: dict, member: pd.DataFrame, first: int) -> pd.Series:
     return pd.Series({a: 1 - r[a].where(m[a]).corr(mean) for a in r.columns})
 
 
-def portfolio(frame: pd.DataFrame, col: str) -> dict:
-    """Descriptif : chaque semaine, les 5 plus hautes probabilités au-dessus de 0,5, poids égaux, 0,125 % par côté."""
-    weekly, prev = [], set()
-    for _day, g in frame.groupby("day"):
-        pick = g[g[col] > 0.5].nlargest(TOP_K, col)
-        now = set(pick["asset"])
-        turnover = len(now ^ prev) / max(TOP_K, 1)
-        gross = float(np.mean(np.exp(pick["ret"]) - 1)) * len(pick) / TOP_K if len(pick) else 0.0
-        weekly.append(gross - COST * turnover)
-        prev = now
+def _performance(weekly: list[float]) -> dict:
+    if not weekly:
+        return {"semaines": 0, "geometrique_hebdo_pct": None, "pire_baisse_pct": None, "semaines_positives": None}
     w = np.array(weekly)
-    eq = np.cumprod(1 + w)
-    dd = float((1 - eq / np.maximum.accumulate(eq)).max())
-    return {"semaines": int(len(w)), "geometrique_hebdo_pct": float(100 * (eq[-1] ** (1 / len(w)) - 1)),
-            "pire_baisse_pct": 100 * dd, "semaines_positives": float((w > 0).mean())}
+    equity = np.r_[1.0, np.cumprod(1 + w)]
+    drawdown = 1 - equity / np.maximum.accumulate(equity)
+    return {"semaines": len(w), "geometrique_hebdo_pct": float(100 * (equity[-1] ** (1 / len(w)) - 1)),
+            "pire_baisse_pct": float(100 * drawdown.max()), "semaines_positives": float((w > 0).mean())}
+
+
+def portfolio(frame: pd.DataFrame, col: str, days=None, *, missing_decisions=()) -> dict:
+    """Former les lots sans regarder leurs labels, puis valoriser sur les cours exacts disponibles."""
+    groups = dict(tuple(frame.groupby("day")))
+    calendar = sorted(groups) if days is None else days
+    prev = set()
+    prefix, unavailable = [], []
+    for day in calendar:
+        if day in missing_decisions:
+            unavailable.append({"jour": int(day), "raison": "aucune clôture pour former la décision"})
+            continue
+        group = groups.get(day, frame.iloc[:0])
+        pick = group[group[col] > 0.5].nlargest(TOP_K, col)
+        now = set(pick["asset"])
+        turnover = len(now ^ prev) / TOP_K
+        missing = pick[pick["ret"].isna()]
+        if not missing.empty:
+            unavailable.append({"jour": int(day), "lots": dict(zip(missing["asset"], missing["label_status"]))})
+        elif not unavailable:
+            net = np.expm1(pick["ret"]).sum() / TOP_K - COST * turnover
+            prefix.append(float(net))
+        prev = now
+    result = _performance(prefix) if not unavailable else {**_performance([]), "semaines": len(calendar)}
+    return {**result, "semaines_non_mesurables": unavailable, "prefixe_valorise": _performance(prefix)}
 
 
 # --- Contrôle synthétique --------------------------------------------------------------------------------------------
@@ -256,23 +295,63 @@ def synthetic(seed: int = SEED, assets: int = 8, n_train: int = 80, n_test: int 
     return out
 
 
+def frozen_panel(cache: Path):
+    """Lire les octets vérifiés du manifeste utilisé par v1, sans appel réseau."""
+    manifest = Path(__file__).resolve().parents[2] / "research/scalp-v1/signaux-v1.json"
+    raw_manifest = manifest.read_bytes()
+    manifest_sha = hashlib.sha256(raw_manifest).hexdigest()
+    if manifest_sha != "e8e75b1e76adaa2934199ca0958e4a317b107cd6a32f64520f33407c4e9a5ec6":
+        raise ValueError("Le manifeste diffère de celui de l'étude HIVE v1")
+    markets = json.loads(raw_manifest)["donnees"]["crypto"]
+
+    def read_asset(market):
+        symbol = market["symbol"]
+        frames = []
+        for period, expected in market["files"]:
+            folder = cache / "1d" / symbol
+            if len(period) == 10:
+                folder = folder / "daily"
+            path = folder / f"{symbol}-1d-{period}.zip"
+            raw = path.read_bytes()
+            if hashlib.sha256(raw).hexdigest() != expected:
+                raise ValueError(f"Archive différente du manifeste : {path.name}")
+            frames.append(signaux.read_month(io.BytesIO(raw)))
+        if not frames:
+            return symbol, (pd.DataFrame(), market)
+        bars = pd.concat(frames, ignore_index=True)
+        bars = bars.assign(day=bars["t"].astype("int64") // moteur.DAY_MS).drop_duplicates("day").set_index("day").sort_index()
+        bars = bars.reindex(range(bars.index.min(), bars.index.max() + 1))
+        bars, _ = recherche.cut_at_break(bars)
+        return symbol, (bars, market)
+
+    with ThreadPoolExecutor(4) as pool:
+        loaded = dict(pool.map(read_asset, markets))
+    return signaux.panel(loaded), manifest_sha
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="OMEGA A — apprentissage mutualisé, individuel et hybride (simulation exclusive)")
     ap.add_argument("--cache", default="data/scalp-cache")
-    ap.add_argument("--out", default="research/scalp-v1/omega-hive-v1.json")
+    ap.add_argument("--out", default="research/scalp-v1/omega-hive-v2.json")
     ap.add_argument("--trials", default="research/scalp-v1/trials.jsonl")
     args = ap.parse_args(argv)
+    if Path(args.out).exists():
+        raise FileExistsError(f"Résultat déjà présent : {args.out}. Choisir un autre --out pour le rejeu.")
     t0 = time.time()
     synth = synthetic()
-    with httpx.Client(timeout=60, follow_redirects=True, headers={"User-Agent": "sentinelle-simulation"}) as client:
-        with ThreadPoolExecutor(8) as pool:
-            loaded = dict(zip(recherche.CANDIDATES, pool.map(lambda s: signaux.load_bars(s, args.cache, client), recherche.CANDIDATES)))
-    p = signaux.panel(loaded)
+    p, manifest_sha = frozen_panel(Path(args.cache))
     member = signaux.members(p)
     first = moteur._day(signaux.FIRST)
-    frame = samples(p, member, features(p), first)
-    folds = folds_of(frame["asset"].unique())
-    judged = pd.concat([judge_year(*split(frame, y), folds) for y in TEST_YEARS], ignore_index=True)
+    frame = decision_samples(p, member, features(p), first)
+    folds = folds_of(recherche.CANDIDATES)
+    predictions = pd.concat([judge_year(*split(frame, y), folds) for y in TEST_YEARS])
+    predictions["label_status"] = frame.loc[predictions.index, "label_status"]
+    judged = predictions.dropna(subset=["y"])
+    observed = quoted_days(p["c"])
+    days = [d for d in range(moteur._day("2020-01-01"), observed.max() + 1) if flux.weekday([d])[0] == 6]
+    missing_decisions = set(days).difference(observed)
+    coverage = predictions.groupby([year_of(predictions["day"]), "label_status"]).size().unstack(fill_value=0)
+    coverage = coverage.reindex(columns=["resolved", "missing", "immature"], fill_value=0)
     ll = {k: logloss(judged[f"p_{k}"], judged["y"]) for k in ("base", "ind", "pool", "hyb", "unseen")}
     weeks = judged["day"].to_numpy()
     pairs = {"collectif − individuel": ("pool", "ind"), "hybride − individuel": ("hyb", "ind"), "hybride − collectif": ("hyb", "pool"),
@@ -284,15 +363,15 @@ def main(argv=None):
     for t, ph in zip(tests.values(), essais.holm([t["p_bilaterale"] for t in tests.values()])):
         t["p_holm"], t["significatif_holm_5pct"] = ph, bool(ph < 0.05)
     by_year = {int(y): {k: float(ll[k][year_of(weeks) == y].mean()) for k in ("base", "ind", "pool", "hyb", "unseen")} for y in TEST_YEARS}
-    out = {"schema": "scalp-omega-hive-v1", "status": "mesure hors échantillon (walk-forward annuel) sur historique déjà consulté ; aucune intégration",
+    out = {"schema": "scalp-omega-hive-v2", "manifeste_sha256": manifest_sha, "couverture_par_annee": coverage.to_dict("index"), "status": "mesure hors échantillon (walk-forward annuel) sur historique déjà consulté ; aucune intégration",
            "omega": ["HIVE", "GENOME", "BORDER"], "capacites": ["C085", "C087", "C093", "C026"],
            "parametres": {"caracteristiques": FEATURES, "horizon_jours": HORIZON, "embargo_jours": EMBARGO, "semaines_minimales_individuel": MIN_OWN,
                           "retrait_hybride": SHRINK, "groupes_border": FOLDS, "annees_jugees": TEST_YEARS, "C": C_REG},
-           "synthetique": synth, "predictions": int(len(judged)), "semaines": int(len(np.unique(weeks))), "actifs": int(judged["asset"].nunique()),
+           "synthetique": synth, "predictions": int(len(predictions)), "predictions_resolues": int(len(judged)), "semaines": int(len(np.unique(weeks))), "actifs": int(judged["asset"].nunique()),
            "taux_semaines_positives": float(judged["y"].mean()),
            "perte_log_moyenne": {k: float(v.mean()) for k, v in ll.items()}, "par_annee": by_year, "tests": tests,
            "transfert_negatif": transfer,
-           "portefeuille_descriptif": {k: portfolio(judged, f"p_{k}") for k in ("ind", "pool", "hyb")},
+           "portefeuille_descriptif": {k: portfolio(predictions, f"p_{k}", days, missing_decisions=missing_decisions) for k in ("ind", "pool", "hyb")},
            "seconds": round(time.time() - t0)}
     print("synthétique :", json.dumps(synth))
     print({k: out[k] for k in ("predictions", "semaines", "actifs", "taux_semaines_positives", "perte_log_moyenne")})
@@ -300,10 +379,15 @@ def main(argv=None):
         print(f"{k:70} {t['ecart']:+.5f} p {t['p_bilaterale']:.3f} Holm {t['p_holm']:.3f}")
     print("transfert négatif :", transfer["actifs_en_transfert_negatif"], "actifs sur", transfer["actifs"])
     print("portefeuilles :", json.dumps(out["portefeuille_descriptif"]))
-    Path(args.out).write_text(json.dumps(out, ensure_ascii=False, default=float) + "\n", encoding="utf-8")
+    baseline_path = Path(__file__).resolve().parents[2] / "research/scalp-v1/omega-hive-v1.json"
+    baseline = json.loads(baseline_path.read_bytes())
+    out["comparaison_v1"] = {"schema": baseline["schema"], "sha256": hashlib.sha256(baseline_path.read_bytes()).hexdigest(),
+                            "predictions": baseline["predictions"], "portefeuille_descriptif": baseline["portefeuille_descriptif"]}
+    with Path(args.out).open("x", encoding="utf-8") as target:
+        target.write(json.dumps(out, ensure_ascii=False, allow_nan=False, default=float) + "\n")
     if args.trials:
         with open(args.trials, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "omega-hive-v1", "synthetique": synth,
+            fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "omega-hive-v2", "synthetique": synth,
                                  "perte_log_moyenne": out["perte_log_moyenne"],
                                  "tests": {k: {"ecart": t["ecart"], "p_holm": t["p_holm"]} for k, t in tests.items()}},
                                 ensure_ascii=False, default=float) + "\n")
