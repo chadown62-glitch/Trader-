@@ -11,6 +11,10 @@ propriétaire) et sans effet sur l'exposition : observer davantage d'actifs n'en
 - Fonds (Yahoo, poche actions) et séries macroéconomiques (Yahoo) : historique et trous, depuis le cache.
 - Coûts et faisabilité par capital : frais datés (C061, #155), écart de cotation mesuré (C099, #154), minima d'ordre et part
   des entrées faisables à 30, 100, 1 000 et 10 000 € (C062, #150), lus dans les résultats publiés.
+- Dépendance en crise (ATLAS d'après le registre OMEGA V3, préenregistrée) : corrélation moyenne entre membres hors BTC
+  pendant les semaines du décile inférieur des rendements du BTC, comparée à celle du décile supérieur (test unilatéral par
+  rééchantillonnage des semaines) ; part des membres en baisse ; stabilité d'une année à l'autre de la structure des
+  corrélations par paire.
 Mesure seulement.
 
 Lancement : python -m sentinelle.scalp.atlas
@@ -31,6 +35,7 @@ import pandas as pd
 from . import actifs, moteur, recherche, signaux
 
 RESULTS = Path(__file__).resolve().parents[2] / "research" / "scalp-v1"
+TAIL_Q, TAIL_REPS, TAIL_SEED, MIN_PAIR_WEEKS = 0.10, 2000, 20261128, 10
 
 
 def date(day) -> str | None:
@@ -70,6 +75,71 @@ def dependence(c: pd.DataFrame, member: pd.DataFrame) -> dict:
         eig = np.linalg.eigvalsh(np.cov(((block - block.mean()) / block.std()).to_numpy().T))
         out[int(y)] = {"membres": len(cols), "semaines": int(len(block)), "correlation_moyenne": float(off.mean()),
                        "part_premiere_composante": float(eig[-1] / eig.sum())}
+    return out
+
+
+def weekly(c: pd.DataFrame, member: pd.DataFrame) -> pd.DataFrame:
+    """Rendements hebdomadaires (logarithmiques) des seuls membres de l'univers à la date."""
+    week = c.iloc[::7]
+    r = np.log(week / week.shift(1))
+    return r.where(member.iloc[::7].reindex(index=r.index, columns=r.columns, fill_value=False).astype(bool))
+
+
+def mean_pair_corr(block: pd.DataFrame, min_obs: int = MIN_PAIR_WEEKS) -> float:
+    corr = block.corr(min_periods=min_obs).to_numpy()
+    off = corr[~np.eye(len(corr), dtype=bool)]
+    off = off[np.isfinite(off)]
+    return float(off.mean()) if len(off) else float("nan")
+
+
+def crisis_dependence(c: pd.DataFrame, member: pd.DataFrame, q: float = TAIL_Q, reps: int = TAIL_REPS, seed: int = TAIL_SEED,
+                      anchor: str = "BTCUSDT") -> dict:
+    """Corrélation moyenne entre membres (hors BTC) selon le décile du rendement hebdomadaire du BTC.
+
+    H1 (unilatérale) : plus forte dans le décile inférieur (crise) que dans le décile supérieur. Les deux déciles sont
+    choisis par le même mécanisme (rendement extrême du BTC), ce qui neutralise en partie le biais de sélection des
+    corrélations conditionnelles ; la volatilité plus forte des semaines de baisse reste une explication mécanique possible.
+    """
+    week = c[anchor].iloc[::7]
+    btc = np.log(week / week.shift(1))
+    others = weekly(c, member).drop(columns=[anchor], errors="ignore")
+    lo, hi = btc.quantile(q), btc.quantile(1 - q)
+    down, up = btc <= lo, btc >= hi
+    middle = btc.notna() & ~down & ~up
+    D, U = others[down].to_numpy(), others[up].to_numpy()
+    observed = mean_pair_corr(pd.DataFrame(D)) - mean_pair_corr(pd.DataFrame(U))
+    rng = np.random.default_rng(seed)
+    draws = np.array([mean_pair_corr(pd.DataFrame(D[rng.integers(0, len(D), len(D))])) - mean_pair_corr(pd.DataFrame(U[rng.integers(0, len(U), len(U))]))
+                      for _ in range(reps)])
+    draws = draws[np.isfinite(draws)]
+
+    def falling(sel):
+        x = others[sel].to_numpy()
+        return float(np.nanmean(np.where(np.isfinite(x), x < 0, np.nan)))
+
+    return {"semaines": {"crise": int(down.sum()), "hausse": int(up.sum()), "milieu": int(middle.sum())},
+            "seuils_btc": {"decile_inferieur": float(lo), "decile_superieur": float(hi)},
+            "correlation_moyenne": {"crise": mean_pair_corr(others[down]), "hausse": mean_pair_corr(others[up]), "milieu": mean_pair_corr(others[middle])},
+            "part_des_membres_en_baisse": {"crise": falling(down), "hausse": falling(up), "milieu": falling(middle)},
+            "h1_crise_moins_hausse": {"ecart": float(observed), "ic95": [float(np.quantile(draws, 0.025)), float(np.quantile(draws, 0.975))],
+                                      "p_unilaterale": float(np.mean(draws <= 0)), "tirages": int(len(draws)),
+                                      "significatif_5pct": bool(np.mean(draws <= 0) < 0.05)}}
+
+
+def correlation_stability(c: pd.DataFrame, member: pd.DataFrame, anchor: str = "BTCUSDT") -> dict:
+    """Rang de Spearman entre les corrélations par paire de deux années consécutives (paires communes)."""
+    r = weekly(c, member)
+    years = pd.to_datetime(r.index.to_numpy() * moteur.DAY_MS, unit="ms").year
+    mats = {int(y): r[years == y].corr(min_periods=20) for y in sorted(set(years))}
+    out = {}
+    for y in sorted(mats)[1:]:
+        a, b = mats[y - 1], mats[y]
+        cols = sorted(set(a.columns) & set(b.columns))
+        iu = np.triu_indices(len(cols), 1)
+        x, z = a.loc[cols, cols].to_numpy()[iu], b.loc[cols, cols].to_numpy()[iu]
+        ok = np.isfinite(x) & np.isfinite(z)
+        if ok.sum() >= 10:
+            out[f"{y - 1}→{y}"] = {"paires": int(ok.sum()), "rang_spearman": float(pd.Series(x[ok]).corr(pd.Series(z[ok]), method="spearman"))}
     return out
 
 
@@ -128,7 +198,11 @@ def main(argv=None):
                        "coupees_a_une_recotation": sum(bool(r["coupee_a"]) for r in quoted), "memecoins": sorted(m for m in memes if m in loaded),
                        "membres_par_jour_median": float(member.loc[moteur._day(signaux.FIRST):].sum(axis=1).median()), "detail": rows},
            "dependances_hebdomadaires": dependence(p["c"].loc[moteur._day(signaux.FIRST):], member.loc[moteur._day(signaux.FIRST):]),
-           "fonds": funds, "series_macro": macro, "couts_et_faisabilite": costs(), "seconds": round(time.time() - t0)}
+           "fonds": funds, "series_macro": macro, "couts_et_faisabilite": costs()}
+    since = moteur._day(signaux.FIRST)
+    out["dependance_en_crise"] = crisis_dependence(p["c"].loc[since:], member.loc[since:])
+    out["stabilite_des_correlations"] = correlation_stability(p["c"].loc[since:], member.loc[since:])
+    out["seconds"] = round(time.time() - t0)
     c = out["cryptos"]
     print({k: c[k] for k in ("candidates", "cotees", "retirees", "coupees_a_une_recotation", "memecoins", "membres_par_jour_median")})
     for y, d in out["dependances_hebdomadaires"].items():
@@ -136,12 +210,15 @@ def main(argv=None):
     print("fonds :", {k: (v.get("premier_jour"), v.get("jours")) for k, v in funds.items()})
     print("macro :", {k: (v.get("premier_jour"), v.get("jours")) for k, v in macro.items()})
     print("faisabilité :", json.dumps(out["couts_et_faisabilite"].get("part_des_entrees_faisables"), ensure_ascii=False))
+    print("crise :", json.dumps(out["dependance_en_crise"], ensure_ascii=False))
+    print("stabilité :", json.dumps(out["stabilite_des_correlations"], ensure_ascii=False))
     Path(args.out).write_text(json.dumps(out, ensure_ascii=False, default=float) + "\n", encoding="utf-8")
     if args.trials:
         with open(args.trials, "a", encoding="utf-8") as fh:
             fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "omega-atlas-v1", "descriptif": True,
                                  "cryptos": {k: c[k] for k in ("candidates", "cotees", "retirees", "coupees_a_une_recotation")},
-                                 "dependances": out["dependances_hebdomadaires"]}, ensure_ascii=False, default=float) + "\n")
+                                 "dependances": out["dependances_hebdomadaires"], "dependance_en_crise": out["dependance_en_crise"],
+                                 "stabilite_des_correlations": out["stabilite_des_correlations"]}, ensure_ascii=False, default=float) + "\n")
     return out
 
 

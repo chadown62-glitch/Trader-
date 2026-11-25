@@ -45,3 +45,41 @@ def test_costs_are_read_from_the_published_results():
     assert "frais_dates" in out and "part_des_entrees_faisables" in out
     caps = next(iter(out["part_des_entrees_faisables"].values()))
     assert set(caps) == {"30 €", "100 €", "1000 €", "10000 €"} and all(0 <= v <= 1 for v in caps.values())
+
+
+def _panel(rng, weeks, n, down_extra):
+    d0 = moteur._day("2019-01-06")
+    idx = pd.RangeIndex(d0, d0 + 7 * weeks)
+    btc_w = rng.normal(0, 0.06, weeks)
+    common = np.where(btc_w < np.quantile(btc_w, 0.1), down_extra, 0.0)  # un facteur commun ne joue qu'en crise
+    rets = {f"S{k}": 0.5 * btc_w + common * rng.normal(0, 1, weeks).mean() + rng.normal(0, 0.04, weeks) for k in range(n)}
+    shock = rng.normal(0, 1, weeks)
+    for k in range(n):
+        rets[f"S{k}"] = rets[f"S{k}"] + common * shock
+    daily = {s: np.repeat(np.exp(np.cumsum(np.r_[0.0, r[1:]])), 7) for s, r in {"BTCUSDT": btc_w, **rets}.items()}
+    c = pd.DataFrame(daily, index=idx)
+    return c, pd.DataFrame(True, index=idx, columns=c.columns)
+
+
+def test_crisis_dependence_sees_a_factor_that_only_acts_in_btc_crashes():
+    rng = np.random.default_rng(51)
+    c, member = _panel(rng, 400, 6, down_extra=0.08)
+    out = atlas.crisis_dependence(c, member, reps=300)
+    assert out["semaines"]["crise"] == out["semaines"]["hausse"] == 40
+    assert out["correlation_moyenne"]["crise"] > out["correlation_moyenne"]["hausse"] + 0.2
+    assert out["h1_crise_moins_hausse"]["significatif_5pct"] and out["part_des_membres_en_baisse"]["crise"] >= 0.75 > out["part_des_membres_en_baisse"]["hausse"]
+    calm, member = _panel(np.random.default_rng(52), 400, 6, down_extra=0.0)
+    quiet = atlas.crisis_dependence(calm, member, reps=300)
+    assert abs(quiet["h1_crise_moins_hausse"]["ecart"]) < 0.25  # symétrie des deux déciles sans effet de crise
+
+
+def test_correlation_stability_compares_consecutive_years_on_common_pairs():
+    rng = np.random.default_rng(53)
+    d0 = moteur._day("2021-01-01")
+    idx = pd.RangeIndex(d0, d0 + 7 * 160)
+    loads = np.linspace(0.2, 1.5, 6)  # structure fixe : chaque actif a sa propre exposition au facteur
+    f = rng.normal(0, 0.03, len(idx))
+    c = pd.DataFrame({f"S{k}": 100 * np.exp(np.cumsum(loads[k] * f + rng.normal(0, 0.01, len(idx)))) for k in range(6)}, index=idx)
+    out = atlas.correlation_stability(c, pd.DataFrame(True, index=idx, columns=c.columns))
+    assert set(out) >= {"2021→2022", "2022→2023"} and all(v["paires"] == 15 for v in out.values())
+    assert np.mean([v["rang_spearman"] for v in out.values()]) > 0.5
