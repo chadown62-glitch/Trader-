@@ -88,7 +88,7 @@ class TrainingMixin:
                                  recipe=settings["ai"]["recipe"], half_life_days=settings["ai"]["half_life_days"])
         try:
             if days >= KNOWLEDGE_DAYS:  # les fiches par crypto profitent de l'historique complet déjà chargé
-                self.update_knowledge(hist, btc, tf, settings)
+                self.start_knowledge(settings=settings, histories=(hist, btc))
             else:  # entraînement sur une période courte : les fiches gardent leur historique complet
                 self.refresh_knowledge_if_stale()
         except Exception as exc:
