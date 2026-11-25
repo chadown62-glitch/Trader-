@@ -274,19 +274,23 @@ Toutes les mesures portent sur l'historique 2018-01-01 → 2026-11-22, **déjà 
 | #158 (`c930c19`) | `e51a306` | C007, C001 | FOMC et CPI à l'heure officielle : variation du BTC ×2 à ×3,5 (Holm p < 0,001). Sens non prévisible sans la surprise (C006 bloquée). |
 | #159 (`a0eb040`) | `d5ed57a` | C079, C074, C067 | Pires semaines du BTC : B1 ≥ −4,9 %. Plafond par groupe corrélé rejeté. Stops avec écart : +0,055 R en moyenne. |
 | #160 (`4831790`) | `2198f9d` | C022, C023, C025, C031, C034, C038 | Aucune famille technique n'améliore B0 après Holm (verdict négatif). |
+| #161 (`695774e`) | `4e10df7` | C014, C015, C016, C017 | Abstentions selon les taux, le dollar, le VIX ou le Nasdaq-100 : aucun gain après Holm. Seul lien significatif : légère inversion du BTC le lendemain d'une séance du Nasdaq-100 (rang −0,056, Holm 0,032), non exploitée. |
+| #162 (`a3a5247`) | `3512fab` | C018, C029 | Offre de stablecoins (série non point-in-time, borne optimiste) : aucun effet. Liquidités le week-end : −0,67 %/semaine sur B0. Aucun jour distinct après Holm. |
+| #163 (`7295149`) | `1fd27f7` | C036, C039 | Amplitude du range : moins bonne que la volatilité réalisée pour prévoir l'ampleur. Capitulations : aucun gain, pire baisse de B0 portée à 66 %. |
+| #164 (`c797ec4`) | `d392974` | C085, C086 | IA principale : spécialistes par régime et retrait des redondances sans gain significatif ; les probabilités restent moins bonnes que le taux appris. |
 
 **Inventaire après ces mesures** (registre `research/scalp-v1/registre-capacites.json`) :
 
 | Statut | Nombre |
 |---|---|
-| Existantes et testées | 42 |
-| Partielles | 34 |
-| Absentes | 8 |
+| Existantes et testées | 43 |
+| Partielles | 29 |
+| Absentes | 4 |
 | Bloquées (données) | 2 |
-| Expériences rejetées | 14 |
+| Expériences rejetées | 22 |
 | Validées | **0** |
 
-**Couverture des tests.** On compte les capacités dont toutes les fonctions citées ont réellement tourné pendant un test réussi (contre 55 au premier inventaire). Le nombre exact, et la liste de celles qui restent « à confirmer », figurent dans la clé `mesure_execution` du registre.
+**Couverture des tests.** 89 capacités ont une couverture « constatée » : toutes leurs fonctions citées ont réellement tourné pendant un test réussi, rejoué seul sous traceur avec un fil de calcul mathématique par processus (contre 55 au premier inventaire). 5 sont partielles, 1 non constatée et 5 sans preuve (capacités absentes ou bloquées). Restent « à confirmer » : C018, C036, C047, C055, C078, C092 (détail : clé `mesure_execution`, Python 3.12.3, commit `67cf3ef`). C018 et C036 : les fonctions de mesure `supply_lead` et `amplitude_study` n'ont pas encore de test unitaire ; il sera ajouté dans la PR suivante.
 
 **Défauts de la section 6, mis à jour :**
 - **Identité des actifs** : traitée (#153), sauf deux cas. VEN → VET (1 pour 100) reprend 22,8 % au-dessus de l'équivalent et n'est pas relié. BCC → BCHABC est une scission, également non reliée. Le raccord est désactivé par défaut, ce qui laisse les résultats publiés reproductibles.
@@ -298,6 +302,8 @@ Toutes les mesures portent sur l'historique 2018-01-01 → 2026-11-22, **déjà 
 **Points soumis au propriétaire et à GPT Work :**
 - **A1** remplit le critère préenregistré, mais elle reprend le filtre BTC des versions v10 sur un historique consulté. Elle n'est donc pas une preuve indépendante. Toute intégration attend une validation humaine et une observation prospective autorisée.
 - **Recalage des probabilités de l'IA principale** : le défaut est démontré, rien n'est modifié. Une correction devra être préenregistrée et validée.
+- **Inversion après le Nasdaq-100** (#161) : lien faible (0,3 % de la variance) de sens contraire à l'hypothèse du catalogue. Il n'est pas testé comme règle : il faudrait un protocole distinct, préenregistré, sur une période non consultée.
+- **IA principale** (#157, #164) : son défaut de calibration ne vient ni des caractéristiques redondantes ni de l'absence de spécialisation par régime.
 - **Flotte de 12 agents** : l'objectif est de 4 agents principaux actifs. Rien n'a été supprimé ni désactivé ; ce point est réservé à l'audit architectural.
 
 **Verdict global inchangé : négatif.** Aucune configuration n'atteint +1,30 %/semaine net géométrique sur 52 semaines avec une pire baisse de 10 %. Il ne reste aucune période aveugle.
@@ -305,9 +311,12 @@ Toutes les mesures portent sur l'historique 2018-01-01 → 2026-11-22, **déjà 
 **Reproduction des études (Windows 11, Python 3.12)**
 
 ```powershell
-python -m pytest tests/test_scalp_ablation.py tests/test_scalp_faisabilite.py tests/test_scalp_recherche.py tests/test_scalp_ouverture.py tests/test_scalp_frais.py tests/test_scalp_regimes.py tests/test_scalp_calibration.py tests/test_scalp_evenements.py tests/test_scalp_risques.py tests/test_scalp_techniques.py tests/test_scalp_registre.py -q
+python -m pytest tests/test_scalp_ablation.py tests/test_scalp_faisabilite.py tests/test_scalp_recherche.py tests/test_scalp_ouverture.py tests/test_scalp_frais.py tests/test_scalp_regimes.py tests/test_scalp_calibration.py tests/test_scalp_evenements.py tests/test_scalp_risques.py tests/test_scalp_techniques.py tests/test_scalp_macro.py tests/test_scalp_flux.py tests/test_scalp_epuisement.py tests/test_scalp_apprentissage.py tests/test_scalp_registre.py -q
 python -m sentinelle.scalp.ablation --trials ""
 python -m sentinelle.scalp.regimes --trials ""
 python -m sentinelle.scalp.evenements --trials ""
+python -m sentinelle.scalp.macro --trials ""
+python -m sentinelle.scalp.flux --trials ""
+python -m sentinelle.scalp.epuisement --trials ""
 python -m sentinelle.scalp.registre
 ```
