@@ -176,3 +176,27 @@ def test_authenticated_scan_is_rate_limited(api_setup):
 @pytest.mark.parametrize(("base", "head", "expected"), frozen.FROZEN)
 def test_frozen_manifest_sha256(base, head, expected):
     frozen.test_frozen_scientific_files(base, head, expected)
+
+
+def test_goplus_evm_reads_restrictions_and_transfer_taxes():
+    from types import SimpleNamespace
+
+    from sentinelle.dmh.tokenrisk import _goplus_evm
+    from sentinelle.dmh.tokens import TokenId
+
+    token = TokenId("base", "0x" + "ab" * 20)
+    seen = []
+
+    def client(result):
+        def get(host, path, params=None):
+            seen.append((host, path, params))
+            return SimpleNamespace(json=lambda: {"result": result}, sha256="e" * 64, received_ms=1)
+        return SimpleNamespace(get=get)
+
+    report = {token.address: {"is_honeypot": "0", "cannot_sell_all": "1", "buy_tax": "0.05", "sell_tax": "0.3", "is_mintable": "1",
+                              "transfer_pausable": "1", "is_open_source": "0", "hidden_owner": "0"}}
+    out = _goplus_evm(client(report), token)
+    assert seen[0] == ("api.gopluslabs.io", "/api/v1/token_security/8453", {"contract_addresses": token.address})
+    assert out["cannot_sell"] and not out["honeypot"] and out["buy_tax"] == 0.05 and out["sell_tax"] == 0.3
+    assert out["flags"] == ["émission possible", "transferts suspendables", "code source non publié"]
+    assert _goplus_evm(client({}), token) is None  # token inconnu de la source : aucune conclusion inventée

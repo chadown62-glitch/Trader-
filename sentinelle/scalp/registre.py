@@ -375,7 +375,7 @@ entry("C054", "EXISTANTE_ET_TESTÉE", [(S + "dmh/established_pools.py", "round_t
       ["tests/test_memecoin_sellability.py", "tests/test_memecoin_routing.py"], [], "Une route de revente vérifiée évite les pièges.", "Jupiter public.", "utilité technique")
 entry("C055", "PARTIELLE", [(S + "dmh/tokenrisk.py", "_goplus_evm"), (S + "dmh/tokenrisk.py", "assess_candidate"), (S + "dmh/solana_scanner.py", "scan_once")],
       ["tests/test_dmh_scanner.py"], [], "Les restrictions et frais de transfert signalent un piège.", "GoPlus, Rugcheck ; Token-2022 refusé sauf métadonnées.", "utilité technique",
-      "chemin EVM (_goplus_evm) exécuté par aucun test de la suite (rejeu sous traceur)")
+      "chemin EVM (_goplus_evm) testé sur une réponse simulée ; aucun appel réel à GoPlus")
 entry("C056", "PARTIELLE", [(STRAT, "entry_signals"), (STRAT, "NAMES")], ["tests/test_memecoin_signals.py", "tests/test_memecoin_journal_whale.py"], ["C059"],
       "Les achats des grands détenteurs précèdent une hausse.", "Stratégie whale_tail en simulation memecoin.", "à mesurer")
 entry("C057", "PARTIELLE", [(SIM, "valuation"), (SIM, "refresh_round_trip")], ["tests/test_memecoin_valuation.py"], ["C054"],

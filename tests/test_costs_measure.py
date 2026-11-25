@@ -203,3 +203,35 @@ def test_duplicate_identifiers_are_used_once_and_overwritten_windows_are_never_m
     assert status["id_collision"] == 1 and status["duplicate_id"] == 1 and status["archived"] == 1
     rows = measure.evaluate(plan, tapes, {}, venues.binance_spot_vip0())
     assert {r["t"] for r in rows} == {b["t_ms"]} and len(rows) == 3  # b une seule fois (3 tailles), jamais a avec les données de b
+
+
+def test_stress_states_split_market_costs_by_states_known_the_day_before(tmp_path):
+    import hashlib
+
+    from sentinelle.costs import plan as planmod
+
+    closes = [100.0 * 1.001 ** k for k in range(40)]
+    closes[38] = closes[37] * 0.88  # chute de 12 % la veille du dernier jour mesuré
+    csv = "open_time,open,high,low,close\n" + "".join(f"{(D0 + k) * DAY},1,1,1,{c}\n" for k, c in enumerate(closes))
+    raw = gzip.compress(csv.encode())
+    (tmp_path / "klines").mkdir()
+    (tmp_path / "klines" / "BTCUSDT.csv.gz").write_bytes(raw)
+    manifest = {"symbols": {"BTCUSDT": {"sha256": hashlib.sha256(raw).hexdigest()}}}
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest))
+    plan = {"latencies_ms": [0]}
+
+    def row(day, shortfall, **kw):
+        r = {"symbol": "BTCUSDT", "day": planmod._date(day), "size_index": measure.PRIMARY_SIZE, "side": "buy",
+             "quote": {"half_spread_bps": 0.5}, "results": {"market@0ms": {"shortfall_bps": shortfall}}}
+        return r | kw
+
+    rows = [row(D0 + 31 + k, 1.0 + k) for k in range(9)]  # 31 clôtures connues avant chacun de ces jours
+    rows += [row(D0 + 5, 50.0), row(D0 + 35, 50.0, side="sell"), row(D0 + 35, 50.0, quote=None), row(D0 + 35, 50.0, size_index=0)]
+    out = measure.stress_states(plan, rows, tmp_path)
+    assert out["after_10pct_day"]["samples"] == 1 and out["after_10pct_day"]["shortfall"]["mean"] == 9.0  # seul le lendemain du krach
+    for state in ("vol30", "prior_day_move"):
+        assert out[state]["high"]["n"] + out[state]["rest"]["n"] == 9  # historique insuffisant, vente, sans cotation, autre taille : exclus
+        assert out[state]["high"]["max"] == 9.0
+    manifest["symbols"]["BTCUSDT"]["sha256"] = "0" * 64  # archive altérée : aucun état n'est calculé
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest))
+    assert measure.stress_states(plan, rows, tmp_path) == {"after_10pct_day": {"samples": 0, "shortfall": {"n": 0}, "half_spread": {"n": 0}}}
