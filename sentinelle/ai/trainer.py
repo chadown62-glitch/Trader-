@@ -317,11 +317,10 @@ def train_walk_forward(
         reasons.insert(0, "Les règles seules ont été sélectionnées avant la période de contrôle.")
 
     # Prometteur sans être prouvé : nettement positif sur les données jamais vues et nettement meilleur que « tout prendre ».
-    # Un tel modèle est mis « à l'essai » : l'IA d'entraînement s'en sert en argent fictif (taille réduite),
-    # ce qui permet de le juger sur des données vraiment nouvelles. Jamais en réel.
+    # Le statut d'essai identifie un candidat aux analyses hors ligne.
     trial = trial_eligible(ok, m_model, m_base)
     if trial:
-        reasons.append("Modèle mis à l'essai en argent fictif : prometteur, mais pas encore prouvé. Il ne peut pas trader en réel.")
+        reasons.append("Modèle prometteur conservé pour les analyses hors ligne. Aucune activation.")
 
     # -- modèle final -------------------------------------------------------------------
     prog(0.9, "Conservation du modèle évalué")

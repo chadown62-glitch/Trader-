@@ -79,9 +79,6 @@ class LearningMixin:
         last = float(self.db.get_meta("last_train_ts", "0") or 0)
         new = self.db.scalar("SELECT COUNT(*) FROM candidates WHERE source = 'live' AND resolved_at > ?", (last,), 0)
         champion = self.models.champion(ai["timeframe"])
-        trial = champion is None
-        if trial:
-            champion = self.models.trial(ai["timeframe"])
         out["retraining"] = {
             "enabled": bool(ai["learning"]), "last": last or None, "every_hours": ai["retrain_hours"],
             "new_samples": int(new), "min_new_samples": ai["min_new_samples"],
@@ -90,7 +87,7 @@ class LearningMixin:
         out["model"] = None
         if champion is not None:
             chosen = getattr(champion, "chosen", None) or "riche"
-            out["model"] = {"version": champion.version, "level": RECIPE_LABELS.get(chosen, chosen), "trial": trial,
+            out["model"] = {"version": champion.version, "level": RECIPE_LABELS.get(chosen, chosen), "trial": False,
                             "half_life_days": getattr(champion, "half_life_days", None),
                             "mode": (champion.metrics or {}).get("mode")}
         return out

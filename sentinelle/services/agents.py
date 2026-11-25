@@ -32,9 +32,6 @@ class AgentsMixin:
             tf = self.settings["ai"]["timeframe"]
             model = self.models.champion(tf)
             st["model_trial"] = False
-            if model is None:  # à défaut de modèle validé : le modèle « à l'essai » (argent fictif)
-                model = self.models.trial(tf)
-                st["model_trial"] = model is not None
             st["model"] = model.version if model else None
             # One lifecycle and one execution context for all four logical stages.
             st["specialists"] = [
@@ -105,9 +102,9 @@ class AgentsMixin:
             for ext in self.extensions:
                 if hasattr(ext, "score_for"):
                     news_fn = ext.score_for
-            # modèle validé ; à défaut, le modèle « à l'essai » (argent fictif, taille réduite)
+            # Résoudre le modèle approuvé à chaque décision pour prendre en compte un retrait.
             def model_fn():
-                return self.models.champion(tf) or self.models.trial(tf)
+                return self.models.champion(tf)
 
             agent = TradingAgent(
                 name, d["mode"], self.db, rt.positions, rt.risk, lambda: self.settings,
