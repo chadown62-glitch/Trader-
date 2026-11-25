@@ -42,3 +42,20 @@ def test_uncertainty_abstention_and_skill_are_computed_on_taken_trades_and_again
     # gardés : trades 0 et 2 (désaccord ≤ 0,20) → R moyen 0,75 ; tous les trades pris : 0,1667
     assert calibration.abstention_gain(f) == pytest.approx(0.75 - (1.0 - 1.0 + 0.5) / 3)
     assert calibration.skill(f) == pytest.approx(1 - calibration.brier(f["p"], f["y"]) / 0.25)
+
+
+def test_walk_forward_judges_each_month_with_a_model_trained_on_its_past_only():
+    from sentinelle.scalp.features import FEATURES
+    rng = np.random.default_rng(1)
+    rows = []
+    for m in ("2025-01", "2025-02", "2025-03"):
+        start, end = month_bounds(m)
+        for k in range(400):
+            t = int(start + (k + 0.5) * (end - start) / 400)
+            rows.append({"decided_at": t, "exit_ms": t + 3_600_000, "setup": "pullback", "thesis": "essai", "r": float(rng.normal(-0.1, 1.0)),
+                         "cost_r": 0.1, "risk_pct": 0.01, **{f: float(rng.normal()) for f in FEATURES}})
+    cands = pd.DataFrame(rows)
+    frame, drift = calibration.walk_forward(cands, (), ["2025-01", "2025-02", "2025-03"])
+    assert sorted(frame["month"].unique()) == ["2025-02", "2025-03"]  # janvier : aucun passé, aucun jugement
+    assert (frame.loc[frame["month"] == "2025-02", "n_train"] < 400).all()  # février n'apprend que sur janvier (embargo d'un jour)
+    assert frame["p"].between(0, 1).all() and [d["month"] for d in drift] == ["2025-02", "2025-03"]
