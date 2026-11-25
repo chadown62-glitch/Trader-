@@ -1,13 +1,14 @@
 // IA : entraînement (argent fictif), bulletin de fiabilité, rapports d'entraînement, simulation accélérée
 import { api, on, safe } from '../api.js';
 import { LineChart } from '../charts.js';
+import { TrainingCoverage } from './training-coverage.js';
 import { LearningTab } from './learning.js';
 import { store, toast, confirmBox, money, signed, pct, plainPct, rr, cls, dt, dtMs, date, ago, STRATEGY_LABELS, FEATURE_LABELS, REASON_ICONS } from '../store.js';
 
 const { ref, computed, onMounted, onBeforeUnmount, watch } = Vue;
 
 export default {
-  components: { LineChart, LearningTab },
+  components: { LineChart, LearningTab, TrainingCoverage },
   setup() {
     const readiness = ref(null);
     const models = ref([]);
@@ -72,7 +73,7 @@ export default {
       on('training_done', () => { reportVersion.value = null; loadModels(); loadReadiness(); }),
       on('job', async (j) => {
         if (j.kind === 'train' && j.status === 'error') toast('Entraînement : ' + (j.error || 'échec'), 'error', 10000);
-        if (j.kind === 'train' && j.status === 'done') { const full = await safe(api.get(`/api/jobs/${j.id}`)); if (full?.result) lastTrain.value = { verdict: full.result.verdict, reasons: full.result.reasons, trained_at: Date.now() / 1000 }; }
+        if (j.kind === 'train' && j.status === 'done') await loadLastTrain();
         if (j.kind === 'backtest' && j.status === 'error') toast('Simulation : ' + (j.error || 'échec'), 'error', 10000);
       }),
       on('decision', (d) => { decisions.value.unshift(d); decisions.value.splice(120); }),
@@ -123,7 +124,7 @@ export default {
     <div class="page-head"><h1>Intelligence artificielle</h1></div>
     <div class="note info" style="margin-bottom:14px">
       <b>Comment l'IA apprend.</b> Des stratégies repèrent des situations d'achat. L'IA apprend, sur des années d'historique, lesquelles valent vraiment la peine,
-      et elle n'est validée que si elle gagne sur une période qu'elle n'a <b>jamais vue</b>. Elle s'entraîne ensuite en direct avec de l'argent fictif.
+      et elle n'est validée que si elle gagne sur une période réservée à l’évaluation. Elle s'entraîne ensuite en direct avec de l'argent fictif.
 <b>Tout se passe en argent fictif</b> : cette version ne peut passer aucun ordre réel. <b>Aucun résultat n'est garanti</b> : le marché change, et l'IA peut se tromper.
     </div>
     <div class="tabs">
@@ -222,7 +223,7 @@ export default {
       <div class="grid cols-2" style="margin-bottom:14px">
         <div class="card">
           <h2>Entraîner l'IA sur l'historique</h2>
-          <p class="muted small">Télécharge l'historique des prix, crée les situations d'apprentissage, valide sur une période jamais vue, puis simule le portefeuille. Durée : une à quelques minutes.</p>
+          <p class="muted small">Télécharge l'historique des prix, crée les situations d'apprentissage, évalue sur une période de contrôle, puis simule le portefeuille. Durée : une à quelques minutes.</p>
           <div class="field"><label>Historique utilisé</label><select v-model.number="trainDays"><option :value="365">1 an</option><option :value="730">2 ans</option><option :value="1095">3 ans</option><option :value="1460">4 ans</option><option :value="2190">6 ans</option><option :value="2920">8 ans (historique étendu)</option></select></div>
           <button class="primary" :disabled="trainJob && trainJob.status==='running'" @click="train">🧠 Lancer l'entraînement</button>
           <div v-if="trainJob" style="margin-top:12px">
@@ -232,6 +233,7 @@ export default {
           <div v-if="lastTrain" class="note small" :class="lastTrain.verdict==='validé' ? 'ok' : 'warn'" style="margin-top:12px">
             <b>Dernier entraînement ({{ dt(lastTrain.trained_at) }}) : {{ lastTrain.verdict }}</b>
             <div v-for="r in (lastTrain.reasons || [])" :key="r">{{ r }}</div>
+            <TrainingCoverage v-if="lastTrain.data_coverage && !lastTrain.version" :report="lastTrain" />
           </div>
         </div>
         <div class="card">
@@ -256,9 +258,10 @@ export default {
           <div><b>Modèle {{ report.verdict }}{{ report.summary?.mode === 'règles seules' ? ' (règles seules : le filtre IA est désactivé)' : '' }}</b><div v-for="r in report.reasons" :key="r" class="small">{{ r }}</div>
             <div v-if="report.verdict!=='validé'" class="small" style="margin-top:4px">Ce modèle reste disponible pour l’analyse hors ligne. Les décisions fictives utilisent le modèle approuvé pour cet horizon, ou les règles d’exploration configurées.</div></div>
         </div>
+        <TrainingCoverage :report="report" />
         <div class="grid cols-2" style="margin-bottom:14px">
           <div v-if="report.holdout">
-            <h3>Période de contrôle jamais vue ({{ date(report.period?.holdout_start/1000) }} → {{ date(report.period?.end/1000) }})</h3>
+            <h3>Période de contrôle de cet entraînement ({{ date(report.period?.holdout_start/1000) }} → {{ date(report.period?.end/1000) }})</h3>
             <div class="table-wrap"><table>
               <thead><tr><th></th><th class="num">Trades</th><th class="num">Réussite</th><th class="num">Moyenne</th><th class="num">Intervalle 95 %</th><th class="num">Profit factor</th></tr></thead>
               <tbody>
