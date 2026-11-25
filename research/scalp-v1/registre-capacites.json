@@ -1,7 +1,7 @@
 {
  "schema": "sentinelle-registre-capacites-v1",
  "source": "dossier du propriétaire C001–C100 (24 novembre 2026), docs/scalp/catalogue-C001-C100.md",
- "main_audite": "fb3fd523f06071086a154ebbc43b660ddffcf4cf",
+ "main_audite": "adefffa057ae734cecccedd8e663a0186fb4857d",
  "statuts": {
   "EXISTANTE_ET_TESTÉE": 43,
   "PARTIELLE": 29,
@@ -2638,17 +2638,17 @@
    "valeur_ajoutee_attendue": "coûts et liquidité de sortie réellement accessibles — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "non constatée",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/costs/measure.py",
       "symbole": "stress_states",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -3044,19 +3044,19 @@
    "hypothese": "Les restrictions et frais de transfert signalent un piège.",
    "donnees": "GoPlus, Rugcheck ; Token-2022 refusé sauf métadonnées.",
    "verdict": "utilité technique",
-   "note": "chemin EVM (_goplus_evm) exécuté par aucun test de la suite (rejeu sous traceur)",
+   "note": "chemin EVM (_goplus_evm) testé sur une réponse simulée ; aucun appel réel à GoPlus",
    "methode_validation": "hypothèse et protocole préenregistrés ; données horodatées à leur disponibilité réelle ; validation chronologique ; référence identique en capital, coûts, période et univers ; ablation ; correction des essais multiples ; intervalles de confiance ; cas absents, périmés, dupliqués, contradictoires et incidents réseau testés ; critère de preuve : identité du token et du pool, revendabilité et maintien des vetos",
    "lot": "suivants (dépendances et valeur marginale)",
    "valeur_ajoutee_attendue": "sécurité des memecoins : identité, revendabilité, vetos — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/dmh/tokenrisk.py",
       "symbole": "_goplus_evm",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      },
      {
       "fichier": "sentinelle/dmh/tokenrisk.py",
@@ -3072,7 +3072,7 @@
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -4343,13 +4343,13 @@
    "valeur_ajoutee_attendue": "réduction des pertes extrêmes et de la pire baisse — attendue, non démontrée",
    "integration_decision": "aucune sans approbation humaine",
    "couverture_effective": {
-    "niveau": "partielle",
+    "niveau": "constatée",
     "symboles": [
      {
       "fichier": "sentinelle/costs/measure.py",
       "symbole": "stress_states",
       "nature": "fonction",
-      "executee": false
+      "executee": true
      },
      {
       "fichier": "sentinelle/dmh/memecoin_calibrator.py",
@@ -4359,7 +4359,7 @@
      }
     ],
     "tests_en_echec": [],
-    "a_confirmer": true
+    "a_confirmer": false
    }
   },
   {
@@ -5786,59 +5786,59 @@
  },
  "mesure_execution": {
   "methode": "chaque fichier de test cité rejoué seul sous sys.monitoring (évènements LINE) ; une fonction est exécutée si une ligne de son corps a tourné pendant un fichier de test réussi ; en-têtes, décorateurs, docstrings et niveau module exclus ; le code lancé dans un autre processus par un test n'est pas compté ; un fil de calcul mathématique par processus tracé (SINGLE_THREAD)",
-  "commit": "7080b2d1995303daf1a5ec98a769d9cfada56553",
-  "date_utc": "2026-11-25T13:57:47Z",
+  "commit": "bf7fb804212ec72060fea3416d22230a7bae6057",
+  "date_utc": "2026-11-25T14:31:40Z",
   "python": "3.12.3",
   "plateforme": "Linux x86_64",
   "commande": "python -m sentinelle.scalp.registre --execution",
   "tests": {
    "tests/test_active_time_journal.py": {
     "code_pytest": 0,
-    "secondes": 0.5
+    "secondes": 0.4
    },
    "tests/test_ai_core.py": {
     "code_pytest": 0,
-    "secondes": 1.5
+    "secondes": 1.3
    },
    "tests/test_ai_learning.py": {
     "code_pytest": 0,
-    "secondes": 16.4
+    "secondes": 15.2
    },
    "tests/test_champion_integration.py": {
     "code_pytest": 0,
-    "secondes": 7.4
+    "secondes": 6.9
    },
    "tests/test_cockpit_routes.py": {
     "code_pytest": 0,
-    "secondes": 7.0
+    "secondes": 6.2
    },
    "tests/test_configurable_capital.py": {
     "code_pytest": 0,
-    "secondes": 5.4
+    "secondes": 4.5
    },
    "tests/test_costs_engine.py": {
     "code_pytest": 0,
-    "secondes": 1.0
+    "secondes": 0.9
    },
    "tests/test_costs_measure.py": {
     "code_pytest": 0,
-    "secondes": 7.9
+    "secondes": 7.5
    },
    "tests/test_dmh_components.py": {
     "code_pytest": 0,
-    "secondes": 2.0
+    "secondes": 1.9
    },
    "tests/test_dmh_scanner.py": {
     "code_pytest": 0,
-    "secondes": 4.3
+    "secondes": 4.1
    },
    "tests/test_execution_contract.py": {
     "code_pytest": 0,
-    "secondes": 64.5
+    "secondes": 55.6
    },
    "tests/test_learning.py": {
     "code_pytest": 0,
-    "secondes": 35.7
+    "secondes": 34.5
    },
    "tests/test_liquidity_simulation.py": {
     "code_pytest": 0,
@@ -5846,27 +5846,27 @@
    },
    "tests/test_macro_shadow.py": {
     "code_pytest": 0,
-    "secondes": 4.4
+    "secondes": 4.0
    },
    "tests/test_memecoin_calibrator.py": {
     "code_pytest": 0,
-    "secondes": 41.3
+    "secondes": 38.2
    },
    "tests/test_memecoin_calibrator_kelly.py": {
     "code_pytest": 0,
-    "secondes": 95.4
+    "secondes": 88.5
    },
    "tests/test_memecoin_calibrator_stop.py": {
     "code_pytest": 0,
-    "secondes": 34.0
+    "secondes": 31.5
    },
    "tests/test_memecoin_engine.py": {
     "code_pytest": 0,
-    "secondes": 4.8
+    "secondes": 4.4
    },
    "tests/test_memecoin_journal_whale.py": {
     "code_pytest": 0,
-    "secondes": 3.8
+    "secondes": 3.6
    },
    "tests/test_memecoin_profiles.py": {
     "code_pytest": 0,
@@ -5874,83 +5874,83 @@
    },
    "tests/test_memecoin_quote_time.py": {
     "code_pytest": 0,
-    "secondes": 3.7
+    "secondes": 3.3
    },
    "tests/test_memecoin_routing.py": {
     "code_pytest": 0,
-    "secondes": 3.6
+    "secondes": 3.5
    },
    "tests/test_memecoin_sellability.py": {
     "code_pytest": 0,
-    "secondes": 3.4
+    "secondes": 3.0
    },
    "tests/test_memecoin_signals.py": {
     "code_pytest": 0,
-    "secondes": 3.4
+    "secondes": 3.3
    },
    "tests/test_memecoin_simulator.py": {
     "code_pytest": 0,
-    "secondes": 3.4
+    "secondes": 3.2
    },
    "tests/test_memecoin_valuation.py": {
     "code_pytest": 0,
-    "secondes": 3.5
+    "secondes": 3.4
    },
    "tests/test_new_features.py": {
     "code_pytest": 0,
-    "secondes": 2.6
+    "secondes": 2.8
    },
    "tests/test_news_telegram.py": {
     "code_pytest": 0,
-    "secondes": 3.5
+    "secondes": 3.2
    },
    "tests/test_production_evidence.py": {
     "code_pytest": 0,
-    "secondes": 8.7
+    "secondes": 8.1
    },
    "tests/test_realtime.py": {
     "code_pytest": 0,
-    "secondes": 4.0
+    "secondes": 3.9
    },
    "tests/test_risk_agent_backtest.py": {
     "code_pytest": 0,
-    "secondes": 10.4
+    "secondes": 9.6
    },
    "tests/test_scalp_ablation.py": {
     "code_pytest": 0,
-    "secondes": 2.6
+    "secondes": 2.4
    },
    "tests/test_scalp_actifs.py": {
     "code_pytest": 0,
-    "secondes": 3.3
+    "secondes": 2.4
    },
    "tests/test_scalp_apprentissage.py": {
     "code_pytest": 0,
-    "secondes": 5.6
+    "secondes": 4.9
    },
    "tests/test_scalp_calibration.py": {
     "code_pytest": 0,
-    "secondes": 3.0
+    "secondes": 2.6
    },
    "tests/test_scalp_core.py": {
     "code_pytest": 0,
-    "secondes": 2.9
+    "secondes": 2.3
    },
    "tests/test_scalp_desk.py": {
     "code_pytest": 0,
-    "secondes": 3.2
+    "secondes": 3.0
    },
    "tests/test_scalp_epuisement.py": {
     "code_pytest": 0,
-    "secondes": 2.4
+    "secondes": 2.3
    },
    "tests/test_scalp_essais.py": {
     "code_pytest": 0,
-    "secondes": 2.9
+    "secondes": 2.5
    },
    "tests/test_scalp_evenements.py": {
     "code_pytest": 0,
-    "secondes": 3.0
+    "secondes": 2.4
    },
    "tests/test_scalp_faisabilite.py": {
     "code_pytest": 0,
@@ -5958,19 +5958,19 @@
    },
    "tests/test_scalp_flash.py": {
     "code_pytest": 0,
-    "secondes": 2.6
+    "secondes": 2.4
    },
    "tests/test_scalp_flux.py": {
     "code_pytest": 0,
-    "secondes": 2.9
+    "secondes": 3.0
    },
    "tests/test_scalp_frais.py": {
     "code_pytest": 0,
-    "secondes": 2.7
+    "secondes": 2.2
    },
    "tests/test_scalp_lab.py": {
     "code_pytest": 0,
-    "secondes": 1.1
+    "secondes": 1.2
    },
    "tests/test_scalp_macro.py": {
     "code_pytest": 0,
@@ -5990,7 +5990,7 @@
    },
    "tests/test_scalp_reserve.py": {
     "code_pytest": 0,
-    "secondes": 2.4
+    "secondes": 2.3
    },
    "tests/test_scalp_risques.py": {
     "code_pytest": 0,
@@ -5998,11 +5998,11 @@
    },
    "tests/test_scalp_signaux.py": {
     "code_pytest": 0,
-    "secondes": 2.7
+    "secondes": 2.3
    },
    "tests/test_scalp_techniques.py": {
     "code_pytest": 0,
-    "secondes": 2.6
+    "secondes": 2.2
    },
    "tests/test_scalp_watchers.py": {
     "code_pytest": 0,
@@ -6010,20 +6010,17 @@
    },
    "tests/test_validation_leakage.py": {
     "code_pytest": 0,
-    "secondes": 0.4
+    "secondes": 0.3
    }
   },
   "niveaux": {
-   "constatée": 91,
-   "partielle": 3,
-   "non constatée": 1,
+   "constatée": 94,
+   "partielle": 1,
+   "non constatée": 0,
    "référencement seul": 0,
    "sans preuve": 5
   },
   "statuts_a_couverture_a_confirmer": [
-   "C047",
-   "C055",
-   "C078",
    "C092"
   ]
  }
