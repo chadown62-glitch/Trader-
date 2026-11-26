@@ -13,7 +13,7 @@ from ..config import timeframe_ms
 from ..execution.base import OrderError
 from ..market.sources import SyntheticSource
 from ..market.history import last_continuous
-from ..storage.db import dumps
+from ..storage.db import dumps, loads
 from .common import UserError
 from .learning import KNOWLEDGE_DAYS
 
@@ -38,7 +38,7 @@ class TrainingMixin:
         except RuntimeError as exc:
             raise UserError(str(exc)) from None
 
-    def _histories(self, settings: dict, tf: str, days: int, progress, extended_ok: bool = True) -> tuple[dict, Any]:
+    def _histories(self, settings: dict, tf: str, days: int, progress, extended_ok: bool = True, *, coverage: dict | None = None) -> tuple[dict, Any]:
         quote = settings["general"]["quote"]
         wl = [s for s in settings["general"]["watchlist"] if not self.hub.markets or s in self.hub.markets]
         if not wl:
@@ -46,6 +46,8 @@ class TrainingMixin:
         btc_sym = f"BTC/{quote}"
         need = wl + ([btc_sym] if btc_sym not in wl else [])
         hist = {}
+        if coverage is not None:
+            coverage.update({s: {"excluded": "Paire absente de la source"} for s in settings["general"]["watchlist"] if s not in wl})
         for k, sym in enumerate(need):
             progress(0.25 * k / len(need), f"Téléchargement de l'historique {sym}")
             try:
@@ -55,7 +57,19 @@ class TrainingMixin:
                     raise UserError(f"Historique indisponible pour {sym} : {exc}") from None
                 continue
             # Different quote currencies require their own dated conversion data.
-            hist[sym] = last_continuous(hist[sym])
+            raw = hist[sym]
+            hist[sym] = last_continuous(raw)
+            if coverage is not None:
+                step = timeframe_ms(tf)
+                ts = raw["ts"].to_numpy()
+                usable = hist[sym]
+                gap_starts = (ts[1:] - ts[:-1] > step).nonzero()[0]
+                coverage[sym] = {
+                    "available": len(ts), "first_ms": int(ts[0]) if len(ts) else None,
+                    "last_ms": int(ts[-1]) if len(ts) else None, "retained": len(usable),
+                    "retained_from_ms": int(usable["ts"].iloc[0]) if len(usable) else None,
+                    "gaps_ms": [[int(ts[i] + step), int(ts[i + 1])] for i in gap_starts],
+                }
         btc = hist.get(btc_sym) if btc_sym not in wl else None
         return {s: hist[s] for s in wl if s in hist}, btc
 
@@ -71,11 +85,13 @@ class TrainingMixin:
         return result
 
     def _train_impl(self, progress, settings: dict, tf: str, days: int, auto: bool) -> dict:
-        hist, btc = self._histories(settings, tf, days, progress)
+        coverage = {}
+        hist, btc = self._histories(settings, tf, days, progress, coverage=coverage)
         enabled = [n for n, on in settings["ai"]["strategies"].items() if on]
         fee, slip = settings["paper"]["fee_rate"], settings["paper"]["slippage_bps"] / 10_000
         progress(0.28, "Calcul des caractéristiques et des situations d'apprentissage")
-        cand, _ = build_dataset(hist, tf, enabled, fee, slip, btc=btc)
+        sample_counts = {}
+        cand, _ = build_dataset(hist, tf, enabled, fee, slip, btc=btc, counts=sample_counts)
 
         def sub(x, msg):
             progress(0.3 + 0.45 * x, msg)
@@ -95,6 +111,14 @@ class TrainingMixin:
         except Exception as exc:
             self.db.log("warning", "ia", f"Fiches par crypto non mises à jour : {str(exc)[:150]}")
         report = dict(res.report)
+        period = report.get("period", {})
+        overlaps, unknown_periods = self._prior_windows(tf, period)
+        report["data_coverage"] = {
+            "requested_days": days, "source": self.source.name, "timeframe": tf,
+            "assets": coverage, "samples_by_asset": sample_counts, "candidates": len(cand),
+            "development_candidates": len(development), "external_start_ms": external_start or None,
+            "internal_holdout_overlaps": overlaps, "prior_periods_unknown": unknown_periods,
+        }
         report.update(verdict=res.verdict, reasons=res.reasons, days=days, auto=auto, trained_at=time.time())
         if res.eval_model is not None and external_start:
             progress(0.8, "Simulation appariée sur la période finale réservée")
@@ -136,12 +160,31 @@ class TrainingMixin:
             row = self.models.register(res, report)
             version = row["version"]
         self.db.set_meta("last_train_ts", str(time.time()))
-        self.db.set_meta("last_train_report", dumps({k: report.get(k) for k in ("verdict", "reasons", "summary", "n_resolved", "trained_at")}))
+        last = {k: report.get(k) for k in ("verdict", "reasons", "summary", "n_resolved", "trained_at",
+                                            "data_coverage", "split_counts", "period", "signal_filter")}
+        self.db.set_meta("last_train_report", dumps({**last, "version": version}))
         level = "info" if res.ok else "warning"
         self.db.log(level, "ia", f"Entraînement terminé : modèle {res.verdict}" + (f" ({version})" if version else ""), {"reasons": res.reasons})
         self.bus.publish("training_done", {"verdict": res.verdict, "version": version, "reasons": res.reasons})
         return {"verdict": res.verdict, "ok": res.ok, "reasons": res.reasons, "version": version, "summary": report.get("summary"),
                 "report": report}
+
+    def _prior_windows(self, timeframe, period):
+        """Comparer le holdout aux fenêtres archivées, y compris les évaluations terminales."""
+        if "holdout_start" not in period:
+            return [], []
+        start, end = period["holdout_start"], period["end"]
+        overlaps, unknown = set(), []
+        for row in self.db.query("SELECT version,params FROM models WHERE timeframe=?", (timeframe,)):
+            old = (loads(row["params"], {}) or {}).get("period") or {}
+            if old.get("start") is None or old.get("end") is None:
+                unknown.append(row["version"])
+            elif old["start"] < end and start < old["end"]:
+                overlaps.add(row["version"])
+        external = self.db.query("SELECT version FROM evaluation_windows WHERE timeframe=? "
+                                 "AND start_ms < ? AND end_ms > ?", (timeframe, end, start))
+        overlaps.update(row["version"] for row in external)
+        return sorted(overlaps), sorted(unknown)
 
     def _maybe_retrain(self) -> None:
         ai = self.settings["ai"]
