@@ -25,7 +25,14 @@ Validation (six règles, de la plus naïve à la plus stricte) :
 - V6 : V4, et toujours positive avec des coûts doublés, et positive dans au moins 2 des 3 tiers du hors-échantillon.
 Mesures : nombre moyen de validations, probabilité d'au moins une fausse validation (FWER), puissance sur le monde positif.
 
-Lancement : python -m sentinelle.scalp.mirror
+Version 2 (préenregistrée à part) : mutualisation entre actifs. La même règle est jugée sur la moyenne des huit actifs
+(sélection des deux meilleures variantes par leur Sharpe moyen d'apprentissage, test de Newey-West sur le rendement moyen
+hors échantillon, Holm sur 2 tests) et comparée au jugement actif par actif (V4). Mondes : nul indépendant, nul avec
+corrélation 0,6 entre cryptos, avantage commun aux huit actifs (Sharpe 0,25, 0,5, 1), avantage propre au premier actif
+(Sharpe 1). Une variante validée en mutualisé vaut une stratégie pour chacun des huit actifs.
+
+Lancement : python -m sentinelle.scalp.mirror            (version 1)
+            python -m sentinelle.scalp.mirror --v2       (version 2)
 """
 
 from __future__ import annotations
@@ -54,12 +61,19 @@ NULL_REPS, POWER_REPS, EFFECTS, SEED = 300, 100, (0.5, 1.0, 1.5), 20261126
 RULES = ("V1", "V2", "V3", "V4", "V5", "V6")
 
 
-def simulate(rng: np.random.Generator, n_assets: int = len(ASSETS), days: int = DAYS, effect_sharpe: float = 0.0) -> np.ndarray:
-    """Rendements logarithmiques journaliers (jours × actifs). L'avantage éventuel ne concerne que le premier actif."""
+def simulate(rng: np.random.Generator, n_assets: int = len(ASSETS), days: int = DAYS, effect_sharpe: float = 0.0,
+             effect_assets: str = "premier", crypto_corr: float = 0.0) -> np.ndarray:
+    """Rendements logarithmiques journaliers (jours × actifs). L'avantage éventuel concerne le premier actif ou tous ;
+    crypto_corr : corrélation des chocs entre cryptos (facteur commun), les autres actifs restant indépendants."""
     vols = np.array([v for v, _ in ASSETS.values()])[:n_assets] / math.sqrt(YEAR)
     a, b = GARCH
     omega = vols ** 2 * (1 - a - b)
     z = rng.standard_t(STUDENT_DF, (days, n_assets)) / math.sqrt(STUDENT_DF / (STUDENT_DF - 2))
+    if crypto_corr:
+        crypto = np.array([c == "crypto" for _, c in ASSETS.values()])[:n_assets]
+        common = rng.standard_t(STUDENT_DF, days) / math.sqrt(STUDENT_DF / (STUDENT_DF - 2))
+        z[:, crypto] = math.sqrt(crypto_corr) * common[:, None] + math.sqrt(1 - crypto_corr) * z[:, crypto]
+    targets = np.arange(n_assets) if effect_assets == "tous" else np.array([0])
     kappa = effect_sharpe / (math.sqrt(0.5) * math.sqrt(YEAR))  # Sharpe annuel brut ≈ κ·√0,5·√252 pour une position longue la moitié du temps
     r = np.zeros((days, n_assets))
     var = vols ** 2
@@ -69,7 +83,7 @@ def simulate(rng: np.random.Generator, n_assets: int = len(ASSETS), days: int = 
         sd = np.sqrt(var)
         r[t] = sd * z[t]
         if effect_sharpe and t >= 20:
-            r[t, 0] += kappa * sd[0] * np.sign(r[t - 20:t, 0].sum())
+            r[t, targets] += kappa * sd[targets] * np.sign(r[t - 20:t, targets].sum(axis=0))
     return r
 
 
@@ -223,6 +237,41 @@ def validate(r: np.ndarray) -> dict:
     return {"validations": {k: v.tolist() for k, v in out.items()}, "variantes": len(names)}
 
 
+def validate_pooled(r: np.ndarray) -> dict:
+    """Jugement mutualisé (v2) et jugement actif par actif (V4), sur le même monde."""
+    names, pos = positions(r)
+    net = net_returns(r, pos)
+    cut = int(len(r) * TRAIN_SHARE)
+    pooled_is = annual_sharpe(net[:cut]).mean(axis=1)  # Sharpe moyen d'apprentissage de chaque variante sur les actifs
+    top = np.argsort(-pooled_is)[:TOP]
+    p = [newey_west_p(net[cut:, j, :].mean(axis=1)) for j in top]
+    pooled = int(sum(ph < ALPHA for ph in essais.holm(p)))
+    per_asset = validate(r)["validations"]["V4"]
+    return {"mutualise_variantes": pooled, "mutualise_strategies_actif": pooled * r.shape[1], "par_actif_V4": per_asset}
+
+
+def summarize_v2(runs: list[dict], degraded: str) -> dict:
+    pooled = np.array([x["mutualise_variantes"] for x in runs])
+    per = np.array([x["par_actif_V4"] for x in runs])
+    out = {"mutualise": {"au_moins_une_validation": float((pooled > 0).mean()), "strategies_actif_moyennes": float((pooled * per.shape[1]).mean())},
+           "par_actif_V4": {"au_moins_une_validation": float((per.sum(axis=1) > 0).mean()), "strategies_actif_moyennes": float(per.sum(axis=1).mean())}}
+    if degraded == "premier":
+        out["par_actif_V4"]["actif_avec_avantage"] = float((per[:, 0] > 0).mean())
+    return out
+
+
+def run_v2(rng: np.random.Generator, null_reps: int = NULL_REPS, power_reps: int = POWER_REPS) -> dict:
+    worlds = {"nul_independant": dict(), "nul_cryptos_correles": dict(crypto_corr=0.6)}
+    worlds |= {f"commun_sharpe_{s:g}": dict(effect_sharpe=s, effect_assets="tous", crypto_corr=0.6) for s in (0.25, 0.5, 1.0)}
+    worlds["propre_au_premier_sharpe_1"] = dict(effect_sharpe=1.0, effect_assets="premier", crypto_corr=0.6)
+    out = {}
+    for name, kw in worlds.items():
+        reps = null_reps if name.startswith("nul") else power_reps
+        runs = [validate_pooled(simulate(rng, **kw)) for _ in range(reps)]
+        out[name] = {"repetitions": reps, **summarize_v2(runs, kw.get("effect_assets", ""))}
+    return out
+
+
 def summarize(runs: list[dict], effect: bool) -> dict:
     out = {}
     for k in RULES:
@@ -242,8 +291,23 @@ def main(argv=None):
     ap.add_argument("--trials", default="research/scalp-v1/trials.jsonl")
     ap.add_argument("--null-reps", type=int, default=NULL_REPS)
     ap.add_argument("--power-reps", type=int, default=POWER_REPS)
+    ap.add_argument("--v2", action="store_true", help="mutualisation entre actifs (préenregistrement séparé)")
     args = ap.parse_args(argv)
     t0 = time.time()
+    if args.v2:
+        res = run_v2(np.random.default_rng(SEED + 2), args.null_reps, args.power_reps)
+        out = {"schema": "scalp-omega-mirror-v2", "status": "synthétique ; aucune donnée de marché ; préenregistré",
+               "omega": ["TRUTH", "MIRROR", "HIVE", "BORDER"], "capacites": ["C094", "C095", "C026"], "mondes": res,
+               "graine": SEED + 2, "seconds": round(time.time() - t0)}
+        for k, v in res.items():
+            print(k, json.dumps(v, ensure_ascii=False))
+        target = args.out.replace("mirror-v1", "mirror-v2")
+        Path(target).write_text(json.dumps(out, ensure_ascii=False) + "\n", encoding="utf-8")
+        if args.trials:
+            with open(args.trials, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "omega-mirror-v2", "mondes": res},
+                                    ensure_ascii=False) + "\n")
+        return out
     rng = np.random.default_rng(SEED)
     null_runs = [validate(simulate(rng)) for _ in range(args.null_reps)]
     out = {"schema": "scalp-omega-mirror-v1", "status": "synthétique ; aucune donnée de marché ; préenregistré",

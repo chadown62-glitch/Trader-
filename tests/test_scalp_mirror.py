@@ -63,3 +63,19 @@ def test_validation_rules_return_counts_per_asset_and_find_a_strong_edge():
     assert v["V4"][0] >= 1 and v["V6"][0] <= v["V4"][0] <= v["V3"][0]  # un avantage fort survit ; les règles sont emboîtées
     s = mirror.summarize([out, out], effect=True)
     assert s["V4"]["puissance_actif_avec_avantage"] == 1.0
+
+
+def test_crypto_correlation_and_common_effects_are_simulated_as_declared():
+    r = mirror.simulate(np.random.default_rng(6), days=20_000, crypto_corr=0.6)
+    c = np.corrcoef(r.T)
+    assert 0.45 < c[0, 1] < 0.75 and abs(c[0, 5]) < 0.05  # cryptos corrélées entre elles, pas avec l'argent
+    rc = mirror.simulate(np.random.default_rng(7), n_assets=3, days=20_000, effect_sharpe=1.5, effect_assets="tous")
+    for a in range(3):
+        pos = mirror.base_signals(np.cumsum(rc, axis=0))["momentum_20"][:, a].astype(float)
+        assert (pos[:-1] * rc[1:, a]).mean() > 0
+
+
+def test_pooled_validation_counts_one_strategy_per_asset():
+    out = mirror.validate_pooled(mirror.simulate(np.random.default_rng(8), effect_sharpe=3.0, effect_assets="tous"))
+    assert out["mutualise_variantes"] >= 1 and out["mutualise_strategies_actif"] == out["mutualise_variantes"] * len(mirror.ASSETS)
+    assert len(out["par_actif_V4"]) == len(mirror.ASSETS)
