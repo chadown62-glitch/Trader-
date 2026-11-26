@@ -516,3 +516,41 @@ La campagne Chromium couvre les quinze pages existantes sur ordinateur et mobile
   - #54 et #55 intégralement gelées.
   - Au plus quatre agents actifs.
   - Aucun service permanent ni nouvelle observation prospective sans autorisation distincte.
+
+## Sprint 5 — préparation multi-actifs et cerveau central V4 (26 novembre 2026)
+
+Les intégrations et corrections P0/P1 en cours passent en premier. Ce cadrage autorise la préparation. L'implémentation opérationnelle attend leur intégration, la fusion de ce texte et l'accord Work–Claude sur les interfaces et les fichiers du lot. Chaque PR compte au plus six fichiers et exige une revue indépendante et les CI Ubuntu, Windows et Chromium vertes sur sa tête. Les archives #54 et #55 restent gelées, C100 arrêté. Simulation exclusive, sans ordre réel, clé privée, levier, short ni promotion automatique.
+
+### Univers et sources
+
+Un spécialiste logique par instrument, chargé à la demande. La cible initiale proposée comprend 70 cryptos, 10 actions, 8 indices, 6 matières premières et 6 paires de devises. L'identifiant stable comprend la classe, le sous-jacent, la place, le produit et la devise. Le registre peut dépasser 100 entrées sans augmenter les quatre rôles centraux actifs. Un indice peut servir de référence. La simulation d'une position exige un instrument admissible distinct, long et au comptant, avec ses propres prix et coûts.
+
+Premier inventaire des priorités, d'après les bornes archivées dans `research/scalp-v1/omega-atlas-v1.json` sur main. Les archives spot Binance vérifiées alimentent les séries crypto. Les séries de fonds proviennent du cache exploité par `sentinelle/scalp/actifs.py`. Ces dates décrivent la couverture des séries, pas celle de la profondeur exécutable.
+
+| Priorité | Série disponible pour la recherche | Limite à lever |
+|---|---|---|
+| BTC, ETH | BTCUSDT et ETHUSDT, du 17/08/2017 au 22/11/2026 | Vérifier profondeur et FX à chaque instant simulé. |
+| SOL | SOLUSDT, du 11/08/2020 au 22/11/2026 | Respecter la date d'admission. |
+| XMR | XMRUSDT, du 15/03/2019 au 20/02/2024 | Respecter le retrait de la paire. |
+| Or, argent | GLD du 18/11/2004 au 23/11/2026 comme proxy de l'or. Couverture de l'argent à établir. | Identifier le produit effectivement simulable et ses frais. |
+| Nasdaq-100, S&P 500 | QQQ du 03/01/2000 au 24/11/2026 et SPY du 03/01/2000 au 23/11/2026 | Distinguer ETF, indice de référence, dividendes et écart de suivi. |
+
+Avant toute intégration, inventorier aussi les actions, devises et autres candidats. Pour chaque source et instrument, consigner autorisation, licence, calendrier, fuseau, devise, dates de cotation et de retrait, dates de réception, granularité, trous, ajustements, disponibilité du bid/ask, profondeur et frais. Classer chaque usage comme admissible, référence seule ou non évaluable, avec son motif. Soumettre toute nouvelle source au propriétaire avant collecte ou utilisation. Une donnée historique manquante reste inconnue.
+
+### Coordinateur et sécurité
+
+Étendre `sentinelle/fleet/coordinator.py`. Un seul coordinateur sélectionne les avis pertinents et partage les calculs par instrument, instant de disponibilité et version des entrées. Les quatre rôles sont Regime Detector, Alpha Hunter, Risk Commander et Cost Router. Les protections déterministes restent obligatoires. La mémoire globale conserve hypothèses, versions et désaccords. La mémoire individuelle conserve observations et résultats par instrument avec leur date réelle de disponibilité. Le cockpit expose mode, fraîcheur, alertes, protections présentes ou indisponibles et motif de décision.
+
+Le mode normal exige les preuves requises. Vigilance signale un désaccord ou une anomalie. Dégradé restreint les analyses selon la couverture. Protection bloque toute nouvelle exposition touchée si une protection obligatoire échoue, manque ou est en quarantaine. Les sorties prévues restent soumises aux règles existantes. La reprise exige des contrôles sains et une transition tracée. Aucun mode, avis majoritaire, budget CPU ou objectif de rendement ne peut autoriser de passer outre le veto ou le risque.
+
+**Défaut reproduit à la frontière du coordinateur** sur `1a76255`, lignes 74–76, 111–115, 128 et 189–194. Avec le candidat synthétique de `tests/test_fleet.py` et 12 positions ouvertes, la référence donne REFUS. Injecter une exception dans `Risk Commander.run` donne trois fois ATTENDRE puis PROPOSITION_SIMULÉE au quatrième appel, avec veto indépendant encore requis. Critère de correction avant V4 : aux mêmes entrées, bloquer l'augmentation d'exposition pendant toute la quarantaine et tracer la protection absente. Vérifier aussi les chemins appelants et la reprise. Cet essai porte sur la décision intermédiaire.
+
+### Stratégies et portefeuille
+
+Rechercher au moins deux stratégies validées par instrument. Le compteur de validations peut rester à zéro. Chaque entrée du registre associe instrument et version de stratégie à ses données et empreintes, règles d'entrée/sortie, disponibilité du signal, paramètres figés, coûts détaillés, rendement net, drawdown depuis le capital initial, incertitude, essais antérieurs et statut scientifique. Distinguer candidate, préenregistrée, évaluée, rejetée, preuve insuffisante et validée. L'autorisation humaine éventuelle est enregistrée séparément et liée à la version exacte.
+
+Comparer dans le moteur existant, sur les mêmes fenêtres causales, au comptant et après spread, commissions, slippage, profondeur consommée, latence, minima, FX horodaté et exécutions partielles. Réserver cash et liquidité une seule fois dans le portefeuille fictif commun. Les rejoueurs utilisent des copies isolées de ce portefeuille. Les anciennes sessions et archives conservent leur comptabilité. Mesurer aux quatre capitaux fictifs, avec références simples, séparation temporelle, essais multiples corrigés et résultats négatifs conservés. Estimer la contribution marginale en rejouant avec et sans la stratégie depuis le même état, en tenant compte des signaux concurrents, des coûts, du risque et des corrélations. Rapporter les périodes exclues et les résultats indéterminés.
+
+### Interface de travail
+
+Work (75 %) possède infrastructure, intégration, moteur, comptabilité et cockpit. Claude (25 %) prépare hypothèses, règles d'entrée/sortie et validations. Avant d'éditer le code, convenir ensemble de la version des contrats, de leurs exemples fictifs, des tests d'acceptation et d'un propriétaire unique par fichier. Examiner les contrats de la PR #47 (identité, observations datées, avis et registre) et les quatre rôles de #180 avant toute adaptation. Claude fournit une fiche de stratégie et un avis horodaté sans pouvoir d'ordre. Work rend le résultat du rejeu, la décomposition des coûts et les motifs de refus, liés aux mêmes identifiants. Les deux parties conservent la preuve de leur accord et font revoir les changements indépendamment.
