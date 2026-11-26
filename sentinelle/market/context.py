@@ -139,7 +139,14 @@ class ContextService:
 
     def refresh(self, force_calendar: bool = False) -> dict:
         errors = {}
-        with httpx.Client(timeout=10.0, headers=UA, transport=self.transport, follow_redirects=True) as c:
+        try:
+            client = httpx.Client(timeout=10.0, headers=UA, transport=self.transport, follow_redirects=True)
+        except ImportError as exc:
+            if "socksio" not in str(exc).lower():
+                raise
+            self.data["errors"] = {"connexion": "Le proxy SOCKS configuré exige la dépendance HTTPX socksio."}
+            return self.data
+        with client as c:
             try:
                 self.refresh_calendar(c, force=force_calendar)
             except Exception as exc:
