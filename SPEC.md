@@ -516,3 +516,84 @@ La campagne Chromium couvre les quinze pages existantes sur ordinateur et mobile
   - #54 et #55 intégralement gelées.
   - Au plus quatre agents actifs.
   - Aucun service permanent ni nouvelle observation prospective sans autorisation distincte.
+
+## Extension du Sprint 5 — programme multi-actifs (proposition du 26 novembre 2026, à valider par le propriétaire après revue de GPT Work)
+
+Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 2026, **avant toute implémentation**. Tant qu'elle n'est pas fusionnée, seules les recherches OMEGA déjà autorisées se poursuivent.
+
+- **Objectif stratégique.**
+  - Une flotte de 100 spécialistes financiers légers, déterministes et consultés à la demande, sous le contrôle d'un cerveau central unique.
+  - Au plus quatre agents centraux restent actifs.
+  - Objectif de recherche : au moins deux stratégies validées par actif, soit 200 stratégies recherchées.
+  - Une stratégie n'est jamais tenue pour rentable sur la seule base d'un backtest favorable.
+- **Premiers instruments et état des données** (sources déjà autorisées, sauf mention contraire) :
+
+  | Instrument | Série | Couverture disponible | Point ouvert |
+  |---|---|---|---|
+  | Bitcoin | BTCUSDT, archives journalières et minute Binance vérifiées | depuis 2017-08 | — |
+  | Ethereum | ETHUSDT, idem | depuis 2017-08 | — |
+  | Solana | SOLUSDT, idem | depuis 2020-08 | — |
+  | Monero | XMRUSDT, idem | 2019-03 → 2024-02 (retiré de Binance) | la suite exige une nouvelle source, à valider |
+  | Or | GLD (Yahoo, déjà utilisé) | depuis 2004 | équivalent UCITS en euros non mesuré |
+  | Argent | SLV (Yahoo, série nouvelle sur une source existante) | non téléchargée | autorisation de la série demandée |
+  | Nasdaq-100 | QQQ (Yahoo, déjà en cache) | depuis 2000 | équivalent UCITS non mesuré |
+  | S&P 500 | SPY (Yahoo, déjà utilisé) | depuis 2000 | équivalent UCITS non mesuré |
+
+  L'extension aux autres cryptomonnaies, actions, indices, matières premières et devises se fait par vagues. Chaque nouvelle source est validée par le propriétaire.
+- **Standard de validation**, fondé sur l'expérience préenregistrée OMEGA TRUTH/MIRROR (#200) :
+  - **Ce que montre #200** :
+    - sans correction des essais multiples, un programme de deux stratégies par actif valide des stratégies fausses dans presque tous les mondes sans avantage ;
+    - avec une correction de Holm sur tout le programme, ce risque tombe à 5 % ;
+    - mais avec trois ans hors échantillon, un vrai Sharpe de 1,5 n'est retrouvé qu'une fois sur deux.
+  - **Avant calcul** :
+    - préenregistrement poussé, avec la grille, les familles, le nombre total d'essais et la puissance attendue ;
+    - périodes déjà consultées déclarées comme telles.
+  - **Causalité** :
+    - décision à la clôture, exécution fictive à l'ouverture suivante ;
+    - aucun usage des plus hauts ou plus bas futurs pour choisir une entrée ou une sortie ;
+    - apprentissage et jugement séparés chronologiquement, avec embargo.
+  - **Coûts complets** :
+    - commissions datées (C061), écart et glissement mesurés (C099) ;
+    - liquidité, minima d'ordre et exécutions partielles (C062, simulateur de GPT Work) ;
+    - conversion en euros et latence d'exécution.
+  - **Règle minimale** (V6 de #200) :
+    - test hors échantillon à erreur type robuste ;
+    - correction de Holm sur l'ensemble des stratégies présentées au même bilan ;
+    - résultat toujours positif avec des coûts doublés ;
+    - au moins deux tiers des sous-périodes hors échantillon positifs ;
+    - plusieurs régimes représentés.
+  - **Comparaisons obligatoires** : détention simple, liquidités, momentum simple et B0, à coûts identiques.
+  - **Contribution marginale** : une stratégie ne compte que si elle améliore le rendement net du portefeuille commun, par ablation appariée (C095).
+  - **Statut final** : une stratégie qui passe tout cela est « validée sur l'historique », non « rentable ». Sa confirmation exige une observation prospective (C100) autorisée à part. Aucune promotion n'est automatique.
+- **Axes de recherche** (Claude Code, 25 % du développement, recherche quantitative) :
+  - stratégies candidates propres à chaque actif ;
+  - apprentissage mutualisé entre instruments (HIVE, GENOME, BORDER) : une même règle testée sur plusieurs actifs à la fois gagne en puissance ;
+  - spécialisation selon les régimes ;
+  - optimisation causale des entrées ;
+  - prises de bénéfices fixes et adaptatives ;
+  - sorties progressives et protections des pertes ;
+  - abstention quand l'avantage estimé est insuffisant ;
+  - contribution marginale au portefeuille commun.
+- **Répartition et interfaces** (à confirmer par GPT Work avant toute modification) :
+  - **GPT Work, ingénieur principal (75 %)** : moteur et simulateur, coordinateur (`sentinelle/fleet/`), comptabilité, infrastructure et cockpit (`web/`, `sentinelle/api/`).
+  - **Claude Code (25 %)** : modules de recherche qui lisent le moteur sans le modifier.
+    - Fichiers : `sentinelle/scalp/multi_*.py` et `tests/test_scalp_multi_*.py` ; résultats dans `research/multi-v1/` ; registre des essais `research/multi-v1/trials.jsonl`, en ajout seul.
+    - Toute modification d'une fonction partagée (coûts, simulateur, données) passe par GPT Work.
+  - **Interface d'échange** : une fiche JSON par stratégie dans `research/multi-v1/strategies/`. Elle porte :
+    - l'identifiant, l'actif, la famille et les paramètres figés ;
+    - le SHA du préenregistrement et les résultats ;
+    - le statut, l'un de « candidate », « rejetée », « validée sur l'historique » ou « confirmée prospectivement ».
+
+    Le moteur ne lit que les fiches confirmées **et** approuvées par le propriétaire.
+  - **Revue** : chaque PR est examinée par l'autre ingénieur ; un succès de CI ne vaut pas revue. Six fichiers au plus par PR, trois CI obligatoires.
+- **Étapes**, sans nouvelle mission autonome :
+  1. Fusion de ce cadrage après revue de GPT Work et validation du propriétaire.
+  2. Données des huit instruments complétées par les seules sources validées.
+  3. Première vague préenregistrée : familles simples fixées d'avance par actif, avec un test mutualisé entre actifs et la puissance déclarée.
+  4. Mesure de la contribution marginale au portefeuille commun.
+  5. Bilan de recherche le 1er décembre, bilan scientifique le 5 décembre.
+- **Garde-fous inchangés.**
+  - Simulation exclusive : aucun ordre réel, aucune clé, aucun levier ni vente à découvert, aucune promotion automatique.
+  - Aucun nouveau service permanent ; C100 non démarré.
+  - Aucune nouvelle source sans validation.
+  - #54 et #55 strictement gelées.
