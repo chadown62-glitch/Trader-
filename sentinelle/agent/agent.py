@@ -519,10 +519,12 @@ class TradingAgent:
         if self.mode == "backtest":
             return
         actor = (data or {}).get("specialist", self.name)
-        self.db.decision(self.account_id, actor, symbol, kind, message, data, ts=self.clock())
+        decision_time = self.clock()
+        decision_id = self.db.decision(self.account_id, actor, symbol, kind, message, data, ts=decision_time)
         if self.bus:
-            self.bus.publish("decision", {"agent": actor, "account_id": self.account_id, "symbol": symbol,
-                                          "kind": kind, "message": message, **(data if kind == "specialist" else {})})
+            self.bus.publish("decision", {**((data or {}) if kind == "specialist" else {}),
+                                          "id": decision_id, "ts": decision_time, "agent": actor,
+                                          "account_id": self.account_id, "symbol": symbol, "kind": kind, "message": message})
 
     def status(self) -> dict:
         return {

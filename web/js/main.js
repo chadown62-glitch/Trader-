@@ -204,7 +204,7 @@ const App = {
       } else { closeWs(); clearInterval(timer); }
     });
     on('tick', (d) => { store.markets.prices[d.symbol] = d.price; });
-    on('decision', (d) => { store.decisions.unshift({ ...d, ts: Date.now() / 1000 }); store.decisions.splice(60); });
+    on('decision', (d) => { store.decisions.unshift(d); store.decisions.splice(60); });
     on('job', (d) => { store.jobs[d.id] = d; });
     const notify = (title, body) => {
       try {
