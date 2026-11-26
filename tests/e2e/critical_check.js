@@ -13,7 +13,7 @@
 //    en préparation (D-UI10).
 // 7. Réglages : valeur hors bornes et champ vide refusés avec le libellé et l'unité du champ (D-UI9), rien d'enregistré ;
 //    valeur valide enregistrée et conservée après rechargement.
-// 8. WebSocket fermé par le serveur : « Hors ligne », puis reconnexion automatique.
+// 8. WebSocket fermé par le serveur : « Flux déconnecté », puis reconnexion automatique.
 // 9. Memecoin : démarrage refusé par le serveur (réponse simulée) : message affiché, paramètres envoyés corrects.
 const { chromium } = require('playwright');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765';
@@ -195,11 +195,22 @@ const near = (a, b, tol) => Math.abs(Number(a) - Number(b)) <= tol;
   let sockets = 0, live = null;
   await page.routeWebSocket('**/api/ws', ws => { sockets++; live = ws; ws.connectToServer(); });
   await page.reload();
-  await page.waitForSelector('.hud-live:has-text("En direct")', { timeout: 15000 });
+  await page.waitForSelector('.hud-live:has-text("Flux connecté")', { timeout: 15000 });
   await live.close({ code: 1011, reason: 'coupure simulée' });
-  await page.waitForSelector('.hud-live:has-text("Hors ligne")', { timeout: 5000 });
-  await page.waitForSelector('.hud-live:has-text("En direct")', { timeout: 20000 });
+  await page.waitForSelector('.hud-live:has-text("Flux déconnecté")', { timeout: 5000 });
+  await page.waitForSelector('.hud-live:has-text("Flux connecté")', { timeout: 20000 });
   check(sockets === 2, 'une reconnexion attendue : ' + sockets + ' connexion(s)');
+
+  await page.route('**/api/overview', async route => {
+    const response = await route.fetch();
+    const snapshot = await response.json();
+    for (const symbol of snapshot.market.watch) snapshot.market.fresh[symbol] = false;
+    await route.fulfill({ response, json: snapshot });
+  });
+  await page.getByText('Cours non confirmés', { exact: true }).waitFor({ timeout: 15000 });
+  check((await page.locator('.hud-live').innerText()).includes('Flux connecté'), 'transport connecté malgré des cotations non confirmées');
+  await page.unroute('**/api/overview');
+  await page.getByText('Cours frais', { exact: true }).waitFor({ timeout: 15000 });
 
   // A delayed decision retains the engine time in both views. Legacy events may have no timestamp.
   await page.goto(BASE + '/#/ai');

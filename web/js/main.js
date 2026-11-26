@@ -175,11 +175,20 @@ const App = {
     const view = computed(() => VIEWS[route.value] || Dashboard);
     let timer = null;
 
+    const overviewCurrent = ref(false);
+    let lastOverviewRead = null;
     let refreshing = false;
     const refresh = async () => {
+      // Three missed five-second polls expire the last freshness verdict, even with an open socket.
+      if (lastOverviewRead === null || performance.now() - lastOverviewRead > 15000) overviewCurrent.value = false;
       if (!store.auth.authenticated || refreshing) return;
       refreshing = true;
-      try { store.overview = await api.get('/api/overview'); } catch (e) { /* géré par l'API */ }
+      const requestedAt = performance.now();
+      try {
+        store.overview = await api.get('/api/overview');
+        lastOverviewRead = requestedAt;
+        overviewCurrent.value = performance.now() - requestedAt <= 15000;
+      } catch { overviewCurrent.value = false; }
       finally { refreshing = false; }
     };
     const loadStatic = async () => {
@@ -240,7 +249,14 @@ const App = {
     const toggleTheme = () => { theme.value = theme.value === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('stn-theme', theme.value); } catch { /* ignoré */ } applyTheme(); };
     // Déconnexion volontaire : l'écran de connexion d'abord (aucune requête en cours n'est prise pour une session expirée).
     const logout = async () => { store.auth.authenticated = false; store.auth.expired = false; await safe(api.post('/api/auth/logout')); };
-    const marketOk = computed(() => store.overview?.market?.status?.ok);
+    const quotesLabel = computed(() => {
+      const market = store.overview?.market;
+      if (!overviewCurrent.value || store.offline || !market?.watch?.length) return 'Cours inconnus';
+      const fresh = market.watch.filter(symbol => market.fresh?.[symbol] === true).length;
+      if (fresh === market.watch.length) return 'Cours frais';
+      if (!fresh) return 'Cours non confirmés';
+      return `Cours frais ${fresh}/${market.watch.length}`;
+    });
     const account = computed(() => store.overview?.accounts?.find(a =>
       a.id === store.selectedAccount && a.kind === 'paper' && a.connected && !a.archived_paper));
     const delta = computed(() => {
@@ -256,7 +272,7 @@ const App = {
       return delta.value / usd.rate;
     });
     const more = ref(false);
-    return { store, route, view, NAV, GROUPS, logout, LOGO, marketOk, theme, toggleTheme, more, account, delta, dollarChange, money, signed, pct, cls };
+    return { store, route, view, NAV, GROUPS, logout, LOGO, quotesLabel, theme, toggleTheme, more, account, delta, dollarChange, money, signed, pct, cls };
   },
   template: `
   <div v-if="!store.auth.checked" class="boot">Connexion…</div>
@@ -264,7 +280,10 @@ const App = {
   <div v-else class="shell">
     <header class="topbar">
       <div class="brand"><span v-html="LOGO"></span><span class="name">Sentinelle</span></div>
-      <span class="light hud-live"><span class="dot" :class="store.ws ? 'connected' : 'warn'"></span>{{ store.ws ? 'En direct' : 'Hors ligne' }}</span>
+      <div class="hud-market">
+        <span class="light hud-live" title="Connexion WebSocket au cockpit"><span class="dot" :class="store.ws ? 'connected' : 'warn'"></span>{{ store.ws ? 'Flux connecté' : 'Flux déconnecté' }}</span>
+        <small class="hud-quotes" title="Fraîcheur des cotations des actifs suivis au dernier contrôle">{{ quotesLabel }}</small>
+      </div>
       <span class="badge paper">Simulation</span>
       <div v-if="account" class="hud-account hide-mobile">
         <span>{{ account.name }}</span><strong>{{ money(account.equity, account.quote) }}</strong>
