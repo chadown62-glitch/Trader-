@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import copy
 import time
+from datetime import datetime, timezone
 from typing import Callable
 
 import numpy as np
@@ -33,6 +34,7 @@ from ..execution.contract import valid_bar
 from ..execution.base import OrderError
 from ..execution.paper import PaperBroker
 from ..execution.positions import PositionManager
+from ..market.fx import FxUnavailable
 from ..market.markets import MarketInfo, generic_market
 from ..risk.manager import RiskManager
 from ..storage.db import Database
@@ -80,6 +82,37 @@ def run_backtest(
         cfg["paper"]["fee_rate"] += max(0.0, extra_cost)
     quote = cfg["general"]["quote"]
     currency = account_currency or quote
+    series = [df["ts"].to_numpy(dtype=np.int64) for df in histories.values()]
+    all_ts = np.unique(np.concatenate(series)) if series else np.array([], dtype=np.int64)
+    if start_ts is not None:
+        all_ts = all_ts[all_ts >= start_ts]
+    if end_ts is not None:
+        all_ts = all_ts[all_ts <= end_ts]
+    fx_coverage = None
+    if currency != quote and len(all_ts):
+        stamps = np.union1d(all_ts, all_ts + tf)
+        if historical_fx is None:
+            raise FxUnavailable(f"Simulation indisponible : archive de change {currency}/{quote} absente")
+        missing = 0
+        first_gap = None
+        for stamp in stamps:
+            at = int(stamp) / 1000
+            try:
+                view = historical_fx(quote, at)
+                if (view.base, view.quote) != (currency, quote):
+                    raise FxUnavailable("Devises de règlement incohérentes")
+                view.executable(at)
+            except OrderError as exc:
+                if first_gap is None:
+                    utc = datetime.fromtimestamp(at, timezone.utc).isoformat()
+                    first_gap = f"{utc} ({exc.message})"
+                missing += 1
+        if missing:
+            raise FxUnavailable(f"Couverture FX {currency}/{quote} insuffisante : "
+                                f"{len(stamps) - missing}/{len(stamps)} instants d’ouverture ou clôture couverts. "
+                                f"Premier manque : {first_gap}")
+        fx_coverage = {"base": currency, "quote": quote, "checked": len(stamps),
+                       "first_ms": int(stamps[0]), "last_ms": int(stamps[-1])}
     db = Database(":memory:")
     clock = SimClock(0.0)
     acc = db.insert("accounts", {"name": "backtest", "kind": "paper", "role": "backtest", "quote": currency, "initial_balance": initial, "created_at": 0})
@@ -113,11 +146,6 @@ def run_backtest(
         feat = compute_features(df, timeframe, btc=ctx)
         sig = {n: STRATEGIES[n].signal(feat).to_numpy() for n in enabled}
         data[sym] = (feat, sig)
-    all_ts = np.unique(np.concatenate([d[0]["ts"].to_numpy() for d in data.values()])) if data else np.array([])
-    if start_ts is not None:
-        all_ts = all_ts[all_ts >= start_ts]
-    if end_ts is not None:
-        all_ts = all_ts[all_ts <= end_ts]
     pos_index = {sym: {int(t): k for k, t in enumerate(d[0]["ts"].to_numpy())} for sym, d in data.items()}
 
     equity_curve: list[list[float]] = []
@@ -236,5 +264,6 @@ def run_backtest(
         result["closed_positions"] = closed
         result["fills"] = db.query("SELECT * FROM fills ORDER BY id")
         result["unrealized_positions"] = open_left
+    result["fx_coverage"] = fx_coverage
     db.close()
     return result

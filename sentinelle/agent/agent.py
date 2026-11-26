@@ -64,9 +64,9 @@ class TradingAgent:
         *,
         timeframe: str,
         news_fn: Callable[[str], dict | None] | None = None,
-        fresh_fn: Callable[[str], bool] | None = None,
+        fresh_fn: Callable[[str], bool | str] | None = None,
         budget_fn: Callable[[], float | None] | None = None,
-        price_check_fn: Callable[[str, float], str | None] | None = None,
+        price_check_fn: Callable[[str, float, float], str | None] | None = None,
         shield_fn: Callable[[str, float], str | None] | None = None,
         context_fn: Callable[[str], dict] | None = None,
         shadow_fn: Callable[[dict], None] | None = None,
@@ -333,16 +333,14 @@ class TradingAgent:
                 c["p"] = c["er"] = None
 
         block = regime_block
-        if block is None and self.fresh_fn is not None and not self.fresh_fn(symbol):
-            block = "Données de marché périmées : aucune nouvelle position par prudence"
+        if block is None and self.fresh_fn is not None:
+            freshness = self.fresh_fn(symbol)
+            if isinstance(freshness, str):
+                block = freshness
+            elif not freshness:
+                block = "STALE : données de marché périmées, aucune nouvelle position par prudence"
         if block is None and self.entry_gate is not None:
             block = self.entry_gate(symbol,self.clock())
-        if block is None and self.price_check_fn is not None and any(
-            (c["er"] is None or thr is None or c["er"] >= thr) for c in cands
-        ):
-            problem = self.price_check_fn(symbol, close)
-            if problem:
-                block = f"Sécurité : {problem}"
         news = None
         if block is None and ai.get("use_news", True) and self.news_fn is not None:
             news = self.news_fn(symbol)
@@ -455,7 +453,13 @@ class TradingAgent:
                 elif self.shield_fn is not None and (danger := self.shield_fn(symbol, rd.qty * close)):
                     reason = "Bouclier temps réel : " + danger
                 else:
-                    risk_approved = True
+                    explanation = self._explain(symbol, c, row, thr, mode_used, rd)
+                    problem = None
+                    if self.price_check_fn is not None:
+                        problem = self.price_check_fn(symbol, close, (bar_ts + self.tf_ms) / 1000)
+                    risk_approved = problem is None
+                    if problem is not None:
+                        reason = f"Sécurité : {problem}"
             trace(c["name"], "risk", ("pass" if risk_approved else "veto") if mode_used else "skipped",
                   "Contrôles déterministes satisfaits" if risk_approved else reason)
             if risk_approved:
@@ -467,7 +471,6 @@ class TradingAgent:
                 else:
                     trace(c["name"], "cost", "pass", "Exécution simulée chiffrée", fee_rate=fee,
                           slippage=slip, cost_r=cost_r, roundtrip_cost=rd.costs, currency=self.broker.quote)
-                    explanation = self._explain(symbol, c, row, thr, mode_used, rd)
                     try:
                         self.positions.open(
                             symbol, rd.qty, origin="ai", agent=self.name, stop=c["stop"], target=c["target"],
