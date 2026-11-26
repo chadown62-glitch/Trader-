@@ -43,6 +43,12 @@ class PasswordBody(BaseModel):
     code: str | None = Field(default=None, max_length=10)
 
 
+class ModelApprovalBody(BaseModel):
+    action: Literal["approve_paper_model"]
+    confirmed_version: str = Field(min_length=1, max_length=160)
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
 class CodeBody(BaseModel):
     code: str = Field(min_length=6, max_length=10)
 
@@ -474,8 +480,9 @@ def create_api(app: App, *, remote_access: bool = False) -> FastAPI:
         return rep
 
     @api.post("/api/ai/models/{version}/promote")
-    async def model_promote(version: str):
-        await app.acall(app.models.promote, version)
+    async def model_promote(version: str, body: ModelApprovalBody, request: Request):
+        await app.acall(app.models.promote, version, confirmed_version=body.confirmed_version,
+                        sha256=body.sha256, session_token=request.cookies.get(COOKIE))
         return {"ok": True}
 
     @api.post("/api/ai/models/{version}/retire")

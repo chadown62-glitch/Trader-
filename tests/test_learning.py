@@ -292,7 +292,7 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
         assert rep["backtest_model"]["metrics"]["n"] > 0
         model = app.models.get(out["version"])
         assert model["metrics"]["paper_verdict"] == comparison["verdict"]
-        assert (model["status"] == "champion") == (out["ok"] and comparison["verdict"] == "MODÈLE APPROUVÉ POUR PAPER TRADING")
+        assert model["status"] != "champion" and app.models.champion("1h") is None
         assert any("Téléchargement" in m for m in steps) and any("Simulation" in m for m in steps)
         # entraînement sur une période courte : les fiches sont calculées à part, sur l'historique complet
         deadline = time.time() + 120
@@ -302,9 +302,7 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
         assert [s["symbol"] for s in sheets] == list(series) and not any(s.get("missing") for s in sheets)
         assert app.knowledge_get("BTC/EUR")["history"]["bars"] == 17_000
         assert app.refresh_knowledge_if_stale() is False  # fiches fraîches : rien à refaire
-        mon = app.learning_monitor()
-        if model["status"] == "champion":
-            assert mon["model"]["version"] == out["version"] and "mixte" in mon["model"]["level"]
+        assert all(event["event"] != "promu" for event in app.models.history())
     finally:
         app.db.close()
 
@@ -349,10 +347,10 @@ def test_model_registry_handles_trial_status(app):
     assert store.champion("4h") is None
     assert store.reserve_evaluation("m-valide", "4h", 100, 200, "all_signals") == 100
     store.record_evaluation("m-valide", {"verdict":"MODÈLE APPROUVÉ POUR PAPER TRADING"})
-    assert store.register(result(True, False, "m-valide"), {})["status"] == "champion"
-    assert store.champion("4h").version == "m-valide" and store.trial("4h") is None
+    assert store.register(result(True, False, "m-valide"), {})["status"] == "challenger"
+    assert store.champion("4h") is None and store.trial("4h") is None
     statuses = [a for a in app.agents_status()]
-    assert all(a["model"] == "m-valide" and a["model_trial"] is False for a in statuses)
+    assert all(a["model"] is None for a in statuses)
 
 
 class StubModel:

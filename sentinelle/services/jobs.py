@@ -23,13 +23,22 @@ class JobManager:
         with self._lock:
             return [dict(j) for j in self.jobs.values() if j["status"] == "running" and (kind is None or j["kind"] == kind)]
 
-    def submit(self, kind: str, label: str, fn: Callable[[Callable[[float, str], None]], dict]) -> dict:
-        if kind in ("train", "backtest") and self.running(kind):
-            raise RuntimeError("Une tâche de ce type est déjà en cours")
+    def submit(self, kind: str, label: str, fn: Callable[[Callable[[float, str], None]], dict], *,
+               inline: bool = False, config_sha256: str | None = None) -> dict:
         jid = uuid.uuid4().hex[:10]
         job = {"id": jid, "kind": kind, "label": label, "status": "running", "progress": 0.0, "message": "Démarrage…",
                "started_at": time.time(), "finished_at": None, "result": None, "error": None}
+        if config_sha256 is not None:
+            job["config_sha256"] = config_sha256
         with self._lock:
+            if kind in ("train", "backtest", "knowledge"):
+                for existing in self.jobs.values():
+                    if existing["kind"] == kind and existing["status"] == "running":
+                        if kind == "knowledge":
+                            if existing.get("config_sha256") != config_sha256:
+                                raise RuntimeError("Un calcul de fiches avec des réglages différents est déjà en cours")
+                            return dict(existing)
+                        raise RuntimeError("Une tâche de ce type est déjà en cours")
             self.jobs[jid] = job
             self._prune()
 
@@ -51,8 +60,17 @@ class JobManager:
                                trace=traceback.format_exc()[-2000:])
             self._publish(job)
 
-        threading.Thread(target=run, name=f"job-{kind}-{jid}", daemon=True).start()
-        self._publish(job)
+        if inline:
+            run()
+        else:
+            try:
+                threading.Thread(target=run, name=f"job-{kind}-{jid}", daemon=True).start()
+            except RuntimeError as exc:
+                with self._lock:
+                    job.update(status="error", error=str(exc), message="Échec du démarrage", finished_at=time.time())
+                self._publish(job)
+                raise
+            self._publish(job)
         return dict(job)
 
     def get(self, jid: str) -> dict | None:
