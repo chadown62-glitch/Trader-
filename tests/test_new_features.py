@@ -8,7 +8,7 @@ import pytest
 
 from sentinelle.api.auth import Auth, totp
 from sentinelle.config import DEFAULT_SETTINGS, SettingsError, apply_update
-from sentinelle.market.crosscheck import CrossChecker
+from sentinelle.market.crosscheck import CrossChecker, Quote, QuoteState
 from sentinelle.market.history import splice
 from sentinelle.news.signals import parse_signal, simulate_signal
 from sentinelle.risk.macro import blackout, parse_event, upcoming
@@ -83,14 +83,17 @@ class FakeTickerExchange:
         return {k: {} for k in self.prices}
 
     def fetch_ticker(self, symbol):
-        return {"last": self.prices[symbol]}
+        return {"last": self.prices[symbol], "timestamp": 1_700_000_000_000}
 
 
-def test_crosscheck_detects_gap_and_ignores_missing_pairs():
-    cc = CrossChecker("binance", exchange=FakeTickerExchange({"BTC/USDC": 50_000}))
-    assert cc.check("BTC/USDC", 50_400, 2.0) is None
-    assert "incohérent" in cc.check("BTC/USDC", 53_000, 2.0)
-    assert cc.check("XYZ/USDC", 1.0, 2.0) is None  # paire absente de la 2e plateforme : pas de blocage
+def test_crosscheck_detects_gap_and_blocks_missing_pairs(clock):
+    cc = CrossChecker("binance", exchange=FakeTickerExchange({"BTC/USDC": 50_000}), clock=clock)
+    for symbol, price, state in (("BTC/USDC", 50_400, QuoteState.VERIFIED),
+                                 ("BTC/USDC", 53_000, QuoteState.INCONSISTENT),
+                                 ("XYZ/USDC", 1.0, QuoteState.UNVERIFIED)):
+        result = cc.check(symbol, Quote(price, clock(), clock()), 2.0)
+        assert result.state == state
+        assert (result.veto is None) == (state == QuoteState.VERIFIED)
 
 
 def test_totp_known_vector_and_replay(db):

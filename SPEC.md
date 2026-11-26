@@ -133,7 +133,7 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
 
 ### Responsabilités et fichiers
 
-- **Claude Code.** GPT Work est indisponible ; Claude Code mène le chantier dans ce périmètre :
+- **Direction du chantier.** À compter de la reprise du 25 novembre, GPT Work dirige également ce chantier. La répartition indicative du développement (75 % GPT Work et 25 % Claude Code) et la revue indépendante prévues par #181 s'appliquent aux périmètres suivants :
   - le cockpit `web/` (HTML, JavaScript, CSS, bibliothèques déjà embarquées) ;
   - les routes de `sentinelle/api/` strictement nécessaires à l'interface ;
   - les tests d'interface : `tests/e2e/`, tests Pytest d'API et d'interface ;
@@ -175,6 +175,37 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
    8. test automatisé.
 
    Aucune action ne doit être décorative. Une fonction indisponible est signalée comme telle, jamais simulée.
+
+### Lot P1 du 25 novembre — interface, données et restitution scientifique
+
+Le propriétaire autorise les vingt vérifications ci-dessous dans ce chantier existant. Le signalement P1-01 et les deux effectifs rapportés proviennent de son installation. La reproduction doit préciser la version, la période, les données et le capital. Le statut de chaque point évolue avec ses preuves (signalé, reproduit, amélioration, non évaluable ou corrigé).
+
+| Réf. | Objet et condition d'acceptation |
+|---|---|
+| P1-01 | Simulation de 90 jours à 30 € fictifs. Vérifier les besoins de conversion avant le lancement. Si le carnet historique EUR/USDC requis manque, indiquer la date UTC et la couverture prouvée, sans taux inventé, interpolation ni utilisation du taux actuel. |
+| P1-02 | Expliquer « Simulation indisponible » à partir du motif effectivement enregistré pour le rapport affiché. |
+| P1-03 | Vérifier sur les horodatages, les labels arrivés à maturité et les fenêtres déjà utilisées quelles périodes peuvent être présentées comme jamais vues. |
+| P1-04 | Afficher « indisponible » pour une performance inconnue, et zéro uniquement pour une valeur mesurée. |
+| P1-05 | Afficher séparément la connexion du transport WebSocket et la fraîcheur des cotations, y compris après reconnexion. |
+| P1-06 | Associer chaque réponse de rapport à la version demandée, y compris si les réponses se terminent dans l'ordre inverse. |
+| P1-07 | Retrouver le bon résultat de backtest après rechargement, avec son identifiant, son statut et ses paramètres. |
+| P1-08 | Présenter l'horodatage enregistré pour chaque décision. Signaler un horodatage manquant. |
+| P1-09 | Présenter les noms et symboles Memecoin disponibles et conserver l'identifiant du token en cas d'homonymie ou de métadonnée manquante. |
+| P1-10 | Calculer la durée de détention à partir des heures d'exécution disponibles, pour un lot ouvert ou clôturé. |
+| P1-11 | Documenter le cours, la source et la date de toute conversion des gains ou pertes en euros. En cas de couverture manquante, conserver la devise native et signaler la limite. |
+| P1-12 | Présenter séparément les gains et pertes réalisés et latents, avec leur devise. |
+| P1-13 | Indiquer la fraîcheur des cotations utilisées pour valoriser les positions. Identifier les horloges disponibles (source, réception). |
+| P1-14 | Distinguer les états d'un stop actif, d'un seuil atteint et d'une sortie effectivement exécutée. |
+| P1-15 | Vérifier le rapprochement entre session Memecoin et portefeuille principal à partir des écritures. Si les sessions sont indépendantes, l'indiquer et éviter toute double comptabilisation. |
+| P1-16 | Montrer couverture historique demandée, disponible et exploitable par actif et horizon avec les bornes UTC. |
+| P1-17 | Expliquer les 1 205 situations résolues rapportées pour huit années demandées à partir des comptages conservés à chaque étape. Si le rapport source manque, chiffrer uniquement sur une reproduction identifiée. |
+| P1-18 | Examiner le signal filtré parmi les 103 rapportés, préciser le dénominateur, le seuil, la version et les motifs disponibles. Préserver les seuils et les rejets scientifiques. |
+| P1-19 | Distinguer l'éligibilité statistique, l'autorisation humaine liée à la version et le modèle actif en reprenant le contrat du correctif moteur P0. |
+| P1-20 | Rendre consultables les données manquantes et les périodes exclues avec leur raison, par jeu de données et version de modèle. |
+
+Les correctifs d'interface, d'API, de persistance des résultats et de vérification de couverture peuvent être préparés et testés localement après formalisation de ce lot. Leur intégration sur main suit la fusion du cadrage et reste limitée aux points identifiés ci-dessus. Toute correction dans le moteur de simulation ou d'apprentissage documente le défaut reproduit et ses tests avant modification. La réconciliation P1-15 est un audit comptable. Tout transfert entre portefeuilles ou changement de règle d'exécution demande une décision distincte.
+
+La campagne Chromium couvre les quinze pages existantes sur ordinateur et mobile, les quatre capitaux de simulation (30, 100, 1 000 et 10 000 €), les actions, graphiques, erreurs d'API, données absentes et reconnexions. Une preuve précise le SHA, le scénario, le résultat attendu et celui observé sur données fictives isolées. Les nouveaux défauts reçoivent une gravité et un rattachement à ce lot. Chaque PR reste limitée à six fichiers, avec revue indépendante et les trois CI.
 
 ### Critères de validation
 
