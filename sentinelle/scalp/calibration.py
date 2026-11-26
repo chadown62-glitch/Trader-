@@ -105,8 +105,22 @@ def walk_forward(cands: pd.DataFrame, extra: tuple, tested: list[str]) -> tuple[
 def month_bootstrap(stat, frame: pd.DataFrame, draws: int = DRAWS, seed: int = SEED) -> np.ndarray:
     """Distribution d'une statistique en rééchantillonnant les mois avec remise."""
     rng = np.random.default_rng(seed)
-    groups = [g for _, g in frame.groupby("month")]
-    return np.array([stat(pd.concat([groups[i] for i in rng.integers(0, len(groups), len(groups))], ignore_index=True)) for _ in range(draws)])
+    groups = list(frame.groupby("month").indices.values())
+    if not groups and draws > 0:
+        raise ValueError("No objects to concatenate")
+    # Work from row positions: input labels can repeat, and each draw can repeat a month.
+    source = frame.reset_index(drop=True)
+    allow_duplicates = source.flags.allows_duplicate_labels
+    source.flags.allows_duplicate_labels = True
+    values = []
+    for _ in range(draws):
+        months = rng.integers(0, len(groups), len(groups))
+        positions = np.concatenate([groups[i] for i in months])
+        sample = source.take(positions)
+        sample.index = pd.RangeIndex(len(sample))
+        sample.flags.allows_duplicate_labels = allow_duplicates
+        values.append(stat(sample))
+    return np.array(values)
 
 
 def skill(f: pd.DataFrame) -> float:

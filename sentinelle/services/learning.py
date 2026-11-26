@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 import math
 import time
 
@@ -95,18 +97,28 @@ class LearningMixin:
     # ======================================================================
     # Fiches de connaissance par crypto
     # ======================================================================
-    def start_knowledge(self) -> dict:
-        if self.jobs.running("knowledge"):
-            raise UserError("La mise à jour des fiches est déjà en cours")
-        settings = copy.deepcopy(self.settings)
+    def start_knowledge(self, *, settings=None, histories=None) -> dict:
+        """Retourne le même travail aux demandes simultanées de mise à jour des fiches."""
+        settings = copy.deepcopy(self.settings) if settings is None else settings
         tf = settings["ai"]["timeframe"]
 
         def job(progress):
-            hist, btc = self._histories(settings, tf, KNOWLEDGE_DAYS, lambda x, m: progress(0.8 * x / 0.25 if x <= 0.25 else 0.8, m))
+            if histories is None:
+                hist, btc = self._histories(settings, tf, KNOWLEDGE_DAYS, lambda x, m: progress(min(0.8, 3.2 * x), m))
+            else:
+                hist, btc = histories
             n = self.update_knowledge(hist, btc, tf, settings, lambda x, m: progress(0.8 + 0.2 * x, m))
             return {"updated": n}
 
-        return self.jobs.submit("knowledge", "Mise à jour des fiches par crypto", job)
+        config = {"timeframe": tf, "watchlist": settings["general"]["watchlist"], "quote": settings["general"]["quote"],
+                  "source": settings["market"]["source"], "strategies": settings["ai"]["strategies"],
+                  "fee_rate": settings["paper"]["fee_rate"], "slippage_bps": settings["paper"]["slippage_bps"]}
+        fingerprint = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
+        try:
+            return self.jobs.submit("knowledge", "Mise à jour des fiches par crypto", job,
+                                    inline=histories is not None, config_sha256=fingerprint)
+        except RuntimeError as exc:
+            raise UserError(str(exc)) from None
 
     def refresh_knowledge_if_stale(self, max_age_hours: float = 24.0) -> bool:
         """Relance le calcul des fiches (historique complet) si l'une manque ou date de plus d'un jour."""
