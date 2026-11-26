@@ -163,3 +163,18 @@ def test_ollama_requests_are_serialized_and_request_unload(monkeypatch):
 @pytest.mark.parametrize(("base", "head", "expected"), frozen.FROZEN)
 def test_frozen_pr_sha256_manifests(base, head, expected):
     frozen.test_frozen_scientific_files(base, head, expected)
+
+def test_agent_and_monitor_never_select_offline_trials(tmp_path, monkeypatch):
+    app = make_app(tmp_path)
+    try:
+        def offline_trial(*args):
+            raise AssertionError("Le chemin de décision a consulté un modèle à l'essai")
+        monkeypatch.setattr(app.models, "trial", offline_trial)
+        aid = app.main_account()["id"]
+        app._activate_agent("ia_entrainement", aid, "1h", [], 1)
+        agent = app.agents["ia_entrainement"]
+        assert agent.model_fn() is None
+        assert app.agents_status()[0]["model"] is None
+        assert app.learning_monitor()["model"] is None
+    finally:
+        app.close()
