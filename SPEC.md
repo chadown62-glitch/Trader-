@@ -541,10 +541,12 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
 
   L'extension aux autres cryptomonnaies, actions, indices, matières premières et devises se fait par vagues. Chaque nouvelle source est validée par le propriétaire.
 - **Standard de validation**, fondé sur l'expérience préenregistrée OMEGA TRUTH/MIRROR (#200) :
-  - **Ce que montre #200** :
-    - sans correction des essais multiples, un programme de deux stratégies par actif valide des stratégies fausses dans presque tous les mondes sans avantage ;
-    - avec une correction de Holm sur tout le programme, ce risque tombe à 5 % ;
-    - mais avec trois ans hors échantillon, un vrai Sharpe de 1,5 n'est retrouvé qu'une fois sur deux.
+  - **Ce que montre #200** (version 3, monde martingale) :
+    - sans correction des essais multiples, un programme de deux stratégies par actif valide des stratégies fausses dans 92 à 99 % des mondes sans avantage ;
+    - avec une correction de Holm sur tout le programme, ce risque tombe à environ 3 % ;
+    - mais avec trois ans hors échantillon, un vrai Sharpe de 1,5 n'est retrouvé que trois fois sur dix, actif par actif ;
+    - juger une même règle sur plusieurs actifs à la fois double la puissance quand l'avantage est commun et multiplie par huit le nombre de stratégies-actif validées, sans perdre le contrôle des fausses validations ;
+    - en revanche, ce jugement mutualisé manque les avantages propres à un seul actif.
   - **Avant calcul** :
     - préenregistrement poussé, avec la grille, les familles, le nombre total d'essais et la puissance attendue ;
     - périodes déjà consultées déclarées comme telles.
@@ -558,7 +560,7 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
     - conversion en euros et latence d'exécution.
   - **Règle minimale** (V6 de #200) :
     - test hors échantillon à erreur type robuste ;
-    - correction de Holm sur l'ensemble des stratégies présentées au même bilan ;
+    - deux jugements, l'un actif par actif et l'autre mutualisé entre actifs, corrigés ensemble par Holm sur l'ensemble des stratégies présentées au même bilan ;
     - résultat toujours positif avec des coûts doublés ;
     - au moins deux tiers des sous-périodes hors échantillon positifs ;
     - plusieurs régimes représentés.
