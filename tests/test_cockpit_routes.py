@@ -197,12 +197,13 @@ def test_model_report_refused_activation_and_retirement(client, app):
     status = lambda: {m["version"]: m["status"] for m in client.get("/api/ai/models").json()}["m-cockpit-1"]  # noqa: E731
     assert status() == "trial"
     assert client.get("/api/ai/models/m-cockpit-1/report").json() == {"origin": "test du cockpit"}
-    refused = client.post("/api/ai/models/m-cockpit-1/promote", headers=H)
+    approval = {"action": "approve_paper_model", "confirmed_version": model.version, "sha256": app.models.get(model.version)["sha256"]}
+    refused = client.post("/api/ai/models/m-cockpit-1/promote", headers=H, json=approval)
     assert refused.status_code == 400 and "Seul un modèle validé" in refused.json()["detail"]
     assert status() == "trial" and app.models.champion("1h") is None  # rien n'a changé
     assert client.post("/api/ai/models/m-cockpit-1/retire", headers=H).json() == {"ok": True}
     assert status() == "retired" and app.models.trial("1h") is None
-    assert client.post("/api/ai/models/m-inconnu/promote", headers=H).status_code == 400
+    assert client.post("/api/ai/models/m-inconnu/promote", headers=H, json=approval).status_code == 400
     assert client.get("/api/ai/models/m-inconnu/report").status_code in (400, 404)
 
 
@@ -218,3 +219,38 @@ def test_password_change_keeps_the_old_one_on_error_and_revokes_other_sessions(c
     assert other.get("/api/overview").status_code == 401  # les autres sessions sont fermées
     assert other.post("/api/auth/login", json={"password": PASSWORD}, headers=H).status_code == 401
     assert other.post("/api/auth/login", json={"password": NEW_PASSWORD}, headers=H).status_code == 200
+
+def test_authenticated_operator_approval_is_bound_to_bytes_and_cannot_reactivate_retired(client, app, api):
+    from concurrent.futures import ThreadPoolExecutor
+    from sentinelle.ai.bench import make_candidates
+    from sentinelle.ai.model import MetaModel
+    from sentinelle.api.auth import Auth
+
+    model = MetaModel("4h").fit(make_candidates(400, "simple", seed=8)[0])
+    model.version, model.metrics = "eligible-cockpit", {"verdict": "validé"}
+    app.models.reserve_evaluation(model.version, "4h", 100, 200, "all_signals")
+    app.models.record_evaluation(model.version, {"verdict": "MODÈLE APPROUVÉ POUR PAPER TRADING"})
+    row = app.models.register(SimpleNamespace(final_model=model, ok=True, reasons=[]), {})
+    assert row["status"] == "challenger"
+    endpoint = f"/api/ai/models/{model.version}/promote"
+    consent = {"action": "approve_paper_model", "confirmed_version": model.version, "sha256": row["sha256"]}
+    assert TestClient(api).post(endpoint, json=consent, headers=H).status_code == 401
+    assert client.post(endpoint, json=consent).status_code == 403
+    assert client.post(endpoint, headers=H).status_code == 422
+    for invalid in [{"action": "observe"}, {"confirmed_version": "another"}, {"sha256": "0" * 64}]:
+        assert client.post(endpoint, headers=H, json={**consent, **invalid}).status_code in (400, 422)
+    auth = Auth(app.db)
+    revoked = auth.new_session()
+    auth.revoke(revoked)
+    with pytest.raises(ValueError, match="révoquée"):
+        app.models.promote(model.version, confirmed_version=model.version, sha256=row["sha256"], session_token=revoked)
+    assert app.models.champion("4h") is None
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        statuses = list(pool.map(lambda _: client.post(endpoint, json=consent, headers=H).status_code, range(2)))
+    assert statuses == [200, 200]
+    assert app.models.champion("4h").version == model.version
+    events = [e for e in app.models.history("4h") if e["event"] == "promu" and e["version"] == model.version]
+    assert len(events) == 1 and events[0]["data"]["sha256"] == row["sha256"]
+    assert client.post(endpoint.replace("/promote", "/retire"), headers=H).status_code == 200
+    assert client.post(endpoint, json=consent, headers=H).status_code == 400
+    assert app.models.champion("4h") is None

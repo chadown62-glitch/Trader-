@@ -57,12 +57,13 @@ def test_archive_is_append_only_and_deduplicated(tmp_path):
     assert a.latency() == {"binance_retraits": {"n": 1, "median_s": 2.0, "max_s": 2.0}}
 
 
-def test_vetoes_start_at_publication_and_expire():
+def test_vetoes_require_receipt_and_expire_from_publication():
     a = flash.Archive(":memory:")
     for src, kind, body in (("rss", "feed", RSS), ("binance", "binance", BINANCE)):
         for item in flash.parse(kind, body):
             a.add(src, item, T0 + 3_600_000, baseline=False)
     now = T0 + 3_600_000
+    assert a.vetoes(now - 1) == {"assets": {}, "market": []}
     v = a.vetoes(now)
     assert v["assets"]["PEPE"] and v["market"] == ["Major exchange hack drains $40M from Binance hot wallet"]
     assert a.vetoes(T0 + 7 * 3_600_000)["market"] == []  # veto de marché : 6 heures
@@ -130,3 +131,13 @@ def test_watch_snapshot_uses_closed_data_and_applies_news_vetoes():
     assert pd.Timestamp(snap["fonds_decision_du"]) < pd.Timestamp(snap["jour_utc"]).replace(day=1)
     market = veille.snapshot(crypto, fast, etf, {"assets": {}, "market": ["Major exchange hack"]})
     assert market["fond_crypto"]["entrees_bloquees_par_actualite"] == market["fond_crypto"]["meneuses_voulues"]
+
+@pytest.mark.parametrize("published_offset", [None, -2000, 2000])
+def test_news_is_visible_only_after_both_known_clocks(published_offset):
+    archive = flash.Archive(":memory:")
+    item = flash.parse("binance", BINANCE)[0]
+    item["published_ms"] = None if published_offset is None else T0 + published_offset
+    archive.add("test", item, T0, baseline=False)
+    first = max(T0, item["published_ms"] or T0)
+    assert archive.vetoes(first - 1)["assets"] == {}
+    assert "PEPE" in archive.vetoes(first)["assets"]

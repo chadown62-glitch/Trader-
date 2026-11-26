@@ -94,7 +94,17 @@ class ModelStore:
 
     def champion(self, timeframe: str) -> MetaModel | None:
         row = self._row("champion", timeframe)
-        return self.by_version(row["version"]) if row else None
+        return self.by_version(row["version"]) if row and self._human_approved(row) else None
+
+    def _human_approved(self, row):
+        if row["status"] != "champion" or not row.get("sha256"):
+            return False
+        event = self.db.one(
+            "SELECT data FROM model_events WHERE version=? AND event='promu' ORDER BY id DESC LIMIT 1",
+            (row["version"],),
+        )
+        receipt = loads(event["data"], {}) if event else {}
+        return isinstance(receipt, dict) and receipt.get("sha256") == row["sha256"] and receipt.get("actor") == "opérateur local authentifié"
 
     def trial(self, timeframe: str) -> MetaModel | None:
         """Modèle « à l'essai » : prometteur mais pas prouvé. Réservé à l'entraînement en argent fictif."""
@@ -126,7 +136,7 @@ class ModelStore:
         if changed != 1:
             raise ValueError("Fenêtre de validation absente ou déjà utilisée")
 
-    def _approval(self, version):
+    def _paired_evidence(self, version):
         row = self.db.one("SELECT * FROM evaluation_windows WHERE version=?", (version,))
         if not row:
             return None
@@ -135,7 +145,7 @@ class ModelStore:
 
     @atomic
     def register(self, result, report: dict, *, artifact_bytes=None) -> dict:
-        """Enregistre le résultat d'un entraînement ; promeut le modèle s'il est validé."""
+        """Archive le résultat sans autoriser de changement de champion."""
         model = result.final_model
         version = self._version(model.version)
         path = self.root / f"{version}.joblib"
@@ -173,10 +183,8 @@ class ModelStore:
         self.event(version, model.timeframe, "enregistré", notes, {"sha256": hashlib.sha256(raw).hexdigest()})
         # le dernier entraînement fait foi : un ancien modèle à l'essai est retiré dans tous les cas
         self.db.execute("UPDATE models SET status = 'retired' WHERE status = 'trial' AND timeframe = ? AND version != ?", (model.timeframe, version))
-        if result.ok and self._approval(version) and not self.policy_locks():
-            self.promote(version)
-        elif result.ok:
-            self.db.log("info", "models", f"{version} reste challenger en attente de preuve appariée")
+        if result.ok:
+            self.db.log("info", "models", f"{version} enregistré comme challenger")
         elif getattr(result, "trial", False):
             self.db.update("models", version, {"status": "trial"}, key="version")
             self.db.log("info", "models", f"Modèle {version} mis à l'essai en argent fictif (prometteur, pas encore prouvé)")
@@ -200,27 +208,42 @@ class ModelStore:
                                  reasons=["Artefact local figé importé sans promotion ni réentraînement"])
         return self.register(result, {"origin": "trusted_frozen_artifact", "sha256": expected_sha}, artifact_bytes=raw)
 
-    def promote(self, version: str) -> None:
-        row = self.get(version)
-        if row is None:
-            raise ValueError("Modèle introuvable")
-        if (row["metrics"] or {}).get("verdict") != "validé":
-            raise ValueError("Seul un modèle validé sur des données jamais vues peut devenir le modèle actif")
+    def promote(self, version: str, *, confirmed_version=None, sha256=None, session_token=None) -> None:
         with self.db.transaction():
             self._require_unlocked()
-            approval = self._approval(version)
-            current = self.db.scalar("SELECT version FROM models WHERE timeframe=? AND status='champion'", (row["timeframe"],))
-            if current == version:
-                return  # idempotent; no duplicate promotion event
-            if not approval or approval["reference"] != (current or "all_signals"):
-                raise ValueError("Validation appariée indépendante absente ou champion de référence modifié")
-            if not row.get("sha256") or self.by_version(version) is None:
+            row = self.get(version)
+            if row is None:
+                raise ValueError("Modèle introuvable")
+            if (row["metrics"] or {}).get("verdict") != "validé":
+                raise ValueError("Seul un modèle validé sur des données jamais vues peut devenir le modèle actif")
+            if confirmed_version != version or not sha256 or sha256 != row["sha256"] or not session_token:
+                raise ValueError("Confirmation explicite de la version et de son empreinte requise")
+            # Revocation and promotion serialize under the same SQLite write transaction.
+            session = self.db.one(
+                "SELECT created_at FROM sessions WHERE token_hash=? AND expires_at>?",
+                (hashlib.sha256(session_token.encode()).hexdigest(), time.time()),
+            )
+            if session is None:
+                raise ValueError("Session opérateur expirée ou révoquée")
+            if self.by_version(version) is None:
                 raise ValueError("Modèle non vérifiable ou illisible")
+            if self._human_approved(row):
+                return
+            if row["status"] != "challenger":
+                raise ValueError("Seul un challenger peut être approuvé")
+            current = self.db.scalar("SELECT version FROM models WHERE timeframe=? AND status='champion'", (row["timeframe"],))
+            evidence = self._paired_evidence(version)
+            if not evidence or evidence["timeframe"] != row["timeframe"] or evidence["reference"] != (current or "all_signals"):
+                raise ValueError("Validation appariée indépendante absente ou champion de référence modifié")
             self.db.execute(
                 "UPDATE models SET status = 'retired' WHERE status = 'champion' AND timeframe = ?", (row["timeframe"],)
             )
             self.db.update("models", version, {"status": "champion", "promoted_at": time.time()}, key="version")
-            self.event(version, row["timeframe"], "promu", "Preuve appariée enregistrée", {"previous": current})
+            self.event(version, row["timeframe"], "promu", "Activation paper approuvée dans le cockpit", {
+                "previous": current, "actor": "opérateur local authentifié", "sha256": sha256,
+                "session_created_at": session["created_at"], "reference": evidence["reference"],
+                "start_ms": evidence["start_ms"], "end_ms": evidence["end_ms"],
+            })
         self.invalidate()
         self.db.log("info", "models", f"Nouveau modèle actif : {version}")
         if self.bus:
@@ -245,10 +268,20 @@ class ModelStore:
 
     def list(self, limit: int = 50) -> list[dict]:
         rows = self.db.query("SELECT * FROM models ORDER BY created_at DESC LIMIT ?", (limit,))
+        references = {r["timeframe"]: r["version"] for r in self.db.query(
+            "SELECT timeframe,version FROM models WHERE status='champion'"
+        )}
         for r in rows:
             r["metrics"] = loads(r["metrics"], {})
             r["params"] = loads(r.get("params"), {})
             r.pop("path", None)
+            evidence = self._paired_evidence(r["version"])
+            r["statistically_eligible"] = bool(
+                (r["metrics"] or {}).get("verdict") == "validé" and evidence
+                and evidence["timeframe"] == r["timeframe"]
+                and (r["status"] == "champion" or evidence["reference"] == references.get(r["timeframe"], "all_signals"))
+            )
+            r["human_approved"] = self._human_approved(r)
         return rows
 
     def report(self, version: str) -> dict | None:
