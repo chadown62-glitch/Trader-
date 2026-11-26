@@ -201,6 +201,24 @@ const near = (a, b, tol) => Math.abs(Number(a) - Number(b)) <= tol;
   await page.waitForSelector('.hud-live:has-text("En direct")', { timeout: 20000 });
   check(sockets === 2, 'une reconnexion attendue : ' + sockets + ' connexion(s)');
 
+  // A delayed decision retains the engine time in both views. Legacy events may have no timestamp.
+  await page.goto(BASE + '/#/ai');
+  await page.getByRole('button', { name: 'Journal des décisions' }).click();
+  const decision = { agent: 'audit', symbol: 'AUDIT/EUR', kind: 'refus', message: 'Événement de test retardé', ts: 946684800 };
+  const expected = await page.evaluate(async ts => (await import('/js/store.js')).dt(ts), decision.ts);
+  live.send(JSON.stringify({ topic: 'decision', data: decision }));
+  const event = page.locator('.feed-item').filter({ hasText: decision.message });
+  await event.waitFor();
+  check((await event.innerText()).includes(expected), 'la décision doit conserver la date de son journal');
+  await page.goto(BASE + '/#/dashboard');
+  await event.waitFor();
+  check((await event.innerText()).includes(expected), 'le tableau de bord doit afficher la même date');
+  const legacy = { agent: 'audit', kind: 'refus', message: 'Décision sans horodatage' };
+  live.send(JSON.stringify({ topic: 'decision', data: legacy }));
+  const undated = page.locator('.feed-item').filter({ hasText: legacy.message });
+  await undated.waitFor();
+  check((await undated.locator('.meta').innerText()).includes('—'), 'la date absente reste inconnue');
+
   // 9. Memecoin : démarrage refusé par le serveur (réponse simulée : aucune source publique interrogée).
   let startBody = null;
   await page.route('**/api/dmh/memecoin/worker/start', route => {

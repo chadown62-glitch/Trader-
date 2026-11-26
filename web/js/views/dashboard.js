@@ -61,7 +61,8 @@ export default {
     watch([() => current.value?.id, days], loadEquity, { immediate: true, flush: 'sync' });
     const feed = computed(() => {
       const live = store.decisions.map(d => ({ ...d, live: true }));
-      return [...live, ...decisions.value].slice(0, 40);
+      const liveIds = new Set(live.map(d => d.id).filter(id => id != null));
+      return [...live, ...decisions.value.filter(d => !liveIds.has(d.id))].slice(0, 40);
     });
 
     const startAgent = async (a) => {

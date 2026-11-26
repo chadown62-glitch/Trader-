@@ -75,7 +75,7 @@ export default {
         if (j.kind === 'train' && j.status === 'done') { const full = await safe(api.get(`/api/jobs/${j.id}`)); if (full?.result) lastTrain.value = { verdict: full.result.verdict, reasons: full.result.reasons, trained_at: Date.now() / 1000 }; }
         if (j.kind === 'backtest' && j.status === 'error') toast('Simulation : ' + (j.error || 'échec'), 'error', 10000);
       }),
-      on('decision', (d) => { decisions.value.unshift({ ...d, ts: Date.now() / 1000 }); decisions.value.splice(120); }),
+      on('decision', (d) => { decisions.value.unshift(d); decisions.value.splice(120); }),
     ];
     const timer = setInterval(() => { loadReadiness(); loadStats(); loadJobs(); }, 30000);
     onBeforeUnmount(() => { offs.forEach(f => f()); clearInterval(timer); });
