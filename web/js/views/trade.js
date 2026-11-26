@@ -116,13 +116,15 @@ export default {
     // monnaie du compte (euros pour le portefeuille principal) : c'est elle que l'on dépense
     const cashCcy = computed(() => detail.value?.quote || quoteCcy.value);
     const fxRate = computed(() => (cashCcy.value !== quoteCcy.value ? detail.value?.fx?.rate : 1) || 1);
-    const cash = computed(() => detail.value?.available ?? detail.value?.cash ?? 0);
-    const holding = computed(() => detail.value?.balances?.[base.value] ?? 0);
+    const cash = computed(() => detail.value?.available ?? detail.value?.cash ?? null);
+    const holding = computed(() => detail.value?.balances ? detail.value.balances[base.value] ?? 0 : null);
+    const portionReady = computed(() => Number.isFinite(t.side === 'buy' ? cash.value : holding.value));
     const refPrice = computed(() => (t.type === 'limit' && t.limit ? Number(t.limit) : last.value));
     const roundPx = (x) => { const d = x >= 1000 ? 2 : x >= 1 ? 4 : 6; return Number(x.toFixed(d)); };
     const setSl = (p) => { if (refPrice.value) t.sl = roundPx(refPrice.value * (1 - p / 100)); };
     const setTp = (p) => { if (refPrice.value) t.tp = roundPx(refPrice.value * (1 + p / 100)); };
     const setPortion = (p) => {
+      if (!portionReady.value) return;
       if (t.side === 'buy') { t.mode = 'quote'; t.amount = Math.floor(cash.value * p / 100 * 0.995 * 100) / 100; }
       else { t.mode = 'base'; t.amount = Number((holding.value * p / 100).toPrecision(8)); }
       t.useRisk = false;
@@ -191,7 +193,7 @@ export default {
     const PURPOSE = { entry: 'Achat', stop: 'Stop-loss', target: 'Objectif', exit: 'Sortie', manual: 'Manuel' };
 
     return { store, chart, symbol, tf, candles, loading, detail, coach, preview, busy, accounts, accountId, account, t, last, dayChange, stale, isStale,
-      lines, markers, base, quoteCcy, cashCcy, cash, holding, fxLine, setSl, setTp, setPortion, riskComputed, submit, closePos, editing, editPos, saveEdit,
+      lines, markers, base, quoteCcy, cashCcy, cash, holding, portionReady, fxLine, setSl, setTp, setPortion, riskComputed, submit, closePos, editing, editPos, saveEdit,
       cancelOrder, positionsHere, PURPOSE, money, signed, price, qty, pct, cls, dt, rr, STRATEGY_LABELS, accountLabel };
   },
   template: `
@@ -280,7 +282,7 @@ export default {
           <div v-else class="field"><label>Montant</label>
             <div class="row"><div class="input-suffix" style="flex:2"><input type="number" step="any" min="0" v-model="t.amount"><span>{{ t.mode==='quote' ? cashCcy : base }}</span></div>
               <div class="seg" style="flex:1"><button :class="{on: t.mode==='quote'}" @click="t.mode='quote'">{{ cashCcy }}</button><button :class="{on: t.mode==='base'}" @click="t.mode='base'">{{ base }}</button></div></div>
-            <div class="pill-row"><button v-for="p in [10,25,50,100]" :key="p" class="small" @click="setPortion(p)">{{ p }} %</button>
+            <div class="pill-row"><button v-for="p in [10,25,50,100]" :key="p" class="small" :disabled="!portionReady" @click="setPortion(p)">{{ p }} %</button>
               <span class="faint small" style="align-self:center">{{ t.side==='buy' ? 'du disponible (' + money(cash, cashCcy) + ')' : 'de vos ' + base + ' (' + qty(holding) + ')' }}</span></div>
           </div>
           <template v-if="t.side==='buy'">
