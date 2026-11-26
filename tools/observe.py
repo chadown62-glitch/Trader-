@@ -16,7 +16,7 @@ from sentinelle.execution.liquidity import BookSnapshot
 from sentinelle.market.sources import SyntheticSource
 from sentinelle.services.core import App
 from sentinelle.storage.db import dumps
-from tools.prospective import SupervisedObserver, check
+from tools.prospective import MISSING_REFERENCE, SupervisedObserver, cancel_unverified_entries, check
 from tools.public_capture import PublicCapture, CaptureSource, load_capture
 from tools.validation.archive import digest, encoded, immutable, STEP_MS
 
@@ -73,7 +73,8 @@ def preflight(data,root,capture,*,now=None):
         BookSnapshot(raw['bids'],raw['asks'],raw['timestamp']/1000,'binance-rest-receipt')
         if not 0<=now-raw['received_at']<=30 or raw['timestamp']!=raw['received_at']*1000:
             reasons.append(symbol+': book stale or future')
-    return {'ready':not reasons,'reasons':reasons,'as_of':now,'account_id':account['id'],
+    return {'entry_crosscheck_veto': MISSING_REFERENCE if settings['market']['cross_check'] else None,
+            'ready':not reasons,'reasons':reasons,'as_of':now,'account_id':account['id'],
             'origin':manifest['origin'],'bar_close_ms':manifest['end_ms'],
             'bar_age_seconds':now-manifest['end_ms']/1000,'capture_age_seconds':now-manifest['created_at'],
             'book_event_time':'unavailable; REST receipt timestamp only','capture_sha256':digest((Path(capture)/'capture.json').read_bytes()),
@@ -109,6 +110,7 @@ def step(data,root,capture,*,execute=False,clock=time.time,macro=None,macro_prot
             app.db.execute('INSERT OR IGNORE INTO observation_steps VALUES(?,?,?,?,?)',
                            (key,report['protocol_sha256'],report['capture_sha256'],'prepared',dumps(report)))
         observer=SupervisedObserver(app,root)
+        cancel_unverified_entries(observer.agent.broker, app.settings)
         expire_intents(app,clock())
         btc=histories.get('BTC/EUR')
         for symbol,frame in sorted(histories.items()):
@@ -151,6 +153,7 @@ def protect(data,root,quotes,*,clock=time.time):
             app.hub.prices[symbol]=(float(raw['bids'][0][0])+float(raw['asks'][0][0]))/2
             app.hub.price_ts[symbol]=app.hub.price_source_ts[symbol]=raw['timestamp']/1000
         broker=app.runtime(app.main_account()['id']).broker
+        cancel_unverified_entries(broker, settings)
         expire_intents(app,now)
         for symbol in sorted(quotes['books']):broker.process_book(symbol)
         app._snapshot_equity()
