@@ -79,3 +79,12 @@ def test_pooled_validation_counts_one_strategy_per_asset():
     out = mirror.validate_pooled(mirror.simulate(np.random.default_rng(8), effect_sharpe=3.0, effect_assets="tous"))
     assert out["mutualise_variantes"] >= 1 and out["mutualise_strategies_actif"] == out["mutualise_variantes"] * len(mirror.ASSETS)
     assert len(out["par_actif_V4"]) == len(mirror.ASSETS)
+
+
+def test_the_martingale_world_gives_long_positions_no_arithmetic_drift():
+    lr = mirror.simulate(np.random.default_rng(9), n_assets=3, days=50_000)  # v1 : espérance nulle en logarithme
+    mr = mirror.simulate(np.random.default_rng(9), n_assets=3, days=50_000, martingale=True)
+    drift_v1, drift_v3 = (np.exp(lr) - 1).mean(axis=0), (np.exp(mr) - 1).mean(axis=0)
+    assert (drift_v1 > 0).all()  # la dérive σ²/2 que v3 corrige
+    se = (np.exp(mr) - 1).std(axis=0) / np.sqrt(50_000)
+    assert (np.abs(drift_v3) < 4 * se).all() and (mr > np.log1p(mirror.FLOOR) - 1e-12).all()

@@ -31,8 +31,13 @@ hors échantillon, Holm sur 2 tests) et comparée au jugement actif par actif (V
 corrélation 0,6 entre cryptos, avantage commun aux huit actifs (Sharpe 0,25, 0,5, 1), avantage propre au premier actif
 (Sharpe 1). Une variante validée en mutualisé vaut une stratégie pour chacun des huit actifs.
 
+Version 3 (écart déclaré avant calcul) : les mondes de v1 et v2 ont une espérance nulle en rendements logarithmiques, ce
+qui laisse à une position longue une dérive arithmétique ≈ σ²/2 sans aucun avantage de timing. v3 rejoue v1 et v2 dans
+un monde martingale : rendements arithmétiques R = σ_t·z_t d'espérance nulle (plancher à −90 %, compté).
+
 Lancement : python -m sentinelle.scalp.mirror            (version 1)
             python -m sentinelle.scalp.mirror --v2       (version 2)
+            python -m sentinelle.scalp.mirror --v3       (version 3, monde martingale)
 """
 
 from __future__ import annotations
@@ -59,10 +64,11 @@ STOP_FIXED, STOP_TRAIL = 0.10, 0.15
 TOP, ALPHA, NW_LAGS, DSR_MIN = 2, 0.05, 10, 0.95
 NULL_REPS, POWER_REPS, EFFECTS, SEED = 300, 100, (0.5, 1.0, 1.5), 20261126
 RULES = ("V1", "V2", "V3", "V4", "V5", "V6")
+FLOOR = -0.90
 
 
 def simulate(rng: np.random.Generator, n_assets: int = len(ASSETS), days: int = DAYS, effect_sharpe: float = 0.0,
-             effect_assets: str = "premier", crypto_corr: float = 0.0) -> np.ndarray:
+             effect_assets: str = "premier", crypto_corr: float = 0.0, martingale: bool = False) -> np.ndarray:
     """Rendements logarithmiques journaliers (jours × actifs). L'avantage éventuel concerne le premier actif ou tous ;
     crypto_corr : corrélation des chocs entre cryptos (facteur commun), les autres actifs restant indépendants."""
     vols = np.array([v for v, _ in ASSETS.values()])[:n_assets] / math.sqrt(YEAR)
@@ -84,7 +90,9 @@ def simulate(rng: np.random.Generator, n_assets: int = len(ASSETS), days: int = 
         r[t] = sd * z[t]
         if effect_sharpe and t >= 20:
             r[t, targets] += kappa * sd[targets] * np.sign(r[t - 20:t, targets].sum(axis=0))
-    return r
+        if martingale:
+            r[t] = np.maximum(r[t], FLOOR)  # r porte ici le rendement arithmétique R, d'espérance nulle
+    return np.log1p(r) if martingale else r
 
 
 def _rolling_mean(x: np.ndarray, n: int) -> np.ndarray:
@@ -272,6 +280,32 @@ def run_v2(rng: np.random.Generator, null_reps: int = NULL_REPS, power_reps: int
     return out
 
 
+def run_v3(rng: np.random.Generator, null_reps: int = NULL_REPS, power_reps: int = POWER_REPS) -> dict:
+    """v1 et v2 rejouées dans un monde martingale."""
+    floors = []
+
+    def world(**kw):
+        r = simulate(rng, martingale=True, **kw)
+        floors.append(float((r <= math.log1p(FLOOR) + 1e-12).mean()))
+        return r
+
+    out = {"v1_regles": {"monde_nul": {"repetitions": null_reps, **summarize([validate(world()) for _ in range(null_reps)], effect=False)},
+                         "monde_positif": {}}}
+    for s in EFFECTS:
+        runs = [validate(world(effect_sharpe=s)) for _ in range(power_reps)]
+        out["v1_regles"]["monde_positif"][f"sharpe_{s:g}"] = {"repetitions": power_reps, **summarize(runs, effect=True)}
+    worlds = {"nul_independant": dict(), "nul_cryptos_correles": dict(crypto_corr=0.6)}
+    worlds |= {f"commun_sharpe_{s:g}": dict(effect_sharpe=s, effect_assets="tous", crypto_corr=0.6) for s in (0.25, 0.5, 1.0)}
+    worlds["propre_au_premier_sharpe_1"] = dict(effect_sharpe=1.0, effect_assets="premier", crypto_corr=0.6)
+    out["v2_mutualisation"] = {}
+    for name, kw in worlds.items():
+        reps = null_reps if name.startswith("nul") else power_reps
+        runs = [validate_pooled(world(**kw)) for _ in range(reps)]
+        out["v2_mutualisation"][name] = {"repetitions": reps, **summarize_v2(runs, kw.get("effect_assets", ""))}
+    out["part_des_jours_au_plancher"] = float(np.mean(floors))
+    return out
+
+
 def summarize(runs: list[dict], effect: bool) -> dict:
     out = {}
     for k in RULES:
@@ -292,8 +326,26 @@ def main(argv=None):
     ap.add_argument("--null-reps", type=int, default=NULL_REPS)
     ap.add_argument("--power-reps", type=int, default=POWER_REPS)
     ap.add_argument("--v2", action="store_true", help="mutualisation entre actifs (préenregistrement séparé)")
+    ap.add_argument("--v3", action="store_true", help="v1 et v2 dans un monde martingale (écart déclaré)")
     args = ap.parse_args(argv)
     t0 = time.time()
+    if args.v3:
+        res = run_v3(np.random.default_rng(SEED + 3), args.null_reps, args.power_reps)
+        out = {"schema": "scalp-omega-mirror-v3", "status": "synthétique, monde martingale ; écart à v1 et v2 déclaré avant calcul",
+               "omega": ["TRUTH", "MIRROR", "HIVE", "BORDER"], "capacites": ["C094", "C095", "C026"], **res, "graine": SEED + 3,
+               "seconds": round(time.time() - t0)}
+        for k in RULES:
+            print(k, "nul :", res["v1_regles"]["monde_nul"][k], "| positif :",
+                  {e: {x: round(y, 3) for x, y in d[k].items()} for e, d in res["v1_regles"]["monde_positif"].items()})
+        for k, v in res["v2_mutualisation"].items():
+            print(k, json.dumps(v, ensure_ascii=False))
+        print("jours au plancher :", res["part_des_jours_au_plancher"])
+        Path(args.out.replace("mirror-v1", "mirror-v3")).write_text(json.dumps(out, ensure_ascii=False) + "\n", encoding="utf-8")
+        if args.trials:
+            with open(args.trials, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "omega-mirror-v3",
+                                     "v1_regles": res["v1_regles"], "v2_mutualisation": res["v2_mutualisation"]}, ensure_ascii=False) + "\n")
+        return out
     if args.v2:
         res = run_v2(np.random.default_rng(SEED + 2), args.null_reps, args.power_reps)
         out = {"schema": "scalp-omega-mirror-v2", "status": "synthétique ; aucune donnée de marché ; préenregistré",
