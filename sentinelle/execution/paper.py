@@ -55,6 +55,7 @@ def logged_submission(submit):
 
 class PaperBroker:
     kind = "paper"
+    UNVERIFIED_REMAINDER = "UNVERIFIED : le contrôle croisé ne couvre pas une exécution ultérieure de cet achat"
 
     def __init__(
         self,
@@ -72,6 +73,7 @@ class PaperBroker:
         trade_quote: str | None = None,
         defer_market: bool = False,
         book_fn=None,
+        single_book_entry: Callable[[dict], bool] | None = None,
         spread_fn: Callable[[str], float | None] | None = None,
     ):
         self.db = db
@@ -87,6 +89,7 @@ class PaperBroker:
         self.fx_cost = fx_cost_bps / 10_000.0
         self.defer_market = defer_market
         self.book_fn = book_fn
+        self.single_book_entry = single_book_entry or (lambda order: False)
         self.spread_fn = spread_fn  # demi-écart achat/vente observé sur le carnet, en fraction du prix (facultatif)
         self.listeners: list[FillListener] = []
         # Hub de marché (mission 51) : mêmes euros, un seul portefeuille. Ses réservations sont déduites des fonds
@@ -357,8 +360,11 @@ class PaperBroker:
         if self.book_fn is not None:
             # A protective order born during a fill first participates on the next market event.
             if purpose not in ("stop", "target"):
-                self.process_book(symbol)
-            return self.get_order(order_id)
+                self._process_book(symbol, None, max_age=60, submitted_id=order_id)
+            current = self.get_order(order_id)
+            if current["status"] in OPEN_STATUSES and self.single_book_entry(current):
+                return self.cancel_order(order_id, self.UNVERIFIED_REMAINDER)
+            return current
         # Exécution immédiate : ordre au marché ou ordre limite « traversant »
         if type == "market" and not self.defer_market:
             return self._fill(order, self._market_price(symbol, side, last), maker=False)
@@ -508,10 +514,12 @@ class PaperBroker:
 
     # -- passage du temps -----------------------------------------------------
     def process_book(self, symbol, snapshot=None, *, max_age=60):
-        now = self.clock()
+        return self._process_book(symbol, snapshot, max_age=max_age, submitted_id=None)
+
+    def _process_book(self, symbol, snapshot, *, max_age, submitted_id):
         try:
             book = snapshot if snapshot is not None else self.book_fn(symbol)
-            return match_snapshot(self, symbol, book, now, max_age)
+            return match_snapshot(self, symbol, book, self.clock(), max_age, submitted_id)
         except (LiquidityError, KeyError, TypeError, ValueError, OSError) as exc:
             raise OrderError(f"Carnet inexécutable pour {symbol} : {exc}", "invalid_book") from exc
 
