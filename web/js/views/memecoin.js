@@ -4,7 +4,7 @@ import { money, signed, cls, pct, plainPct, dt, store } from '../store.js';
 const { ref, computed, onMounted, onBeforeUnmount } = Vue;
 const root = '/api/dmh/memecoin';
 const strategies = { sniper: 'Sniper', momentum: 'Momentum', dip_hunter: 'Dip Hunter', whale_tail: 'Whale Tail' };
-const reasons = { signal: 'Entrée', take_profit: 'Prise de profit', stop_loss: 'Stop loss', trailing_stop: 'Stop suiveur' };
+const reasons = { break_even_stop: 'Stop au seuil de rentabilité', time_exit: 'Durée maximale', signal: 'Entrée', take_profit: 'Prise de profit', stop_loss: 'Stop loss', trailing_stop: 'Stop suiveur' };
 const stages = { liquidity: 'Liquidité sous 20 000 $', age: 'Pool de moins d\u2019une heure', activity: 'Dernière heure inactive',
   round_trip: 'Revente non confirmée (Jupiter)', guardian: 'Veto anti-arnaque' };
 const decisions = { 'PROPOSITION_SIMULÉE': 'Entrée fictive autorisée', ATTENDRE: 'Attente', VETO: 'Veto', REFUS: 'Refus du risque',
@@ -35,6 +35,8 @@ export default {
     const amount = ref(30), currency = ref('USD'), interval = ref(15), flash = ref('');
     let seq = 0, statusSeq = 0, timer, live = true, initialized = false;
     const radar = ref(null), radarError = ref('');
+    const now = ref(Date.now() / 1000);
+    let clock;
     const funnel = ref(null), funnelError = ref('');
     let funnelPending = false;
     async function refreshFunnel() {
@@ -106,12 +108,13 @@ export default {
           if (f.asset_domain !== 'memecoin') return;
           flash.value = f.strategy; clearTimeout(timer); timer = setTimeout(() => flash.value = '', 3500);
         }));
+      clock = setInterval(() => { now.value = Date.now() / 1000; }, 1000);
       refresh(); refreshRadar(); refreshFunnel();
       radarTimer = setInterval(() => { refreshRadar(); refreshFunnel(); if (!store.ws && !document.hidden) refresh(); }, 60000);
       off.push(on('memecoin_session', refreshFunnel));
       document.addEventListener('visibilitychange', refreshRadar);
     });
-    onBeforeUnmount(() => { live = false; clearInterval(radarTimer); document.removeEventListener('visibilitychange', refreshRadar); off.forEach(unsub => unsub()); clearTimeout(timer); });
+    onBeforeUnmount(() => { live = false; clearInterval(clock); clearInterval(radarTimer); document.removeEventListener('visibilitychange', refreshRadar); off.forEach(unsub => unsub()); clearTimeout(timer); });
     const tab = ref('Live');
     const learning = computed(() => {
       const data = analytics.value?.learning;
@@ -126,11 +129,46 @@ export default {
       r.status === 'suggested' && r.samples >= 20 && Number.isFinite(r.suggested_threshold)));
     const decimal = new Intl.NumberFormat('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-    const lots = computed(() => analytics.value?.recent_closed_positions || []);
-    const holdings = computed(() => analytics.value?.open_positions ?? Object.values(session.value?.positions || {}).map(p => ({
-      mint: p.mint, strategy: p.strategy, quantity: p.qty, cost_basis_usd: p.basis, value_usd: p.mark,
-      stale: session.value.stale_marks?.includes(p.mint), unrealized_pnl_pct: p.basis > 0 ? 100 * (p.mark / p.basis - 1) : null
-    })));
+    const matchesSession = computed(() => analytics.value && session.value &&
+      (analytics.value.revision == null || analytics.value.revision === session.value.revision));
+    const lots = computed(() => matchesSession.value ? analytics.value.recent_closed_positions || [] : []);
+    const holdings = computed(() => (matchesSession.value ? analytics.value.open_positions : null) ??
+      Object.values(session.value?.positions || {}).map(p => ({
+        mint: p.mint, strategy: p.strategy, quantity: p.qty, cost_basis_usd: p.basis, value_usd: p.mark,
+        exit_policy: p.exit_policy, opened_at: p.opened_at, marked_at: p.marked_at, peak_ratio: p.high,
+        exits: p.stage, realized_pnl_usd: p.pnl, stale: session.value.stale_marks?.includes(p.mint),
+        unrealized_pnl_usd: Number.isFinite(p.mark) && Number.isFinite(p.basis) ? p.mark - p.basis : null,
+        unrealized_pnl_pct: p.basis > 0 && Number.isFinite(p.mark) ? 100 * (p.mark / p.basis - 1) : null
+      })));
+    function tokenLabel(mint) {
+      const mark = matchesSession.value ? analytics.value.tokens?.[mint] : null;
+      const radarToken = radar.value?.tokens?.find(t => t.mint === mint && t.source === 'live');
+      const symbol = mark?.symbol || radarToken?.symbol;
+      return [mark?.name || radarToken?.name, symbol === mint ? null : symbol].filter(Boolean)
+        .filter((n, i, arr) => arr.indexOf(n) === i).join(' · ') || mint;
+    }
+    function duration(start, end) {
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start <= 0 || end < start) return 'Indisponible';
+      const seconds = Math.floor(end - start);
+      if (seconds < 60) return seconds + ' s';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return minutes + ' min';
+      const hours = Math.floor(minutes / 60);
+      return hours < 24 ? hours + ' h ' + (minutes % 60) + ' min' : Math.floor(hours / 24) + ' j ' + (hours % 24) + ' h';
+    }
+    function quoteState(p) {
+      if (p.stale) return 'Périmée au dernier cycle';
+      const age = now.value - p.quote_received_at;
+      if (!Number.isFinite(p.quote_received_at) || age < 0 || !Number.isFinite(analytics.value?.quote_max_age_s))
+        return 'Fraîcheur inconnue';
+      return (age <= analytics.value.quote_max_age_s ? 'Reçue il y a ' : 'Périmée · reçue il y a ') + duration(p.quote_received_at, now.value);
+    }
+    function eur(value) {
+      return Number.isFinite(value?.amount) ? signed(value.amount, 'EUR') : 'EUR indisponible';
+    }
+    function pendingExit(p) {
+      return session.value?.pending_orders?.find(o => o.kind === 'sell' && o.key === p.strategy + '/' + p.mint);
+    }
     const price = value => Number.isFinite(value) ? value.toLocaleString('fr-FR', {maximumSignificantDigits: 6}) + ' $' : '—';
     function meanProfit(key) {
       const stats = analytics.value.strategies[key];
@@ -145,14 +183,24 @@ export default {
       return f?.ratio?.toLocaleString('fr-FR', {maximumFractionDigits: 2}) ?? (f?.only_gains ? '∞' : '—');
     }
     function ladder(p) {
-      const policy = session.value?.positions?.[p.strategy + '/' + p.mint]?.exit_policy;
-      if (policy === 'calibrated-v1') return [0.8, 1.25, 3, 6, 10];
-      return session.value?.positions?.[p.strategy + '/' + p.mint] ? [0.83, 1.5, 2] : [];
+      const policy = p.exit_policy || session.value?.positions?.[p.strategy + '/' + p.mint]?.exit_policy;
+      const tiers = policy === 'calibrated-v1' ? [1.25, 3, 6, 10] : policy === 'legacy' ? [1.5, 2] : [];
+      return tiers.map((level, i) => {
+        const sold = p.tier_reached >= level || Number.isInteger(p.exits) && p.exits > i;
+        const observed = sold || Number.isFinite(p.peak_ratio) && p.peak_ratio >= level;
+        return {level, observed, label: sold ? 'Vente exécutée' : observed ? 'Seuil observé' : 'Seuil à surveiller'};
+      });
+    }
+    function protectiveStop(p) {
+      const policy = p.exit_policy || session.value?.positions?.[p.strategy + '/' + p.mint]?.exit_policy;
+      if (!['calibrated-v1', 'legacy'].includes(policy)) return 'Politique de stop inconnue';
+      if (p.exits > 0) return policy === 'calibrated-v1' ? 'Stop suiveur et plancher de rentabilité actifs' : 'Stop suiveur actif';
+      return policy === 'calibrated-v1' ? 'Stop actif à −20 %' : 'Stop actif à −17 %';
     }
     const chart = computed(() => session.value && equityChart(session.value));
     const activity = computed(() => (session.value?.activity || []).slice().reverse());
     const maximum = computed(() => Math.max(0.001, ...(session.value?.token_ranking || []).map(row => Math.abs(row[1]))));
-    return { tab, learning, learningRows, suggestions, decimal, lots, holdings, price, meanProfit, factor, ladder, analytics, analyticsError, radar, radarError, funnel, funnelError, stages, decisions, session, worker, interval, amount, currency, busy, error, flash, act, chart, activity, maximum,
+    return { now, tokenLabel, duration, quoteState, eur, pendingExit, protectiveStop, tab, learning, learningRows, suggestions, decimal, lots, holdings, price, meanProfit, factor, ladder, analytics, analyticsError, radar, radarError, funnel, funnelError, stages, decisions, session, worker, interval, amount, currency, busy, error, flash, act, chart, activity, maximum,
       strategies, reasons, store, dt, cls, money, signed, pct, plainPct };
   },
   template: `
@@ -170,6 +218,7 @@ export default {
         <div><div class="muted">Valeur du sous-portefeuille</div><strong class="mc-equity">{{ money(session.equity, 'USD') }}</strong>
           <span v-if="session.equity != null" :class="cls(session.equity - session.initial_capital)">{{ signed(session.equity - session.initial_capital, '$') }} · {{ pct(session.equity / session.initial_capital - 1) }}</span>
           <span v-else>Valorisation en attente · P&amp;L aux derniers cours disponibles</span>
+          <p class="muted">Session fictive indépendante du portefeuille principal · comptabilité en USD.</p>
           <div class="muted">Liquidités · {{ money(session.cash, '$') }}</div>
           <div>Capital de départ · {{ money(session.deposit.amount, session.deposit.currency) }}<span v-if="session.deposit.currency !== 'USD'"> ({{ money(session.initial_capital, 'USD') }})</span></div>
           <span v-if="activity.length" class="badge">Dernière exécution · {{ strategies[activity[0].strategy] }} · {{ reasons[activity[0].reason] }}</span>
@@ -199,15 +248,24 @@ export default {
       <section v-if="tab==='Positions'" class="mc-holdings">
         <h2>Actifs détenus</h2><p v-if="!holdings.length" class="card empty">Aucune position ouverte.</p>
         <article v-for="p in holdings" :key="p.strategy+p.mint" class="card mc-position">
-          <header><div><small>{{ strategies[p.strategy] }}</small><h3>{{ p.mint }}</h3></div>
+          <header><div><small>{{ strategies[p.strategy] }}</small><h3>{{ tokenLabel(p.mint) }}</h3>
+            <small v-if="tokenLabel(p.mint)!==p.mint" style="overflow-wrap:anywhere">Mint Solana · {{ p.mint }}</small></div>
             <b :class="cls(p.unrealized_pnl_pct)">{{ pct(p.unrealized_pnl_pct, 2, true) }}</b></header>
-          <p v-if="p.stale" class="warn">Dernière valorisation connue · cours en attente</p>
+          <p class="muted">{{ quoteState(p) }} · Dernière valorisation {{ dt(p.marked_at) }}</p>
+          <p>Durée de détention · {{ duration(p.opened_at, now) }}</p>
           <dl><div><dt>Entrée, frais inclus</dt><dd>{{ price(p.quantity > 0 ? p.cost_basis_usd / p.quantity : null) }}</dd></div>
             <div><dt>Dernier cours</dt><dd>{{ price(p.price_usd) }}</dd></div>
-            <div><dt>Valeur nette</dt><dd>{{ money(p.value_usd,'$') }}</dd></div></dl>
-          <div class="mc-ladder" aria-label="Seuils de la position">
-            <span v-for="(level,i) in ladder(p)" :key="level" :class="{reached: p.unrealized_pnl_pct != null && 1+p.unrealized_pnl_pct/100 >= level}">
-              {{ i ? '×' + level.toLocaleString('fr-FR') : 'Stop ' + Math.round(100*(level-1)) + ' %' }}</span>
+            <div><dt>Dernière valeur nette</dt><dd>{{ money(p.value_usd,'$') }}</dd></div>
+            <div><dt>P&amp;L réalisé</dt><dd>{{ signed(p.realized_pnl_usd,'USD') }} · {{ eur(p.realized_eur) }}</dd></div>
+            <div><dt>P&amp;L latent à la marque</dt><dd>{{ signed(p.unrealized_pnl_usd,'USD') }} · {{ eur(p.unrealized_eur) }}</dd></div></dl>
+          <details v-if="p.realized_eur || p.unrealized_eur"><summary>Change du P&amp;L USD en EUR</summary>
+            <small v-for="leg in [...(p.realized_eur?.legs||[]), ...(p.unrealized_eur?.legs||[])]" style="display:block;overflow-wrap:anywhere">
+              {{ dt(leg.event_at) }} · {{ signed(leg.usd,'USD') }} · 1 USD = {{ leg.rate.toLocaleString('fr-FR',{maximumSignificantDigits:8}) }} EUR · {{ leg.source }} ({{ dt(leg.quote_at) }})</small></details>
+          <p>{{ protectiveStop(p) }}</p>
+          <p v-if="pendingExit(p)" class="warn">Sortie décidée · {{ reasons[pendingExit(p).detail] || 'motif inconnu' }} · exécution en attente depuis {{ dt(pendingExit(p).decided_at) }}</p>
+          <div class="mc-ladder" aria-label="Paliers de prise de profit">
+            <span v-for="tier in ladder(p)" :key="tier.level" :class="{reached:tier.observed}">
+              ×{{ tier.level.toLocaleString('fr-FR') }} · {{ tier.label }}</span>
           </div>
         </article>
       </section>
@@ -227,7 +285,11 @@ export default {
               <td>{{ factor(key) }}</td><td :class="cls(analytics.strategies[key].pnl)">{{ signed(analytics.strategies[key].pnl,'$') }}</td></tr></tbody></table>
           <h3>Dernières positions clôturées</h3><p v-if="!lots.length" class="muted">Aucune clôture enregistrée.</p>
           <div v-for="(p,i) in lots" :key="i" class="mc-closed"><time>{{ p.closed_at ? dt(p.closed_at) : '—' }}</time>
-            <span>{{ strategies[p.strategy] }} · {{ p.mint }}</span><b :class="cls(p.pnl_usd)">{{ signed(p.pnl_usd,'$') }} · {{ pct(p.profit_pct,2,true) }}</b></div>
+            <span :title="p.mint">{{ strategies[p.strategy] }} · {{ tokenLabel(p.mint) }} · {{ duration(p.opened_at,p.closed_at) }}</span>
+            <b :class="cls(p.pnl_usd)">Réalisé {{ signed(p.pnl_usd,'$') }} · {{ eur(p.realized_eur) }} · {{ pct(p.profit_pct,2,true) }}</b>
+            <small>Sortie exécutée · {{ reasons[p.exit_reason] || p.exit_reason || 'motif inconnu' }}</small>
+            <details v-if="p.realized_eur"><summary>Change des sorties</summary>
+              <small v-for="leg in p.realized_eur.legs" style="display:block;overflow-wrap:anywhere">{{ dt(leg.event_at) }} · {{ signed(leg.usd,'USD') }} · 1 USD = {{ leg.rate.toLocaleString('fr-FR',{maximumSignificantDigits:8}) }} EUR · {{ leg.source }} ({{ dt(leg.quote_at) }})</small></details></div>
         </template>
       </section>
       <section v-if="tab==='Stratégies' && analytics" class="card mc-learning" aria-labelledby="mc-learning-heading">
@@ -282,7 +344,7 @@ export default {
         <template v-if="radar">
           <p v-if="radar.errors?.length" class="muted">Couverture publique partielle.</p>
           <div v-for="t in radar.tokens" :key="t.mint || 'demo'" class="mc-axis">
-            <strong>{{ t.symbol }}</strong><small>{{ t.source === 'live' ? 'Public' : 'Exemple simulé' }}</small>
+            <strong>{{ t.name ? t.name + ' · ' : '' }}{{ t.symbol }}</strong><small>{{ t.source === 'live' ? 'Public' : 'Exemple simulé' }}</small>
             <span>{{ money(t.liquidity_usd,'USD') }} de liquidité · {{ pct(t.change_5m_pct, 2, true) }} sur 5 min</span>
             <span>{{ {passed:'Guardian accepté',veto:'Guardian refusé',unknown:'Risque inconnu'}[t.risk] }} · RugCheck {{ t.rug_score ?? '—' }}</span>
             <small>{{ t.eligible_strategies.map(k => strategies[k]).join(', ') || 'Aucune stratégie éligible' }}</small>
