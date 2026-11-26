@@ -21,6 +21,7 @@ export const ContextCard = {
     <div class="card-head"><h2>Contexte de marché</h2><span class="spacer"></span>
       <span class="faint small" v-if="ctx?.updated">mis à jour {{ ago(ctx.updated) }}</span>
       <button class="ghost small" @click="refresh" title="Actualiser">↻</button></div>
+    <p v-if="ctx?.errors?.connexion" class="note warn small" role="alert">{{ ctx.errors.connexion }}</p>
     <div v-if="!ctx || (!ctx.fear_greed && !Object.keys(ctx.indices || {}).length)" class="muted small">Données de contexte pas encore disponibles.</div>
     <template v-else>
       <div v-if="ctx.fear_greed" class="inline" style="gap:14px;margin-bottom:10px">

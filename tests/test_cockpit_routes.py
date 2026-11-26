@@ -149,6 +149,20 @@ def test_context_refresh_reports_unavailable_sources_and_never_invents_values(cl
     assert "fear_greed" not in data["errors"]
 
 
+def test_context_keeps_previous_timestamp_when_proxy_client_is_unavailable(client, app, monkeypatch):
+    service = ext(app, "context")
+    monkeypatch.setattr(service, "data", {**service.data, "updated": 1234})
+
+    def missing_socksio(*args, **kwargs):
+        raise ImportError("Using SOCKS proxy, but the 'socksio' package is not installed.")
+
+    monkeypatch.setattr(httpx, "Client", missing_socksio)
+    response = client.post("/api/context/refresh", headers=H)
+    assert response.status_code == 200
+    assert "proxy SOCKS" in response.json()["errors"]["connexion"]
+    assert response.json()["updated"] == 1234
+
+
 def test_signals_resolve_settles_due_signals_and_reports_unknown_pairs(client, app):
     now = time.time()
     app.db.insert("signals", {"channel": "@test", "msg_id": 1, "ts": now - 100 * 3600, "parsed": 1, "symbol": "BTC",
