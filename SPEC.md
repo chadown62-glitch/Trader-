@@ -517,9 +517,15 @@ La campagne Chromium couvre les quinze pages existantes sur ordinateur et mobile
   - Au plus quatre agents actifs.
   - Aucun service permanent ni nouvelle observation prospective sans autorisation distincte.
 
-## Extension du Sprint 5 — programme multi-actifs et cerveau central V4 (proposition du 26 novembre 2026, revue par GPT Work, à valider par le propriétaire)
+## Extension du Sprint 5 — programme multi-actifs et cerveau central V4 (proposition du 26 novembre 2026, revue par GPT Work, validée par le propriétaire le 27 novembre 2026 sous réserve de la revue indépendante, des corrections nécessaires et des trois CI vertes)
 
 Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 2026, **avant toute implémentation**. Elle intègre les compléments de GPT Work (commit `7f2686c`, ancienne #202, fermée).
+
+- **Décision du propriétaire du 27 novembre 2026.**
+  - Cadrage validé, sous réserve de la revue indépendante, des corrections nécessaires et des trois CI vertes.
+  - Utilisation historique de SLV via Yahoo autorisée.
+  - Recherche d'une nouvelle source publique pour XMR autorisée ; toute intégration reste soumise à sa validation.
+  - GPT Work finalise le correctif du Risk Commander et les revues indépendantes. Claude consolide #200, #201 et #203 dans cet ordre, puis engage la recherche quantitative sur les historiques autorisés dès la fusion de ce cadrage.
 
 - **Priorité.**
   - Les intégrations et corrections P0/P1 en cours passent en premier.
@@ -535,6 +541,10 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
   - Un indice peut servir de référence. Simuler une position exige un instrument admissible distinct, long et au comptant, avec ses propres prix et coûts.
   - Objectif de recherche : au moins deux stratégies validées par instrument. Le compteur de validations peut rester à zéro.
   - Une stratégie n'est jamais tenue pour rentable sur la seule base d'un backtest favorable.
+  - **Cible expérimentale du propriétaire** : +1,30 % net par semaine (environ +96 % par an composé), avec un drawdown maximal visé de 10 %.
+    - C'est un repère de recherche, jamais un critère de validation ni une promesse.
+    - Sous l'hypothèse optimiste de rendements hebdomadaires normaux, rester sous 10 % de drawdown avec au moins 70 % de chances sur trois ans suppose une volatilité d'environ 18 % par an, soit un Sharpe annuel d'environ 3,7.
+    - C'est plus du double du plus fort avantage que l'historique journalier permet de détecter (MIRROR v5). Chaque bilan mesure l'écart à cette cible.
 - **Instruments prioritaires et couverture, établie par granularité.**
   - Les bornes journalières proviennent d'ATLAS (`research/scalp-v1/omega-atlas-v1.json`, #175). Elles décrivent la couverture des séries.
   - Elles ne décrivent ni la couverture minute ni la profondeur exécutable (L2), qui sont indiquées à part.
@@ -543,9 +553,9 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
   |---|---|---|---|---|
   | BTC, ETH | BTCUSDT et ETHUSDT au comptant, du 17/08/2017 au 22/11/2026 | archives Binance au comptant publiées ; couverture à établir | contrats perpétuels seulement, mesurés de 2023-01 à 2026-08 (C042, #179) ; aucune archive au comptant | profondeur et change à chaque instant simulé |
   | SOL | SOLUSDT, du 11/08/2020 au 22/11/2026 | idem | non mesurée | date d'admission |
-  | XMR | XMRUSDT, du 15/03/2019 au 20/02/2024 (paire retirée) | idem, jusqu'au retrait | non mesurée | retrait ; la suite exige une nouvelle source, soumise au propriétaire |
+  | XMR | XMRUSDT, du 15/03/2019 au 20/02/2024 (paire retirée) | idem, jusqu'au retrait | non mesurée | retrait ; recherche d'une nouvelle source publique autorisée le 27 novembre, intégration soumise à validation (voir ci-dessous) |
   | Or | GLD, proxy de l'or, du 18/11/2004 au 23/11/2026 | aucune | aucune | produit effectivement simulable et frais ; équivalent UCITS en euros non mesuré |
-  | Argent | SLV non téléchargée | — | — | série soumise à l'accord du propriétaire |
+  | Argent | SLV (Yahoo, autorisée le 27 novembre), 5 117 séances du 28/04/2006 au 31/08/2026, plus long trou de 5 jours | aucune | aucune | produit effectivement simulable et frais |
   | Nasdaq-100, S&P 500 | QQQ du 03/01/2000 au 24/11/2026 ; SPY du 03/01/2000 au 23/11/2026 | aucune | aucune | ETF ou indice de référence, dividendes, écart de suivi |
 
 - **Inventaire des sources** :
@@ -558,6 +568,10 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
     - disponibilité du bid/ask, profondeur et frais.
   - Classer chaque usage comme admissible, référence seule ou non évaluable, avec son motif.
   - Toute nouvelle source est soumise au propriétaire avant collecte ou utilisation. Une donnée historique manquante reste inconnue.
+  - **Proposition pour XMR après février 2024**, à valider avant toute collecte :
+    - série de recherche : archives OHLCVT publiques de Kraken (XMR/USD), téléchargeables depuis l'ouverture du marché ;
+    - recoupement : XMR-USD de Yahoo, source déjà utilisée, prix agrégé de référence ;
+    - admissibilité : Kraken a arrêté XMR pour les clients de l'EEE le 31 octobre 2024, après Binance (février 2024) et OKX (janvier 2024). Pour un compte dans l'EEE, XMR après ces dates est donc classé « référence seule » : il peut servir à la recherche, pas à simuler une position.
 - **Coordinateur et sécurité (cerveau central V4)**, propriété de GPT Work :
   - **Coordinateur unique.**
     - Étendre `sentinelle/fleet/coordinator.py`.
@@ -599,6 +613,10 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
     - le jugement collectif suivi d'un jugement individuel n'en retient aucune fausse dans les six mondes, mais beaucoup moins de vraies ;
     - avec 34 tests corrigés ensemble et trois ans hors échantillon, un avantage de Sharpe 1 commun aux huit actifs ne donne en moyenne qu'environ une stratégie validée pour l'ensemble des huit instruments. L'objectif de deux par instrument exige donc des confirmations prospectives ;
     - la contribution marginale mesurée sur la fenêtre de validation ne filtre pas les faux.
+  - **Ce que montre MIRROR v5** (#203, à revoir ; puissance du jugement individuel sur la longueur réelle de chaque historique, en journalier) :
+    - un Sharpe net de 1,5 n'est retrouvé que 6 à 14 % du temps sur BTC, ETH, SOL et XMR ;
+    - sur l'or, l'argent, le Nasdaq-100 et le S&P 500, 50 % de puissance n'est atteint qu'à partir d'un Sharpe d'environ 1,2 à 1,3, et 80 % jamais en dessous de 1,5 ;
+    - l'historique journalier seul ne permettra donc pas de valider deux stratégies par instrument : confirmations prospectives, granularité plus fine si ses coûts le permettent, ou spécialistes maintenus en observation.
   - **Avant calcul** :
     - préenregistrement poussé, avec la grille, les familles, le nombre total d'essais et la puissance attendue ;
     - périodes déjà consultées déclarées comme telles.
@@ -641,6 +659,7 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
     - Les anciennes sessions et archives conservent leur comptabilité.
   - **Mesures.**
     - Aux quatre capitaux fictifs (30, 100, 1 000 et 10 000 €).
+    - Rendement géométrique net, drawdown, espérance par transaction, régularité des gains, profit factor et incertitude statistique.
     - Avec références simples, séparation temporelle et essais multiples corrigés.
     - Résultats négatifs conservés ; périodes exclues et résultats indéterminés rapportés.
   - **Contribution marginale, par ablation.**
@@ -679,7 +698,7 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
     - Le moteur ne lit que les fiches confirmées **et** approuvées par le propriétaire.
   - **Revue** : chaque PR est examinée par l'autre ingénieur ; un succès de CI ne vaut pas revue. Les deux parties conservent la preuve de leur accord.
 - **Étapes**, sans nouvelle mission autonome :
-  1. Intégration des corrections P0/P1 en cours, puis fusion de ce cadrage après validation du propriétaire.
+  1. Intégration des corrections P0/P1 en cours, puis fusion de ce cadrage (validé par le propriétaire le 27 novembre) après revue indépendante et trois CI vertes.
   2. Inventaire des sources, et données des instruments prioritaires complétées par les seules sources validées.
   3. Première vague préenregistrée : familles simples fixées d'avance par actif, avec un test collectif entre actifs, des tests individuels par instrument, la contribution marginale et la puissance déclarée (calibrée sur MIRROR v4).
   4. Mesure de la contribution marginale au portefeuille commun.
