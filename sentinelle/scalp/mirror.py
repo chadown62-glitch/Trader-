@@ -43,10 +43,15 @@ validation collective, la validation individuelle par instrument (des variantes 
 contribution marginale au portefeuille commun ; 34 tests corrigés ensemble par Holm ; un futur de 2 600 jours jamais lu
 mesure la valeur réelle des décisions. Nouveau monde partiel : avantage sur les quatre cryptos seulement.
 
+Version 5 (préenregistrée à part, 27 novembre 2026) : puissance du jugement individuel par instrument sur la longueur
+réelle de son historique (bornes ATLAS et cache, période réservée exclue) et dans son calendrier (365 jours par an pour
+les cryptos, 252 pour les fonds), avant toute vague sur données réelles.
+
 Lancement : python -m sentinelle.scalp.mirror            (version 1)
             python -m sentinelle.scalp.mirror --v2       (version 2)
             python -m sentinelle.scalp.mirror --v3       (version 3, monde martingale)
             python -m sentinelle.scalp.mirror --v4       (version 4, trois niveaux de validation)
+            python -m sentinelle.scalp.mirror --v5       (version 5, puissance par instrument)
 """
 
 from __future__ import annotations
@@ -441,6 +446,84 @@ def run_v4(rng: np.random.Generator, null_reps: int = NULL_REPS, power_reps: int
     return out
 
 
+# -- version 5 : puissance du jugement individuel sur la longueur réelle de chaque historique --------------------------
+V5_SEED, V5_EFFECTS, V5_PADDING = SEED + 5, (0.5, 1.0, 1.5), 18
+# Jours disponibles jusqu'au 31 août 2026 (période réservée exclue) et calendrier annuel. Cryptos : bornes ATLAS
+# (#175) ; GLD, QQQ et SPY : séances du cache ; argent : hypothèse identique à GLD tant que SLV n'est pas autorisé.
+HISTORY = {"BTC": (3302, 365), "ETH": (3302, 365), "SOL": (2212, 365), "XMR": (1804, 365),
+           "OR": (5479, 252), "ARGENT": (5479, 252), "NASDAQ100": (6705, 252), "SP500": (6705, 252)}
+
+
+def simulate_calendar(rng: np.random.Generator, days: int, effect_index: int | None = None, effect_sharpe: float = 0.0) -> np.ndarray:
+    """Monde martingale des huit actifs, chacun dans son calendrier ; avantage de momentum éventuel sur un seul actif."""
+    cal = np.array([HISTORY[k][1] for k in ASSETS], float)
+    vols = np.array([v for v, _ in ASSETS.values()]) / np.sqrt(cal)
+    a, b = GARCH
+    omega = vols ** 2 * (1 - a - b)
+    z = rng.standard_t(STUDENT_DF, (days, len(ASSETS))) / math.sqrt(STUDENT_DF / (STUDENT_DF - 2))
+    kappa = effect_sharpe / (math.sqrt(0.5) * np.sqrt(cal))
+    r = np.zeros((days, len(ASSETS)))
+    var = vols ** 2
+    for t in range(days):
+        if t:
+            var = omega + a * r[t - 1] ** 2 + b * var
+        sd = np.sqrt(var)
+        r[t] = sd * z[t]
+        if effect_sharpe and effect_index is not None and t >= 20:
+            r[t, effect_index] += kappa[effect_index] * sd[effect_index] * np.sign(r[t - 20:t, effect_index].sum())
+        r[t] = np.maximum(r[t], FLOOR)
+    return np.log1p(r)
+
+
+def judge_v5(r: np.ndarray) -> dict:
+    """Chaque actif n'utilise que ses HISTORY jours (les premiers de la trajectoire, échauffement compris) : deux
+    meilleures variantes en apprentissage (70 %), Newey-West hors échantillon, Holm sur les 16 tests du programme, et
+    Holm sur 34 tests (18 tests supplémentaires sans effet, borne prudente du programme complet de la v4)."""
+    _, pos = positions(r)
+    net = net_returns(r, pos)
+    pvals, owner = [], []
+    for a, name in enumerate(ASSETS):
+        hist = net[:HISTORY[name][0], :, a]
+        cut = int(len(hist) * TRAIN_SHARE)
+        for j in np.argsort(-annual_sharpe(hist[:cut]))[:TOP]:
+            pvals.append(newey_west_p(hist[cut:, j]))
+            owner.append(a)
+    out = {}
+    for label, adjusted in (("holm_16", essais.holm(pvals)), ("holm_34", essais.holm(pvals + [1.0] * V5_PADDING)[:len(pvals)])):
+        out[label] = [bool(any(h < ALPHA for h, o in zip(adjusted, owner) if o == a)) for a in range(len(ASSETS))]
+    return out
+
+
+def _first_reaching(points: list[tuple[float, float]], target: float) -> float | None:
+    for (x0, y0), (x1, y1) in zip(points, points[1:]):
+        if y1 >= target > y0:
+            return round(x0 + (target - y0) * (x1 - x0) / (y1 - y0), 3)
+    return 0.0 if points and points[0][1] >= target else None
+
+
+def run_v5(rng: np.random.Generator, null_reps: int = NULL_REPS, power_reps: int = POWER_REPS) -> dict:
+    days = max(d for d, _ in HISTORY.values())
+    null = [judge_v5(simulate_calendar(rng, days)) for _ in range(null_reps)]
+    out = {"monde_nul": {"repetitions": null_reps}, "puissance": {}}
+    for label in ("holm_16", "holm_34"):
+        hits = np.array([x[label] for x in null])
+        out["monde_nul"][label] = {"au_moins_une_fausse_validation": float(hits.any(axis=1).mean()),
+                                   "fausses_validations_par_actif": dict(zip(ASSETS, hits.mean(axis=0).round(4).tolist()))}
+    for a, name in enumerate(ASSETS):
+        length, cal = HISTORY[name]
+        row = {"jours": length, "calendrier": cal, "annees_hors_echantillon": round((length - int(length * TRAIN_SHARE)) / cal, 2),
+               "repetitions": power_reps}
+        curves = {label: [(0.0, out["monde_nul"][label]["fausses_validations_par_actif"][name])] for label in ("holm_16", "holm_34")}
+        for s in V5_EFFECTS:
+            runs = [judge_v5(simulate_calendar(rng, days, a, s)) for _ in range(power_reps)]
+            row[f"sharpe_{s:g}"] = {label: float(np.mean([x[label][a] for x in runs])) for label in ("holm_16", "holm_34")}
+            for label in curves:
+                curves[label].append((s, row[f"sharpe_{s:g}"][label]))
+        row["sharpe_minimal"] = {label: {"50_pct": _first_reaching(c, 0.5), "80_pct": _first_reaching(c, 0.8)} for label, c in curves.items()}
+        out["puissance"][name] = row
+    return out
+
+
 def summarize(runs: list[dict], effect: bool) -> dict:
     out = {}
     for k in RULES:
@@ -464,8 +547,25 @@ def main(argv=None):
     ap.add_argument("--v3", action="store_true", help="v1 et v2 dans un monde martingale (écart déclaré)")
     ap.add_argument("--v4", action="store_true", help="validation collective, individuelle et contribution marginale")
     ap.add_argument("--true-days", type=int, default=TRUE_DAYS)
+    ap.add_argument("--v5", action="store_true", help="puissance par instrument sur la longueur réelle de son historique")
     args = ap.parse_args(argv)
     t0 = time.time()
+    if args.v5:
+        res = run_v5(np.random.default_rng(V5_SEED), args.null_reps, args.power_reps)
+        out = {"schema": "scalp-omega-mirror-v5", "status": "synthétique, monde martingale ; préenregistré ; v1 à v4 inchangées",
+               "omega": ["TRUTH", "MIRROR"], "capacites": ["C094", "C095"],
+               "parametres": {"historiques": {k: {"jours": d, "calendrier": c} for k, (d, c) in HISTORY.items()},
+                              "hypothese_argent": "longueur de GLD tant que SLV n'est pas autorisé", "effets": V5_EFFECTS},
+               **res, "graine": V5_SEED, "seconds": round(time.time() - t0)}
+        print(json.dumps(res["monde_nul"], ensure_ascii=False))
+        for k, v in res["puissance"].items():
+            print(k, json.dumps(v, ensure_ascii=False))
+        Path(args.out.replace("mirror-v1", "mirror-v5")).write_text(json.dumps(out, ensure_ascii=False) + "\n", encoding="utf-8")
+        if args.trials:
+            with open(args.trials, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "omega-mirror-v5", "kind": "result",
+                                     **res}, ensure_ascii=False) + "\n")
+        return out
     if args.v4:
         res = run_v4(np.random.default_rng(V4_SEED), args.null_reps, args.power_reps, args.true_days)
         out = {"schema": "scalp-omega-mirror-v4", "status": "synthétique, monde martingale ; préenregistré ; v1 à v3 inchangées",

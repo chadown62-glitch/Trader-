@@ -129,3 +129,31 @@ def test_v4_separates_collective_individual_and_per_asset_judgements_without_rea
     again = mirror.judge_v4(changed, truth=None)
     assert {k: v["retenus"] for k, v in again["regles"].items()} == rules
     assert again["regles"]["R4_deux_jugements"]["futur"] != out["regles"]["R4_deux_jugements"]["futur"]
+
+
+def test_the_calendar_world_scales_volatility_by_calendar_and_puts_the_edge_on_one_asset():
+    r = mirror.simulate_calendar(np.random.default_rng(14), 20_000, effect_index=7, effect_sharpe=1.5)
+    R = np.exp(r) - 1
+    cal = np.array([mirror.HISTORY[k][1] for k in mirror.ASSETS])
+    vols = np.array([v for v, _ in mirror.ASSETS.values()])
+    assert np.allclose(R.std(axis=0) * np.sqrt(cal) / vols, 1, atol=0.15)  # 365 jours pour les cryptos, 252 pour les fonds
+    pos = mirror.base_signals(np.cumsum(r, axis=0))["momentum_20"].astype(float)
+    pnl = pos[:-1] * R[1:]
+    edge, se = pnl.mean(axis=0), pnl.std(axis=0) / np.sqrt(len(pnl))
+    assert edge[7] > 3 * se[7] and (np.abs(edge[:7]) < 4 * se[:7]).all()
+
+
+def test_v5_judges_each_asset_on_its_own_history_only():
+    r = mirror.simulate_calendar(np.random.default_rng(15), max(d for d, _ in mirror.HISTORY.values()), effect_index=7, effect_sharpe=3.0)
+    out = mirror.judge_v5(r)
+    assert len(out["holm_16"]) == len(out["holm_34"]) == len(mirror.ASSETS) and out["holm_16"][7]
+    assert all(b <= a for a, b in zip(out["holm_16"], out["holm_34"]))  # 34 tests : jamais plus de validations que 16
+    changed = r.copy()
+    changed[mirror.HISTORY["BTC"][0]:, 0] *= -3  # au-delà de l'historique réel du BTC
+    assert mirror.judge_v5(changed) == out
+
+
+def test_minimal_sharpe_is_interpolated_and_none_when_never_reached():
+    pts = [(0.0, 0.02), (0.5, 0.3), (1.0, 0.7), (1.5, 0.9)]
+    assert mirror._first_reaching(pts, 0.5) == pytest.approx(0.75) and mirror._first_reaching(pts, 0.8) == pytest.approx(1.25)
+    assert mirror._first_reaching(pts, 0.95) is None
