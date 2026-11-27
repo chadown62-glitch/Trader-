@@ -29,7 +29,9 @@ Version 2 (préenregistrée à part) : mutualisation entre actifs. La même règ
 (sélection des deux meilleures variantes par leur Sharpe moyen d'apprentissage, test de Newey-West sur le rendement moyen
 hors échantillon, Holm sur 2 tests) et comparée au jugement actif par actif (V4). Mondes : nul indépendant, nul avec
 corrélation 0,6 entre cryptos, avantage commun aux huit actifs (Sharpe 0,25, 0,5, 1), avantage propre au premier actif
-(Sharpe 1). Une variante validée en mutualisé vaut une stratégie pour chacun des huit actifs.
+(Sharpe 1). Le champ « stratégies-actif » compte une variante validée en mutualisé pour chacun des huit actifs : cette
+lecture est retirée le 27 novembre 2026 (une validation collective n'est pas huit validations individuelles) ; le champ
+reste calculé à l'identique pour la reproductibilité.
 
 Version 3 (écart déclaré avant calcul) : les mondes de v1 et v2 ont une espérance nulle en rendements logarithmiques, ce
 qui laisse à une position longue une dérive arithmétique ≈ σ²/2 sans aucun avantage de timing. v3 rejoue v1 et v2 dans
