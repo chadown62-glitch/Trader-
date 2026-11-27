@@ -246,7 +246,13 @@ def validate(r: np.ndarray) -> dict:
 
 
 def validate_pooled(r: np.ndarray) -> dict:
-    """Jugement mutualisé (v2) et jugement actif par actif (V4), sur le même monde."""
+    """Jugement mutualisé (v2) et jugement actif par actif (V4), sur le même monde.
+
+    « mutualise_strategies_actif » vaut le nombre de variantes validées collectivement multiplié par le nombre d'actifs.
+    Ce champ est conservé tel quel pour que les résultats v2 et v3 restent reproductibles. Ce n'est PAS un nombre de
+    stratégies validées individuellement : une validation collective sur huit actifs ne prouve l'avantage sur aucun
+    actif pris seul. La v4 distingue validation collective, validation individuelle par instrument et contribution
+    marginale au portefeuille commun."""
     names, pos = positions(r)
     net = net_returns(r, pos)
     cut = int(len(r) * TRAIN_SHARE)
