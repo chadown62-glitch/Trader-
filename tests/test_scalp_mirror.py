@@ -88,3 +88,44 @@ def test_the_martingale_world_gives_long_positions_no_arithmetic_drift():
     assert (drift_v1 > 0).all()  # la dérive σ²/2 que v3 corrige
     se = (np.exp(mr) - 1).std(axis=0) / np.sqrt(50_000)
     assert (np.abs(drift_v3) < 4 * se).all() and (mr > np.log1p(mirror.FLOOR) - 1e-12).all()
+
+
+def test_the_partial_world_puts_the_edge_on_the_cryptos_only():
+    r = mirror.simulate(np.random.default_rng(10), days=20_000, martingale=True, effect_sharpe=1.5, effect_assets="cryptos")
+    pos = mirror.base_signals(np.cumsum(r, axis=0))["momentum_20"].astype(float)
+    pnl = pos[:-1] * (np.exp(r[1:]) - 1)
+    edge, se = pnl.mean(axis=0), pnl.std(axis=0) / np.sqrt(len(pnl))
+    assert (edge[:4] > 3 * se[:4]).all() and (np.abs(edge[4:]) < 4 * se[4:]).all()  # BTC, ETH, SOL, XMR seulement
+
+
+def test_truth_table_finds_the_edge_where_it_was_put():
+    t = mirror.truth_table(np.random.default_rng(13), {"effect_sharpe": 1.5, "effect_assets": "premier"}, days=20_000, chunks=1)
+    assert t.shape == (45, len(mirror.ASSETS)) and t[:, 0].max() > 0.8 and t[:, 1:].max() < 0.5
+
+
+def test_marginal_contribution_rewards_a_useful_sleeve_and_penalises_a_useless_one():
+    rng = np.random.default_rng(12)
+    seg = np.zeros((5000, 2, 1))
+    seg[:, 0, 0], seg[:, 1, 0] = rng.normal(0.001, 0.01, 5000), rng.normal(-0.001, 0.01, 5000)
+    both = {(0, 0), (1, 0)}
+    assert mirror.marginal(seg, both, (0, 0)) > 0 > mirror.marginal(seg, both, (1, 0))
+    assert mirror.marginal(seg, {(0, 0)}, (0, 0)) == pytest.approx(mirror._sharpe(seg[:, 0, 0]))  # seul : comparé aux liquidités
+    assert not mirror.portfolio(seg, set()).any()
+
+
+def test_v4_separates_collective_individual_and_per_asset_judgements_without_reading_the_future():
+    r = mirror.simulate(np.random.default_rng(11), days=mirror.DAYS + mirror.FUTURE, martingale=True, effect_sharpe=3.0, effect_assets="tous")
+    out = mirror.judge_v4(r, truth=None)
+    rules = {k: v["retenus"] for k, v in out["regles"].items()}
+    assert out["tests"] == 2 + 4 * len(mirror.ASSETS) and out["collectives_holm_programme"] >= 1
+    assert rules["R1_collectif_x8"] == out["collectives_holm_programme"] * len(mirror.ASSETS)  # le comptage signalé
+    assert 1 <= rules["R2_collectif_puis_individuel"] <= rules["R1_collectif_x8"]  # le collectif ne vaut pas l'individuel
+    assert max(rules["R2_collectif_puis_individuel"], rules["R3_par_actif"]) <= rules["R4_deux_jugements"]
+    assert rules["R4_deux_jugements"] <= rules["R2_collectif_puis_individuel"] + rules["R3_par_actif"]
+    assert rules["R5_contribution"] <= rules["R4_deux_jugements"]
+    assert all(v["sans_avantage"] == v["retenus"] for v in out["regles"].values())  # sans vérité, rien n'est un avantage réel
+    changed = r.copy()
+    changed[mirror.DAYS:] = -changed[mirror.DAYS:]  # le futur est bouleversé
+    again = mirror.judge_v4(changed, truth=None)
+    assert {k: v["retenus"] for k, v in again["regles"].items()} == rules
+    assert again["regles"]["R4_deux_jugements"]["futur"] != out["regles"]["R4_deux_jugements"]["futur"]
