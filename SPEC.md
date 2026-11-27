@@ -591,8 +591,14 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
     - Sans correction des essais multiples, un programme de deux stratégies par actif valide des stratégies fausses dans 92 à 99 % des mondes sans avantage.
     - Avec une correction de Holm sur tout le programme, ce risque tombe à environ 3 %.
     - Mais avec trois ans hors échantillon, un vrai Sharpe de 1,5 n'est retrouvé que trois fois sur dix, actif par actif.
-    - Juger une même règle sur plusieurs actifs à la fois double la puissance quand l'avantage est commun. Le nombre de stratégies-actif validées est multiplié par huit, sans perdre le contrôle des fausses validations.
-    - En revanche, ce jugement mutualisé manque les avantages propres à un seul actif.
+    - Juger une même règle sur la moyenne de plusieurs actifs (jugement collectif) détecte environ deux fois plus souvent un avantage commun, sans perdre le contrôle des fausses validations.
+    - En revanche, ce jugement collectif manque les avantages propres à un seul actif.
+    - **Correction d'interprétation du 27 novembre 2026** (signalée par le coordinateur) : une règle validée collectivement sur huit actifs ne constitue pas huit stratégies validées individuellement. La lecture « multiplie par huit le nombre de stratégies-actif validées » est retirée. Aucun résultat de MIRROR v1 à v3 n'est réécrit ; la distinction est mesurée par MIRROR v4, préenregistrée à part.
+  - **Ce que montre MIRROR v4** (#203, à revoir ; synthétique, vérité connue, futur jamais lu) :
+    - quand l'avantage ne concerne que les quatre cryptos, la moitié des stratégies-actif du comptage collectif ×8 n'ont aucun avantage réel ;
+    - le jugement collectif suivi d'un jugement individuel n'en retient aucune fausse dans les six mondes, mais beaucoup moins de vraies ;
+    - avec 34 tests corrigés ensemble et trois ans hors échantillon, un avantage de Sharpe 1 commun aux huit actifs ne donne en moyenne qu'environ une stratégie validée pour l'ensemble des huit instruments. L'objectif de deux par instrument exige donc des confirmations prospectives ;
+    - la contribution marginale mesurée sur la fenêtre de validation ne filtre pas les faux.
   - **Avant calcul** :
     - préenregistrement poussé, avec la grille, les familles, le nombre total d'essais et la puissance attendue ;
     - périodes déjà consultées déclarées comme telles.
@@ -607,7 +613,12 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
     - change horodaté en euros et latence d'exécution.
   - **Règle minimale** (V6 de #200) :
     - test hors échantillon à erreur type robuste ;
-    - deux jugements, l'un actif par actif et l'autre mutualisé entre actifs, corrigés ensemble par Holm sur l'ensemble des stratégies présentées au même bilan ;
+    - trois niveaux distincts, jamais confondus :
+      - **validation collective** : la règle jugée sur la moyenne d'un groupe d'actifs. Elle oriente la recherche mais ne compte pour aucun instrument ;
+      - **validation individuelle par instrument** : la même règle jugée sur cet instrument seul ;
+      - **contribution marginale au portefeuille commun** : rejeu avec et sans la stratégie, depuis le même état, à risque comparable ;
+    - seule une validation individuelle par instrument, assortie d'une contribution marginale positive, compte une stratégie pour l'objectif de deux par instrument ;
+    - tous les tests présentés au même bilan (collectifs, individuels et par actif) corrigés ensemble par Holm ;
     - résultat toujours positif avec des coûts doublés ;
     - au moins deux tiers des sous-périodes hors échantillon positifs ;
     - plusieurs régimes représentés.
@@ -619,7 +630,8 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
     - ses paramètres figés ;
     - ses coûts détaillés et son rendement net ;
     - son drawdown depuis le capital initial et son incertitude ;
-    - ses essais antérieurs et son statut scientifique.
+    - ses essais antérieurs et son statut scientifique ;
+    - son niveau de validation, distinguant validation collective (avec le groupe d'actifs jugé), validation individuelle sur l'instrument et contribution marginale.
   - **Statuts** : candidate, préenregistrée, évaluée, rejetée, preuve insuffisante, validée sur l'historique, confirmée prospectivement.
   - L'autorisation humaine éventuelle est enregistrée à part. Elle est liée à la version exacte et à son empreinte.
   - **Comparaison dans le moteur existant.** Mêmes fenêtres causales, au comptant, après tous les coûts ci-dessus.
@@ -632,7 +644,7 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
     - Avec références simples, séparation temporelle et essais multiples corrigés.
     - Résultats négatifs conservés ; périodes exclues et résultats indéterminés rapportés.
   - **Contribution marginale, par ablation.**
-    - Rejouer avec et sans la stratégie, depuis le même état (C095).
+    - Rejouer avec et sans la stratégie, depuis le même état (C095), sur une période qui n'a pas servi à la sélectionner (MIRROR v4).
     - Mesurer le rendement net, le risque et le drawdown, en tenant compte des signaux concurrents, des coûts et des corrélations.
     - Une stratégie ne compte que si elle améliore le portefeuille commun.
   - **Statut final.**
@@ -641,7 +653,7 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
     - Aucune promotion n'est automatique.
 - **Axes de recherche** (Claude Code, 25 % du développement, recherche quantitative) :
   - stratégies candidates propres à chaque actif ;
-  - apprentissage mutualisé entre instruments (HIVE, GENOME, BORDER) : une même règle testée sur plusieurs actifs à la fois gagne en puissance ;
+  - apprentissage mutualisé entre instruments (HIVE, GENOME, BORDER) : une même règle testée sur plusieurs actifs à la fois gagne en puissance, mais sa validation collective doit être suivie d'une validation par instrument ; détection des transferts négatifs entre actifs et des stratégies redondantes ;
   - spécialisation selon les régimes ;
   - optimisation causale des entrées ;
   - prises de bénéfices fixes et adaptatives ;
@@ -669,7 +681,7 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
 - **Étapes**, sans nouvelle mission autonome :
   1. Intégration des corrections P0/P1 en cours, puis fusion de ce cadrage après validation du propriétaire.
   2. Inventaire des sources, et données des instruments prioritaires complétées par les seules sources validées.
-  3. Première vague préenregistrée : familles simples fixées d'avance par actif, avec un test mutualisé entre actifs et la puissance déclarée.
+  3. Première vague préenregistrée : familles simples fixées d'avance par actif, avec un test collectif entre actifs, des tests individuels par instrument, la contribution marginale et la puissance déclarée (calibrée sur MIRROR v4).
   4. Mesure de la contribution marginale au portefeuille commun.
   5. Bilan de recherche le 1er décembre, bilan scientifique le 5 décembre.
 - **Garde-fous inchangés.**
