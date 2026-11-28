@@ -7,6 +7,19 @@ from pathlib import Path
 from tools.validation.archive import digest, encoded, immutable
 
 
+# The capture schema has one venue. A live lookup cannot establish a historical price.
+MISSING_REFERENCE = "UNVERIFIED : aucune cotation indépendante archivée pour cette entrée"
+
+
+def cancel_unverified_entries(broker, settings, symbol=None):
+    """Cancel only remaining observer buys before matching another single-venue book."""
+    if settings["market"]["cross_check"]:
+        with broker.db.transaction():
+            for order in broker.open_orders(symbol):
+                if order["agent"] == "prospective-frozen" and order["purpose"] == "entry" and order["side"] == "buy":
+                    broker.cancel_order(order["id"], MISSING_REFERENCE)
+
+
 def prepare(model, settings, output, start, end, *, now=None):
     now=now or datetime.now(timezone.utc)
     begin=datetime.fromisoformat(start);finish=datetime.fromisoformat(end)
@@ -74,8 +87,13 @@ class SupervisedObserver:
         self.app=app
         app.models.lock_policy(self.protocol_sha,begin_timestamp(self.protocol['start']),begin_timestamp(self.protocol['end']),
                                'prospective-v2: modèle et politique gelés')
+
+        def archived_price_check(symbol, close, closed_at):
+            return MISSING_REFERENCE
+
         self.agent=TradingAgent('prospective-frozen','training',app.db,rt.positions,rt.risk,
                                lambda:self.settings,lambda:model,timeframe=self.settings['ai']['timeframe'],
+                               price_check_fn=archived_price_check if self.settings["market"]["cross_check"] else None,
                                clock=app.market_clock,fresh_fn=lambda s:app.hub.is_fresh(s,180),bus=app.bus)
         self.agent.running=True
 
@@ -93,6 +111,7 @@ class SupervisedObserver:
         available=(int(features.ts.iloc[-1])+self.agent.tf_ms)/1000
         if not 0<=self.app.market_clock()-available<=180:
             raise ValueError('Unclosed or stale observation')
+        cancel_unverified_entries(self.agent.broker, self.settings, symbol)
         self.agent.on_bar(symbol,features)
 
 

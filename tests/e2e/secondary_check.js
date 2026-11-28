@@ -162,9 +162,12 @@ const freshCode = async (secret) => {
   const order = await post('/api/orders', { account_id: account.id, symbol: 'BTC/USDC', side: 'buy', type: 'market', cash_amount: 10, stop_loss: Math.round(price * 0.98) });
   check(order.position?.id, 'achat fictif attendu : ' + JSON.stringify(order));
   check((await post(`/api/positions/${order.position.id}/close`, {})).status === 'closed', 'vente fictive attendue');
-  await page.goto(BASE + '/#/dashboard');  // quitter la page, pour que l'Historique relise ses ventes
+  await page.goto(BASE + '/#/dashboard');
+  // Une navigation par fragment peut se terminer avant que Vue ait démonté l'Historique.
+  await page.getByRole('heading', { name: 'Tableau de bord', exact: true }).waitFor();
   await page.goto(BASE + '/#/history');
-  const sale = page.locator('main tbody tr', { hasText: 'BTC/USDC' }).first();
+  const sale = page.getByRole('row').filter({ has: page.getByRole('cell', { name: 'BTC/USDC', exact: true }) })
+    .filter({ has: page.getByText('Manuel', { exact: true }) });
   await sale.waitFor();
   await sale.click();
   await page.waitForSelector('main td[colspan="11"]');

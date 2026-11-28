@@ -18,7 +18,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from . import AUTO_PROMOTION, AUTO_RETRAIN, CAN_TRADE
-from .agents import ABSTAIN, ALERT, INFO, OPPOSE, SUPPORT, VETO, Agent, Event, Finding, fleet
+from .agents import ABSTAIN, ALERT, INFO, OPPOSE, SUPPORT, VETO, Agent, Event, Finding, RiskCommander, fleet
 from ..alpha.shadow.protocol import journal_append
 
 ABSTENTION, VETOED, REFUSED, EXIT, HOLD, WAIT, PROPOSAL = (
@@ -125,10 +125,12 @@ class Coordinator:
             st.peak_kb = max(st.peak_kb, peak)
             resources[a.name] = {"cpu_ms": round(cpu, 3), "wall_ms": round(wall, 3), "peak_kb": round(peak, 1)}
             findings.append(out)
-        decision, why = resolve(ev, findings)
+        # L'ablation mesure l'apport d'un avis. Elle conserve la disponibilité réellement observée.
+        risk_missing = ev.kind in RiskCommander.tasks and not any(f.agent == RiskCommander.name for f in findings)
+        decision, why = resolve(ev, findings, risk_missing=risk_missing)
         contribution = {}
         for f in findings:
-            alt, _ = resolve(ev, [g for g in findings if g is not f])
+            alt, _ = resolve(ev, [g for g in findings if g is not f], risk_missing=risk_missing)
             contribution[f.agent] = alt != decision
             if alt != decision:
                 self.stats[f.agent].pivotal += 1
@@ -169,7 +171,7 @@ class Coordinator:
                 "disagreements": sum(len(r["disagreements"]) for r in self.log), "budget": asdict(self.budget)}
 
 
-def resolve(ev: Event, findings: list[Finding]) -> tuple[str, list[str]]:
+def resolve(ev: Event, findings: list[Finding], *, risk_missing: bool = False) -> tuple[str, list[str]]:
     by = {f.agent: f for f in findings}
     alerts = [f for f in findings if f.stance == ALERT and f.severity >= 2]
     if alerts:
@@ -191,6 +193,8 @@ def resolve(ev: Event, findings: list[Finding]) -> tuple[str, list[str]]:
         return WAIT, [f"{f.agent} : {f.summary}" for f in objections]
     if ev.kind in ("health", "research"):
         return INFO, [f.summary for f in findings]
+    if risk_missing:
+        return WAIT, ["Risk Commander indisponible : contrôle du risque requis pour cette entrée"]
     return PROPOSAL, ["aucune objection : proposition à soumettre au moteur de veto indépendant (simulation)"]
 
 

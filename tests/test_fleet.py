@@ -105,6 +105,25 @@ def test_a_failing_agent_is_quarantined_and_never_brings_the_fleet_down():
     assert not k.stats["Broken"].quarantined
 
 
+def test_quarantined_risk_commander_blocks_entries_until_recovered(monkeypatch):
+    k = K.Coordinator()
+    entry = candidate(open_positions=12)
+    assert k.decide(entry, {})["decision"] == K.REFUSED
+    with monkeypatch.context() as m:
+        m.setattr(A.RiskCommander, "run", Broken.run)
+        for _ in range(3):
+            assert k.decide(entry, {})["decision"] == K.WAIT
+    assert k.stats["Risk Commander"].quarantined
+    blocked = k.decide(entry, {})
+    assert blocked["decision"] == K.WAIT
+    assert "Risk Commander" in " ".join(blocked["why"])
+    position = A.Event("position", "MINT", T0, {"observed_ms": T0, "entry_price": 1.0, "price": 0.79, "ratio": 0.79})
+    assert k.decide(position, {})["decision"] == K.EXIT
+    k.enable("Risk Commander")
+    assert k.decide(entry, {})["decision"] == K.REFUSED
+    assert k.decide(candidate(), {})["decision"] == K.PROPOSAL
+
+
 def test_useless_costly_agents_are_disabled_for_the_session_essentials_never_and_budgets_use_wall_time():
     k = K.Coordinator(disable_after_runs=5, costly_ms=0.0)  # tout agent compte comme coûteux pour ce test
     for _ in range(6):

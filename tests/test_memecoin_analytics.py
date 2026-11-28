@@ -206,3 +206,84 @@ def test_read_during_worker_transaction(tmp_path):
         assert analytics.build_analytics_report(path)["net_pnl"] == 2
         writer.commit()
         assert analytics.build_analytics_report(path)["net_pnl"] == 7
+
+
+def test_pnl_eur_uses_each_own_dated_book_and_never_the_deposit(tmp_path):
+    from dataclasses import asdict
+    from sentinelle.market.fx import FXBook, FXQuote, FxQuote
+    from sentinelle.storage.db import Database, dumps
+
+    db = Database(tmp_path / "session.sqlite")
+    try:
+        state = lot_session()
+        state["deposit"] = {"currency": "EUR", "amount": 30, "fx": {"rate": 17}}
+        state["assets"]["C"]["last"]["received_ms"] = 10001
+        state["positions"]["whale_tail/C"]["marked_at"] = 9
+        for fill in state["fills"]:
+            fill["execution_received_ms"] = (10001 if fill["ts"] == 9 else fill["ts"] * 1000)
+        db.set_meta(sim.KEY, dumps(state))
+        # Choix de taux intentionnellement distincts pour reconnaître la date de chaque mouvement.
+        for ts, bid, ask in [(2, 1, 2), (4, 2, 4), (8, 4, 8), (10, 8, 16)]:
+            book = FXBook([FXQuote("EUR", "USD", bid, ask, ts, "carnet de test", 100, 100)])
+            quote = FxQuote.from_book("EUR", "USD", book, 3)
+            db.execute("INSERT INTO fx_snapshots VALUES(?,?,?,?,?)", ("EUR", "USD", ts, quote.source, dumps(asdict(quote))))
+        result = analytics.build_analytics_report(db.path)
+        open_lot, stale = result["open_positions"]
+        assert open_lot["realized_eur"]["amount"] == pytest.approx(0.5 / 16)
+        assert open_lot["unrealized_eur"]["amount"] == pytest.approx(0.8 / 16)
+        assert open_lot["realized_eur"]["legs"] == [{"usd": 0.5, "event_at": 10.001, "rate": 0.0625,
+                                                   "eur": 0.03125, "source": "carnet de test", "quote_at": 10}]
+        assert "unrealized_eur" not in stale
+        newest, first, _ = result["recent_closed_positions"]
+        assert newest["realized_eur"]["amount"] == pytest.approx(-1 / 2)  # perte : rachat d'USD au bid EUR/USD
+        assert first["realized_eur"]["amount"] == pytest.approx(2 / 2 + 3 / 4)
+        assert [leg["event_at"] for leg in first["realized_eur"]["legs"]] == [3, 5]
+        assert open_lot["marked_at"] == open_lot["quote_received_at"] == 10.001
+        state["assets"]["C"]["last"].pop("received_ms")
+        for fill in state["fills"]:
+            fill.pop("execution_received_ms")
+        db.set_meta(sim.KEY, dumps(state))
+        old = analytics.build_analytics_report(db.path)
+        assert all("realized_eur" not in lot for lot in old["recent_closed_positions"] + old["open_positions"])
+        assert "unrealized_eur" not in old["open_positions"][0]
+        for fill in state["fills"]:
+            fill["execution_received_ms"] = fill["ts"] * 1000
+        db.set_meta(sim.KEY, dumps(state))
+        db.execute("DELETE FROM fx_snapshots WHERE ts < 10")
+        missing = analytics.build_analytics_report(db.path)
+        assert all("realized_eur" not in lot for lot in missing["recent_closed_positions"] + missing["open_positions"])
+        assert missing["open_positions"][0]["realized_pnl_usd"] == 0.5
+        assert db.get_meta(sim.KEY) == dumps(state)
+    finally:
+        db.close()
+
+
+def test_filled_memecoin_lot_is_reported_without_debiting_the_main_paper_ledger(tmp_path):
+    from tests.test_memecoin_engine import causal_session, ACCELERATION, MINT
+    from tests.test_portfolio import make_app
+
+    app = make_app(tmp_path)
+    try:
+        main = app.main_account()["id"]
+        ledger = app.ledger(main)
+        feed, _, step = causal_session(app.db)
+        feed.pair["baseToken"].update(name="Token synthétique", symbol="TST")
+        step(0)
+        step(60, **ACCELERATION)
+        bought = step(60, priceUsd="1.02")
+        assert bought["activity"][-1]["side"] == "buy"
+        assert app.account_summary(main)["cash"] == 30 and app.ledger(main) == ledger
+        rep = analytics.build_analytics_report(app.db.path)
+        assert rep["tokens"][MINT]["name"] == "Token synthétique" and rep["tokens"][MINT]["symbol"] == "TST"
+        [lot] = rep["open_positions"]
+        assert lot["quote_received_at"] == bought["activity"][-1]["execution_received_ms"] / 1000
+        deciding = step(60, priceUsd="0.7")
+        pending = next(x for x in deciding["pending_orders"] if x["kind"] == "sell")
+        assert pending["detail"] == "stop_loss" and not any(f["side"] == "sell" for f in deciding["activity"])
+        sold = step(60, priceUsd="0.3")
+        assert any(f["side"] == "sell" for f in sold["activity"])
+        assert app.account_summary(main)["cash"] == 30 and app.ledger(main) == ledger
+        rep = analytics.build_analytics_report(app.db.path)
+        assert rep["recent_closed_positions"][0]["exit_reason"] == "stop_loss"
+    finally:
+        app.close()

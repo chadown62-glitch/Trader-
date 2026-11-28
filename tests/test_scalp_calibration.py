@@ -44,6 +44,43 @@ def test_uncertainty_abstention_and_skill_are_computed_on_taken_trades_and_again
     assert calibration.skill(f) == pytest.approx(1 - calibration.brier(f["p"], f["y"]) / 0.25)
 
 
+@pytest.mark.parametrize("seed", [0, 73])
+@pytest.mark.parametrize("duplicate_index", [False, True])
+def test_month_bootstrap_preserves_the_full_seeded_sample_for_any_statistic(seed, duplicate_index):
+    months = pd.Categorical(["b", "a", "b", None, "b"], categories=["a", "unused", "b"], ordered=True)
+    frame = pd.DataFrame({"month": months, "number": pd.array([3, 1, None, 9, 5], dtype="Int64"),
+                          "when": pd.date_range("2025-01-01", periods=5, tz="UTC")})
+    frame.index = pd.Index([8, 8, 9, 9, 8] if duplicate_index else [8, 6, 9, 7, 5], name="source_row")
+    frame.flags.allows_duplicate_labels = duplicate_index
+    frame.attrs["provenance"] = "fixture"
+    original = frame.copy()
+    groups = [g for _, g in frame.groupby("month")]
+    oracle = np.random.default_rng(seed)
+    draws = 30
+    expected = [pd.concat([groups[i] for i in oracle.integers(0, len(groups), len(groups))], ignore_index=True)
+                for _ in range(draws)]
+    seen = iter(expected)
+
+    def statistic(sample):
+        pd.testing.assert_frame_equal(sample, next(seen), check_exact=True)
+        assert sample.attrs == frame.attrs
+        value = sample["number"].fillna(-1).sum()
+        sample["number"] = -40
+        return len(sample), value
+
+    results = calibration.month_bootstrap(statistic, frame, draws, seed)
+    assert next(seen, None) is None
+    np.testing.assert_array_equal(results, [(len(f), f["number"].fillna(-1).sum()) for f in expected])
+    pd.testing.assert_frame_equal(frame, original)
+
+
+def test_month_bootstrap_without_any_available_month():
+    frame = pd.DataFrame({"month": [None], "x": [3]})
+    with pytest.raises(ValueError, match="No objects to concatenate"):
+        calibration.month_bootstrap(len, frame, draws=1)
+    np.testing.assert_array_equal(calibration.month_bootstrap(len, frame, draws=0), np.array([]))
+
+
 def test_walk_forward_judges_each_month_with_a_model_trained_on_its_past_only():
     from sentinelle.scalp.features import FEATURES
     rng = np.random.default_rng(1)

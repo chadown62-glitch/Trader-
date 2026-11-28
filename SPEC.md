@@ -133,7 +133,7 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
 
 ### Responsabilités et fichiers
 
-- **Claude Code.** GPT Work est indisponible ; Claude Code mène le chantier dans ce périmètre :
+- **Direction du chantier.** À compter de la reprise du 25 novembre, GPT Work dirige également ce chantier. La répartition indicative du développement (75 % GPT Work et 25 % Claude Code) et la revue indépendante prévues par #181 s'appliquent aux périmètres suivants :
   - le cockpit `web/` (HTML, JavaScript, CSS, bibliothèques déjà embarquées) ;
   - les routes de `sentinelle/api/` strictement nécessaires à l'interface ;
   - les tests d'interface : `tests/e2e/`, tests Pytest d'API et d'interface ;
@@ -175,6 +175,37 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
    8. test automatisé.
 
    Aucune action ne doit être décorative. Une fonction indisponible est signalée comme telle, jamais simulée.
+
+### Lot P1 du 25 novembre — interface, données et restitution scientifique
+
+Le propriétaire autorise les vingt vérifications ci-dessous dans ce chantier existant. Le signalement P1-01 et les deux effectifs rapportés proviennent de son installation. La reproduction doit préciser la version, la période, les données et le capital. Le statut de chaque point évolue avec ses preuves (signalé, reproduit, amélioration, non évaluable ou corrigé).
+
+| Réf. | Objet et condition d'acceptation |
+|---|---|
+| P1-01 | Simulation de 90 jours à 30 € fictifs. Vérifier les besoins de conversion avant le lancement. Si le carnet historique EUR/USDC requis manque, indiquer la date UTC et la couverture prouvée, sans taux inventé, interpolation ni utilisation du taux actuel. |
+| P1-02 | Expliquer « Simulation indisponible » à partir du motif effectivement enregistré pour le rapport affiché. |
+| P1-03 | Vérifier sur les horodatages, les labels arrivés à maturité et les fenêtres déjà utilisées quelles périodes peuvent être présentées comme jamais vues. |
+| P1-04 | Afficher « indisponible » pour une performance inconnue, et zéro uniquement pour une valeur mesurée. |
+| P1-05 | Afficher séparément la connexion du transport WebSocket et la fraîcheur des cotations, y compris après reconnexion. |
+| P1-06 | Associer chaque réponse de rapport à la version demandée, y compris si les réponses se terminent dans l'ordre inverse. |
+| P1-07 | Retrouver le bon résultat de backtest après rechargement, avec son identifiant, son statut et ses paramètres. |
+| P1-08 | Présenter l'horodatage enregistré pour chaque décision. Signaler un horodatage manquant. |
+| P1-09 | Présenter les noms et symboles Memecoin disponibles et conserver l'identifiant du token en cas d'homonymie ou de métadonnée manquante. |
+| P1-10 | Calculer la durée de détention à partir des heures d'exécution disponibles, pour un lot ouvert ou clôturé. |
+| P1-11 | Documenter le cours, la source et la date de toute conversion des gains ou pertes en euros. En cas de couverture manquante, conserver la devise native et signaler la limite. |
+| P1-12 | Présenter séparément les gains et pertes réalisés et latents, avec leur devise. |
+| P1-13 | Indiquer la fraîcheur des cotations utilisées pour valoriser les positions. Identifier les horloges disponibles (source, réception). |
+| P1-14 | Distinguer les états d'un stop actif, d'un seuil atteint et d'une sortie effectivement exécutée. |
+| P1-15 | Vérifier le rapprochement entre session Memecoin et portefeuille principal à partir des écritures. Si les sessions sont indépendantes, l'indiquer et éviter toute double comptabilisation. |
+| P1-16 | Montrer couverture historique demandée, disponible et exploitable par actif et horizon avec les bornes UTC. |
+| P1-17 | Expliquer les 1 205 situations résolues rapportées pour huit années demandées à partir des comptages conservés à chaque étape. Si le rapport source manque, chiffrer uniquement sur une reproduction identifiée. |
+| P1-18 | Examiner le signal filtré parmi les 103 rapportés, préciser le dénominateur, le seuil, la version et les motifs disponibles. Préserver les seuils et les rejets scientifiques. |
+| P1-19 | Distinguer l'éligibilité statistique, l'autorisation humaine liée à la version et le modèle actif en reprenant le contrat du correctif moteur P0. |
+| P1-20 | Rendre consultables les données manquantes et les périodes exclues avec leur raison, par jeu de données et version de modèle. |
+
+Les correctifs d'interface, d'API, de persistance des résultats et de vérification de couverture peuvent être préparés et testés localement après formalisation de ce lot. Leur intégration sur main suit la fusion du cadrage et reste limitée aux points identifiés ci-dessus. Toute correction dans le moteur de simulation ou d'apprentissage documente le défaut reproduit et ses tests avant modification. La réconciliation P1-15 est un audit comptable. Tout transfert entre portefeuilles ou changement de règle d'exécution demande une décision distincte.
+
+La campagne Chromium couvre les quinze pages existantes sur ordinateur et mobile, les quatre capitaux de simulation (30, 100, 1 000 et 10 000 €), les actions, graphiques, erreurs d'API, données absentes et reconnexions. Une preuve précise le SHA, le scénario, le résultat attendu et celui observé sur données fictives isolées. Les nouveaux défauts reçoivent une gravité et un rattachement à ce lot. Chaque PR reste limitée à six fichiers, avec revue indépendante et les trois CI.
 
 ### Critères de validation
 
@@ -391,8 +422,7 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
   - **Lots suivants** : selon les dépendances et la valeur marginale démontrée, sans multiplier les PR ni intégrer cent filtres dans le moteur.
 - **Règle d'arrêt.** Un indicateur dont le gain net est non significatif, instable ou issu d'une période déjà optimisée n'est pas activé dans la décision. Une capacité de sécurité peut être conservée malgré un rendement inférieur. Une capacité rejetée peut être abandonnée comme filtre.
 - **Répartition.**
-  - Claude Code : audit, inventaire, cadrage, registre, tests techniques et corrections mesurables autorisées.
-  - GPT Work : audit indépendant, disponible le mercredi 25 novembre 2026. Fichiers réservés, non modifiés : `tools/evaluation/`, `tests/test_memecoin_evaluation*.py`, `docs/evaluation/`.
+  - La répartition OMEGA ci-dessous s'applique au développement et à la revue du Sprint 5. Les engagements et résultats historiques restent consignés à leur date.
   - Le propriétaire décide de toute observation prospective, de toute promotion et de toute extension des sources.
 - **Rapport d'acceptation de chaque PR.**
   - Numéro, SHA, au plus six fichiers, et les trois contrôles CI verts sur le dernier commit (Ubuntu, Windows, Chromium).
@@ -400,3 +430,281 @@ Ces garanties s'appliquent à toute PR moteur de la campagne. Chacune est couver
   - Protocoles préenregistrés et résultats négatifs conservés.
   - Gel #54/#55 et invariants vérifiés : simulation exclusive, Guardian, Risk Commander, causalité.
   - Rendement, intervalles de confiance, pire baisse, coûts, actifs, périodes et seuils d'abstention, ou la mention NON MESURÉ.
+
+## Extension du Sprint 5 — phase de recherche OMEGA (décision du propriétaire du 25 novembre 2026)
+
+- **Autorisation.**
+  - Le propriétaire autorise la phase de recherche OMEGA dans le Sprint 5, seul sprint en cours.
+  - Elle ne crée ni sprint ni succession de missions autonomes.
+  - **Direction technique.** GPT Work est l’ingénieur principal du programme moteur OMEGA du Sprint 5, sans échéance au retour de Claude. La répartition indicative du développement est de 75 % pour GPT Work et 25 % pour Claude Code. À son retour, Claude intervient en complément technique sur des lots aux interfaces et fichiers convenus. Chaque auteur fait examiner ses modifications par l’autre ingénieur ou un réviseur indépendant. Un succès CI ne vaut pas revue indépendante.
+  - **Corrections autorisées après fusion de ce cadrage.** GPT Work traite d’abord la promotion de modèles (éligibilité statistique distincte d’un consentement humain explicite, traçable et lié à la version), puis les cotations (VERIFIED, INCONSISTENT, UNVERIFIED, STALE et conséquences sur les entrées). Viennent ensuite HIVE #172 (capital initial, drawdown, univers point-in-time et résultats futurs indisponibles), les horloges PULSE et FLASH, l’intégrité du cache des carnets et l’échec Windows de #177. Les recalculs ont un nouvel identifiant et conservent les résultats antérieurs. La consolidation respecte les bases réelles et l’ordre des dépendances. La réconciliation PHANTOM conserve les scripts et empreintes divergents avant la reprise du programme OMEGA existant.
+  - **Preuves et continuité.** GPT Work conserve ses outils et rapports dans `tools/evaluation/`, `tests/test_memecoin_evaluation*.py` et `docs/evaluation/`. Les journaux scientifiques sont en ajout seul. Avant chaque interruption de quota, l’auteur consigne HEAD, diff, essais réellement exécutés, CI restante et prochaine opération. Les trois contrôles obligatoires et la limite de six fichiers par PR s’appliquent à chaque nouveau HEAD. C100 requiert une autorisation distincte.
+- **Nature des 25 concepts OMEGA.**
+  - HIVE, GENOME, RADAR, ATLAS, PHANTOM, ORACLE, NEMESIS, CORTEX, CHRONOS, MEMORY, PULSE, IMMUNITY, EVOLUTION, TITAN, TRUTH, BORDER, ECHO, QUARANTINE, TIMELOCK, REPLAY, LINEAGE, BLINDSPOT, MIRROR, COMPASS et PROVENANCE.
+  - Ce sont des propositions de composants ou de méthodes expérimentales, pas des agents : au plus quatre agents restent actifs dans le moteur.
+  - Chaque concept est rattaché aux capacités C001–C100 avant toute implémentation : `docs/scalp/omega-cadrage.md`.
+  - Le registre SENTINELLE OMEGA V3 (25 novembre 2026), transmis par le propriétaire en cours de séance, est versé au dépôt en copie conforme : `docs/scalp/omega-registre-v3.md` (SHA-256 `2310472d4d986c52be6da5ec0a89d69cbe7f9c7f15ae33b278d71627538ac0e3`).
+    - Il fait foi pour la fonction et le test proposé de chaque concept. La correspondance de `docs/scalp/omega-cadrage.md` en tient compte.
+    - Il reste un registre de **propositions de recherche** : il ne crée aucune mission et ne valide aucune fonctionnalité.
+    - Ses trois expériences synthétiques (HIVE/BORDER, CORTEX/ECHO, PULSE/QUARANTINE) sont à reproduire dans le dépôt, à partir de leur code et de leur description, comme bibliothèque de ruptures synthétiques (REPLAY).
+    - Les contrôles synthétiques reconstruits avant sa réception (#172 à #174) restent publiés et signalés comme tels.
+- **Cibles expérimentales**, jamais des fonctions à optimiser sur les données d'évaluation :
+  - +1,30 % par semaine en moyenne géométrique, net de frais ;
+  - pire baisse de 10 % au plus ;
+  - au moins 60 % de semaines positives ;
+  - un avantage prédictif reproductible ;
+  - une compatibilité avec des capitaux fictifs de 30, 100, 1 000 et 10 000 €.
+- **Échéances.**
+  - Premier bilan : 1er décembre 2026.
+  - Bilan scientifique consolidé : 5 décembre 2026.
+  - Elles ne justifient ni hausse du risque ni baisse des exigences de validation. Le 5 décembre est un bilan scientifique, pas une autorisation d'engager de l'argent réel.
+- **Programme et part de l'effort.**
+  - **A — HIVE, GENOME, BORDER (35 %)** : apprentissage mutualisé entre actifs contre spécialisation individuelle.
+    - Trois références : individuelle, collective et hybride.
+    - Mesures : erreurs prédictives, généralisation dans le temps, généralisation à des actifs exclus de l'apprentissage, transfert négatif.
+    - Le bénéfice de la mutualisation observé en synthétique n'est pas tenu pour démontré sur les marchés.
+  - **B — CORTEX, ECHO (25 %)** : complémentarité effective des modèles.
+    - Mesures : corrélation des erreurs, biais communs, dépendances informationnelles.
+    - Recherche distincte de C086 (redondance des caractéristiques, #164) et de C087 (ensemble léger).
+    - Toujours comparée à des références simples ; aucun modèle ajouté sans contribution mesurée.
+  - **C — RADAR, ATLAS (15 %)** : élargissement de l'univers observé (cryptos, memecoins, actions, fonds).
+    - Inventaire : couverture, historiques, qualité, dépendances, coûts et liquidité.
+    - Univers défini à la date, actifs disparus inclus quand les données existent.
+    - Observer plus d'actifs n'augmente jamais automatiquement l'exposition. Toute nouvelle source attend l'autorisation du propriétaire.
+    - D'après le registre V3 :
+      - RADAR mesure la couverture, la qualité des données et l'apport marginal ;
+      - ATLAS mesure la stabilité des corrélations, les regroupements et la dépendance en crise.
+  - **D — PULSE, QUARANTINE (15 %)** : dégradation des modèles, y compris à entrées d'apparence normale.
+    - Distinguer la dérive des entrées, le biais des prédictions et la hausse des erreurs.
+    - Synthétique d'abord, puis ruptures moins marquées, progressives et dépendantes.
+    - Mesures : délai de détection, fausses alertes, situations non détectées.
+    - Tous les vetos déterministes sont conservés.
+    - QUARANTINE, d'après le registre V3 : signaler explicitement un actif ou un régime hors distribution.
+      - États distincts : diagnostic inconnu, données périmées, erreur confirmée.
+      - Une alerte n'autorise ni changement automatique de modèle ni modification des vetos.
+  - **E — intégrité scientifique (10 %)** : principes transversaux.
+    - TRUTH : essais multiples, biais, témoins et réutilisation de l'historique contrôlés ; résultats négatifs conservés.
+    - TIMELOCK : dates de publication, de réception, de disponibilité et de correction des sources vérifiées ; préenregistrement poussé avant calcul.
+    - MIRROR : contrôles négatifs et signaux artificiels sans information, auxquels le laboratoire ne doit attribuer aucune capacité prédictive.
+    - MEMORY : mémoire des essais, des hypothèses rejetées, des versions et des causes d'échec, en ajout seul.
+    - PROVENANCE : identifiants des jeux de données, fenêtres et empreintes associés à chaque prédiction expérimentale.
+    - Les essais multiples sont corrigés, et les résultats sont reproductibles pour l'audit de GPT Work.
+- **Méthode.**
+  - Hypothèses falsifiables, préenregistrées dans `research/scalp-v1/trials.jsonl` et poussées avant tout calcul.
+  - Références simples, modèles légers (`scikit-learn`, 16 Go de RAM, 8 Go de VRAM), données et calculs mutualisés, durée réelle mesurée.
+  - Aucun historique déjà consulté présenté comme aveugle.
+  - PR ciblées de six fichiers au plus, fusionnées après les trois contrôles obligatoires.
+  - En cas de blocage de GitHub, les travaux locaux autorisés continuent, sans contourner aucune protection.
+- **Mémoire et passation.** Le dossier `docs/scalp/dossier-evaluation-independante.md` et le registre des capacités sont tenus à jour :
+  - hypothèses, résultats chiffrés, rejets et leurs raisons ;
+  - fichiers, PR et SHA, tests et CI ;
+  - temps actif, prochaines étapes et points soumis à l'audit indépendant.
+
+  GPT Work doit pouvoir reprendre sans reconstruire le contexte.
+- **Recherches autorisées après les premiers résultats** (décision du propriétaire du 25 novembre 2026, soir). Toutes sont menées exclusivement en simulation. Les informations réellement nouvelles passent avant la multiplication de modèles sur les mêmes données.
+  - **C042, carnets d'ordres.** Étude des archives publiques de carnets d'ordres. Elle vérifie leur intégrité (sommes de contrôle publiées), leur couverture et leur disponibilité dans le temps. C'est une nouvelle source autorisée.
+  - **Archives d'actualités.** Inventaire des sources publiques, puis étude historique hors ligne. Aucune collecte prospective n'est autorisée.
+  - **Calibration de l'IA principale (C082).** Correction expérimentale, préenregistrée, jugée hors échantillon. Aucune intégration sans validation humaine.
+  - **PULSE.** Étalonnage des seuils sur un protocole séparé, préenregistré, avec des scénarios indépendants de ceux de l'étalonnage.
+  - **Consolidation des 12 agents en quatre rôles actifs.** Préparation architecturale seulement. Aucune protection n'est supprimée.
+  - **A1** reste une candidate expérimentale.
+  - **C100.** Le protocole d'observation prospective est préparé et figé. L'observation elle-même ne démarre pas sans une autorisation distincte.
+  - Les fusions déjà préparées sont terminées. Tous les résultats négatifs sont conservés, et la compatibilité avec Windows 11 est maintenue.
+- **Garde-fous inchangés.**
+  - Simulation exclusive : aucun ordre réel, aucune clé privée, aucun levier, aucune vente à découvert, aucune promotion automatique.
+  - Guardian, Risk Commander et protections scientifiques jamais assouplis.
+  - #54 et #55 intégralement gelées.
+  - Au plus quatre agents actifs.
+  - Aucun service permanent ni nouvelle observation prospective sans autorisation distincte.
+
+## Extension du Sprint 5 — programme multi-actifs et cerveau central V4 (proposition du 26 novembre 2026, revue par GPT Work, validée par le propriétaire le 27 novembre 2026 sous réserve de la revue indépendante, des corrections nécessaires et des trois CI vertes)
+
+Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 2026, **avant toute implémentation**. Elle intègre les compléments de GPT Work (commit `7f2686c`, ancienne #202, fermée).
+
+- **Décision du propriétaire du 27 novembre 2026.**
+  - Cadrage validé, sous réserve de la revue indépendante, des corrections nécessaires et des trois CI vertes.
+  - Utilisation historique de SLV via Yahoo autorisée.
+  - Recherche d'une nouvelle source publique pour XMR autorisée ; toute intégration reste soumise à sa validation.
+  - GPT Work finalise le correctif du Risk Commander et les revues indépendantes. Claude consolide #200, #201 et #203 dans cet ordre, puis engage la recherche quantitative sur les historiques autorisés dès la fusion de ce cadrage.
+
+- **Priorité.**
+  - Les intégrations et corrections P0/P1 en cours passent en premier.
+  - Ce cadrage autorise la préparation. L'implémentation opérationnelle attend trois conditions : l'intégration de ces corrections, la fusion de ce texte, et l'accord Work–Claude sur les interfaces et les fichiers de chaque lot.
+  - Tant que ce texte n'est pas fusionné, seules les recherches OMEGA déjà autorisées se poursuivent.
+  - Chaque PR compte au plus six fichiers. Elle exige une revue indépendante et les CI Ubuntu, Windows et Chromium vertes sur sa tête.
+- **Objectif stratégique.**
+  - Un registre de spécialistes logiques, un par instrument, légers, déterministes et chargés à la demande, sous un cerveau central unique.
+  - Au plus quatre rôles centraux actifs : Regime Detector, Alpha Hunter, Risk Commander et Cost Router.
+  - Cible initiale proposée de 100 instruments : 70 cryptos, 10 actions, 8 indices, 6 matières premières et 6 paires de devises.
+  - Le registre peut dépasser 100 entrées sans augmenter le nombre de rôles centraux actifs.
+  - Identifiant stable : classe, sous-jacent, place, produit et devise.
+  - Un indice peut servir de référence. Simuler une position exige un instrument admissible distinct, long et au comptant, avec ses propres prix et coûts.
+  - Objectif de recherche : au moins deux stratégies validées par instrument. Le compteur de validations peut rester à zéro.
+  - Une stratégie n'est jamais tenue pour rentable sur la seule base d'un backtest favorable.
+  - **Cible expérimentale du propriétaire** : +1,30 % net par semaine (environ +96 % par an composé), avec un drawdown maximal visé de 10 %.
+    - C'est un repère de recherche, jamais un critère de validation ni une promesse.
+    - Sous l'hypothèse optimiste de rendements hebdomadaires normaux, rester sous 10 % de drawdown avec au moins 70 % de chances sur trois ans suppose une volatilité d'environ 18 % par an, soit un Sharpe annuel d'environ 3,7.
+    - C'est plus du double du plus fort avantage que l'historique journalier permet de détecter (MIRROR v5). Chaque bilan mesure l'écart à cette cible.
+- **Instruments prioritaires et couverture, établie par granularité.**
+  - Les bornes journalières proviennent d'ATLAS (`research/scalp-v1/omega-atlas-v1.json`, #175). Elles décrivent la couverture des séries.
+  - Elles ne décrivent ni la couverture minute ni la profondeur exécutable (L2), qui sont indiquées à part.
+
+  | Priorité | Série journalière (bornes ATLAS) | Minute | Profondeur L2 | Limite à lever |
+  |---|---|---|---|---|
+  | BTC, ETH | BTCUSDT et ETHUSDT au comptant, du 17/08/2017 au 22/11/2026 | archives Binance au comptant publiées ; couverture à établir | contrats perpétuels seulement, mesurés de 2023-01 à 2026-08 (C042, #179) ; aucune archive au comptant | profondeur et change à chaque instant simulé |
+  | SOL | SOLUSDT, du 11/08/2020 au 22/11/2026 | idem | non mesurée | date d'admission |
+  | XMR | XMRUSDT, du 15/03/2019 au 20/02/2024 (paire retirée) | idem, jusqu'au retrait | non mesurée | retrait ; recherche d'une nouvelle source publique autorisée le 27 novembre, intégration soumise à validation (voir ci-dessous) |
+  | Or | GLD, proxy de l'or, du 18/11/2004 au 23/11/2026 | aucune | aucune | produit effectivement simulable et frais ; équivalent UCITS en euros non mesuré |
+  | Argent | SLV (Yahoo, autorisée le 27 novembre), 5 117 séances du 28/04/2006 au 31/08/2026, plus long trou de 5 jours | aucune | aucune | produit effectivement simulable et frais |
+  | Nasdaq-100, S&P 500 | QQQ du 03/01/2000 au 24/11/2026 ; SPY du 03/01/2000 au 23/11/2026 | aucune | aucune | ETF ou indice de référence, dividendes, écart de suivi |
+
+- **Inventaire des sources** :
+  - Avant toute intégration, inventorier aussi les actions, devises et autres candidats.
+  - Pour chaque source et instrument, consigner :
+    - autorisation et licence ;
+    - calendrier, fuseau et devise ;
+    - dates de cotation, de retrait et de réception ;
+    - granularité, trous et ajustements ;
+    - disponibilité du bid/ask, profondeur et frais.
+  - Classer chaque usage comme admissible, référence seule ou non évaluable, avec son motif.
+  - Toute nouvelle source est soumise au propriétaire avant collecte ou utilisation. Une donnée historique manquante reste inconnue.
+  - **Proposition pour XMR après février 2024**, à valider avant toute collecte :
+    - série de recherche : archives OHLCVT publiques de Kraken (XMR/USD), téléchargeables depuis l'ouverture du marché ;
+    - recoupement : XMR-USD de Yahoo, source déjà utilisée, prix agrégé de référence ;
+    - admissibilité : Kraken a arrêté XMR pour les clients de l'EEE le 31 octobre 2024, après Binance (février 2024) et OKX (janvier 2024). Pour un compte dans l'EEE, XMR après ces dates est donc classé « référence seule » : il peut servir à la recherche, pas à simuler une position.
+- **Coordinateur et sécurité (cerveau central V4)**, propriété de GPT Work :
+  - **Coordinateur unique.**
+    - Étendre `sentinelle/fleet/coordinator.py`.
+    - Un seul coordinateur sélectionne les avis pertinents.
+    - Les calculs sont partagés par instrument, par instant de disponibilité et par version des entrées.
+    - Les protections déterministes restent obligatoires.
+  - **Mémoire.**
+    - Mémoire globale : hypothèses, versions et désaccords.
+    - Mémoire individuelle : observations et résultats par instrument, avec leur date réelle de disponibilité.
+  - **Modes et supervision.**
+    - Normal : exige les preuves requises.
+    - Vigilance : signale un désaccord ou une anomalie.
+    - Dégradé : restreint les analyses selon la couverture.
+    - Protection : bloque toute nouvelle exposition touchée si une protection obligatoire échoue, manque ou est en quarantaine.
+    - Les sorties prévues restent soumises aux règles existantes.
+    - La reprise exige des contrôles sains et une transition tracée.
+    - Aucun mode, avis majoritaire, budget CPU ou objectif de rendement ne peut autoriser de passer outre le veto ou le risque.
+    - Le cockpit expose le mode, la fraîcheur, les alertes, les protections présentes ou indisponibles et le motif de chaque décision.
+  - **Défaut reproduit à la frontière du coordinateur.**
+    - Commit `1a76255`, lignes 74–76, 111–115, 128 et 189–194 ; candidat synthétique de `tests/test_fleet.py`.
+    - Avec 12 positions ouvertes, la référence donne REFUS.
+    - Avec une exception injectée dans `Risk Commander.run`, le coordinateur donne trois fois ATTENDRE puis PROPOSITION_SIMULÉE au quatrième appel. Le veto indépendant reste requis.
+    - Cet essai porte sur la décision intermédiaire. Reproduit par GPT Work, puis confirmé indépendamment par Claude Code sur le même commit.
+  - **Critère d'acceptation du coordinateur V4** (à ne pas confondre avec la règle V4 de #200) :
+    - aux mêmes entrées, bloquer toute augmentation d'exposition pendant toute la quarantaine d'une protection obligatoire manquante ou en échec ;
+    - tracer la protection absente ;
+    - vérifier aussi les chemins appelants et la reprise.
+- **Standard de validation**, fondé sur l'expérience préenregistrée OMEGA TRUTH/MIRROR (#200) :
+  - **Ce que montre #200** (version 3, monde martingale).
+    - Ces résultats sont conditionnels à son protocole synthétique : huit actifs GARCH simulés, 45 variantes, 2 600 jours, coûts fixes. Ils ne mesurent aucun marché réel.
+    - Sans correction des essais multiples, un programme de deux stratégies par actif valide des stratégies fausses dans 92 à 99 % des mondes sans avantage.
+    - Avec une correction de Holm sur tout le programme, ce risque tombe à environ 3 %.
+    - Mais avec trois ans hors échantillon, un vrai Sharpe de 1,5 n'est retrouvé que trois fois sur dix, actif par actif.
+    - Juger une même règle sur la moyenne de plusieurs actifs (jugement collectif) détecte plus souvent un avantage commun, sans perdre le contrôle des fausses validations : 18 % contre 9 % pour un Sharpe de 0,5. C'est un constat descriptif sur 100 simulations, sans test d'écart.
+    - **Rectificatif du 28 novembre 2026** (revue indépendante de GPT Work) : quand l'avantage est propre à un seul actif, aucun des deux jugements ne le retrouve bien. Il y a 7/100 validations collectives, 9/100 validations individuelles quelque part, mais 6/100 seulement sur l'actif réellement porteur. L'infériorité du jugement collectif n'est donc pas démontrée.
+    - **Correction d'interprétation du 27 novembre 2026** (signalée par le coordinateur) : une règle validée collectivement sur huit actifs ne constitue pas huit stratégies validées individuellement. La lecture « multiplie par huit le nombre de stratégies-actif validées » est retirée. Aucun résultat de MIRROR v1 à v3 n'est réécrit ; la distinction est mesurée par MIRROR v4, préenregistrée à part.
+  - **Ce que montre MIRROR v4** (#203, avis scientifique favorable de GPT Work le 28 novembre ; synthétique, vérité connue, futur jamais lu) :
+    - quand l'avantage ne concerne que les quatre cryptos, la moitié des stratégies-actif du comptage collectif ×8 n'ont aucun avantage réel ;
+    - le jugement collectif suivi d'un jugement individuel n'en retient aucune fausse dans les six mondes, mais beaucoup moins de vraies ;
+    - avec 34 tests corrigés ensemble et trois ans hors échantillon, un avantage de Sharpe 1 commun aux huit actifs ne donne en moyenne qu'environ une stratégie validée pour l'ensemble des huit instruments. L'objectif de deux par instrument exige donc des confirmations prospectives ;
+    - la contribution marginale mesurée sur la fenêtre de validation ne filtre pas les faux.
+  - **Ce que montre MIRROR v5** (#203, avis scientifique favorable de GPT Work le 28 novembre ; puissance du jugement individuel sur la longueur réelle de chaque historique, en journalier ; Holm sur 34 tests en borne prudente, 18 valeurs p fixées à 1 ; argent : durée de GLD par hypothèse, conservée même après l'autorisation de SLV) :
+    - un Sharpe net de 1,5 n'est retrouvé que 6 à 14 % du temps sur BTC, ETH, SOL et XMR ;
+    - sur l'or, l'argent, le Nasdaq-100 et le S&P 500, 50 % de puissance n'est atteint qu'à partir d'un Sharpe d'environ 1,2 à 1,3, et 80 % jamais en dessous de 1,5 ;
+    - l'historique journalier seul ne permettra donc pas de valider deux stratégies par instrument : confirmations prospectives, granularité plus fine si ses coûts le permettent, ou spécialistes maintenus en observation.
+  - **Avant calcul** :
+    - préenregistrement poussé, avec la grille, les familles, le nombre total d'essais et la puissance attendue ;
+    - périodes déjà consultées déclarées comme telles.
+  - **Causalité** :
+    - décision à la clôture, exécution fictive à l'ouverture suivante ;
+    - aucun usage des plus hauts ou plus bas futurs pour choisir une entrée ou une sortie ;
+    - apprentissage et jugement séparés chronologiquement, avec embargo.
+  - **Coûts complets**, au comptant :
+    - commissions datées (C061) ;
+    - écart, glissement (C099) et profondeur consommée ;
+    - minima d'ordre et exécutions partielles (C062, simulateur de GPT Work) ;
+    - change horodaté en euros et latence d'exécution.
+  - **Règle minimale** (V6 de #200) :
+    - test hors échantillon à erreur type robuste ;
+    - trois niveaux distincts, jamais confondus :
+      - **validation collective** : la règle jugée sur la moyenne d'un groupe d'actifs. Elle oriente la recherche mais ne compte pour aucun instrument ;
+      - **validation individuelle par instrument** : la même règle jugée sur cet instrument seul ;
+      - **contribution marginale au portefeuille commun** : rejeu avec et sans la stratégie, depuis le même état, à risque comparable ;
+    - seule une validation individuelle par instrument, assortie d'une contribution marginale positive, compte une stratégie pour l'objectif de deux par instrument ;
+    - tous les tests présentés au même bilan (collectifs, individuels et par actif) corrigés ensemble par Holm ;
+    - résultat toujours positif avec des coûts doublés ;
+    - au moins deux tiers des sous-périodes hors échantillon positifs ;
+    - plusieurs régimes représentés.
+  - **Comparaisons obligatoires** : détention simple, liquidités, momentum simple et B0, à coûts identiques et sur les mêmes fenêtres causales.
+- **Stratégies et portefeuille commun.**
+  - **Entrée du registre.** Chaque entrée associe un instrument et une version de stratégie à :
+    - ses données et leurs empreintes ;
+    - ses règles d'entrée et de sortie, et la disponibilité de son signal ;
+    - ses paramètres figés ;
+    - ses coûts détaillés et son rendement net ;
+    - son drawdown depuis le capital initial et son incertitude ;
+    - ses essais antérieurs et son statut scientifique ;
+    - son niveau de validation, distinguant validation collective (avec le groupe d'actifs jugé), validation individuelle sur l'instrument et contribution marginale.
+  - **Statuts** : candidate, préenregistrée, évaluée, rejetée, preuve insuffisante, validée sur l'historique, confirmée prospectivement.
+  - L'autorisation humaine éventuelle est enregistrée à part. Elle est liée à la version exacte et à son empreinte.
+  - **Comparaison dans le moteur existant.** Mêmes fenêtres causales, au comptant, après tous les coûts ci-dessus.
+  - **Portefeuille fictif commun.**
+    - Le cash et la liquidité y sont réservés une seule fois.
+    - Les rejoueurs utilisent des copies isolées de ce portefeuille.
+    - Les anciennes sessions et archives conservent leur comptabilité.
+  - **Mesures.**
+    - Aux quatre capitaux fictifs (30, 100, 1 000 et 10 000 €).
+    - Rendement géométrique net, drawdown, espérance par transaction, régularité des gains, profit factor et incertitude statistique.
+    - Avec références simples, séparation temporelle et essais multiples corrigés.
+    - Résultats négatifs conservés ; périodes exclues et résultats indéterminés rapportés.
+  - **Contribution marginale, par ablation.**
+    - Rejouer avec et sans la stratégie, depuis le même état (C095), sur une période qui n'a pas servi à la sélectionner (MIRROR v4).
+    - Mesurer le rendement net, le risque et le drawdown, en tenant compte des signaux concurrents, des coûts et des corrélations.
+    - Une stratégie ne compte que si elle améliore le portefeuille commun.
+  - **Statut final.**
+    - Une stratégie qui passe tout cela est « validée sur l'historique », non « rentable ».
+    - Sa confirmation exige une observation prospective (C100), autorisée à part.
+    - Aucune promotion n'est automatique.
+- **Axes de recherche** (Claude Code, 25 % du développement, recherche quantitative) :
+  - stratégies candidates propres à chaque actif ;
+  - apprentissage mutualisé entre instruments (HIVE, GENOME, BORDER) : une même règle testée sur plusieurs actifs à la fois gagne en puissance, mais sa validation collective doit être suivie d'une validation par instrument ; détection des transferts négatifs entre actifs et des stratégies redondantes ;
+  - spécialisation selon les régimes ;
+  - optimisation causale des entrées ;
+  - prises de bénéfices fixes et adaptatives ;
+  - sorties progressives et protections des pertes ;
+  - abstention quand l'avantage estimé est insuffisant ;
+  - contribution marginale au portefeuille commun.
+- **Répartition et interfaces** (confirmées par GPT Work le 26 novembre) :
+  - **GPT Work, ingénieur principal (75 %)** : infrastructure, intégration, moteur et simulateur, coordinateur (`sentinelle/fleet/`), comptabilité et cockpit (`web/`, `sentinelle/api/`).
+  - **Claude Code (25 %)** : hypothèses, règles d'entrée et de sortie, et validations, dans des modules de recherche qui lisent le moteur sans le modifier.
+    - Fichiers : `sentinelle/scalp/multi_*.py` et `tests/test_scalp_multi_*.py`.
+    - Résultats dans `research/multi-v1/`.
+    - Registre des essais `research/multi-v1/trials.jsonl`, en ajout seul.
+    - Toute modification d'une fonction partagée (coûts, simulateur, données) passe par GPT Work.
+  - **Avant d'éditer le code**, convenir ensemble :
+    - de la version des contrats, de leurs exemples fictifs et des tests d'acceptation ;
+    - d'un propriétaire unique par fichier.
+
+    Examiner d'abord les contrats de #47 (identité, observations datées, avis et registre) et les quatre rôles de #180.
+  - **Interface d'échange** : une fiche JSON par stratégie dans `research/multi-v1/strategies/`.
+    - Elle porte l'entrée du registre ci-dessus et le SHA du préenregistrement.
+    - Claude fournit la fiche et un avis horodaté, sans pouvoir d'ordre.
+    - Work rend le résultat du rejeu, la décomposition des coûts et les motifs de refus, liés aux mêmes identifiants.
+    - Le moteur ne lit que les fiches confirmées **et** approuvées par le propriétaire.
+  - **Revue** : chaque PR est examinée par l'autre ingénieur ; un succès de CI ne vaut pas revue. Les deux parties conservent la preuve de leur accord.
+- **Étapes**, sans nouvelle mission autonome :
+  1. Intégration des corrections P0/P1 en cours, puis fusion de ce cadrage (validé par le propriétaire le 27 novembre) après revue indépendante et trois CI vertes.
+  2. Inventaire des sources, et données des instruments prioritaires complétées par les seules sources validées.
+  3. Première vague préenregistrée : familles simples fixées d'avance par actif, avec un test collectif entre actifs, des tests individuels par instrument, la contribution marginale et la puissance déclarée (calibrée sur MIRROR v4).
+  4. Mesure de la contribution marginale au portefeuille commun.
+  5. Bilan de recherche le 1er décembre, bilan scientifique le 5 décembre.
+- **Garde-fous inchangés.**
+  - Simulation exclusive : aucun ordre réel, aucune clé privée, aucun levier ni vente à découvert, aucune promotion automatique.
+  - Aucun nouveau service permanent ; C100 arrêté, non démarré.
+  - Aucune nouvelle source sans validation.
+  - #54 et #55 strictement gelées.

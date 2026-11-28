@@ -382,6 +382,8 @@ body {
 .nav a.active, .bottom-nav a.active { color: var(--accent-cyan); }
 .nav a.active { background: rgba(56,189,248,.085); box-shadow: inset 2px 0 var(--accent-cyan); }
 .nav a.active .ico, .hud-live { color: var(--accent-cyan); }
+.hud-market { display: grid; gap: 1px; }
+.hud-quotes { color: var(--muted); font-size: .74rem; }
 .dot.connected { background: var(--accent-cyan); box-shadow: 0 0 8px rgba(56,189,248,.4); }
 .hud-account { display: flex; align-items: baseline; gap: .7rem; padding-left: 1rem; border-left: 1px solid var(--border); }
 .hud-account > span { font-size: .82rem; }

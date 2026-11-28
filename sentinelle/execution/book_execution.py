@@ -25,7 +25,7 @@ def read_public_book(source, symbol):
     return BookSnapshot(raw["bids"], raw["asks"], stamp / 1000, name)
 
 
-def match_snapshot(broker, symbol, book, now, max_age):
+def match_snapshot(broker, symbol, book, now, max_age, submitted_id=None):
     """One immutable observation per source/symbol/time; event, depth and fills commit together."""
     if not isinstance(book, BookSnapshot) or not 0 <= now - book.timestamp <= max_age:
         raise LiquidityError("Carnet périmé, futur ou invalide")
@@ -48,6 +48,9 @@ def match_snapshot(broker, symbol, book, now, max_age):
         for order in sorted(broker.open_orders(symbol), key=lambda o: (o["type"] != "stop", o["id"])):
             order = broker.get_order(order["id"])
             if order["status"] not in OPEN_STATUSES:
+                continue
+            if order["id"] != submitted_id and broker.single_book_entry(order):
+                broker.cancel_order(order["id"], broker.UNVERIFIED_REMAINDER)
                 continue
             if order["expires_at"] is not None and now >= order["expires_at"]:
                 broker.cancel_order(order["id"], "Ordre expiré", expired=True)

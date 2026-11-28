@@ -61,7 +61,8 @@ export default {
     watch([() => current.value?.id, days], loadEquity, { immediate: true, flush: 'sync' });
     const feed = computed(() => {
       const live = store.decisions.map(d => ({ ...d, live: true }));
-      return [...live, ...decisions.value].slice(0, 40);
+      const liveIds = new Set(live.map(d => d.id).filter(id => id != null));
+      return [...live, ...decisions.value.filter(d => !liveIds.has(d.id))].slice(0, 40);
     });
 
     const startAgent = async (a) => {
@@ -85,7 +86,7 @@ export default {
       const ext = o.extensions || {};
       return [
         { label: 'Moteur', ok: o.engine_alive },
-        { label: 'Données de marché', ok: o.market?.status?.ok, warn: !o.market?.status?.ok },
+        { label: 'Source de marché', ok: o.market?.status?.ok, warn: !o.market?.status?.ok },
         { label: 'Argent fictif uniquement', ok: o.paper_only?.paper_only === true, err: o.paper_only?.paper_only !== true },
         { label: 'Actualités (IA locale)', ok: ext.news?.enabled && ext.news?.ollama_ok !== false && !ext.news?.error, off: !ext.news?.enabled },
         { label: 'Telegram', ok: ext.telegram?.connected, off: !ext.telegram?.enabled },

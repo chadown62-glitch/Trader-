@@ -287,12 +287,21 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
         rep = out["report"]
         assert rep["learner"]["recipe"] == "mixte" and rep["learner"]["chosen"] == "mixte"
         assert rep["holdout"]["auc"] > 0.6
+        coverage = rep["data_coverage"]
+        assert coverage["timeframe"] == "1h" and coverage["requested_days"] == 720
+        assert all(a["retained"] <= a["available"] for a in coverage["assets"].values())
+        assert coverage["candidates"] == sum(x["eligible"] for x in coverage["samples_by_asset"].values())
+        assert coverage["development_candidates"] >= rep["n_resolved"]
+        counts = rep["signal_filter"]
+        assert counts["non_overlapping_model"] == rep["holdout"]["model"]["n"]
+        assert counts["non_overlapping_baseline"] == rep["holdout"]["baseline"]["n"]
+        assert counts["non_overlapping_model"] <= counts["pass_threshold"] <= counts["candidates"]
         comparison = rep["paper_comparison"]
         assert comparison["start_ms"] > rep["period"]["end"] and comparison["reference"] == "all_signals"
         assert rep["backtest_model"]["metrics"]["n"] > 0
         model = app.models.get(out["version"])
         assert model["metrics"]["paper_verdict"] == comparison["verdict"]
-        assert (model["status"] == "champion") == (out["ok"] and comparison["verdict"] == "MODÈLE APPROUVÉ POUR PAPER TRADING")
+        assert model["status"] != "champion" and app.models.champion("1h") is None
         assert any("Téléchargement" in m for m in steps) and any("Simulation" in m for m in steps)
         # entraînement sur une période courte : les fiches sont calculées à part, sur l'historique complet
         deadline = time.time() + 120
@@ -302,9 +311,7 @@ def test_panel_training_chain_learns_activates_and_updates_sheets(tmp_path):
         assert [s["symbol"] for s in sheets] == list(series) and not any(s.get("missing") for s in sheets)
         assert app.knowledge_get("BTC/EUR")["history"]["bars"] == 17_000
         assert app.refresh_knowledge_if_stale() is False  # fiches fraîches : rien à refaire
-        mon = app.learning_monitor()
-        if model["status"] == "champion":
-            assert mon["model"]["version"] == out["version"] and "mixte" in mon["model"]["level"]
+        assert all(event["event"] != "promu" for event in app.models.history())
     finally:
         app.db.close()
 
@@ -349,10 +356,10 @@ def test_model_registry_handles_trial_status(app):
     assert store.champion("4h") is None
     assert store.reserve_evaluation("m-valide", "4h", 100, 200, "all_signals") == 100
     store.record_evaluation("m-valide", {"verdict":"MODÈLE APPROUVÉ POUR PAPER TRADING"})
-    assert store.register(result(True, False, "m-valide"), {})["status"] == "champion"
-    assert store.champion("4h").version == "m-valide" and store.trial("4h") is None
+    assert store.register(result(True, False, "m-valide"), {})["status"] == "challenger"
+    assert store.champion("4h") is None and store.trial("4h") is None
     statuses = [a for a in app.agents_status()]
-    assert all(a["model"] == "m-valide" and a["model_trial"] is False for a in statuses)
+    assert all(a["model"] is None for a in statuses)
 
 
 class StubModel:
@@ -432,3 +439,9 @@ def test_validated_model_trades_full_size(db, paper, pm, prices, clock):
     pos = pm.open_positions("ETH/USDC", agent="ia")
     assert len(pos) == 1 and pos[0]["risk_amount"] / paper.equity()[0] == pytest.approx(0.005, rel=0.15)
     assert "IA : 60 % de chances de gain" in db.one("SELECT decision_reason FROM candidates")["decision_reason"]
+
+def test_prior_holdout_detects_external_only_overlap_and_handles_touching_windows(app):
+    timeframe = "4h"
+    app.models.reserve_evaluation("older", timeframe, 100, 200, "all_signals")
+    assert app._prior_windows(timeframe, {"holdout_start": 160, "end": 220}) == (["older"], [])
+    assert app._prior_windows(timeframe, {"holdout_start": 200, "end": 220}) == ([], [])

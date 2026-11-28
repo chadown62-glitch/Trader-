@@ -154,7 +154,7 @@ class PositionManager:
                 },
             )
             try:
-                self.broker.place_order(
+                order = self.broker.place_order(
                     symbol,
                     "buy",
                     entry_type,
@@ -167,6 +167,8 @@ class PositionManager:
                     expires_at=expires_at,
                     reason=reason,
                 )
+                if order["status"] == "cancelled" and not order["filled"]:
+                    rejection = OrderError(order["error"] or "Entrée annulée avant exécution", "entry_cancelled")
             except OrderError as exc:
                 rejection = exc
                 self.db.update("positions", pos_id, {"status": "cancelled", "reason_close": exc.message})

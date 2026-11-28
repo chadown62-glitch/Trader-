@@ -13,7 +13,7 @@
 //    en préparation (D-UI10).
 // 7. Réglages : valeur hors bornes et champ vide refusés avec le libellé et l'unité du champ (D-UI9), rien d'enregistré ;
 //    valeur valide enregistrée et conservée après rechargement.
-// 8. WebSocket fermé par le serveur : « Hors ligne », puis reconnexion automatique.
+// 8. WebSocket fermé par le serveur : « Flux déconnecté », puis reconnexion automatique.
 // 9. Memecoin : démarrage refusé par le serveur (réponse simulée) : message affiché, paramètres envoyés corrects.
 const { chromium } = require('playwright');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765';
@@ -42,10 +42,17 @@ const near = (a, b, tol) => Math.abs(Number(a) - Number(b)) <= tol;
   const open = async () => (await positions()).filter(p => p.status === 'open');
 
   // 1. Ticket d'achat.
+  const detailRoute = '**/api/accounts/' + account.id;
+  let releaseDetail;
+  const holdDetail = new Promise(resolve => { releaseDetail = resolve; });
+  await page.route(detailRoute, async route => { await holdDetail; await route.continue(); });
   await page.goto(BASE + '/#/trade');
   const ticket = page.locator('.ticket');
   await ticket.waitFor();
-  await sleep(1000);
+  const quarterButton = ticket.getByRole('button', { name: '25 %', exact: true });
+  check(await quarterButton.isDisabled(), 'le raccourci de montant attend le solde du compte');
+  releaseDetail();
+  await ticket.locator('.pill-row button:enabled').filter({ hasText: '25 %' }).waitFor();
   const amount = ticket.locator('.field:has-text("Montant") input').first();
   await ticket.locator('.pill-row button:has-text("25 %")').click();
   const quarter = Number(await amount.inputValue());
@@ -195,11 +202,40 @@ const near = (a, b, tol) => Math.abs(Number(a) - Number(b)) <= tol;
   let sockets = 0, live = null;
   await page.routeWebSocket('**/api/ws', ws => { sockets++; live = ws; ws.connectToServer(); });
   await page.reload();
-  await page.waitForSelector('.hud-live:has-text("En direct")', { timeout: 15000 });
+  await page.waitForSelector('.hud-live:has-text("Flux connecté")', { timeout: 15000 });
   await live.close({ code: 1011, reason: 'coupure simulée' });
-  await page.waitForSelector('.hud-live:has-text("Hors ligne")', { timeout: 5000 });
-  await page.waitForSelector('.hud-live:has-text("En direct")', { timeout: 20000 });
+  await page.waitForSelector('.hud-live:has-text("Flux déconnecté")', { timeout: 5000 });
+  await page.waitForSelector('.hud-live:has-text("Flux connecté")', { timeout: 20000 });
   check(sockets === 2, 'une reconnexion attendue : ' + sockets + ' connexion(s)');
+
+  await page.route('**/api/overview', async route => {
+    const response = await route.fetch();
+    const snapshot = await response.json();
+    for (const symbol of snapshot.market.watch) snapshot.market.fresh[symbol] = false;
+    await route.fulfill({ response, json: snapshot });
+  });
+  await page.getByText('Cours non confirmés', { exact: true }).waitFor({ timeout: 15000 });
+  check((await page.locator('.hud-live').innerText()).includes('Flux connecté'), 'transport connecté malgré des cotations non confirmées');
+  await page.unroute('**/api/overview');
+  await page.getByText('Cours frais', { exact: true }).waitFor({ timeout: 15000 });
+
+  // A delayed decision retains the engine time in both views. Legacy events may have no timestamp.
+  await page.goto(BASE + '/#/ai');
+  await page.getByRole('button', { name: 'Journal des décisions' }).click();
+  const decision = { agent: 'audit', symbol: 'AUDIT/EUR', kind: 'refus', message: 'Événement de test retardé', ts: 946684800 };
+  const expected = await page.evaluate(async ts => (await import('/js/store.js')).dt(ts), decision.ts);
+  live.send(JSON.stringify({ topic: 'decision', data: decision }));
+  const event = page.locator('.feed-item').filter({ hasText: decision.message });
+  await event.waitFor();
+  check((await event.innerText()).includes(expected), 'la décision doit conserver la date de son journal');
+  await page.goto(BASE + '/#/dashboard');
+  await event.waitFor();
+  check((await event.innerText()).includes(expected), 'le tableau de bord doit afficher la même date');
+  const legacy = { agent: 'audit', kind: 'refus', message: 'Décision sans horodatage' };
+  live.send(JSON.stringify({ topic: 'decision', data: legacy }));
+  const undated = page.locator('.feed-item').filter({ hasText: legacy.message });
+  await undated.waitFor();
+  check((await undated.locator('.meta').innerText()).includes('—'), 'la date absente reste inconnue');
 
   // 9. Memecoin : démarrage refusé par le serveur (réponse simulée : aucune source publique interrogée).
   let startBody = null;

@@ -1,4 +1,5 @@
 import copy
+from unittest.mock import Mock
 
 import pytest
 
@@ -97,6 +98,20 @@ def _feat_with_signal():
         if idx:
             return df, feat, idx
     raise AssertionError("aucun signal trouvé")
+
+
+def test_decision_event_uses_persisted_id_and_engine_clock(db, pm, risk, settings):
+    bus = Mock()
+    engine_clock = Mock(return_value=946684800.25)
+    agent = TradingAgent("ia", "training", db, pm, risk, lambda: settings, lambda: None,
+                         timeframe="1h", bus=bus, clock=engine_clock)
+    agent._journal("ETH/USDC", "specialist", "décision datée", {"specialist": "risk", "ts": 1})
+    topic, message = bus.publish.call_args.args
+    saved = db.one("SELECT id, ts, agent FROM decisions")
+    assert topic == "decision"
+    assert message["id"] == saved["id"]
+    assert message["agent"] == saved["agent"] == "risk"
+    assert message["ts"] == saved["ts"] == 946684800.25
 
 
 def test_agent_exploration_opens_reduced_risk_position(db, paper, pm, risk, settings, prices, clock):

@@ -6,6 +6,7 @@ import time
 
 from ..agent.agent import TradingAgent
 from ..execution.base import OrderError
+from ..market.crosscheck import Quote
 from ..safety import forbid, is_paper_runtime
 from .common import AGENTS, EMERGENCY_CONFIRM, RETIRED_AGENTS, UserError
 from .readiness import compute_readiness
@@ -32,9 +33,6 @@ class AgentsMixin:
             tf = self.settings["ai"]["timeframe"]
             model = self.models.champion(tf)
             st["model_trial"] = False
-            if model is None:  # à défaut de modèle validé : le modèle « à l'essai » (argent fictif)
-                model = self.models.trial(tf)
-                st["model_trial"] = model is not None
             st["model"] = model.version if model else None
             # One lifecycle and one execution context for all four logical stages.
             st["specialists"] = [
@@ -105,14 +103,14 @@ class AgentsMixin:
             for ext in self.extensions:
                 if hasattr(ext, "score_for"):
                     news_fn = ext.score_for
-            # modèle validé ; à défaut, le modèle « à l'essai » (argent fictif, taille réduite)
+            # Résoudre le modèle approuvé à chaque décision pour prendre en compte un retrait.
             def model_fn():
-                return self.models.champion(tf) or self.models.trial(tf)
+                return self.models.champion(tf)
 
             agent = TradingAgent(
                 name, d["mode"], self.db, rt.positions, rt.risk, lambda: self.settings,
                 model_fn, timeframe=tf, news_fn=news_fn,
-                fresh_fn=lambda s: self.hub.is_fresh(s, 180), bus=self.bus,
+                fresh_fn=self._primary_freshness, bus=self.bus,
                 price_check_fn=self._price_check,
                 shield_fn=self.shield.check_entry,
                 context_fn=self.decision_context,
@@ -176,11 +174,23 @@ class AgentsMixin:
             out["liquidations_15m_musd"] = round(liq, 2)
         return out
 
-    def _price_check(self, symbol: str, price: float) -> str | None:
-        m = self.settings["market"]
-        if not m.get("cross_check") or m["source"] == "synthetic" or self.crosscheck is None:
+    def _primary_quote(self, symbol: str) -> Quote:
+        # La source OHLCV date l'ouverture de la minute. Son dernier prix connu
+        # n'a pas d'heure d'exécution individuelle ; la borne conservatrice reste l'ouverture.
+        return Quote(self.hub.price(symbol), self.hub.price_source_ts.get(symbol), self.hub.price_ts.get(symbol))
+
+    def _primary_freshness(self, symbol: str) -> bool | str:
+        problem = self._primary_quote(symbol).problem(self.market_clock(), "Marché principal", max_age=180)
+        return problem.veto if problem is not None else True
+
+    def _price_check(self, symbol: str, signal_close: float, closed_at: float) -> str | None:
+        market = self.settings["market"]
+        if not market.get("cross_check") or self.source.name == "synthetic":
             return None
-        return self.crosscheck.check(symbol, price, m["cross_check_max_pct"])
+        if self.crosscheck is None or self.crosscheck.second_id == self.source.name:
+            return "UNVERIFIED : source indépendante indisponible"
+        return self.crosscheck.check(symbol, self._primary_quote(symbol), market["cross_check_max_pct"],
+                                     signal=(signal_close, closed_at)).veto
 
     def stop_agent(self, name: str, close_positions: bool = False) -> dict:
         if name not in AGENTS:

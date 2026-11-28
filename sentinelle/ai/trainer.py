@@ -60,6 +60,7 @@ def build_dataset(
     fee_rate: float = 0.001,
     slip: float = 0.0005,
     btc: pd.DataFrame | None = None,
+    *, counts: dict | None = None,
 ) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
     """Calcule features et candidats étiquetés pour chaque crypto."""
     btc_sym = next((s for s in histories if s.split("/")[0] == "BTC"), None)
@@ -67,11 +68,15 @@ def build_dataset(
     parts, feats = [], {}
     for sym, df in histories.items():
         if len(df) < 300:
+            if counts is not None:
+                counts[sym] = {"eligible": 0, "excluded": "Moins de 300 bougies retenues"}
             continue
         ctx = None if (btc_sym == sym and btc is None) else btc_df
         feat = compute_features(df.reset_index(drop=True), timeframe, btc=ctx)
         feats[sym] = feat
         cand = label_candidates(feat, sym, timeframe, enabled, fee_rate, slip)
+        if counts is not None:
+            counts[sym] = {"signals": len(cand), "eligible": int(cand["trend_200d"].notna().sum())}
         cand = cand[cand["trend_200d"].notna()]  # historique suffisant uniquement
         parts.append(cand)
     if not parts:
@@ -266,6 +271,11 @@ def train_walk_forward(
     y_h = (hold["outcome_r"].to_numpy() > 0).astype(int)
     take_h = non_overlapping(hold, er_h >= thr)
     base_h = non_overlapping(hold)
+    report["signal_filter"] = {
+        "candidates": len(hold), "threshold": float(thr), "pass_threshold": int((er_h >= thr).sum()),
+        "non_overlapping_model": int(take_h.sum()), "non_overlapping_baseline": int(base_h.sum()),
+        "mode": mode,
+    }
     m_model = trade_metrics(hold.loc[take_h, "outcome_r"].to_numpy())
     m_base = trade_metrics(hold.loc[base_h, "outcome_r"].to_numpy())
     report["holdout"] = {
@@ -317,11 +327,10 @@ def train_walk_forward(
         reasons.insert(0, "Les règles seules ont été sélectionnées avant la période de contrôle.")
 
     # Prometteur sans être prouvé : nettement positif sur les données jamais vues et nettement meilleur que « tout prendre ».
-    # Un tel modèle est mis « à l'essai » : l'IA d'entraînement s'en sert en argent fictif (taille réduite),
-    # ce qui permet de le juger sur des données vraiment nouvelles. Jamais en réel.
+    # Le statut d'essai identifie un candidat aux analyses hors ligne.
     trial = trial_eligible(ok, m_model, m_base)
     if trial:
-        reasons.append("Modèle mis à l'essai en argent fictif : prometteur, mais pas encore prouvé. Il ne peut pas trader en réel.")
+        reasons.append("Modèle prometteur conservé pour les analyses hors ligne. Aucune activation.")
 
     # -- modèle final -------------------------------------------------------------------
     prog(0.9, "Conservation du modèle évalué")
