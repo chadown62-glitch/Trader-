@@ -28,8 +28,15 @@ Version 2 (préenregistrée à part après la revue indépendante du 28 novembre
 - faisabilité : plancher économique existant (dmh.router.economic_minimum, 10 € par achat) ; au-dessus, « indéterminé »
   faute de change daté autorisé et de pas de quantité historiques.
 
+Version 2.1 (contre-revue du 28 novembre sur 5a59795 ; les résultats 2.0 restent archivés dans vague1-v2.json) :
+- frais appliqués au montant exécuté à l'ouverture (valeur de la position après l'écart de nuit), et non à la valeur de
+  la veille ;
+- transactions comptées à partir des exécutions (un achat ouvre une transaction, une vente la ferme) : deux transactions
+  adjacentes ne sont plus fusionnées ;
+- dates de couverture et empreintes SHA-256 des séries réellement utilisées, pour le rejeu.
+
 Lancement : python -m sentinelle.scalp.multi_vague1
-            python -m sentinelle.scalp.multi_vague1 --v2
+            python -m sentinelle.scalp.multi_vague1 --v2                  (version 2.1 ; --version-v2 2.0 pour le rejeu)
             python -m sentinelle.scalp.multi_vague1 --descriptif   (mesure descriptive a posteriori, sans validation)
 """
 
@@ -37,6 +44,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import time
 from pathlib import Path
@@ -186,6 +194,8 @@ def descriptive(prep: dict, closes: dict[str, pd.Series], verdict: dict) -> dict
 # -- version 2 : exécution à l'ouverture, coupure collective commune, mesures et faisabilité corrigées ------------------
 COMMON_CUT = "2022-01-01"
 ECONOMIC_FLOOR_EUR = 10.0  # plancher prudent de dmh.router.economic_minimum
+V2_VERSIONS = ("2.0", "2.1")
+SOURCES = {"crypto": "archives journalières Binance au comptant (signaux.load_bars)", "fonds": "cours ajustés Yahoo (actifs.download)"}
 
 
 def load_ohlc(cache_dir, client: httpx.Client) -> dict[str, pd.DataFrame]:
@@ -209,14 +219,19 @@ def load_ohlc(cache_dir, client: httpx.Client) -> dict[str, pd.DataFrame]:
     return out
 
 
-def net_returns_open(o: np.ndarray, c: np.ndarray, pos: np.ndarray, side: float) -> np.ndarray:
+def net_returns_open(o: np.ndarray, c: np.ndarray, pos: np.ndarray, side: float, version: str = "2.1") -> np.ndarray:
     """Rendements nets (jours × variantes) quand la position décidée à la clôture s'exécute à l'ouverture suivante.
-    Indice j : du jour j au jour j + 1 des prix ; pos[j] est décidée à la clôture du jour j + 1."""
+    Indice j : du jour j au jour j + 1 des prix ; pos[j] est décidée à la clôture du jour j + 1.
+    2.1 : les frais portent sur le montant exécuté à l'ouverture ; 2.0 (archivée) : sur la valeur de la veille."""
     night = (o[1:] / c[:-1] - 1)[:, None]
     day = (c[1:] / o[1:] - 1)[:, None]
     prev = np.vstack([np.zeros((2, pos.shape[1])), pos])[:len(pos)]  # pos[j − 2], tenue pendant la nuit du jour j + 1
     new = np.vstack([np.zeros((1, pos.shape[1])), pos])[:len(pos)]   # pos[j − 1], exécutée à l'ouverture du jour j + 1
-    return (1 + prev * night) * (1 + new * day) - 1 - side * np.abs(new - prev)
+    if version == "2.0":
+        return (1 + prev * night) * (1 + new * day) - 1 - side * np.abs(new - prev)
+    at_open = 1 + prev * night                             # richesse à l'ouverture, avant exécution
+    traded = np.abs(new * at_open - prev * (1 + night))    # montant acheté ou vendu à l'ouverture
+    return (at_open - side * traded) * (1 + new * day) - 1
 
 
 def exposure(pos: np.ndarray) -> np.ndarray:
@@ -225,20 +240,34 @@ def exposure(pos: np.ndarray) -> np.ndarray:
     return (prev > 0) | (new > 0)
 
 
-def trade_stats_v2(pos: np.ndarray, net: np.ndarray, dates: pd.DatetimeIndex, start: int, cal: int) -> dict:
-    """Mesures sur net[start:] ; une position portée depuis la veille de la fenêtre y est reprise ; mois calendaires."""
-    exp, x = exposure(pos)[start:], net[start:]
+def trade_ids(pos: np.ndarray) -> np.ndarray:
+    """Numéro de la transaction à laquelle appartient chaque jour de net (−1 hors position), à partir des exécutions :
+    un achat à l'ouverture ouvre une transaction ; le jour de la vente (nuit et frais) appartient encore à la précédente."""
+    prev = np.r_[0.0, 0.0, pos][:len(pos)]
+    new = np.r_[0.0, pos][:len(pos)]
+    ids = np.cumsum((prev <= 0) & (new > 0))
+    return np.where((prev > 0) | (new > 0), ids, -1)
+
+
+def trade_stats_v2(pos: np.ndarray, net: np.ndarray, dates: pd.DatetimeIndex, start: int, cal: int, version: str = "2.1") -> dict:
+    """Mesures sur net[start:] ; une position portée depuis la veille de la fenêtre y est reprise ; mois calendaires.
+    2.1 : transactions comptées à partir des exécutions ; 2.0 (archivée) : jours d'exposition consécutifs fusionnés."""
+    x = net[start:]
     wealth = np.cumprod(1 + x)
     peak = np.maximum.accumulate(np.r_[1.0, wealth])[1:]
     trades, cur = [], None
-    for value, held in zip(x, exp):
-        if held:
-            cur = (1 + value) * (cur if cur is not None else 1.0)
-        elif cur is not None:
+    if version == "2.0":
+        for value, held in zip(x, exposure(pos)[start:]):
+            if held:
+                cur = (1 + value) * (cur if cur is not None else 1.0)
+            elif cur is not None:
+                trades.append(cur - 1)
+                cur = None
+        if cur is not None:
             trades.append(cur - 1)
-            cur = None
-    if cur is not None:
-        trades.append(cur - 1)
+    else:
+        ids = trade_ids(pos)[start:]
+        trades = [float(np.prod(1 + x[ids == k]) - 1) for k in np.unique(ids[ids >= 0])]
     t = np.array(trades)
     gains, losses = t[t > 0].sum(), -t[t < 0].sum()
     months = pd.Series(x, index=dates[start:]).groupby(dates[start:].to_period("M")).apply(lambda v: np.prod(1 + v) - 1)
@@ -248,7 +277,7 @@ def trade_stats_v2(pos: np.ndarray, net: np.ndarray, dates: pd.DatetimeIndex, st
             "profit_factor": float(gains / losses) if losses > 0 else None, "part_des_mois_calendaires_positifs": float((months > 0).mean())}
 
 
-def prepare_v2(ohlc: dict[str, pd.DataFrame]) -> dict:
+def prepare_v2(ohlc: dict[str, pd.DataFrame], version: str = "2.1") -> dict:
     out = {}
     for name, f in ohlc.items():
         kind = INSTRUMENTS[name][0]
@@ -256,8 +285,8 @@ def prepare_v2(ohlc: dict[str, pd.DataFrame]) -> dict:
         labels, pos = mirror.positions(np.diff(np.log(c))[:, None])
         pos = pos[:, :, 0]
         dates = f.index[1:]
-        out[name] = {"dates": dates, "o": o, "c": c, "pos": pos, "labels": labels, "kind": kind, "cal": CALENDAR[kind],
-                     "net": net_returns_open(o, c, pos, SIDE_COST[kind]), "net2": net_returns_open(o, c, pos, 2 * SIDE_COST[kind]),
+        out[name] = {"dates": dates, "o": o, "c": c, "pos": pos, "labels": labels, "kind": kind, "cal": CALENDAR[kind], "version": version,
+                     "net": net_returns_open(o, c, pos, SIDE_COST[kind], version), "net2": net_returns_open(o, c, pos, 2 * SIDE_COST[kind], version),
                      "cut": int(len(pos) * TRAIN_SHARE), "common": int(np.searchsorted(dates, pd.Timestamp(COMMON_CUT)))}
     return out
 
@@ -307,10 +336,20 @@ def describe_v2(prep: dict, verdict: dict) -> dict:
         j = x["labels"].index(r["variante"])
         hold = x["c"][1:] / x["c"][:-1] - 1  # détention simple, clôture à clôture, alignée sur net
         out[f"{r['variante']}@{r['instrument']}"] = {
-            **trade_stats_v2(x["pos"][:, j], x["net"][:, j], x["dates"], x["cut"], x["cal"]),
+            **trade_stats_v2(x["pos"][:, j], x["net"][:, j], x["dates"], x["cut"], x["cal"], x["version"]),
             "couts_doubles_positif": bool(x["net2"][x["cut"]:, j].mean() > 0),
             "tiers_positifs": int(sum(t.mean() > 0 for t in np.array_split(x["net"][x["cut"]:, j], 3))),
-            "detention_simple": trade_stats_v2(np.ones(len(hold)), hold, x["dates"], x["cut"], x["cal"]), "p_holm": r["p_holm"]}
+            "detention_simple": trade_stats_v2(np.ones(len(hold)), hold, x["dates"], x["cut"], x["cal"], x["version"]), "p_holm": r["p_holm"]}
+    return out
+
+
+def series_fingerprints(ohlc: dict[str, pd.DataFrame]) -> dict:
+    """Couverture et empreinte SHA-256 des séries réellement utilisées (date, ouverture, clôture), pour le rejeu."""
+    out = {}
+    for name, f in ohlc.items():
+        text = f[["o", "c"]].to_csv(float_format="%.17g", date_format="%Y-%m-%d", lineterminator="\n")
+        out[name] = {"source": SOURCES[INSTRUMENTS[name][0]], "symbole": INSTRUMENTS[name][1], "debut": f.index[0].strftime("%Y-%m-%d"),
+                     "fin": f.index[-1].strftime("%Y-%m-%d"), "lignes": int(len(f)), "sha256": hashlib.sha256(text.encode()).hexdigest()}
     return out
 
 
@@ -335,21 +374,30 @@ def main(argv=None):
     ap.add_argument("--trials", default="research/multi-v1/trials.jsonl")
     ap.add_argument("--descriptif", action="store_true", help="mesure descriptive a posteriori des candidats (sans validation)")
     ap.add_argument("--v2", action="store_true", help="version 2 corrigée (exécution à l'ouverture, coupure collective commune)")
+    ap.add_argument("--version-v2", default="2.1", choices=V2_VERSIONS, help="2.1 par défaut ; 2.0 pour le rejeu des résultats archivés")
     args = ap.parse_args(argv)
     t0 = time.time()
     if args.v2:
         with httpx.Client(timeout=60, follow_redirects=True, headers={"User-Agent": "sentinelle-simulation"}) as client:
             ohlc = load_ohlc(args.cache, client)
-        prep = prepare_v2(ohlc)
+        version = args.version_v2
+        prep = prepare_v2(ohlc, version)
         verdict = judge_v2(prep)
-        out = {"schema": "multi-vague1-v2", "status": "corrige la v1 (archivée) ; historique déjà consulté ; simulation exclusive ; aucune promotion",
-               "coupure_collective": COMMON_CUT, "couts_par_cote": SIDE_COST, **verdict, "descriptif_candidats": describe_v2(prep, verdict),
-               "faisabilite": feasibility_v2(), "seconds": round(time.time() - t0)}
-        Path(args.out.replace("vague1", "vague1-v2")).write_text(json.dumps(out, ensure_ascii=False) + "\n", encoding="utf-8")
-        print(json.dumps({k: out[k] for k in ("validations_collectives", "retenues", "selection")}, ensure_ascii=False))
+        out = {"schema": "multi-vague1-v2", "version": version,
+               "status": "corrige la v1 (archivée) ; historique déjà consulté ; simulation exclusive ; aucune promotion",
+               "coupure_collective": COMMON_CUT, "couts_par_cote": SIDE_COST, "series": series_fingerprints(ohlc), **verdict,
+               "descriptif_candidats": describe_v2(prep, verdict), "faisabilite": feasibility_v2(), "seconds": round(time.time() - t0)}
+        target = Path(args.out.replace("vague1", "vague1-v2"))
+        previous = json.loads(target.read_text(encoding="utf-8")) if target.exists() else {}
+        archives = previous.pop("archives", {})
+        if previous and previous.get("version", "2.0") != version:
+            archives[previous.get("version", "2.0")] = previous  # résultats d'une autre version conservés tels quels
+        target.write_text(json.dumps({**out, "archives": archives}, ensure_ascii=False) + "\n", encoding="utf-8")
+        print(json.dumps({k: out[k] for k in ("version", "validations_collectives", "retenues", "selection")}, ensure_ascii=False))
         if args.trials:
             with open(args.trials, "a", encoding="utf-8") as fh:
-                fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "multi-vague1-v2", "kind": "result",
+                fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                                     "engine": "multi-vague1-v2" if version == "2.0" else f"multi-vague1-v{version}", "kind": "result",
                                      "validations_collectives": out["validations_collectives"], "retenues": out["retenues"],
                                      "tests_les_plus_proches": sorted(out["tests"], key=lambda r: r["p_holm"])[:5]}, ensure_ascii=False) + "\n")
         return out

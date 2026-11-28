@@ -1,6 +1,8 @@
 """Programme multi-actifs, vague 1 : coûts par côté, mesures, poches collectives, jugement à 34 tests et arrêt au 31 août
 2026, sur données construites (aucun réseau)."""
 
+import json
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -136,3 +138,39 @@ def test_v2_feasibility_uses_the_economic_floor_and_says_undetermined_otherwise(
     assert f["30"]["huit_poches_equiponderees"]["statut"] == "irréalisable"  # 3,75 € < 10 €, quel que soit le change
     assert f["30"]["portefeuille_entier_une_position"]["statut"] == "indéterminé"
     assert f["100"]["huit_poches_equiponderees"]["statut"] == "indéterminé"
+
+
+# -- version 2.1 (contre-revue du 28 novembre sur 5a59795) ------------------------------------------------------------
+def test_v2_1_charges_the_exit_fee_on_the_amount_sold_at_the_open():
+    o = np.array([100.0, 100.0, 100.0, 100.0, 110.0])
+    c = np.array([100.0, 100.0, 100.0, 100.0, 110.0])
+    pos = np.array([[1.0], [1.0], [0.0], [0.0]])  # détenue la veille, vente à l'ouverture après une nuit de +10 %
+    assert V.net_returns_open(o, c, pos, 0.001)[3, 0] == pytest.approx(1.10 * 0.999 - 1)  # 110 vendus, 0,11 de frais : +9,89 %
+    assert V.net_returns_open(o, c, pos, 0.001, "2.0")[3, 0] == pytest.approx(0.099)  # ce que calculait la 2.0 (archivée)
+    assert V.net_returns_open(o, c, pos, 0.001)[1, 0] == pytest.approx(-0.001)  # achat de 100 à l'ouverture
+
+
+def test_v2_1_counts_trades_from_executions_not_from_contiguous_exposure():
+    pos = np.array([1.0, 0.0, 1.0, 0.0, 0.0])  # deux achats et deux ventes
+    net = np.array([0.0, 0.05, -0.08, 0.03, 0.01])
+    dates = pd.date_range("2024-01-01", periods=5, freq="D")
+    assert V.trade_ids(pos).tolist() == [-1, 1, 1, 2, 2]
+    s = V.trade_stats_v2(pos, net, dates, 0, 365)
+    first, second = 1.05 * 0.92 - 1, 1.03 * 1.01 - 1
+    assert s["transactions"] == 2 and s["esperance_par_transaction"] == pytest.approx((first + second) / 2)
+    assert s["profit_factor"] == pytest.approx(second / -first)
+    assert V.trade_stats_v2(pos, net, dates, 0, 365, "2.0")["transactions"] == 1  # la 2.0 les fusionnait
+
+
+def test_v2_1_documents_the_series_and_keeps_the_previous_version_results(monkeypatch, tmp_path):
+    ohlc = _ohlc(np.random.default_rng(6), 1500)
+    fp = V.series_fingerprints(ohlc)
+    assert fp["BTC"]["debut"] == ohlc["BTC"].index[0].strftime("%Y-%m-%d") and fp["BTC"]["lignes"] == len(ohlc["BTC"])
+    changed = {**ohlc, "BTC": ohlc["BTC"].assign(c=ohlc["BTC"]["c"] * 1.0001)}
+    assert V.series_fingerprints(changed)["BTC"]["sha256"] != fp["BTC"]["sha256"] and V.series_fingerprints(ohlc) == fp
+    monkeypatch.setattr(V, "load_ohlc", lambda *a, **k: ohlc)
+    out = tmp_path / "vague1.json"
+    first = V.main(["--v2", "--version-v2", "2.0", "--out", str(out), "--trials", ""])
+    V.main(["--v2", "--out", str(out), "--trials", ""])
+    saved = json.loads((tmp_path / "vague1-v2.json").read_text(encoding="utf-8"))
+    assert saved["version"] == "2.1" and saved["archives"]["2.0"]["tests"] == json.loads(json.dumps(first["tests"]))
