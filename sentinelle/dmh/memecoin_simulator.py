@@ -610,6 +610,13 @@ def _execute_sell(state, oid, order, point, network, now, executed, asset):
     fill = _sell(state, order["mint"], order["strategy"], order["key"], pos, point, network, order["detail"], order["fraction"],
                  extra=_causal(oid, order, point))
     if fill is None:
+        if order["fraction"] < 1 and exit_for(pos, pos["mark"] / pos["basis"]) == ("stop_loss", 1.0):
+            # This slice could not fill. Record a fresh full exit on this observation;
+            # its own later, distinct quote must still pass execution_check.
+            _resolve(state, oid, "cancelled", "tranche invendable remplacée par le stop-loss du lot", now)
+            _decide(state, "sell", order["key"], order["mint"], order["strategy"], point, now,
+                    detail="stop_loss", fraction=1.0)
+            return None
         order["last_refusal"] = "vente impossible : valeur de liquidation nulle, aucun cash fictif crédité"
         order["unsellable"] = order.get("unsellable", 0) + 1
         return None
