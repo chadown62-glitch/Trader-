@@ -43,6 +43,35 @@ EXITS = {"T15m": ("temps", 15), "T1h": ("temps", 60), "T4h": ("temps", 240), "T2
 CAPITAL, MIN_ORDER_USD, BOOT, SEED, ALPHA = 30.0, 5.0, 5000, 20261205, 0.05
 
 
+def polite_detail(client: httpx.Client, code: str, tries: int = 6, pause: float = 1.0) -> dict:
+    """Date de publication d'une annonce ; attente croissante si la source limite le débit (429)."""
+    for k in range(tries):
+        try:
+            d = annonces.detail(client, code)
+            time.sleep(pause)
+            return d
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 429 or k == tries - 1:
+                raise
+            time.sleep(pause * 2 ** (k + 2))
+    raise RuntimeError("inaccessible")
+
+
+def listing_events(client: httpx.Client, cache, last_ms: int) -> tuple[list[dict], int]:
+    """Annonces de cotation au comptant et leur date de publication, conservées en cache (aucun prix lu ici)."""
+    path = Path(cache) / "cotations-annonces.json"
+    known = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    catalog = annonces.list_catalog(client, 48)
+    for a in catalog:
+        if listing_tokens(a["title"]) and a["code"] not in known:
+            known[a["code"]] = {"titre": a["title"], **polite_detail(client, a["code"])}
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(known, ensure_ascii=False), encoding="utf-8")
+    events = [{"code": c, "titre": v["titre"], "publication_ms": v["publication_ms"], "jetons": listing_tokens(v["titre"])}
+              for c, v in known.items() if v["publication_ms"] <= last_ms]
+    return sorted(events, key=lambda e: e["publication_ms"]), len(catalog)
+
+
 def listing_tokens(title: str) -> list[str] | None:
     """Jetons d'une annonce de nouvelle cotation au comptant ; None pour toute autre annonce."""
     title = title.strip()
@@ -214,18 +243,11 @@ def main(argv=None):
     t0 = time.time()
     last_ms = int(datetime.strptime(args.last, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp() * 1000) + DAY - 1
     with httpx.Client(timeout=60, follow_redirects=True, headers={"User-Agent": "sentinelle-simulation"}) as client:
-        catalog = annonces.list_catalog(client, 48)
-        events = []
-        for a in catalog:
-            toks = listing_tokens(a["title"])
-            if toks:
-                d = annonces.detail(client, a["code"])
-                if d["publication_ms"] <= last_ms:
-                    events.append({"code": a["code"], "titre": a["title"], "publication_ms": d["publication_ms"], "jetons": toks})
+        events, n_catalog = listing_events(client, args.cache, last_ms)
         rows = study(events, args.cache, client)
     res = summarize(rows)
     out = {"schema": "scalp-cotations-v1", "status": "historique autorisé ; simulation exclusive ; aucune règle modifiée ; préenregistré",
-           "catalogue": {"articles": len(catalog), "annonces_de_cotation_au_comptant": len(events)},
+           "catalogue": {"articles": n_catalog, "annonces_de_cotation_au_comptant": len(events)},
            "parametres": {"delai_d_entree_min": ENTRY_DELAY, "horizon_max_h": HORIZON // 60, "cout_par_cote": SIDE, "cout_stress_par_cote": STRESS,
                           "capital_fictif": CAPITAL, "derniere_publication": args.last},
            **res, "evenements": rows, "seconds": round(time.time() - t0)}
