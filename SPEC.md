@@ -708,3 +708,34 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
   - Aucun nouveau service permanent ; C100 arrêté, non démarré.
   - Aucune nouvelle source sans validation.
   - #54 et #55 strictement gelées.
+
+## Extension du Sprint 5 — hypothèses expérimentales memecoins et budget de portefeuille (décision du propriétaire du 28 novembre 2026)
+
+Le propriétaire fixe les hypothèses de recherche ci-dessous. Ce ne sont **ni des performances acquises, ni une autorisation de collecte prospective**. Simulation exclusive ; aucune promotion automatique ; C100 non démarré ; #54 et #55 gelées.
+
+- **Phase 1 — memecoins seuls.**
+  - Capital fictif de départ : 30 €.
+  - Palier de passage à la phase 2 : 500 € fictifs.
+  - Cible de recherche : +6 % net par semaine. À ce rythme composé, 30 € deviennent 500 € en environ 48 semaines ; cela représente environ ×21 par an.
+  - Faisabilité à 30 € : la vague 1 multi-actifs (#205) montre qu'un capital de 30 € ne peut pas être réparti en huit poches. La phase 1 suppose donc une ou deux positions à la fois, au-dessus des minima d'ordre et après les frais fixes de réseau.
+- **Phase 2 — portefeuille mixte.**
+  - Budget : 30 % memecoins, 70 % multi-actifs.
+  - Cibles de recherche : +3 à +4 % net par semaine sur la poche memecoin ; +1,3 à +1,5 % sur le reste.
+  - Pour le portefeuille, cela fait environ +2 % par semaine, soit ×2,5 à ×3,2 par an.
+  - Une réserve de liquidités est maintenue.
+  - Drawdown global visé : 10 %.
+- **Protections : aucun assouplissement.** Restent obligatoires :
+  - le veto anti-rug et les gardiens existants ;
+  - le Risk Commander et le blocage des entrées en quarantaine (#204) ;
+  - les vetos d'actualité de FLASH ;
+  - les plafonds de risque.
+
+  Aucune cible ne peut justifier de passer outre un veto.
+- **Recherche autorisée pour atteindre ces cibles** : recherche événementielle et narratives, à partir des seuls historiques autorisés.
+  - Sources : archives d'annonces publiques déjà utilisées (FLASH, catalogues Binance des cotations et des retraits) et historiques de prix déjà autorisés.
+  - Réutilisation : OMEGA, FLASH, PHANTOM (portefeuilles fictifs parallèles pour les ablations) et le moteur existant.
+  - Chaque expérience est préenregistrée, et tous les échecs sont conservés.
+- **Lecture des cibles.**
+  - Comme la cible multi-actifs de +1,30 % par semaine, ces cibles sont des repères, jamais des critères de validation.
+  - Chaque bilan mesure l'écart entre les résultats nets obtenus et ces cibles.
+  - Une stratégie n'est retenue qu'au standard du cadrage multi-actifs : validation individuelle et contribution marginale positive, sur une période non utilisée pour la sélectionner.
