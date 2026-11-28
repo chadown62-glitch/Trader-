@@ -765,6 +765,29 @@ def test_a_stop_is_a_trigger_filled_at_the_later_lower_price(db):
     assert lot["exit"] == "stop_loss" and lot["return"] < -0.60  # 5. a -20 % trigger, not a -20 % guarantee
 
 
+def test_pending_partial_sale_yields_to_a_full_stop_on_a_later_quote(db):
+    _, _, step, _ = entered(db)
+    key = "momentum/" + MINT
+    step(60, priceUsd="1.6")  # a take-profit slice is pending
+    before = sim.load(db)[0]
+    [(old_id, partial)] = [(oid, o) for oid, o in before["orders"].items() if o["kind"] == "sell" and o["key"] == key]
+    assert 0 < partial["fraction"] < 1
+    qty = before["positions"][key]["qty"]
+    step(60, priceUsd="0.70")  # fresh stop decision, no execution of the superseded slice
+    stopped = sim.load(db)[0]
+    assert stopped["positions"][key]["qty"] == qty
+    assert stopped["fills"] == before["fills"]
+    assert any(o["id"] == old_id and o["status"] == "cancelled" for o in stopped["order_log"])
+    [(stop_id, stop)] = [(oid, o) for oid, o in stopped["orders"].items() if o["kind"] == "sell" and o["key"] == key]
+    assert (stop["detail"], stop["fraction"]) == ("stop_loss", 1.0)
+    step(60, priceUsd="0.65")
+    step(60, priceUsd="0.64")
+    closed = sim.load(db)[0]
+    [fill] = [f for f in closed["fills"] if f["side"] == "sell" and f["order_id"] in (old_id, stop_id)]
+    assert fill["order_id"] == stop_id and fill["quantity"] == pytest.approx(qty)
+    assert fill["decision_received_ms"] < fill["execution_received_ms"] and key not in closed["positions"]
+
+
 def test_an_unsellable_lot_credits_no_fictitious_cash(db):
     feed, clock, step, order = entered(db)
     step(60, priceUsd="0.7")  # stop decided
