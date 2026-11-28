@@ -80,3 +80,59 @@ def test_the_descriptive_table_covers_the_sixteen_candidates_and_never_validates
     assert len(out["candidats_par_instrument"]) == len({(r["variante"], r["instrument"]) for r in verdict["tests"] if r["jugement"] == "par_instrument"})
     assert set(out["faisabilite_huit_poches"]) == {str(c) for c in V.CAPITALS} and "statut" in out
     assert not any(out["faisabilite_huit_poches"]["30"].values())  # 3,75 € par poche : ni le minimum Binance ni une part de fonds
+
+
+# -- version 2 ---------------------------------------------------------------------------------------------------------
+def test_v2_executes_at_the_next_open_the_reviewers_counterexample():
+    o, c = np.array([100.0, 100.0, 110.0]), np.array([100.0, 100.0, 110.0])
+    pos = np.array([[1.0], [1.0]])  # entrée décidée à la clôture de 100
+    net = V.net_returns_open(o, c, pos, 0.001)
+    assert net[1, 0] == pytest.approx(-0.001)  # l'écart de nuit 100 → 110 n'appartient pas à la nouvelle position
+    assert V.net_returns(np.diff(np.log(c)), pos, 0.001)[1, 0] == pytest.approx(0.099)  # ce que créditait la v1
+
+
+def test_v2_entry_hold_exit_and_fees_are_attributed_separately():
+    o = np.array([100.0, 100.0, 110.0, 121.0, 121.0])
+    c = np.array([100.0, 100.0, 110.0, 121.0, 133.1])
+    pos = np.array([[1.0], [1.0], [0.0], [0.0]])
+    net = V.net_returns_open(o, c, pos, 0.001)[:, 0]
+    assert net[1] == pytest.approx(110 / 110 - 1 - 0.001)  # entrée : séance seulement, frais d'achat
+    assert net[2] == pytest.approx(121 / 110 - 1)  # maintien : nuit 110 → 121 puis séance 121 → 121
+    assert net[3] == pytest.approx(-0.001)  # sortie à l'ouverture : la séance 121 → 133,1 n'est pas gagnée, frais de vente
+
+
+def test_v2_trade_stats_keep_the_position_carried_into_the_window_and_use_calendar_months():
+    pos = np.array([1.0, 1.0, 0.0, 0.0])  # position portée avant la fenêtre, liquidation décidée à la clôture du 1er jour évalué
+    net = np.array([0.0, 0.10, -0.001, 0.0])
+    dates = pd.to_datetime(["2024-01-30", "2024-01-31", "2024-02-01", "2024-02-02"])
+    s = V.trade_stats_v2(pos, net, dates, 1, 365)
+    assert s["transactions"] == 1 and s["esperance_par_transaction"] == pytest.approx(1.10 * 0.999 - 1)
+    assert s["part_des_mois_calendaires_positifs"] == pytest.approx(0.5)  # janvier positif, février négatif
+
+
+def _ohlc(rng, days, shock_after=None):
+    closes = _closes(rng, days)
+    out = {}
+    for name, s in closes.items():
+        c = s.copy()
+        if shock_after is not None and name == "SP500":
+            later = c.index > shock_after
+            c[later] = c[later] * np.linspace(0.5, 2.0, later.sum())  # tout le futur du S&P 500 est bouleversé
+        out[name] = pd.DataFrame({"o": c.shift(1).fillna(c.iloc[0]), "c": c})
+    return out
+
+
+def test_v2_selections_are_fixed_before_any_evaluated_date():
+    base = V.prepare_v2(_ohlc(np.random.default_rng(5), 3000))
+    later = max(pd.Timestamp(V.COMMON_CUT), base["SP500"]["dates"][base["SP500"]["cut"]])
+    shocked = V.prepare_v2(_ohlc(np.random.default_rng(5), 3000, shock_after=later))
+    a, b = V.judge_v2(base)["selection"], V.judge_v2(shocked)["selection"]
+    assert a == b  # ni la sélection collective ni aucune sélection par instrument ne lit le futur
+    assert len(V.judge_v2(base)["tests"]) == 2 + 4 * len(V.INSTRUMENTS)
+
+
+def test_v2_feasibility_uses_the_economic_floor_and_says_undetermined_otherwise():
+    f = V.feasibility_v2()
+    assert f["30"]["huit_poches_equiponderees"]["statut"] == "irréalisable"  # 3,75 € < 10 €, quel que soit le change
+    assert f["30"]["portefeuille_entier_une_position"]["statut"] == "indéterminé"
+    assert f["100"]["huit_poches_equiponderees"]["statut"] == "indéterminé"

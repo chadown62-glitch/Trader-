@@ -19,7 +19,17 @@ Jugement (standard du cadrage, calibré par MIRROR v4 et v5), 34 tests de Newey-
 Une stratégie ne compte pour un instrument que si elle y est validée individuellement ; la contribution marginale n'est que
 descriptive (mesurée sur la fenêtre de validation, elle ne filtre pas les faux selon MIRROR v4).
 
+Version 2 (préenregistrée à part après la revue indépendante du 28 novembre ; la v1 et ses résultats restent archivés) :
+- exécution à l'ouverture suivante : l'écart de nuit (clôture → ouverture) revient à la position détenue pendant la nuit,
+  la séance (ouverture → clôture) à la position après exécution, les frais sont payés à l'exécution ;
+- jugement collectif et tests individuels des variantes collectives sur une coupure calendaire commune (1er janvier 2022) :
+  sélection sur les seules données antérieures, test sur les suivantes ; poids fixes de 1/8, liquidités hors fenêtre ;
+- mesures descriptives : position portée depuis la veille reprise au début de la fenêtre, mois calendaires ;
+- faisabilité : plancher économique existant (dmh.router.economic_minimum, 10 € par achat) ; au-dessus, « indéterminé »
+  faute de change daté autorisé et de pas de quantité historiques.
+
 Lancement : python -m sentinelle.scalp.multi_vague1
+            python -m sentinelle.scalp.multi_vague1 --v2
             python -m sentinelle.scalp.multi_vague1 --descriptif   (mesure descriptive a posteriori, sans validation)
 """
 
@@ -173,14 +183,176 @@ def descriptive(prep: dict, closes: dict[str, pd.Series], verdict: dict) -> dict
             "faisabilite_huit_poches": feasibility(closes, [(None, n) for n in INSTRUMENTS])}
 
 
+# -- version 2 : exécution à l'ouverture, coupure collective commune, mesures et faisabilité corrigées ------------------
+COMMON_CUT = "2022-01-01"
+ECONOMIC_FLOOR_EUR = 10.0  # plancher prudent de dmh.router.economic_minimum
+
+
+def load_ohlc(cache_dir, client: httpx.Client) -> dict[str, pd.DataFrame]:
+    """Ouvertures et clôtures journalières (cours ajustés pour les fonds), arrêtées au 31 août 2026."""
+    end_ts = int(dt.datetime.fromisoformat(LAST_DAY + "T23:59:59+00:00").timestamp())
+    out = {}
+    for name, (kind, ticker) in INSTRUMENTS.items():
+        if kind == "crypto":
+            bars, _ = signaux.load_bars(ticker, cache_dir, client)
+            frame = pd.DataFrame({"o": bars["o"].to_numpy(), "c": bars["c"].to_numpy()},
+                                 index=pd.to_datetime(bars.index.to_numpy() * moteur.DAY_MS, unit="ms"))
+        else:
+            actifs.download(ticker, cache_dir, end_ts=end_ts)  # met le fichier en cache si besoin
+            res = json.loads((Path(cache_dir) / "etf" / f"{ticker}.json").read_text(encoding="utf-8"))["chart"]["result"][0]
+            q, adj = res["indicators"]["quote"][0], res["indicators"]["adjclose"][0]["adjclose"]
+            raw = pd.DataFrame({"o": q["open"], "c": q["close"], "a": adj}, index=pd.to_datetime(res["timestamp"], unit="s").normalize(), dtype=float)
+            raw = raw.dropna()
+            raw = raw[~raw.index.duplicated(keep="last")]
+            frame = pd.DataFrame({"o": raw["o"] * raw["a"] / raw["c"], "c": raw["a"]})
+        out[name] = frame.dropna().loc[:LAST_DAY]
+    return out
+
+
+def net_returns_open(o: np.ndarray, c: np.ndarray, pos: np.ndarray, side: float) -> np.ndarray:
+    """Rendements nets (jours × variantes) quand la position décidée à la clôture s'exécute à l'ouverture suivante.
+    Indice j : du jour j au jour j + 1 des prix ; pos[j] est décidée à la clôture du jour j + 1."""
+    night = (o[1:] / c[:-1] - 1)[:, None]
+    day = (c[1:] / o[1:] - 1)[:, None]
+    prev = np.vstack([np.zeros((2, pos.shape[1])), pos])[:len(pos)]  # pos[j − 2], tenue pendant la nuit du jour j + 1
+    new = np.vstack([np.zeros((1, pos.shape[1])), pos])[:len(pos)]   # pos[j − 1], exécutée à l'ouverture du jour j + 1
+    return (1 + prev * night) * (1 + new * day) - 1 - side * np.abs(new - prev)
+
+
+def exposure(pos: np.ndarray) -> np.ndarray:
+    prev = np.r_[0.0, 0.0, pos][:len(pos)]
+    new = np.r_[0.0, pos][:len(pos)]
+    return (prev > 0) | (new > 0)
+
+
+def trade_stats_v2(pos: np.ndarray, net: np.ndarray, dates: pd.DatetimeIndex, start: int, cal: int) -> dict:
+    """Mesures sur net[start:] ; une position portée depuis la veille de la fenêtre y est reprise ; mois calendaires."""
+    exp, x = exposure(pos)[start:], net[start:]
+    wealth = np.cumprod(1 + x)
+    peak = np.maximum.accumulate(np.r_[1.0, wealth])[1:]
+    trades, cur = [], None
+    for value, held in zip(x, exp):
+        if held:
+            cur = (1 + value) * (cur if cur is not None else 1.0)
+        elif cur is not None:
+            trades.append(cur - 1)
+            cur = None
+    if cur is not None:
+        trades.append(cur - 1)
+    t = np.array(trades)
+    gains, losses = t[t > 0].sum(), -t[t < 0].sum()
+    months = pd.Series(x, index=dates[start:]).groupby(dates[start:].to_period("M")).apply(lambda v: np.prod(1 + v) - 1)
+    return {"rendement_geometrique_annuel": float(wealth[-1] ** (cal / len(x)) - 1), "drawdown_max": float((1 - wealth / peak).max()),
+            "sharpe": float(x.mean() / x.std(ddof=1) * np.sqrt(cal)) if x.std(ddof=1) > 0 else 0.0, "transactions": int(len(t)),
+            "esperance_par_transaction": float(t.mean()) if len(t) else None,
+            "profit_factor": float(gains / losses) if losses > 0 else None, "part_des_mois_calendaires_positifs": float((months > 0).mean())}
+
+
+def prepare_v2(ohlc: dict[str, pd.DataFrame]) -> dict:
+    out = {}
+    for name, f in ohlc.items():
+        kind = INSTRUMENTS[name][0]
+        o, c = f["o"].to_numpy(float), f["c"].to_numpy(float)
+        labels, pos = mirror.positions(np.diff(np.log(c))[:, None])
+        pos = pos[:, :, 0]
+        dates = f.index[1:]
+        out[name] = {"dates": dates, "o": o, "c": c, "pos": pos, "labels": labels, "kind": kind, "cal": CALENDAR[kind],
+                     "net": net_returns_open(o, c, pos, SIDE_COST[kind]), "net2": net_returns_open(o, c, pos, 2 * SIDE_COST[kind]),
+                     "cut": int(len(pos) * TRAIN_SHARE), "common": int(np.searchsorted(dates, pd.Timestamp(COMMON_CUT)))}
+    return out
+
+
+def collective_series_v2(prep: dict, j: int) -> pd.Series:
+    """Poches de poids fixe 1/8 du 1er janvier 2022 au 31 août 2026 ; rendement nul (liquidités) hors cotation ou après un
+    retrait (XMR) — les poids ne sont jamais redistribués."""
+    span = pd.date_range(COMMON_CUT, LAST_DAY, freq="D")
+    total = pd.Series(0.0, index=span)
+    for x in prep.values():
+        sleeve = pd.Series(x["net"][x["common"]:, j], index=x["dates"][x["common"]:])
+        total = total.add(sleeve.reindex(span).fillna(0.0), fill_value=0.0)
+    return total / len(prep)
+
+
+def judge_v2(prep: dict) -> dict:
+    names = list(prep)
+    own = {n: mirror.annual_sharpe(x["net"][:x["cut"]]) for n, x in prep.items()}
+    common = {n: mirror.annual_sharpe(x["net"][:x["common"]]) for n, x in prep.items()}
+    coll = [int(j) for j in np.argsort(-np.mean([common[n] for n in names], axis=0))[:TOP]]
+    tests = [("collectif", j, None) for j in coll] + [("individuel", j, n) for j in coll for n in names]
+    tests += [("par_instrument", int(j), n) for n in names for j in np.argsort(-own[n])[:TOP]]
+
+    def sample(kind, j, n):
+        if n is None:
+            return collective_series_v2(prep, j).to_numpy()
+        x = prep[n]
+        return x["net"][x["common"]:, j] if kind == "individuel" else x["net"][x["cut"]:, j]
+    pvals = [mirror.newey_west_p(sample(k, j, n)) for k, j, n in tests]
+    adjusted = essais.holm(pvals)
+    labels = prep[names[0]]["labels"]
+    rows = [{"jugement": k, "variante": labels[j], "instrument": n, "p": p, "p_holm": h, "valide": bool(h < ALPHA)}
+            for (k, j, n), p, h in zip(tests, pvals, adjusted)]
+    coll_ok = {r["variante"] for r in rows if r["jugement"] == "collectif" and r["valide"]}
+    retained = {(r["variante"], r["instrument"], r["jugement"]) for r in rows if r["valide"] and (r["jugement"] == "par_instrument" or
+                                                                                            (r["jugement"] == "individuel" and r["variante"] in coll_ok))}
+    return {"tests": rows, "validations_collectives": sorted(coll_ok), "retenues": sorted(retained),
+            "selection": {"collective": [labels[j] for j in coll], "par_instrument": {n: [labels[int(j)] for j in np.argsort(-own[n])[:TOP]] for n in names}}}
+
+
+def describe_v2(prep: dict, verdict: dict) -> dict:
+    out = {}
+    for r in verdict["tests"]:
+        if r["jugement"] != "par_instrument":
+            continue
+        x = prep[r["instrument"]]
+        j = x["labels"].index(r["variante"])
+        hold = x["c"][1:] / x["c"][:-1] - 1  # détention simple, clôture à clôture, alignée sur net
+        out[f"{r['variante']}@{r['instrument']}"] = {
+            **trade_stats_v2(x["pos"][:, j], x["net"][:, j], x["dates"], x["cut"], x["cal"]),
+            "couts_doubles_positif": bool(x["net2"][x["cut"]:, j].mean() > 0),
+            "tiers_positifs": int(sum(t.mean() > 0 for t in np.array_split(x["net"][x["cut"]:, j], 3))),
+            "detention_simple": trade_stats_v2(np.ones(len(hold)), hold, x["dates"], x["cut"], x["cal"]), "p_holm": r["p_holm"]}
+    return out
+
+
+def feasibility_v2() -> dict:
+    """Plancher économique existant (10 € par achat, dmh.router.economic_minimum) : une poche en dessous est irréalisable
+    quel que soit le change ; au-dessus, la preuve exige un change daté et des pas de quantité qui ne sont pas disponibles."""
+    out = {}
+    for capital in CAPITALS:
+        rows = {}
+        for label, sleeve in (("huit_poches_equiponderees", capital / len(INSTRUMENTS)), ("portefeuille_entier_une_position", float(capital))):
+            rows[label] = {"poche_eur": sleeve, "statut": "irréalisable" if sleeve < ECONOMIC_FLOOR_EUR else "indéterminé",
+                           "motif": "sous le plancher économique de 10 € par achat" if sleeve < ECONOMIC_FLOOR_EUR
+                           else "change daté, pas de quantité et revente au bid non démontrés"}
+        out[str(capital)] = rows
+    return out
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Programme multi-actifs — vague 1 (simulation exclusive)")
     ap.add_argument("--cache", default="data/scalp-cache")
     ap.add_argument("--out", default="research/multi-v1/vague1.json")
     ap.add_argument("--trials", default="research/multi-v1/trials.jsonl")
     ap.add_argument("--descriptif", action="store_true", help="mesure descriptive a posteriori des candidats (sans validation)")
+    ap.add_argument("--v2", action="store_true", help="version 2 corrigée (exécution à l'ouverture, coupure collective commune)")
     args = ap.parse_args(argv)
     t0 = time.time()
+    if args.v2:
+        with httpx.Client(timeout=60, follow_redirects=True, headers={"User-Agent": "sentinelle-simulation"}) as client:
+            ohlc = load_ohlc(args.cache, client)
+        prep = prepare_v2(ohlc)
+        verdict = judge_v2(prep)
+        out = {"schema": "multi-vague1-v2", "status": "corrige la v1 (archivée) ; historique déjà consulté ; simulation exclusive ; aucune promotion",
+               "coupure_collective": COMMON_CUT, "couts_par_cote": SIDE_COST, **verdict, "descriptif_candidats": describe_v2(prep, verdict),
+               "faisabilite": feasibility_v2(), "seconds": round(time.time() - t0)}
+        Path(args.out.replace("vague1", "vague1-v2")).write_text(json.dumps(out, ensure_ascii=False) + "\n", encoding="utf-8")
+        print(json.dumps({k: out[k] for k in ("validations_collectives", "retenues", "selection")}, ensure_ascii=False))
+        if args.trials:
+            with open(args.trials, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "multi-vague1-v2", "kind": "result",
+                                     "validations_collectives": out["validations_collectives"], "retenues": out["retenues"],
+                                     "tests_les_plus_proches": sorted(out["tests"], key=lambda r: r["p_holm"])[:5]}, ensure_ascii=False) + "\n")
+        return out
     with httpx.Client(timeout=60, follow_redirects=True, headers={"User-Agent": "sentinelle-simulation"}) as client:
         closes = load_closes(args.cache, client)
     prep = prepare(closes)
