@@ -20,6 +20,7 @@ Une stratégie ne compte pour un instrument que si elle y est validée individue
 descriptive (mesurée sur la fenêtre de validation, elle ne filtre pas les faux selon MIRROR v4).
 
 Lancement : python -m sentinelle.scalp.multi_vague1
+            python -m sentinelle.scalp.multi_vague1 --descriptif   (mesure descriptive a posteriori, sans validation)
 """
 
 from __future__ import annotations
@@ -163,17 +164,33 @@ def feasibility(closes: dict[str, pd.Series], retained) -> dict:
     return out
 
 
+def descriptive(prep: dict, closes: dict[str, pd.Series], verdict: dict) -> dict:
+    """Mesure déclarée a posteriori (registre, 28 novembre) : candidats par instrument, hors échantillon et après coûts,
+    face à la détention simple ; faisabilité d'un portefeuille des huit poches. Aucune valeur de validation."""
+    cands = [(r["variante"], r["instrument"]) for r in verdict["tests"] if r["jugement"] == "par_instrument"]
+    return {"statut": "descriptif a posteriori ; ne modifie pas le verdict préenregistré", "candidats_par_instrument": describe(prep, cands),
+            "p_holm": {f"{r['variante']}@{r['instrument']}": r["p_holm"] for r in verdict["tests"] if r["jugement"] == "par_instrument"},
+            "faisabilite_huit_poches": feasibility(closes, [(None, n) for n in INSTRUMENTS])}
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Programme multi-actifs — vague 1 (simulation exclusive)")
     ap.add_argument("--cache", default="data/scalp-cache")
     ap.add_argument("--out", default="research/multi-v1/vague1.json")
     ap.add_argument("--trials", default="research/multi-v1/trials.jsonl")
+    ap.add_argument("--descriptif", action="store_true", help="mesure descriptive a posteriori des candidats (sans validation)")
     args = ap.parse_args(argv)
     t0 = time.time()
     with httpx.Client(timeout=60, follow_redirects=True, headers={"User-Agent": "sentinelle-simulation"}) as client:
         closes = load_closes(args.cache, client)
     prep = prepare(closes)
     verdict = judge(prep)
+    if args.descriptif:
+        out = descriptive(prep, closes, verdict)
+        target = Path(args.out).with_name(Path(args.out).stem + "-descriptif.json")
+        target.write_text(json.dumps(out, ensure_ascii=False) + "\n", encoding="utf-8")
+        print(json.dumps(out["faisabilite_huit_poches"], ensure_ascii=False))
+        return out
     out = {"schema": "multi-vague1", "status": "historique déjà consulté ; simulation exclusive ; aucune promotion",
            "couverture": {n: {"debut": str(s.index[0].date()), "fin": str(s.index[-1].date()), "jours": int(len(s)),
                               "annees_hors_echantillon": round((len(s) - 1 - prep[n]["cut"]) / prep[n]["cal"], 2)} for n, s in closes.items()},

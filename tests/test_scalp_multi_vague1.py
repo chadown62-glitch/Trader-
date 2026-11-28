@@ -70,3 +70,13 @@ def test_history_stops_before_the_reserved_period(monkeypatch, tmp_path):
     monkeypatch.setattr(V.actifs, "download", lambda *a, **k: long)
     closes = V.load_closes(tmp_path, client=None)
     assert all(s.index[-1] <= pd.Timestamp(V.LAST_DAY) for s in closes.values())
+
+
+def test_the_descriptive_table_covers_the_sixteen_candidates_and_never_validates():
+    closes = _closes(np.random.default_rng(4), 800)
+    prep = V.prepare(closes)
+    verdict = V.judge(prep)
+    out = V.descriptive(prep, closes, verdict)
+    assert len(out["candidats_par_instrument"]) == len({(r["variante"], r["instrument"]) for r in verdict["tests"] if r["jugement"] == "par_instrument"})
+    assert set(out["faisabilite_huit_poches"]) == {str(c) for c in V.CAPITALS} and "statut" in out
+    assert not any(out["faisabilite_huit_poches"]["30"].values())  # 3,75 € par poche : ni le minimum Binance ni une part de fonds
