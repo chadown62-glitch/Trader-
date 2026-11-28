@@ -605,15 +605,15 @@ Cette section formalise le cadrage demandé par le propriétaire le 26 novembre 
     - Sans correction des essais multiples, un programme de deux stratégies par actif valide des stratégies fausses dans 92 à 99 % des mondes sans avantage.
     - Avec une correction de Holm sur tout le programme, ce risque tombe à environ 3 %.
     - Mais avec trois ans hors échantillon, un vrai Sharpe de 1,5 n'est retrouvé que trois fois sur dix, actif par actif.
-    - Juger une même règle sur la moyenne de plusieurs actifs (jugement collectif) détecte environ deux fois plus souvent un avantage commun, sans perdre le contrôle des fausses validations.
-    - En revanche, ce jugement collectif manque les avantages propres à un seul actif.
+    - Juger une même règle sur la moyenne de plusieurs actifs (jugement collectif) détecte plus souvent un avantage commun, sans perdre le contrôle des fausses validations : 18 % contre 9 % pour un Sharpe de 0,5. C'est un constat descriptif sur 100 simulations, sans test d'écart.
+    - **Rectificatif du 28 novembre 2026** (revue indépendante de GPT Work) : quand l'avantage est propre à un seul actif, aucun des deux jugements ne le retrouve bien. Il y a 7/100 validations collectives, 9/100 validations individuelles quelque part, mais 6/100 seulement sur l'actif réellement porteur. L'infériorité du jugement collectif n'est donc pas démontrée.
     - **Correction d'interprétation du 27 novembre 2026** (signalée par le coordinateur) : une règle validée collectivement sur huit actifs ne constitue pas huit stratégies validées individuellement. La lecture « multiplie par huit le nombre de stratégies-actif validées » est retirée. Aucun résultat de MIRROR v1 à v3 n'est réécrit ; la distinction est mesurée par MIRROR v4, préenregistrée à part.
-  - **Ce que montre MIRROR v4** (#203, à revoir ; synthétique, vérité connue, futur jamais lu) :
+  - **Ce que montre MIRROR v4** (#203, avis scientifique favorable de GPT Work le 28 novembre ; synthétique, vérité connue, futur jamais lu) :
     - quand l'avantage ne concerne que les quatre cryptos, la moitié des stratégies-actif du comptage collectif ×8 n'ont aucun avantage réel ;
     - le jugement collectif suivi d'un jugement individuel n'en retient aucune fausse dans les six mondes, mais beaucoup moins de vraies ;
     - avec 34 tests corrigés ensemble et trois ans hors échantillon, un avantage de Sharpe 1 commun aux huit actifs ne donne en moyenne qu'environ une stratégie validée pour l'ensemble des huit instruments. L'objectif de deux par instrument exige donc des confirmations prospectives ;
     - la contribution marginale mesurée sur la fenêtre de validation ne filtre pas les faux.
-  - **Ce que montre MIRROR v5** (#203, à revoir ; puissance du jugement individuel sur la longueur réelle de chaque historique, en journalier) :
+  - **Ce que montre MIRROR v5** (#203, avis scientifique favorable de GPT Work le 28 novembre ; puissance du jugement individuel sur la longueur réelle de chaque historique, en journalier ; Holm sur 34 tests en borne prudente, 18 valeurs p fixées à 1 ; argent : durée de GLD par hypothèse, conservée même après l'autorisation de SLV) :
     - un Sharpe net de 1,5 n'est retrouvé que 6 à 14 % du temps sur BTC, ETH, SOL et XMR ;
     - sur l'or, l'argent, le Nasdaq-100 et le S&P 500, 50 % de puissance n'est atteint qu'à partir d'un Sharpe d'environ 1,2 à 1,3, et 80 % jamais en dessous de 1,5 ;
     - l'historique journalier seul ne permettra donc pas de valider deux stratégies par instrument : confirmations prospectives, granularité plus fine si ses coûts le permettent, ou spécialistes maintenus en observation.
